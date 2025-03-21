@@ -1,10 +1,11 @@
-import image from '../../assets/algojudge2.png'
-import classes from './Logo.module.css'
-import { Image } from '@mantine/core';
+import imageLight from '../../assets/algojudge.svg'
+import imageDark from '../../assets/algojudge-dark.svg'
+import { Image, useComputedColorScheme } from '@mantine/core';
 
 function Logo(props: any) {
+    const colorScheme = useComputedColorScheme();
     return (
-        <Image className={classes.ajlogo} src={image} h="1em" w="auto" {...props} />
+        <Image src={colorScheme == 'dark' ? imageDark : imageLight} h="1em" w="auto" {...props} />
     )
 }
 
