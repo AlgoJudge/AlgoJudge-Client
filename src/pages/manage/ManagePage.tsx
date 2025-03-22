@@ -3,7 +3,7 @@ import { Table } from '@mantine/core';
 import { ActivityInfo } from '../../../api/ActivityApi';
 import { useSession } from "../../provider/SessionProvider";
 
-function Manage() {
+function ManagePage() {
 
     const [activities, setActivities] = useState<ActivityInfo[]>([]);
     const { activityApi } = useSession();
@@ -41,4 +41,4 @@ function Manage() {
     )
 }
 
-export default Manage;
+export default ManagePage;

@@ -1,12 +1,12 @@
 import { Alert, Anchor, Box, Button, Checkbox, Container, Group, LoadingOverlay, Paper, PasswordInput, Text, TextInput, Title } from "@mantine/core";
 import { useTranslation } from "react-i18next";
-import classes from './Register.module.css';
+import classes from './RegisterPage.module.css';
 import { IconInfoCircle } from "@tabler/icons-react";
 import { useState } from "react";
 import { useSession } from "../../provider/SessionProvider";
 import { UnauthorizedError } from "../../../api/ApiRequester";
 
-function Register() {
+function RegisterPage() {
     const { t } = useTranslation();
     const [error, setError] = useState<string | undefined>(undefined);
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -61,4 +61,4 @@ function Register() {
     )
 }
 
-export default Register;
+export default RegisterPage;

@@ -2,7 +2,7 @@ import { Button } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
-function Home() {
+function HomePage() {
     const { t } = useTranslation();
 
     return (
@@ -13,4 +13,4 @@ function Home() {
     )
 }
 
-export default Home;
+export default HomePage;

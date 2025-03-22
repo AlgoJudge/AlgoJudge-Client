@@ -18,9 +18,9 @@ import { Navigate } from 'react-router-dom';
 import { UnauthorizedError } from '../../../api/ApiRequester';
 import { useAuth } from '../../provider/AuthProvider';
 import { useSession } from '../../provider/SessionProvider';
-import classes from './Login.module.css';
+import classes from './LoginPage.module.css';
 
-function Login() {
+function LoginPage() {
     const { t } = useTranslation();
 
     const [logged, setLogged] = useState(false);
@@ -85,4 +85,4 @@ function Login() {
     );
 }
 
-export default Login;
+export default LoginPage;

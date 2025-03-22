@@ -6,10 +6,10 @@ import { MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import Layout from './Layout';
-import Home from './pages/home/Home';
-import Login from './pages/login/Login';
-import Manage from './pages/manage/Manage';
-import Register from './pages/register/Register';
+import HomePage from './pages/home/HomePage';
+import LoginPage from './pages/login/LoginPage';
+import ManagePage from './pages/manage/ManagePage';
+import RegisterPage from './pages/register/RegisterPage';
 import Authentication from './routers/Authentication';
 import AppLayout from './layouts/app/AppLayout';
 import ActivitiesPage from './pages/activities/ActivitiesPage';
@@ -32,19 +32,19 @@ function App() {
             children: [
                 {
                     path: "/",
-                    element: <Home />
+                    element: <HomePage />
                 },
                 {
                     path: "/login",
-                    element: <Login />
+                    element: <LoginPage />
                 },
                 {
                     path: "/register",
-                    element: <Register />
+                    element: <RegisterPage />
                 },
                 {
                     path: "/manage",
-                    element: <Authentication><Manage /></Authentication>
+                    element: <Authentication><ManagePage /></Authentication>
                 }
             ]
         },
