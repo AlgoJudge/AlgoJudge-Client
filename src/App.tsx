@@ -13,15 +13,15 @@ import Register from './pages/register/Register';
 import Authentication from './routers/Authentication';
 import AppLayout from './layouts/app/AppLayout';
 import ActivitiesPage from './pages/activities/ActivitiesPage';
-import ProblemsPage from './pages/activity/problems/ProblemsPage';
-import SubmitPage from './pages/activity/submit/SubmitPage';
-import SubmissionsPage from './pages/activity/submissions/SubmissionsPage';
-import RankingPage from './pages/activity/ranking/RankingPage';
-import QuestionsPage from './pages/activity/questions/QuestionsPage';
-import RulesPage from './pages/activity/rules/RulesPage';
-import ProblemPage from './pages/activity/problem/ProblemPage';
-import SubmissionPage from './pages/activity/submission/SubmissionPage';
-import CodePage from './pages/activity/submission/code/CodePage';
+import ProblemsPage from './pages/activities/activity_id/problems/ProblemsPage';
+import SubmitPage from './pages/activities/activity_id/submit/SubmitPage';
+import SubmissionsPage from './pages/activities/activity_id/submissions/SubmissionsPage';
+import RankingPage from './pages/activities/activity_id/ranking/RankingPage';
+import QuestionsPage from './pages/activities/activity_id/questions/QuestionsPage';
+import RulesPage from './pages/activities/activity_id/rules/RulesPage';
+import ProblemPage from './pages/activities/activity_id/problems/problem_id/ProblemPage';
+import SubmissionPage from './pages/activities/activity_id/submissions/submission_id/SubmissionPage';
+import CodePage from './pages/activities/activity_id/submissions/submission_id/code/CodePage';
 
 function App() {
 
@@ -57,39 +57,39 @@ function App() {
                     element: <ActivitiesPage />
                 },
                 {
-                    path: "/activity/:activityId/problems",
+                    path: "/activities/:activityId/problems",
                     element: <ProblemsPage />
                 },
                 {
-                    path: "/activity/:activityId/submit/:problemId?",
+                    path: "/activities/:activityId/submit/:problemId?",
                     element: <SubmitPage />
                 },
                 {
-                    path: "/activity/:activityId/submissions",
+                    path: "/activities/:activityId/submissions",
                     element: <SubmissionsPage />
                 },
                 {
-                    path: "/activity/:activityId/ranking",
+                    path: "/activities/:activityId/ranking",
                     element: <RankingPage />
                 },
                 {
-                    path: "/activity/:activityId/questions",
+                    path: "/activities/:activityId/questions",
                     element: <QuestionsPage />
                 },
                 {
-                    path: "/activity/:activityId/rules",
+                    path: "/activities/:activityId/rules",
                     element: <RulesPage />
                 },
                 {
-                    path: "/activity/:activityId/problem/:problemId",
+                    path: "/activities/:activityId/problems/:problemId",
                     element: <ProblemPage />
                 },
                 {
-                    path: "/activity/:activityId/submission/:submissionId",
+                    path: "/activities/:activityId/submissions/:submissionId",
                     element: <SubmissionPage />
                 },
                 {
-                    path: "/activity/:activityId/submission/:submissionId/code",
+                    path: "/activities/:activityId/submissions/:submissionId/code",
                     element: <CodePage />
                 }
             ]

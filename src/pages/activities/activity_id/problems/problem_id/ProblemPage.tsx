@@ -18,7 +18,7 @@ export default function ProblemPage() {
             <Title>{t("Problem")}</Title>
             <Group justify="space-between">
                 <Button onClick={() => navigate(-1)}>{t("Back")}</Button>
-                <Button component={Link} to={`/activity/${params.activityId}/submit/${params.problemId}`}>{t("Submit")}</Button>
+                <Button component={Link} to={`/activities/${params.activityId}/submit/${params.problemId}`}>{t("Submit")}</Button>
             </Group>
         </>
     );

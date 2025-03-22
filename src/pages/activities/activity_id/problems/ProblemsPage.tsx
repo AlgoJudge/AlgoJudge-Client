@@ -79,10 +79,10 @@ const placeholderProblems: Problem[] = [
 const Problem = (props: { problem: Problem, activityId: string }) => {
     const { t } = useTranslation();
     return (
-        <Card className={classes.problem} component={Link} to={`/activity/${props.activityId}/problem/${props.problem.id}`}>
+        <Card className={classes.problem} component={Link} to={`/activities/${props.activityId}/problems/${props.problem.id}`}>
             <Group justify="space-between">
                 <Text size="md">[{props.problem.id}] {props.problem.name}</Text>
-                <Button component={Link} to={`/activity/${props.activityId}/submit/${props.problem.id}`}>{t("Submit")}</Button>
+                <Button component={Link} to={`/activities/${props.activityId}/submit/${props.problem.id}`}>{t("Submit")}</Button>
             </Group>
         </Card>
     );

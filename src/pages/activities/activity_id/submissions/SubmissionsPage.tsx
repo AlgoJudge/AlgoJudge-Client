@@ -15,7 +15,7 @@ export default function SubmissionsPage() {
     return (
         <>
             <Title>{t("My submissions")}</Title>
-            <Link to={`/activity/${params.activityId}/submission/1`}>Example of link to specyfic submission</Link>
+            <Link to={`/activities/${params.activityId}/submissions/1`}>Example of link to specyfic submission</Link>
         </>
     );
 }

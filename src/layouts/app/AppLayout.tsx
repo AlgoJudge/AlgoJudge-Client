@@ -46,12 +46,12 @@ const ActivityNavbar = (props: { collapsed: boolean }) => {
     }
     if (!currentActivity) return;
     const links = [
-        { to: `/activity/${currentActivity.id}/problems`, label: t("Problems"), icon: IconNotes },
-        { to: `/activity/${currentActivity.id}/submit`, label: t("Submit"), icon: IconPackageExport },
-        { to: `/activity/${currentActivity.id}/submissions`, label: t("My submissions"), icon: IconBox },
-        currentActivity.hasRanking && { to: `/activity/${currentActivity.id}/ranking`, label: t("Ranking"), icon: IconChartBarPopular },
-        currentActivity.hasQestions && { to: `/activity/${currentActivity.id}/questions`, label: t("Questions and announcements"), icon: IconMessageQuestion },
-        currentActivity.hasRules && { to: `/activity/${currentActivity.id}/rules`, label: t("Rules"), icon: IconSectionSign },
+        { to: `/activities/${currentActivity.id}/problems`, label: t("Problems"), icon: IconNotes },
+        { to: `/activities/${currentActivity.id}/submit`, label: t("Submit"), icon: IconPackageExport },
+        { to: `/activities/${currentActivity.id}/submissions`, label: t("My submissions"), icon: IconBox },
+        currentActivity.hasRanking && { to: `/activities/${currentActivity.id}/ranking`, label: t("Ranking"), icon: IconChartBarPopular },
+        currentActivity.hasQestions && { to: `/activities/${currentActivity.id}/questions`, label: t("Questions and announcements"), icon: IconMessageQuestion },
+        currentActivity.hasRules && { to: `/activities/${currentActivity.id}/rules`, label: t("Rules"), icon: IconSectionSign },
     ]
     return (
         <>

@@ -18,7 +18,7 @@ export default function SubmissionPage() {
             <Title>{t("Submission")}</Title>
             <Group justify="space-between">
                 <Button onClick={() => navigate(-1)}>{t("Back")}</Button>
-                <Button component={Link} to={`/activity/${params.activityId}/submission/${params.submissionId}/code`}>{t("Source code")}</Button>
+                <Button component={Link} to={`/activities/${params.activityId}/submissions/${params.submissionId}/code`}>{t("Source code")}</Button>
             </Group>
         </>
     );
