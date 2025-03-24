@@ -1,4 +1,4 @@
-import { Title } from "@mantine/core";
+import { Anchor, Title } from "@mantine/core";
 import classes from "./SubmissionsPage.module.css"
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
@@ -15,7 +15,7 @@ export default function SubmissionsPage() {
     return (
         <>
             <Title>{t("My submissions")}</Title>
-            <Link to={`/activities/${params.activityId}/submissions/1`}>Example of link to specyfic submission</Link>
+            <Anchor component={Link} to={`/activities/${params.activityId}/submissions/1`}>Example of link to specyfic submission</Anchor>
         </>
     );
 }
