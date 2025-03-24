@@ -30,7 +30,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const { loginApi } = useSession();
     const redirectPath = location.state?.path || '/';
     console.log("REDPATH", redirectPath);
-    const [user, setUser] = useState<User | null | undefined>(undefined);
+    const [user, setUser] = useState<User | null | undefined>(null);
     const login = (model: LoginModel) => {
         // TODO: tmp
         setUser({ email: model.email });
@@ -42,12 +42,12 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
         navigate(redirectPath, { replace: true });
     }
 
-    useEffect(() => {
-        loginApi.getInfo().then(info => {
-            setUser({ email: info.email });
-            navigate(redirectPath, { replace: true });
-        }).catch(() => setUser(null));
-    }, [])
+    // useEffect(() => {
+    //     loginApi.getInfo().then(info => {
+    //         setUser({ email: info.email });
+    //         navigate(redirectPath, { replace: true });
+    //     }).catch(() => setUser(null));
+    // }, [])
 
     return (
         <AuthContext.Provider value={{ user, login, logout }}>{children}</AuthContext.Provider>
