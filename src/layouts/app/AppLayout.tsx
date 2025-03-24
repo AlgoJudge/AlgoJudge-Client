@@ -23,6 +23,7 @@ const NavbarLink = (props: { label: string, collapsed: boolean, to: string, icon
                 data-collapsed={props.collapsed || undefined}
                 to={props.to}
                 key={props.to}
+                end
             >
                 <props.icon className={classes.linkIcon} stroke={1.5} />
                 <span>{props.label}</span>
