@@ -29,7 +29,6 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const location = useLocation();
     const { loginApi } = useSession();
     const redirectPath = location.state?.path || '/';
-    console.log("REDPATH", redirectPath);
     const [user, setUser] = useState<User | null | undefined>(null);
     const login = (model: LoginModel) => {
         // TODO: tmp

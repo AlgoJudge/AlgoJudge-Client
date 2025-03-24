@@ -11,8 +11,6 @@ function Footer() {
     const { t } = useTranslation();
     const { theme, setTheme, setLang } = usePreferences();
 
-    useEffect(() => console.log("XXD", [theme]))
-
     const links = [
         { link: 'https://algojudge.pl', label: t('About'), prev: false },
     ];
@@ -31,7 +29,7 @@ function Footer() {
             label: 'Theme',
             links: [
                 { link: '#2-light', label: 'Light', func: () => setTheme('light') },
-                { link: '#2-dark', label: 'Dark', func: () => { console.log("DARK"); setTheme('dark') } },
+                { link: '#2-dark', label: 'Dark', func: () => setTheme('dark') },
             ],
         }
     ];
