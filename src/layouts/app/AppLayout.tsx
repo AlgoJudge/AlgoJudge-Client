@@ -1,9 +1,9 @@
-import { AppShell, Burger, Group, UnstyledButton, Text, Divider, Tooltip, Menu, useMantineColorScheme, useComputedColorScheme } from "@mantine/core";
+import { AppShell, Burger, Group, UnstyledButton, Text, Divider, Tooltip, Menu, useMantineColorScheme, useComputedColorScheme, AppShellFooter } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { NavLink, Outlet, useParams } from "react-router-dom";
+import { NavLink, Outlet, useMatch, useParams } from "react-router-dom";
 import Logo from "../../components/logo/Logo";
 import classes from "./AppLayout.module.css";
-import { Icon, IconBox, IconChartBarPopular, IconChevronDown, IconChevronsLeft, IconChevronsRight, IconListDetails, IconLogout, IconMessageQuestion, IconMoon, IconNotes, IconPackageExport, IconProps, IconSectionSign, IconSun } from "@tabler/icons-react";
+import { Icon, IconAlignBoxCenterTop, IconBox, IconChartBarPopular, IconChevronDown, IconChevronsLeft, IconChevronsRight, IconDevicesPc, IconIdBadge2, IconListDetails, IconLogout, IconMessageQuestion, IconMoon, IconNotes, IconPackageExport, IconPrinter, IconProps, IconSectionSign, IconServer, IconSun, IconUserCheck, IconUsers, IconWorldWww } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -29,6 +29,32 @@ const NavbarLink = (props: { label: string, collapsed: boolean, to: string, icon
                 <span>{props.label}</span>
             </NavLink>
         </Tooltip>
+    );
+}
+
+const ManagerNavbar = (props: { collapsed: boolean }) => {
+    const { t } = useTranslation();
+    const match = useMatch({path: "/manager", end: false});
+    if (!match) return;
+    const links = [
+        { to: `/manager/users`, label: t("Users"), icon: IconUsers },
+        { to: `/manager/roles`, label: t("Roles"), icon: IconUserCheck },
+        { to: `/manager/oidc`, label: t("External logins"), icon: IconIdBadge2 },
+        { to: `/manager/lti`, label: t("LTI platforms"), icon: IconAlignBoxCenterTop },
+        { to: `/manager/external-content`, label: t("Extarnal content"), icon: IconWorldWww },
+        { to: `/manager/runners`, label: t("Runners"), icon: IconServer },
+        { to: `/manager/workstations`, label: t("Workstations"), icon: IconDevicesPc },
+        { to: `/manager/printers`, label: t("Printers"), icon: IconPrinter },
+        { to: `/manager/problems`, label: t("Problems"), icon: IconNotes },
+        { to: `/manager/activities`, label: t("Activities"), icon: IconListDetails },
+        { to: `/manager/submissions`, label: t("Submissions"), icon: IconBox },
+        { to: `/manager/questions`, label: t("Questions and announcements"), icon: IconMessageQuestion },
+    ]
+    return (
+        <>
+            {links.map(item => item && <NavbarLink key={item.to} to={item.to} label={item.label} icon={item.icon} collapsed={props.collapsed} />)}
+            <Divider my="md" className={classes.divider} />
+        </>
     );
 }
 
@@ -184,6 +210,7 @@ export default function AppLayout() {
 
             <AppShell.Navbar p="md" className={classes.navbar}>
                 <ActivityNavbar collapsed={collapsed} />
+                <ManagerNavbar collapsed={collapsed} />
                 <NavbarLink to={`/activities`} label={t("Activities")} icon={IconListDetails} collapsed={collapsed} />
                 <Divider my="md" className={classes.divider} />
                 {CollapseButton}
