@@ -55,7 +55,8 @@ export default defineConfig(({mode}) => {
         plugins: [plugin()],
         resolve: {
             alias: {
-                '@': fileURLToPath(new URL('./src', import.meta.url))
+                '@': fileURLToPath(new URL('./src', import.meta.url)),
+                '@tabler/icons-react': '@tabler/icons-react/dist/esm/icons/index.mjs',
             }
         },
         server: {
