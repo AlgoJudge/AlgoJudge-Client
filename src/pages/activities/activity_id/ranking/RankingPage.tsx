@@ -171,56 +171,55 @@ const data: Model = {
 	],
 };
 
-const rows = data.contestants.map((contestant) => {
-	let contestPoints: number = 0;
+export default function RankingPage() {
+	const { t } = useTranslation();
+	const [expandedRound, setExpandedRound] = useState("");
 
-	const roundRows = data.rounds.map((round) => {
-		const contestantRound = contestant.completedRounds.find(
-			(cRound) => cRound.id === round.id
-		);
-		let roundPoints: number = 0;
+	const rows = data.contestants.map((contestant) => {
+		let contestPoints: number = 0;
 
-		const problemPoints = round.problems.map((problem) => {
-			const contestantProblem = contestantRound?.completedProblems.find(
-				(cProblem) => cProblem.id === problem.id
+		const roundRows = data.rounds.map((round) => {
+			const contestantRound = contestant.completedRounds.find(
+				(cRound) => cRound.id === round.id
 			);
-			roundPoints += contestantProblem?.points || 0;
+			let roundPoints: number = 0;
 
-			return <Table.Td>{contestantProblem?.points || "-"}</Table.Td>;
+			const problemPoints = round.problems.map((problem) => {
+				const contestantProblem = contestantRound?.completedProblems.find(
+					(cProblem) => cProblem.id === problem.id
+				);
+				roundPoints += contestantProblem?.points || 0;
+
+				return (
+					expandedRound === round.id && (
+						<Table.Td>{contestantProblem?.points || "-"}</Table.Td>
+					)
+				);
+			});
+
+			contestPoints += roundPoints;
+
+			return (
+				<>
+					<Table.Td>{roundPoints}</Table.Td>
+					{problemPoints}
+				</>
+			);
 		});
 
-		contestPoints += roundPoints;
-
 		return (
-			<>
-				<Table.Td>{roundPoints}</Table.Td>
-				{problemPoints}
-			</>
+			<Table.Tr key={contestant.id}>
+				<Table.Td>{contestant.name}</Table.Td>
+				<Table.Td>{`${contestant.completedRounds.length}/${data.rounds.length}`}</Table.Td>
+				<Table.Td>{contestPoints}</Table.Td>
+				{roundRows}
+			</Table.Tr>
 		);
 	});
 
-	return (
-		<Table.Tr key={contestant.id}>
-			<Table.Td>{contestant.name}</Table.Td>
-			<Table.Td>{`${contestant.completedRounds.length}/${data.rounds.length}`}</Table.Td>
-			<Table.Td>{contestPoints}</Table.Td>
-			{/* {data.rounds.map((round) => {
-				return (
-					<Table.Td>
-						{
-							contestant.completedRounds.find((user) => user.id === round.id)
-								?.points
-						}
-					</Table.Td>
-				);
-			})} */}
-			{roundRows}
-		</Table.Tr>
-	);
-});
-
-export default function RankingPage() {
-	const { t } = useTranslation();
+	function expandButtonManager(id: string) {
+		setExpandedRound((prev) => (id !== prev ? id : ""));
+	}
 
 	return (
 		<>
@@ -234,10 +233,16 @@ export default function RankingPage() {
 						<Table.Th>Sum</Table.Th>
 						{data.rounds.map((round) => (
 							<>
-								<Table.Th key={round.id}>{round.name}</Table.Th>
-								{round.problems.map((problem) => (
-									<Table.Th key={problem.id}>{problem.name}</Table.Th>
-								))}
+								<Table.Th
+									key={round.id}
+									onClick={() => expandButtonManager(round.id)}
+								>
+									{round.name}
+								</Table.Th>
+								{expandedRound === round.id &&
+									round.problems.map((problem) => (
+										<Table.Th key={problem.id}>{problem.name}</Table.Th>
+									))}
 							</>
 						))}
 					</Table.Tr>
