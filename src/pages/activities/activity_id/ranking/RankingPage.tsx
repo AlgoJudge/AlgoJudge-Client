@@ -3,19 +3,31 @@ import classes from "./RankingPage.module.css";
 import { useTranslation } from "react-i18next";
 
 import { Table } from "@mantine/core";
+import { useState } from "react";
 
 interface Contestant {
 	id: string;
 	name: string;
-	completedProblems: FinishedProblem[];
+	completedRounds: ContestantRound[];
 }
 
-interface FinishedProblem {
+interface ContestantRound {
+	id: string;
+	completedProblems: ContestantProblem[];
+}
+
+interface ContestantProblem {
 	id: string;
 	points: number;
 }
 
 interface Round {
+	id: string;
+	name: string;
+	problems: Problem[];
+}
+
+interface Problem {
 	id: string;
 	name: string;
 }
@@ -30,78 +42,129 @@ const data: Model = {
 	activityName: "Contest 1",
 	rounds: [
 		{
-			id: "id1",
+			id: "r1",
 			name: "Round 1",
+			problems: [
+				{
+					id: "r1p1",
+					name: "R1 Problem 1",
+				},
+				{
+					id: "r1p2",
+					name: "R1 Problem 2",
+				},
+			],
 		},
 		{
-			id: "id2",
+			id: "r2",
 			name: "Round 2",
+			problems: [
+				{
+					id: "r2p1",
+					name: "R2 Problem 1",
+				},
+				{
+					id: "r2p2",
+					name: "R2 Problem 2",
+				},
+			],
 		},
 		{
-			id: "id3",
+			id: "r3",
 			name: "Round 3",
-		},
-		{
-			id: "id4",
-			name: "Round 4",
+			problems: [
+				{
+					id: "r3p1",
+					name: "R3 Problem 1",
+				},
+				{
+					id: "r3p2",
+					name: "R3 Problem 2",
+				},
+				{
+					id: "r3p2",
+					name: "R3 Problem 2",
+				},
+			],
 		},
 	],
 	contestants: [
 		{
 			id: "C1",
 			name: "Contestant 1",
-			completedProblems: [
+			completedRounds: [
 				{
-					id: "id1",
-					points: 80,
+					id: "r1",
+					completedProblems: [
+						{
+							id: "r1p1",
+							points: 30,
+						},
+						{
+							id: "r1p2",
+							points: 60,
+						},
+					],
 				},
 				{
-					id: "id2",
-					points: 50,
-				},
-				{
-					id: "id4",
-					points: 100,
+					id: "r2",
+					completedProblems: [
+						{
+							id: "r2p1",
+							points: 80,
+						},
+					],
 				},
 			],
 		},
 		{
 			id: "C2",
 			name: "Contestant 2",
-			completedProblems: [
+			completedRounds: [
 				{
-					id: "id1",
-					points: 20,
-				},
-				{
-					id: "id3",
-					points: 10,
-				},
-				{
-					id: "id4",
-					points: 600,
+					id: "r2",
+					completedProblems: [
+						{
+							id: "r2p1",
+							points: 50,
+						},
+						{
+							id: "r2p2",
+							points: 30,
+						},
+					],
 				},
 			],
 		},
 		{
 			id: "C3",
 			name: "Contestant 3",
-			completedProblems: [
+			completedRounds: [
 				{
-					id: "id1",
-					points: 100,
+					id: "r1",
+					completedProblems: [
+						{
+							id: "r1p1",
+							points: 100,
+						},
+						{
+							id: "r1p2",
+							points: 100,
+						},
+					],
 				},
 				{
-					id: "id2",
-					points: 100,
-				},
-				{
-					id: "id3",
-					points: 90,
-				},
-				{
-					id: "id4",
-					points: 100,
+					id: "r2",
+					completedProblems: [
+						{
+							id: "r2p1",
+							points: 70,
+						},
+						{
+							id: "r2p2",
+							points: 90,
+						},
+					],
 				},
 			],
 		},
@@ -109,32 +172,56 @@ const data: Model = {
 };
 
 const rows = data.contestants.map((contestant) => {
-	let completedSum: number = 0;
-	let pointsSum: number = 0;
-	contestant.completedProblems.forEach((problem) => {
-		completedSum++;
-		pointsSum += problem.points;
+	let contestPoints: number = 0;
+
+	const roundRows = data.rounds.map((round) => {
+		const contestantRound = contestant.completedRounds.find(
+			(cRound) => cRound.id === round.id
+		);
+		let roundPoints: number = 0;
+
+		const problemPoints = round.problems.map((problem) => {
+			const contestantProblem = contestantRound?.completedProblems.find(
+				(cProblem) => cProblem.id === problem.id
+			);
+			roundPoints += contestantProblem?.points || 0;
+
+			return <Table.Td>{contestantProblem?.points || "-"}</Table.Td>;
+		});
+
+		contestPoints += roundPoints;
+
+		return (
+			<>
+				<Table.Td>{roundPoints}</Table.Td>
+				{problemPoints}
+			</>
+		);
 	});
 
 	return (
 		<Table.Tr key={contestant.id}>
 			<Table.Td>{contestant.name}</Table.Td>
-			<Table.Td>{`${completedSum}/${data.rounds.length}`}</Table.Td>
-			<Table.Td>{pointsSum}</Table.Td>
-			{data.rounds.map((problem) => (
-				<Table.Td>
-					{
-						contestant.completedProblems.find((user) => user.id === problem.id)
-							?.points
-					}
-				</Table.Td>
-			))}
+			<Table.Td>{`${contestant.completedRounds.length}/${data.rounds.length}`}</Table.Td>
+			<Table.Td>{contestPoints}</Table.Td>
+			{/* {data.rounds.map((round) => {
+				return (
+					<Table.Td>
+						{
+							contestant.completedRounds.find((user) => user.id === round.id)
+								?.points
+						}
+					</Table.Td>
+				);
+			})} */}
+			{roundRows}
 		</Table.Tr>
 	);
 });
 
 export default function RankingPage() {
 	const { t } = useTranslation();
+
 	return (
 		<>
 			<Title>{t("Ranking")}</Title>
@@ -145,8 +232,13 @@ export default function RankingPage() {
 						<Table.Th>User</Table.Th>
 						<Table.Th>Completed Problems</Table.Th>
 						<Table.Th>Sum</Table.Th>
-						{data.rounds.map((problem) => (
-							<Table.Th>{problem.name}</Table.Th>
+						{data.rounds.map((round) => (
+							<>
+								<Table.Th key={round.id}>{round.name}</Table.Th>
+								{round.problems.map((problem) => (
+									<Table.Th key={problem.id}>{problem.name}</Table.Th>
+								))}
+							</>
 						))}
 					</Table.Tr>
 				</Table.Thead>
