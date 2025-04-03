@@ -242,13 +242,19 @@ export default function RankingPage() {
 		<>
 			<Title>{t("Ranking")}</Title>
 
-			<Table>
+			<Table
+				stickyHeader
+				tabularNums
+				striped
+				highlightOnHover
+				withColumnBorders
+			>
 				<Table.Thead>
 					<Table.Tr>
-						<Table.Th>Place</Table.Th>
-						<Table.Th>User</Table.Th>
-						<Table.Th>Completed Problems</Table.Th>
-						<Table.Th>Sum</Table.Th>
+						<Table.Th>{t("Place")}</Table.Th>
+						<Table.Th>{t("Contestant")}</Table.Th>
+						<Table.Th>{t("Completed tasks")}</Table.Th>
+						<Table.Th>{t("Sum")}</Table.Th>
 						{data.rounds.map((round) => (
 							<>
 								<Table.Th
