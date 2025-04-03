@@ -175,7 +175,23 @@ export default function RankingPage() {
 	const { t } = useTranslation();
 	const [expandedRound, setExpandedRound] = useState("");
 
-	const rows = data.contestants.map((contestant) => {
+	data.contestants.sort((a: Contestant, b: Contestant) => {
+		return sumPoints(b) - sumPoints(a);
+	});
+
+	function sumPoints(contestant: Contestant): number {
+		let contestPoints: number = 0;
+
+		contestant.completedRounds.map((round) => {
+			round.completedProblems.map(
+				(problem) => (contestPoints += problem.points)
+			);
+		});
+
+		return contestPoints;
+	}
+
+	const rows = data.contestants.map((contestant, index) => {
 		let contestPoints: number = 0;
 
 		const roundRows = data.rounds.map((round) => {
@@ -209,6 +225,7 @@ export default function RankingPage() {
 
 		return (
 			<Table.Tr key={contestant.id}>
+				<Table.Td>{index + 1}</Table.Td>
 				<Table.Td>{contestant.name}</Table.Td>
 				<Table.Td>{`${contestant.completedRounds.length}/${data.rounds.length}`}</Table.Td>
 				<Table.Td>{contestPoints}</Table.Td>
@@ -228,6 +245,7 @@ export default function RankingPage() {
 			<Table>
 				<Table.Thead>
 					<Table.Tr>
+						<Table.Th>Place</Table.Th>
 						<Table.Th>User</Table.Th>
 						<Table.Th>Completed Problems</Table.Th>
 						<Table.Th>Sum</Table.Th>
