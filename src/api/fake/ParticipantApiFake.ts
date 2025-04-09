@@ -1,6 +1,7 @@
 import { ParticipantEventDispatcherImpl } from "../impl/ParticipantEventDispatcher";
 import { Activity, ParticipantApi } from "../ParticipantApi";
 import { Utils } from "./Utils";
+import { faker } from "@faker-js/faker"
 
 const data: Activity[] = [
     {
@@ -79,28 +80,38 @@ const data: Activity[] = [
 ];
 
 class FakeActivitiesService {
-    private activities: Activity[] = [];
+    private activities: Activity[] | undefined = undefined;
     constructor(private eventDispatcher: ParticipantEventDispatcherImpl) {}
     getActivities(): Activity[] {
         this.ensureActivitiesCreated();
-        return this.activities;
+        return this.activities!;
     }
     getActivity(id: string): Activity {
         this.ensureActivitiesCreated();
-        return this.activities.find(a => a.id === id) ?? Utils.throwError("No activities");
+        return this.activities!.find(a => a.id === id) ?? Utils.throwError("Activity does not exist");
     }
 
     private ensureActivitiesCreated() {
-        if (this.activities.length == 0) {
+        if (!this.activities) {
+            this.activities = [];
             this.generateActivities();
+            this.startLoop();
         }
     }
 
     private async generateActivities() {
         for (const activity of data) {
             await Utils.sleep(400);
-            this.activities = [activity, ...this.activities];
+            this.activities = [{...activity, name: faker.commerce.productName()}, ...this.activities!];
             this.eventDispatcher.dispatchActivityCreatedEvent({activity});
+        }
+    }
+
+    private async startLoop() {
+        while (true) {
+            await Utils.sleep(1000);
+            this.activities = [{...this.activities![0], name: faker.commerce.productName()}, ...this.activities!.slice(1)];
+            this.eventDispatcher.dispatchActivityUpdatedEvent({activity: this.activities[0]});
         }
     }
 }
@@ -110,12 +121,12 @@ export class ParticipantApiFake implements ParticipantApi {
     private readonly fakeService: FakeActivitiesService = new FakeActivitiesService(this.eventDispatcher);
     constructor(private sleepMs: number = 700) {}
     async getActivities(signal: AbortSignal): Promise<Activity[]> {
-        await this.sleep();
+        // await this.sleep();
         signal.throwIfAborted();
         return this.fakeService.getActivities();
     }
     async getActivity(id: string, signal: AbortSignal): Promise<Activity> {
-        await this.sleep();
+        // await this.sleep();
         signal.throwIfAborted();
         return this.fakeService.getActivity(id);
     }

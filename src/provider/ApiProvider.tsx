@@ -1,4 +1,4 @@
-import { createContext, FC, ReactNode, useContext, useEffect } from "react";
+import { createContext, DependencyList, FC, ReactNode, useContext, useEffect } from "react";
 import { ApiFactory } from "../api/ApiFactory";
 import { Api } from "../api/Api";
 import { ScopedApi } from "../api/ScopedApi";
@@ -18,11 +18,11 @@ export const useApi = (): Api => {
     return context;
 }
 
-export const useApiEffect = (f: (api: ScopedApi) => Promise<void>): void => {
+export const useApiEffect = (f: (api: ScopedApi) => Promise<void>, deps: DependencyList = []): void => {
     const api = useApi();
     useEffect(() => {
         const controller = new AbortController();
         f(new ScopedApi(api, controller.signal));
         return () => controller.abort();
-    }, [])
+    }, deps);
 }
