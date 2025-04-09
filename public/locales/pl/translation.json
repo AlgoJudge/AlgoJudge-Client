@@ -25,5 +25,15 @@
   "Problem": "Zadanie",
   "Submission": "Zgłoszenie",
   "Back": "Wróć",
-  "Source code": "Kod źródłowy"
+  "Source code": "Kod źródłowy",
+  "Search by topic": "Szukaj po temacie",
+  "Sort": "Sortuj",
+  "Date":  "Data",
+  "Topic": "Temat",
+  "Exercise": "Zadanie",
+  "Group": "Grupa",
+  "Author": "Autor",
+  "All groups": "Wszystkie grupy",
+  "All exercise": "Wszystkie zadania",
+  "General": "Ogólne"
 }
