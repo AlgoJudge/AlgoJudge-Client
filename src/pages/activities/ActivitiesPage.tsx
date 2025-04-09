@@ -25,12 +25,12 @@ export default function ActivitiesPage() {
     const navigate = useNavigate();
     const [data, setData] = useState<Activity[]>();
     const [page, setPage] = useState<number>(1);
-    useApiEffect(async (api, signal) => {
+    useApiEffect(async (api) => {
         const getData = async () => {
-            const data = await api.participantApi.getActivities(signal);
+            const data = await api.participantApi.getActivities();
             setData(data);
         }
-        api.participantApi.eventDispatcher.addActivityCreatedEventListener(() => getData(), signal);
+        api.participantApi.eventDispatcher.addActivityCreatedEventListener(() => getData());
         await getData();
     });
     if (!data) return;

@@ -1,6 +1,7 @@
 import { createContext, FC, ReactNode, useContext, useEffect } from "react";
 import { ApiFactory } from "../api/ApiFactory";
 import { Api } from "../api/Api";
+import { ScopedApi } from "../api/ScopedApi";
 
 const ApiContext = createContext<Api|undefined>(undefined);
 
@@ -17,11 +18,11 @@ export const useApi = (): Api => {
     return context;
 }
 
-export const useApiEffect = (f: (api: Api, signal: AbortSignal) => Promise<void>): void => {
+export const useApiEffect = (f: (api: ScopedApi) => Promise<void>): void => {
     const api = useApi();
     useEffect(() => {
         const controller = new AbortController();
-        f(api, controller.signal);
+        f(new ScopedApi(api, controller.signal));
         return () => controller.abort();
     }, [])
 }
