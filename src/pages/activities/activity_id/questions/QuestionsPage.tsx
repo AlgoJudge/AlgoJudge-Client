@@ -1,6 +1,6 @@
 import { Title } from "@mantine/core";
-import classes from "./QuestionsPage.module.css"
 import { useTranslation } from "react-i18next";
+import QuestionFormModal from "./submit_question/QuestionFormModal";
 
 interface Model {
     /* ... */
@@ -13,6 +13,7 @@ export default function QuestionsPage() {
     return (
         <>
             <Title>{t("Questions and announcements")}</Title>
+            <QuestionFormModal />
         </>
     );
 }
