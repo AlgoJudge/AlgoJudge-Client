@@ -4,82 +4,8 @@ import classes from "./ActivitiesPage.module.css"
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
-
-interface Activity {
-    id: string,
-    type: string,
-    isActive: boolean,
-    name: string,
-    props: {key: string, value: string}[]
-}
-
-const data: Activity[] = [
-    {
-        id: "PCN1",
-        type: "contest",
-        isActive: true,
-        name: "Programming Contest No 1",
-        props: []
-    },
-    {
-        id: "PC1",
-        type: "course",
-        isActive: true,
-        name: "Programming course",
-        props: [
-            {
-                key: "Group",
-                value: "LA"
-            },
-            {
-                key: "Teacher",
-                value: "John Smith"
-            },
-        ]
-    },
-    {
-        id: "PCN2",
-        type: "contest",
-        isActive: true,
-        name: "Programming Contest No 2",
-        props: []
-    },
-    {
-        id: "PCN3",
-        type: "contest",
-        isActive: false,
-        name: "Programming Contest No 3",
-        props: []
-    },
-    {
-        id: "APC",
-        type: "course",
-        isActive: true,
-        name: "Advanced programming course",
-        props: []
-    },
-    {
-        id: "PCN4",
-        type: "contest",
-        isActive: true,
-        name: "Programming Contest No 4",
-        props: []
-    },
-    {
-        id: "PCN5",
-        type: "contest",
-        isActive: false,
-        name: "Programming Contest No 5",
-        props: []
-    },
-    {
-        id: "APC2",
-        type: "course",
-        isActive: true,
-        name: "Advanced programming course II",
-        props: []
-    },
-];
+import { Activity } from "../../api/ParticipantApi";
+import { useApiEffect } from "../../provider/ApiProvider";
 
 const MAX_ITEMS_PER_PAGE = 5;
 
@@ -97,7 +23,17 @@ const getIcon = (type: string) => {
 export default function ActivitiesPage() {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const [data, setData] = useState<Activity[]>();
     const [page, setPage] = useState<number>(1);
+    useApiEffect(async (api, signal) => {
+        const getData = async () => {
+            const data = await api.participantApi.getActivities(signal);
+            setData(data);
+        }
+        api.participantApi.eventDispatcher.addActivityCreatedEventListener(() => getData(), signal);
+        await getData();
+    });
+    if (!data) return;
     const pages = Math.ceil(data.length / MAX_ITEMS_PER_PAGE);
     const firstItem = MAX_ITEMS_PER_PAGE * (page - 1);
     const list = data.slice(firstItem, firstItem + MAX_ITEMS_PER_PAGE).map(item =>

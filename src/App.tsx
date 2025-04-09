@@ -22,6 +22,7 @@ import RulesPage from './pages/activities/activity_id/rules/RulesPage';
 import ProblemPage from './pages/activities/activity_id/problems/problem_id/ProblemPage';
 import SubmissionPage from './pages/activities/activity_id/submissions/submission_id/SubmissionPage';
 import CodePage from './pages/activities/activity_id/submissions/submission_id/code/CodePage';
+import { ApiProvider } from './provider/ApiProvider';
 
 function App() {
 
@@ -98,8 +99,10 @@ function App() {
 
     return (
             <MantineProvider>
-                <Notifications />
-                <RouterProvider router={router} />
+                <ApiProvider>
+                    <Notifications />
+                    <RouterProvider router={router} />
+                </ApiProvider>
             </MantineProvider>
     );
 }
