@@ -288,7 +288,7 @@ export default function QuestionsPage() {
             <div className={classes.questions}>
                 {questionElemets}
             </div>
-            <Center><Pagination total={questions.length/10+1} value={page} onChange={e=>setPage(e)} mx="auto" /></Center>
+            <Center><Pagination total={Math.trunc(questions.length/10 + 1)} value={page} onChange={e=>setPage(e)} mx="auto" /></Center>
         </>
     );
 }
