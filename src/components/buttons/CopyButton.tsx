@@ -14,7 +14,7 @@ export interface CopyButtonProps {
 
 export function CopyButton(props: CopyButtonProps) {
   const { children, timeout, value, ...others } = useProps(
-    "DownloadButton",
+    "CopyButton",
     {},
     props
   );
