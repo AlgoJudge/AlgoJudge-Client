@@ -25,5 +25,18 @@
   "Problem": "Zadanie",
   "Submission": "Zgłoszenie",
   "Back": "Wróć",
-  "Source code": "Kod źródłowy"
+  "Source code": "Kod źródłowy",
+  "Author": "Autor",
+  "Submission date": "Data wysłania",
+  "Language": "Język",
+  "ID": "ID",
+  "Status": "Status",
+  "ERROR": "BŁĄD",
+  "WARNING": "OSTRZERZENIE",
+  "OK": "OK",
+  "Test": "Test",
+  "Time": "Czas",
+  "Memory": "Pamięć",
+  "Result": "Wynik",
+  "Comments": "Uwagi"
 }

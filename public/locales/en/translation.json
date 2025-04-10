@@ -25,5 +25,18 @@
   "Problem": "Problem",
   "Submission": "Submission",
   "Back": "Back",
-  "Source code": "Source code"
+  "Source code": "Source code",
+  "Author": "Author",
+  "Submission date": "Submission date",
+  "Language": "Language",
+  "ID": "ID",
+  "Status": "Status",
+  "ERROR": "ERROR",
+  "WARNING": "WARNING",
+  "OK": "OK",
+  "Test": "Test",
+  "Time": "Time",
+  "Memory": "Memory",
+  "Result": "Result",
+  "Comments": "Comments"
 }
