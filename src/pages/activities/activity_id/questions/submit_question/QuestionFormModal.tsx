@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Modal, Button, TextInput, Title, Group, Select } from "@mantine/core";
+import { Modal, Button, TextInput, Title, Group, Select, Textarea } from "@mantine/core";
 import { useTranslation } from 'react-i18next';
 
 export default function QuestionFormModal() {
@@ -45,10 +45,10 @@ export default function QuestionFormModal() {
             required
             mt="sm"
           />
-          <TextInput
+          <Textarea
             label={t("Question")}
             required
-            mt="sm"
+            autosize
           />
           <Group mt="md">
             <Button type="submit">{t("Submit")}</Button>
