@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { Activity } from "../../api/ParticipantApi";
 import { useApiEffect } from "../../provider/ApiProvider";
+import { SortedList } from "../../utils/SortedList"
 
 const MAX_ITEMS_PER_PAGE = 5;
 
@@ -25,13 +26,14 @@ export default function ActivitiesPage() {
     const navigate = useNavigate();
     const [data, setData] = useState<Activity[]>();
     const [page, setPage] = useState<number>(1);
+    const sortedList: SortedList<Activity, string> = new SortedList(a => a.id, (a, b) => a.id.localeCompare(b.id), setData);
     useApiEffect(async (api) => {
         const getData = async () => {
             const data = await api.participantApi.getActivities();
-            setData(data);
+            sortedList.addOrUpdate(data);
         }
-        api.participantApi.eventDispatcher.addEventListener("activityCreated", () => getData());
-        api.participantApi.eventDispatcher.addEventListener("activityUpdated", () => getData());
+        api.participantApi.eventDispatcher.addEventListener("activityCreated", evt => sortedList.addOrUpdate([evt.data.activity]));
+        api.participantApi.eventDispatcher.addEventListener("activityUpdated", evt => sortedList.addOrUpdate([evt.data.activity]));
         await getData();
     });
     const pages = data ? Math.ceil(data.length / MAX_ITEMS_PER_PAGE) : 0;

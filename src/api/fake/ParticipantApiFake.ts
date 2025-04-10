@@ -133,12 +133,12 @@ export class ParticipantApiFake implements ParticipantApi {
     private readonly fakeService: FakeActivitiesService = new FakeActivitiesService(this.eventDispatcher);
     constructor(private sleepMs: number = 700) {}
     async getActivities(signal: AbortSignal): Promise<Activity[]> {
-        // await this.sleep();
+        await this.sleep();
         signal.throwIfAborted();
         return this.fakeService.getActivities();
     }
     async getActivity(id: string, signal: AbortSignal): Promise<Activity> {
-        // await this.sleep();
+        await this.sleep();
         signal.throwIfAborted();
         return this.fakeService.getActivity(id);
     }
