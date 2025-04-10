@@ -1,14 +1,12 @@
-import { CoreEventDispatcher, SystemMessageEvent } from "../CoreApi";
+import { CoreEvent, CoreEventDispatcher, CoreEventType } from "../CoreApi";
 import { EventDispatcher } from "./EventDispatcher";
 
-type EventType = "SystemMessageEvent";
-
 export class CoreEventDispatcherImpl implements CoreEventDispatcher {
-    private readonly eventDispatcher: EventDispatcher<EventType> = new EventDispatcher();
-    addSystemMessageEventListener(listener: (evt: SystemMessageEvent) => void, signal: AbortSignal): void {
-        this.eventDispatcher.addEventListener("SystemMessageEvent", listener, signal);
+    private readonly eventDispatcher: EventDispatcher = new EventDispatcher();
+    addEventListener<T extends CoreEventType, V>(type: T, listener: (evt: CoreEvent<T, V>) => void, signal: AbortSignal): void {
+        this.eventDispatcher.addEventListener(type, listener, signal);
     }
-    dispatchSystemMessageEvent(evt: SystemMessageEvent): void {
-        this.eventDispatcher.dispatchEvent("SystemMessageEvent", evt);
+    dispatchEvent<T extends CoreEventType, V>(evt: CoreEvent<T, V>): void {
+        this.eventDispatcher.dispatchEvent(evt);
     }
 }

@@ -1,6 +1,6 @@
 import { Api } from "./Api";
-import { CoreApi, CoreEventDispatcher, SystemMessageEvent, User } from "./CoreApi";
-import { Activity, ActivityCreatedEvent, ActivityDeletedEvent, ActivityUpdatedEvent, ParticipantApi, ParticipantEventDispatcher } from "./ParticipantApi";
+import { CoreApi, CoreEvent, CoreEventDispatcher, CoreEventType, SystemMessageEvent, User } from "./CoreApi";
+import { Activity, ActivityCreatedEvent, ActivityDeletedEvent, ActivityUpdatedEvent, ParticipantApi, ParticipantEvent, ParticipantEventDispatcher, ParticipantEventType } from "./ParticipantApi";
 
 export class ScopedApi {
     authApi: ScopedCoreApi;
@@ -13,8 +13,9 @@ export class ScopedApi {
 
 export class ScopedCoreEventDispatcher {
     constructor(private eventDispatcher: CoreEventDispatcher, private signal: AbortSignal) {}
-    addSystemMessageEventListener(listener: (evt: SystemMessageEvent) => void): void {
-        return this.eventDispatcher.addSystemMessageEventListener(listener, this.signal);
+    addEventListener(type: "systemMessage", listener: (evt: SystemMessageEvent) => void): void;
+    addEventListener<T extends CoreEventType, V>(type: T, listener: (evt: CoreEvent<T, V>) => void): void {
+        return this.eventDispatcher.addEventListener(type, listener, this.signal);
     }
 }
 
@@ -36,16 +37,11 @@ export class ScopedCoreApi {
 
 export class ScopedParticipantEventDispatcher {
     constructor(private eventDispatcher: ParticipantEventDispatcher, private signal: AbortSignal) {}
-    addActivityCreatedEventListener(listener: (evt: ActivityCreatedEvent) => void): void {
-        return this.eventDispatcher.addActivityCreatedEventListener(listener, this.signal);
-    }
-
-    addActivityUpdatedEventListener(listener: (evt: ActivityUpdatedEvent) => void): void {
-        return this.eventDispatcher.addActivityUpdatedEventListener(listener, this.signal);
-    }
-
-    addActivityDeletedEventListener(listener: (evt: ActivityDeletedEvent) => void): void {
-        return this.eventDispatcher.addActivityDeletedEventListener(listener, this.signal);
+    addEventListener(type: "activityCreated", listener: (evt: ActivityCreatedEvent) => void): void;
+    addEventListener(type: "activityUpdated", listener: (evt: ActivityUpdatedEvent) => void): void;
+    addEventListener(type: "activityDeleted", listener: (evt: ActivityDeletedEvent) => void): void;
+    addEventListener<T extends ParticipantEventType, V>(type: T, listener: (evt: ParticipantEvent<T, V>) => void): void {
+        this.eventDispatcher.addEventListener(type, listener, this.signal);
     }
 }
 

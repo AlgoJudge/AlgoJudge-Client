@@ -1,3 +1,5 @@
+import { Event } from "./Event";
+
 export interface Activity {
     id: string,
     type: string,
@@ -7,22 +9,26 @@ export interface Activity {
     props: {key: string, value: string}[]
 }
 
-export interface ActivityCreatedEvent {
-    activity: Activity;
-}
+export type ParticipantEventType = "activityCreated" | "activityUpdated" | "activityDeleted";
+export type ParticipantEvent<T extends ParticipantEventType, V> = Event<T, V>;
 
-export interface ActivityUpdatedEvent {
+export type ActivityCreatedEvent = ParticipantEvent<"activityCreated", {
     activity: Activity;
-}
+}>;
 
-export interface ActivityDeletedEvent {
+export type ActivityUpdatedEvent = ParticipantEvent<"activityUpdated", {
+    activity: Activity;
+}>;
+
+export type ActivityDeletedEvent = ParticipantEvent<"activityDeleted", {
     activityId: string;
-}
+}>;
 
 export interface ParticipantEventDispatcher {
-    addActivityCreatedEventListener(listener: (evt: ActivityCreatedEvent) => void, signal: AbortSignal): void;
-    addActivityUpdatedEventListener(listener: (evt: ActivityUpdatedEvent) => void, signal: AbortSignal): void;
-    addActivityDeletedEventListener(listener: (evt: ActivityDeletedEvent) => void, signal: AbortSignal): void;
+    addEventListener(type: "activityCreated", listener: (evt: ActivityCreatedEvent) => void, signal: AbortSignal): void;
+    addEventListener(type: "activityUpdated", listener: (evt: ActivityUpdatedEvent) => void, signal: AbortSignal): void;
+    addEventListener(type: "activityDeleted", listener: (evt: ActivityDeletedEvent) => void, signal: AbortSignal): void;
+    addEventListener<T extends ParticipantEventType, V>(type: T, listener: (evt: ParticipantEvent<T, V>) => void, signal: AbortSignal): void;
 }
 
 export interface ParticipantApi {

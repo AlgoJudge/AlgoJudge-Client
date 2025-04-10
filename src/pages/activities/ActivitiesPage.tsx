@@ -30,8 +30,8 @@ export default function ActivitiesPage() {
             const data = await api.participantApi.getActivities();
             setData(data);
         }
-        api.participantApi.eventDispatcher.addActivityCreatedEventListener(() => getData());
-        api.participantApi.eventDispatcher.addActivityUpdatedEventListener(() => getData());
+        api.participantApi.eventDispatcher.addEventListener("activityCreated", () => getData());
+        api.participantApi.eventDispatcher.addEventListener("activityUpdated", () => getData());
         await getData();
     });
     const pages = data ? Math.ceil(data.length / MAX_ITEMS_PER_PAGE) : 0;

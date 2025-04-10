@@ -1,16 +1,22 @@
+import { Event } from "./Event";
+
 export interface User {
     username: string,
     name: string,
     email: string,
 }
 
-export interface SystemMessageEvent {
+export type CoreEventType = "systemMessage";
+export type CoreEvent<T extends CoreEventType, V> = Event<T, V>;
+
+export type SystemMessageEvent = Event<"systemMessage", {
     message: string,
     type: "success" | "info" | "warning" | "error",
-}
+}>;
 
 export interface CoreEventDispatcher {
-    addSystemMessageEventListener(listener: (evt: SystemMessageEvent) => void, signal: AbortSignal): void;
+    addEventListener(type: "systemMessage", listener: (evt: SystemMessageEvent) => void, signal: AbortSignal): void;
+    addEventListener<T extends CoreEventType, V>(type: T, listener: (evt: CoreEvent<T, V>) => void, signal: AbortSignal): void;
 }
 
 export interface CoreApi {

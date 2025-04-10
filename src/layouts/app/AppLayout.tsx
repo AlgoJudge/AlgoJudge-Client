@@ -51,7 +51,7 @@ const ActivityNavbar = (props: { collapsed: boolean }) => {
     }
     useApiEffect(async (api) => {
         if (!currentActivity) return;
-        api.participantApi.eventDispatcher.addActivityUpdatedEventListener((e) => e.activity.id === params.activityId && updateName(e.activity.name));
+        api.participantApi.eventDispatcher.addEventListener("activityUpdated", (e) => e.data.activity.id === params.activityId && updateName(e.data.activity.name));
         const activity = await api.participantApi.getActivity(params.activityId!);
         updateName(activity.name);
     }, [currentActivity?.id]);

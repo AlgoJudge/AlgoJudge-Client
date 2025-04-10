@@ -1,7 +1,9 @@
-export class EventDispatcher<T extends string> {
+import * as AjEvent from "../Event";
+
+export class EventDispatcher {
     private readonly eventTarget: EventTarget = new EventTarget();
-    public addEventListener<E>(type: T, listener: (evt: E) => void, signal: AbortSignal): void {
-        const eventType = "aj" + type;
+    public addEventListener<T extends string, E>(type: T, listener: (evt: E) => void, signal: AbortSignal): void {
+        const eventType = "aj-" + type;
         const callback = (evt: Event): void => {
             if (!(evt instanceof CustomEvent)) {
                 throw Error("Invalid event");
@@ -13,8 +15,8 @@ export class EventDispatcher<T extends string> {
         }
         this.eventTarget.addEventListener(eventType, callback, { signal: signal });
     }
-    public dispatchEvent<E>(type: T, evt: E): void {
-        const eventType = "aj" + type;
+    public dispatchEvent<E extends AjEvent.Event<T,V>, T extends string, V>(evt: E): void {
+        const eventType = "aj-" + evt.type;
         this.eventTarget.dispatchEvent(new CustomEvent(eventType, { detail: evt }));
     }
 }

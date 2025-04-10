@@ -1,5 +1,5 @@
 import { ParticipantEventDispatcherImpl } from "../impl/ParticipantEventDispatcher";
-import { Activity, ParticipantApi } from "../ParticipantApi";
+import { Activity, ActivityCreatedEvent, ActivityUpdatedEvent, ParticipantApi } from "../ParticipantApi";
 import { Utils } from "./Utils";
 import { faker } from "@faker-js/faker"
 
@@ -103,7 +103,13 @@ class FakeActivitiesService {
         for (const activity of data) {
             await Utils.sleep(400);
             this.activities = [{...activity, name: faker.commerce.productName()}, ...this.activities!];
-            this.eventDispatcher.dispatchActivityCreatedEvent({activity});
+            const evt: ActivityCreatedEvent = {
+                type: "activityCreated",
+                data: {
+                    activity
+                }
+            }
+            this.eventDispatcher.dispatchEvent(evt);
         }
     }
 
@@ -111,7 +117,13 @@ class FakeActivitiesService {
         while (true) {
             await Utils.sleep(1000);
             this.activities = [{...this.activities![0], name: faker.commerce.productName()}, ...this.activities!.slice(1)];
-            this.eventDispatcher.dispatchActivityUpdatedEvent({activity: this.activities[0]});
+            const evt: ActivityUpdatedEvent = {
+                type: "activityUpdated",
+                data: {
+                    activity: this.activities[0]
+                }
+            }
+            this.eventDispatcher.dispatchEvent(evt);
         }
     }
 }
