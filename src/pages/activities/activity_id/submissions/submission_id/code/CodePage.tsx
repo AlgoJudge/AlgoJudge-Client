@@ -32,7 +32,7 @@ export default function CodePage() {
       {/* Solution metadata TODO */}
       <Group>
         <Text>{t("Author")}</Text>
-        <Text>{t("Submited")}</Text>
+        <Text>{t("Submitted")}</Text>
         <Text>{t("Language")}</Text>
         <Text>{t("Submission ID")}</Text>
       </Group>

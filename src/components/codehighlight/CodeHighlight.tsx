@@ -5,7 +5,7 @@ import {
 import { useMantineColorScheme } from "@mantine/core";
 import classes from "./CodeHighlight.module.css";
 
-// this is slightliy hacked and can break when inside some custom theme provider
+// this is slightly hacked and can break when inside some custom theme provider
 
 export default function CodeHighlight({
   code,
