@@ -1,43 +1,12 @@
 import classes from "./CodePage.module.css";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
-import { IconCheck } from "@tabler/icons-react";
 
 import CodeHighlight from "@/components/codehighlight/CodeHighlight";
+import { DownloadButton, CopyButton } from "@/components/buttons";
+import { lightBorder } from "@/themes";
 
-import {
-  Button,
-  CopyButton,
-  Group,
-  Title,
-  defaultVariantColorsResolver,
-  VariantColorsResolver,
-  parseThemeColor,
-  rgba,
-  darken,
-  MantineProvider,
-} from "@mantine/core";
-
-const variantColorResolver: VariantColorsResolver = (input) => {
-  const defaultResolvedColors = defaultVariantColorsResolver(input);
-  const parsedColor = parseThemeColor({
-    color: input.color || input.theme.primaryColor,
-    theme: input.theme,
-  });
-
-  // Add new variants support
-  if (input.variant === "light-border") {
-    return {
-      background: rgba(parsedColor.value, 0.1),
-      hover: rgba(parsedColor.value, 0.15),
-      border: `1px solid ${parsedColor.value}`,
-      color: darken(parsedColor.value, 0.1),
-    };
-  }
-
-  return defaultResolvedColors;
-};
+import { Button, Group, Title, MantineProvider, Text } from "@mantine/core";
 
 interface Model {
   code: string;
@@ -56,60 +25,42 @@ export default function CodePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const [downloaded, setDownloadStatus] = useState(false);
-
-  const downloadCode = () => {
-    const element = document.createElement("a");
-    const file = new Blob([data.code], {
-      type: "text/plain",
-    });
-    element.href = URL.createObjectURL(file);
-    element.download = "code" + "." + data.extension;
-    document.body.appendChild(element);
-    element.click();
-
-    setDownloadStatus(true);
-    setTimeout(() => setDownloadStatus(false), 500);
-  };
-
   return (
     <>
       <Title>{t("Source code")}</Title>
 
+      {/* Solution metadata TODO */}
+      <Group>
+        <Text>{t("Author")}</Text>
+        <Text>{t("Submited")}</Text>
+        <Text>{t("Language")}</Text>
+        <Text>{t("Submission ID")}</Text>
+      </Group>
+
+      {/* Control buttons */}
       <Group className={classes.control}>
-        <MantineProvider theme={{ variantColorResolver }}>
+        {/* Left side */}
+        <MantineProvider theme={{ variantColorResolver: lightBorder }}>
           <Button variant="light-border" onClick={() => navigate(-1)}>
             {t("Back")}
           </Button>
         </MantineProvider>
 
+        {/* Right side */}
         <Group>
           <CopyButton value={data.code}>
-            {({ copied, copy }) => (
-              <Button
-                style={{ width: "110px" }}
-                variant={copied ? "filled" : "default"}
-                color="teal"
-                className={classes.fixedw}
-                onClick={copy}
-              >
-                {copied ? <IconCheck size={16} /> : t("Copy code")}
-              </Button>
-            )}
+            {() => t("Copy to clipboard")}
           </CopyButton>
-
-          <Button
-            style={{ width: "140px" }}
-            variant={downloaded ? "filled" : "default"}
-            color="teal"
-            className={classes.fixedw}
-            onClick={downloadCode}
+          <DownloadButton
+            file={new Blob([data.code], { type: "text/plain" })}
+            filename={"code." + data.extension}
           >
-            {downloaded ? <IconCheck size={16} /> : t("Download code")}
-          </Button>
+            {() => t("Download")}
+          </DownloadButton>
         </Group>
       </Group>
 
+      {/* Code */}
       <Group justify="center">
         <CodeHighlight
           code={data.code}
