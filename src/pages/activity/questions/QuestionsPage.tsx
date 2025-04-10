@@ -1,4 +1,4 @@
-import {Center, Input, Pagination, Text, Title} from "@mantine/core";
+import {Button, Center, Input, Pagination, Text, Title} from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { IconChevronDown } from "@tabler/icons-react";
 import {useState} from "react";
@@ -232,7 +232,11 @@ export default function QuestionsPage() {
 
     return (
         <>
-            <Title>{t("Questions and announcements")}</Title>
+            <div className={classes.header}>
+                <Title>{t("Questions and announcements")}</Title>
+                <Button>{t("Add question")}</Button>
+                <Button>{t("Add announcement")}</Button>
+            </div>
             <div className={classes.searchElement}>
                 <div className={classes.left}>
                     <Input
