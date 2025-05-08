@@ -6,7 +6,14 @@ import CodeHighlight from "@/components/codehighlight/CodeHighlight";
 import { DownloadButton, CopyButton } from "@/components/buttons";
 import { lightBorder } from "@/themes";
 
-import { Button, Group, Title, MantineProvider, Text } from "@mantine/core";
+import {
+  Button,
+  Group,
+  Title,
+  MantineProvider,
+  Table,
+  Paper,
+} from "@mantine/core";
 
 interface Model {
   code: string;
@@ -29,13 +36,60 @@ export default function CodePage() {
     <>
       <Title>{t("Source code")}</Title>
 
-      {/* Solution metadata TODO */}
-      <Group>
-        <Text>{t("Author")}</Text>
-        <Text>{t("Submitted")}</Text>
-        <Text>{t("Language")}</Text>
-        <Text>{t("Submission ID")}</Text>
-      </Group>
+      <Paper withBorder className={classes.metadata}>
+        <Table variant="vertical" layout="fixed">
+          <Table.Tbody>
+            <Table.Tr style={{ display: "flex" }}>
+              <Table.Th
+                style={{
+                  width: "15%",
+                  minWidth: "min-content",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {t("Problem")}
+              </Table.Th>
+              <Table.Td style={{ textAlign: "left" }}>Problem name</Table.Td>
+            </Table.Tr>
+            <Table.Tr style={{ display: "flex" }}>
+              <Table.Th
+                style={{
+                  width: "15%",
+                  minWidth: "min-content",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {t("Author")}
+              </Table.Th>
+              <Table.Td>Random Name</Table.Td>
+            </Table.Tr>
+            <Table.Tr style={{ display: "flex" }}>
+              <Table.Th
+                style={{
+                  width: "15%",
+                  minWidth: "min-content",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {t("Language")}
+              </Table.Th>
+              <Table.Td>{data.lang}</Table.Td>
+            </Table.Tr>
+            <Table.Tr style={{ display: "flex" }}>
+              <Table.Th
+                style={{
+                  width: "15%",
+                  minWidth: "min-content",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {t("Submission time")}
+              </Table.Th>
+              <Table.Td>{new Date().toLocaleString()}</Table.Td>
+            </Table.Tr>
+          </Table.Tbody>
+        </Table>
+      </Paper>
 
       {/* Control buttons */}
       <Group className={classes.control}>
