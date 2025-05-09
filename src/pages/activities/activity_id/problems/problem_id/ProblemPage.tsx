@@ -26,13 +26,13 @@ export default function ProblemPage() {
                 <Group justify="space-between">
                     <Button onClick={() => navigate(-1)}>{t("Back")}</Button>
                     <Group>
-                        <Button component={Link} to={data.pdf} download target="_self">{t("Download task")}</Button>
+                        <Button component={Link} to={data.pdf} download target="_self">{t("Download problem")}</Button>
                         <Button component={Link} to={`/activities/${params.activityId}/submit/${params.problemId}`}>{t("Submit")}</Button>
                     </Group>
                 </Group>
                 <Group h={600}>
                     <object data={data.pdf} type="application/pdf" width="100%" height="100%">
-                        <p>PDF should be here</p>
+                        <p>{t("PDF should be here")}</p>
                     </object>
                 </Group>
             </Stack>
