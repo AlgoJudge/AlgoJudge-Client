@@ -1,0 +1,17 @@
+.linenum {
+  text-align: right;
+  user-select: none;
+  padding: calc(var(--mantine-spacing-xs) + 0.0625rem) var(--mantine-spacing-xs);
+  color: var(--mantine-color-gray-6);
+  font-size: calc(0.8125rem * var(--mantine-scale));
+  line-height: 1.7;
+  font-family: var(--mantine-font-family-monospace);
+  background-color: bgColor;
+  border-radius: var(--mantine-radius-sm);
+}
+
+.code {
+  width: 100%;
+  padding-left: 0;
+  overflow: auto;
+}
