@@ -46,6 +46,19 @@
     border-radius: var(--mantine-radius-sm);
     font-weight: 500;
 
+    /* A label that does not fit on one line must wrap onto a second line rather
+       than draw both lines on top of each other. That needs an explicit
+       line-height here, and a text item that is allowed to shrink below its
+       min-content width. Labels vary a lot between languages, so this cannot
+       rely on the current strings happening to fit. */
+    line-height: 1.4;
+    min-width: 0;
+
+    & span {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
     @mixin hover {
         background-color: var(--mantine-color-blue-7);
         color: var(--mantine-color-white);
@@ -89,6 +102,8 @@
     margin-right: var(--mantine-spacing-sm);
     width: 25px;
     height: 25px;
+    /* Without this the icon is squashed to make room for a long label. */
+    flex-shrink: 0;
 }
 
 .color_schema_icon {
