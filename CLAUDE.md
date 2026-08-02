@@ -2,9 +2,11 @@
 
 ## Scope
 
-This repository contains the web Client for AlgoJudge. It is the only frontend:
-an older copy that lived inside AlgoJudge-Server was verified as an outdated
-duplicate and removed on 2026-08-02.
+This repository contains the web Client for AlgoJudge, and it is the only
+frontend. The code was migrated here with its full history, which is why the log
+reaches back to December 2023 although the repository was created in March 2025.
+A duplicate copy lingered inside AlgoJudge-Server until 2026-08-02, when it was
+verified as outdated and removed there.
 
 ## Expected stack
 
