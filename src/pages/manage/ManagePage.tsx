@@ -1,16 +1,15 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Table } from '@mantine/core';
-import { ActivityInfo } from '../../../api/ActivityApi';
-import { useSession } from "../../provider/SessionProvider";
+import { Activity } from "../../api/ParticipantApi";
+import { useApiEffect } from "../../provider/ApiProvider";
 
 function ManagePage() {
 
-    const [activities, setActivities] = useState<ActivityInfo[]>([]);
-    const { activityApi } = useSession();
+    const [activities, setActivities] = useState<Activity[]>([]);
 
-    useEffect(() => {
-        activityApi.getList().then((res) => setActivities(res));
-    }, [activityApi])
+    useApiEffect(async (api) => {
+        setActivities(await api.participantApi.getActivities());
+    });
 
     return (
         <>
@@ -21,18 +20,18 @@ function ManagePage() {
                         <Table.Th>Id</Table.Th>
                         <Table.Th>Short</Table.Th>
                         <Table.Th>Name</Table.Th>
-                        <Table.Th>Start date</Table.Th>
-                        <Table.Th>End date</Table.Th>
+                        <Table.Th>Type</Table.Th>
+                        <Table.Th>Active</Table.Th>
                     </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
                     {activities.map((element) =>
                         <Table.Tr key={element.id}>
                             <Table.Td>{element.id}</Table.Td>
-                            <Table.Td>{element.shortName}</Table.Td>
+                            <Table.Td>{element.short}</Table.Td>
                             <Table.Td>{element.name}</Table.Td>
-                            <Table.Td>{element.startDate}</Table.Td>
-                            <Table.Td>{element.endDate}</Table.Td>
+                            <Table.Td>{element.type}</Table.Td>
+                            <Table.Td>{String(element.isActive)}</Table.Td>
                         </Table.Tr>)
                     }
                 </Table.Tbody>
