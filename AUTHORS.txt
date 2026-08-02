@@ -1,1 +1,16 @@
+AlgoJudge-Client authors
+
+Everyone who has contributed commits to this repository, ordered by number of
+commits. Names and addresses are taken verbatim from the Git history, so this
+file can be checked against it at any time with:
+
+    git shortlog -sne --all
+
 Patryk Kisielewski <pkisielewski@patkis.pl>
+Mateusz Sobkowiak <60814050+Sobgo@users.noreply.github.com>
+Adam Zielinski <adam.zie231@gmail.com>
+FranciszekKaniewski <fkaniewski.web@gmail.com>
+Bartłomiej Wiśniewski <148913398+bwisniewski26@users.noreply.github.com>
+Igor Wieprzkowski <igorwieprzkowski@mat.umk.pl>
+Kamil Jodłowski <kamil239811@wp.pl>
+Krystian Jankun <kryjank1@mat.umk.pl>
