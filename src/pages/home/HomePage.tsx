@@ -8,7 +8,8 @@ function HomePage() {
     return (
         <>
             <h1>{t('Home')}</h1>
-            <Button size="xl" component={Link} to="/activities">Participant panel</Button>
+            <Button size="xl" component={Link} to="/activities" m="md">Participant panel</Button>
+            <Button size="xl" component={Link} to="/manager" m="md">Manager panel</Button>
         </>
     )
 }

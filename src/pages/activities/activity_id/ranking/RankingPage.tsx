@@ -1,5 +1,4 @@
 import { Title } from "@mantine/core";
-import classes from "./RankingPage.module.css";
 import { useTranslation } from "react-i18next";
 
 import { Table } from "@mantine/core";
