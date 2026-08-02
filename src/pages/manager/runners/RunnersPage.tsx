@@ -1,7 +1,30 @@
 import { Anchor, Badge, Button, Code, Modal, Table, Tabs, Title } from '@mantine/core';
 import { useState } from 'react';
 
-const users = [
+/**
+ * Shape of a connected Runner instance as the manager needs to see it.
+ *
+ * This mirrors what the Server-Runner API proposal has the Runner report on
+ * startup (product name, version, supported problem types, `lscpu` and `free`
+ * output) plus the identity and moderation fields the Server would hold. The
+ * Server implements none of this yet, so the page renders fixtures.
+ */
+export interface RunnerInstance {
+    id: string;
+    name: string;
+    product: string;
+    version: string;
+    problemTypes: string[];
+    tags: string[];
+    ip: string;
+    status: "confirmed" | "pending" | "rejected";
+    blocked?: string;
+    connection: "online" | "offline";
+    fingerprint: string;
+    note?: string;
+}
+
+const runners: RunnerInstance[] = [
     {
         id: "e55fd089-61d2-4b44-83ef-466d35117975",
         name: "Main runner",
@@ -11,67 +34,60 @@ const users = [
         tags: ["all", "contest1", "lab1"],
         ip: "192.168.1.1",
         status: "confirmed",
-        blocked: undefined,
         connection: "online",
         fingerprint: "43:51:43:a1:b5:fc:8b:b7:0a:3a:a9:b1:0f:66:73:a8",
-        note: undefined
     },
     {
-        id: "e55fd089-61d2-4b44-83ef-466d35117975",
-        name: "Main runner",
+        id: "7a1c0f52-9d84-4e37-b0aa-1c2f5d6e8b41",
+        name: "Lab runner",
         product: "AlgoJudge-Runner",
         version: "0.0.1",
-        problemTypes: ["std", "c++"],
-        tags: ["all", "contest1", "lab1"],
-        ip: "192.168.1.1",
+        problemTypes: ["std"],
+        tags: ["lab1"],
+        ip: "192.168.1.24",
         status: "confirmed",
-        blocked: undefined,
         connection: "online",
-        fingerprint: "43:51:43:a1:b5:fc:8b:b7:0a:3a:a9:b1:0f:66:73:a8",
-        note: undefined
+        fingerprint: "b2:0d:77:3e:41:9a:c5:18:6f:2b:84:d0:53:aa:1e:97",
     },
     {
-        id: "e55fd089-61d2-4b44-83ef-466d35117975",
-        name: "Main runner",
-        product: "AlgoJudge-Runner",
-        version: "0.0.1",
-        problemTypes: ["std", "c++"],
-        tags: ["all", "contest1", "lab1"],
-        ip: "192.168.1.1",
+        id: "c93b47ae-2f60-4d15-9e88-73a0b5c1def2",
+        name: "Judge0 adapter",
+        product: "AlgoJudge-Runner-Judge0",
+        version: "0.2.0",
+        problemTypes: ["std", "python"],
+        tags: ["all", "judge0"],
+        ip: "10.0.4.7",
         status: "confirmed",
-        blocked: undefined,
-        connection: "online",
-        fingerprint: "43:51:43:a1:b5:fc:8b:b7:0a:3a:a9:b1:0f:66:73:a8",
-        note: undefined
+        connection: "offline",
+        fingerprint: "1f:88:d3:06:b7:4c:2a:95:e1:70:39:cb:6d:12:5f:a4",
+        note: "Last seen 3 days ago",
     },
     {
-        id: "e55fd089-61d2-4b44-83ef-466d35117975",
-        name: "Main runner",
+        id: "5d2e8b19-0a73-42cf-8146-9be3c7f0a852",
+        name: "Contest runner",
         product: "AlgoJudge-Runner",
-        version: "0.0.1",
-        problemTypes: ["std", "c++"],
-        tags: ["all", "contest1", "lab1"],
-        ip: "192.168.1.1",
-        status: "confirmed",
-        blocked: undefined,
+        version: "0.0.2",
+        problemTypes: ["std", "c++", "interactive"],
+        tags: ["contest1"],
+        ip: "10.0.4.19",
+        status: "pending",
         connection: "online",
-        fingerprint: "43:51:43:a1:b5:fc:8b:b7:0a:3a:a9:b1:0f:66:73:a8",
-        note: undefined
+        fingerprint: "6c:31:f9:ad:52:8e:04:b6:77:19:e2:3d:90:c8:4b:15",
+        note: "Awaiting administrator approval",
     },
     {
-        id: "e55fd089-61d2-4b44-83ef-466d35117975",
-        name: "Main runner",
+        id: "0b6f3d74-8c15-4a92-a3e0-2d47915bc608",
+        name: "Retired runner",
         product: "AlgoJudge-Runner",
         version: "0.0.1",
-        problemTypes: ["std", "c++"],
-        tags: ["all", "contest1", "lab1"],
-        ip: "192.168.1.1",
-        status: "confirmed",
-        blocked: undefined,
-        connection: "online",
-        fingerprint: "43:51:43:a1:b5:fc:8b:b7:0a:3a:a9:b1:0f:66:73:a8",
-        note: undefined
-    }
+        problemTypes: ["std"],
+        tags: [],
+        ip: "10.0.4.31",
+        status: "rejected",
+        blocked: "Key revoked",
+        connection: "offline",
+        fingerprint: "9e:47:2b:c0:15:6d:83:f1:a9:34:5e:78:20:bb:d6:3c",
+    },
 ]
 
 const lscpuOutput =
@@ -113,7 +129,7 @@ Mem:    8029356  794336   6297928   183384       937092    6816804
 Swap:         0       0         0
 `
 
-const RunnerModal = (props: { runner: any, onClose: () => void }) => {
+const RunnerModal = (props: { runner: RunnerInstance | undefined, onClose: () => void }) => {
     if (!props.runner) return;
     return (
         <Modal opened={!!props.runner} onClose={props.onClose} title="Runner details" size="70%">
@@ -205,7 +221,7 @@ const RunnerModal = (props: { runner: any, onClose: () => void }) => {
     );
 }
 
-const RunnersTable = (props: { setRunner: (runner: any) => void }) => {
+const RunnersTable = (props: { setRunner: (runner: RunnerInstance) => void }) => {
     return (
         <Table highlightOnHover>
             <Table.Thead>
@@ -226,14 +242,14 @@ const RunnersTable = (props: { setRunner: (runner: any) => void }) => {
                 </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-                {users.map((element) =>
+                {runners.map((element) =>
                     <Table.Tr key={element.id}>
                         <Table.Td><Anchor onClick={() => props.setRunner(element)}>{element.id}</Anchor></Table.Td>
                         <Table.Td>{element.name}</Table.Td>
                         <Table.Td>{element.product}</Table.Td>
                         <Table.Td>{element.version}</Table.Td>
                         <Table.Td>{element.problemTypes.join(", ")}</Table.Td>
-                        <Table.Td>{element.tags.map((tag: string) => <Badge variant="light" color="blue" size="sm">{tag}</Badge>)}</Table.Td>
+                        <Table.Td>{element.tags.map((tag: string) => <Badge key={tag} variant="light" color="blue" size="sm">{tag}</Badge>)}</Table.Td>
                         <Table.Td>{element.ip}</Table.Td>
                         <Table.Td>{element.connection}</Table.Td>
                         <Table.Td><Code>{element.fingerprint}</Code></Table.Td>
@@ -251,7 +267,7 @@ const RunnersTable = (props: { setRunner: (runner: any) => void }) => {
 }
 
 function RunnersPage() {
-    const [runner, setRunner] = useState<any>();
+    const [runner, setRunner] = useState<RunnerInstance | undefined>();
     return (
         <>
             <Title>Runners</Title>

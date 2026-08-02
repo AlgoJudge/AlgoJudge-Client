@@ -1,11 +1,12 @@
-import { AppShell, Burger, Group, UnstyledButton, Text, Divider, Tooltip, Menu, useMantineColorScheme, useComputedColorScheme, AppShellFooter } from "@mantine/core";
+import { AppShell, Burger, Group, UnstyledButton, Text, Divider, Tooltip, Menu, useMantineColorScheme, useComputedColorScheme } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { NavLink, Outlet, useMatch, useParams } from "react-router-dom";
 import Logo from "../../components/logo/Logo";
 import classes from "./AppLayout.module.css";
 import { Icon, IconAlignBoxCenterTop, IconBox, IconChartBarPopular, IconChevronDown, IconChevronsLeft, IconChevronsRight, IconDevicesPc, IconIdBadge2, IconListDetails, IconLogout, IconMessageQuestion, IconMoon, IconNotes, IconPackageExport, IconPrinter, IconProps, IconSectionSign, IconServer, IconSun, IconUserCheck, IconUsers, IconWorldWww } from "@tabler/icons-react";
-import { useState } from "react";
+import { ComponentPropsWithoutRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useApiEffect } from "../../provider/ApiProvider";
 
 interface Activity {
     id: string,
@@ -71,6 +72,15 @@ const ActivityNavbar = (props: { collapsed: boolean }) => {
             hasRules: true,
         });
     }
+    const updateName = (name: string) => {
+        setCurrentActivity({...currentActivity!, name});
+    }
+    useApiEffect(async (api) => {
+        if (!currentActivity) return;
+        api.participantApi.eventDispatcher.addEventListener("activityUpdated", (e) => e.data.activity.id === params.activityId && updateName(e.data.activity.name));
+        const activity = await api.participantApi.getActivity(params.activityId!);
+        updateName(activity.name);
+    }, [currentActivity?.id]);
     if (!currentActivity) return;
     const links = [
         { to: `/activities/${currentActivity.id}/problems`, label: t("Problems"), icon: IconNotes },
@@ -121,7 +131,7 @@ const LangSelector = () => {
     );
 }
 
-const UserButton = (props: any) => {
+const UserButton = (props: ComponentPropsWithoutRef<'button'>) => {
     return (
         <UnstyledButton mx="xl" {...props} className={classes.user}>
             <Group>

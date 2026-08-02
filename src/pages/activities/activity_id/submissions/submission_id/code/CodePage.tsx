@@ -1,13 +1,6 @@
 import { Button, Group, Title } from "@mantine/core";
-import classes from "./CodePage.module.css"
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-
-interface Model {
-    /* ... */
-}
-
-const data: Model = { /* ... */ };
 
 export default function CodePage() {
     const { t } = useTranslation();
