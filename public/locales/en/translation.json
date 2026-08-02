@@ -36,5 +36,18 @@
   "Search group": "Search group",
   "Search task": "Search task",
   "Download problem": "Download problem",
-  "PDF should be here": "PDF should be here"
+  "PDF should be here": "PDF should be here",
+  "Author": "Author",
+  "Submission date": "Submission date",
+  "Language": "Language",
+  "ID": "ID",
+  "Status": "Status",
+  "ERROR": "ERROR",
+  "WARNING": "WARNING",
+  "OK": "OK",
+  "Test": "Test",
+  "Time": "Time",
+  "Memory": "Memory",
+  "Result": "Result",
+  "Comments": "Comments"
 }

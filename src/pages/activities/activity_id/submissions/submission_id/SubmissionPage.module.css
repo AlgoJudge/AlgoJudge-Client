@@ -1,0 +1,48 @@
+table {
+	text-align: center;
+	margin-top: 30px;
+}
+
+.submissionErrorText {
+	color: var(--mantine-color-red-9);
+	font-weight: bold;
+}
+
+.submissionErrorBackground {
+	background-color: var(--mantine-color-red-5);
+}
+
+.submissionWarningText {
+	color: var(--mantine-color-yellow-7);
+	font-weight: bold;
+}
+
+.submissionWarningBackground {
+	background-color: var(--mantine-color-yellow-4);
+}
+
+.submissionSuccessText {
+	color: var(--mantine-color-green-7);
+	font-weight: bold;
+}
+
+.submissionSuccessBackground {
+	background-color: var(--mantine-color-green-4);
+}
+
+.verticalLineText {
+	position: relative;
+	padding-left: 20px;
+}
+
+.verticalLineText::before {
+	content: "";
+	position: absolute;
+	height: 100%;
+	position: absolute;
+	border: 3px solid var(--mantine-color-blue-7);
+	border-radius: 9999px;
+	top: 0;
+	left: 0;
+	bottom: 0;
+}

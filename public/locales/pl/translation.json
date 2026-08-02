@@ -36,5 +36,18 @@
   "Search group": "Szukaj po grupie",
   "Search task": "Szukaj po zadaniach",
   "Download problem": "Pobierz zadanie",
-  "PDF should be here": "Tutaj powinien być plik PDF"
+  "PDF should be here": "Tutaj powinien być plik PDF",
+  "Author": "Autor",
+  "Submission date": "Data wysłania",
+  "Language": "Język",
+  "ID": "ID",
+  "Status": "Status",
+  "ERROR": "BŁĄD",
+  "WARNING": "OSTRZEŻENIE",
+  "OK": "OK",
+  "Test": "Test",
+  "Time": "Czas",
+  "Memory": "Pamięć",
+  "Result": "Wynik",
+  "Comments": "Uwagi"
 }
