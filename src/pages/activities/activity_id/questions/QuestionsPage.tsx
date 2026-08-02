@@ -1,10 +1,9 @@
-import {Button, Center, Input, Pagination, Text, Title} from "@mantine/core";
+import {Center, Divider, Group, Input, Modal, Pagination, Stack, Text, Title} from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { IconChevronDown } from "@tabler/icons-react";
 import {useState} from "react";
 
 import classes from "./QuestionsPage.module.css"
-import {useNavigate} from "react-router-dom";
 import QuestionFormModal from "./submit_question/QuestionFormModal";
 
 interface Question {
@@ -14,6 +13,7 @@ interface Question {
     exercise: string | null;
     date: Date;
     isReaded: boolean;
+    content: string;
 }
 type sortTypes = "Date"|"Topic"|"Group"|"Exercise"|"Author"
 
@@ -40,6 +40,7 @@ const questionsData: Question[] = [
         exercise: "Sprawdzanie spójności grafu",
         date: new Date("2025-03-22T10:00:00.000Z"),
         isReaded: false,
+        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
     },
     {
         topic: "xDDDDDDDD",
@@ -48,6 +49,7 @@ const questionsData: Question[] = [
         exercise: "Sprawdzanie spójności grafu",
         date: new Date("2025-01-22T10:00:00.000Z"),
         isReaded: false,
+        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
     },
     {
         topic: "Błąd w treści zadania",
@@ -56,6 +58,7 @@ const questionsData: Question[] = [
         exercise: "Sprawdzanie spójności grafu",
         date: new Date("2025-03-22T10:00:00.000Z"),
         isReaded: false,
+        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
     },
     {
         topic: "Niejasne sformułowanie pytania",
@@ -64,6 +67,7 @@ const questionsData: Question[] = [
         exercise: "Minimalne drzewo rozpinające Minimalne",
         date: new Date("2025-03-20T14:30:00.000Z"),
         isReaded: false,
+        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
     },
     {
         topic: "Błąd w teście przykładowym",
@@ -72,6 +76,7 @@ const questionsData: Question[] = [
         exercise: "Najkrótsza ścieżka w grafie",
         date: new Date("2025-03-18T09:15:00.000Z"),
         isReaded: true,
+        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
     },
     {
         topic: "Brak pełnej specyfikacji",
@@ -80,6 +85,7 @@ const questionsData: Question[] = [
         exercise: "Sortowanie topologiczne",
         date: new Date("2025-03-21T16:45:00.000Z"),
         isReaded: false,
+        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
     },
     {
         topic: "Niepoprawny wynik testowy",
@@ -88,6 +94,7 @@ const questionsData: Question[] = [
         exercise: "Algorytm Dijkstry",
         date: new Date("2025-03-19T11:20:00.000Z"),
         isReaded: true,
+        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
     },
     {
         topic: "Brak opisu wejścia i wyjścia",
@@ -96,6 +103,7 @@ const questionsData: Question[] = [
         exercise: "Maksymalny przepływ",
         date: new Date("2025-03-17T08:05:00.000Z"),
         isReaded: false,
+        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
     },
     {
         topic: "Błąd w przykładowym rozwiązaniu",
@@ -104,6 +112,7 @@ const questionsData: Question[] = [
         exercise: "Kolorowanie grafu",
         date: new Date("2025-03-23T13:55:00.000Z"),
         isReaded: false,
+        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
     },
     {
         topic: "Niepoprawny opis algorytmu",
@@ -112,6 +121,7 @@ const questionsData: Question[] = [
         exercise: "Drzewo przedziałowe",
         date: new Date("2025-03-16T15:10:00.000Z"),
         isReaded: true,
+        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
     },
     {
         topic: "Złe sformułowanie warunków zadania",
@@ -120,6 +130,7 @@ const questionsData: Question[] = [
         exercise: "Znajdowanie mostów w grafie",
         date: new Date("2025-03-24T17:30:00.000Z"),
         isReaded: false,
+        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
     },
     {
         topic: "Nieścisłość w podanym kodzie",
@@ -128,6 +139,7 @@ const questionsData: Question[] = [
         exercise: "Przeszukiwanie BFS",
         date: new Date("2025-03-15T12:40:00.000Z"),
         isReaded: true,
+        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
     },
     {
         topic: "Błąd w definicji problemu",
@@ -136,6 +148,7 @@ const questionsData: Question[] = [
         exercise: null,
         date: new Date("2025-03-25T19:00:00.000Z"),
         isReaded: false,
+        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
     },
 ];
 
@@ -168,12 +181,36 @@ function questionSort(posts: Question[], option: Sort): Question[]{
         });
 }
 
+const formatDate = (d: Date) =>
+    `${d.getUTCDate()}.${(d.getUTCMonth() < 9 ? "0" : "") + (d.getUTCMonth() + 1)}.${d.getUTCFullYear()}`;
+
+/** Shows the full body of one question. The list only has room for the topic. */
+const QuestionModal = (props: { question: Question | undefined, onClose: () => void }) => {
+    const { t } = useTranslation();
+    if (!props.question) return;
+    const q = props.question;
+    return (
+        <Modal opened={!!props.question} onClose={props.onClose} title={<Title order={4}>{q.topic}</Title>} size="lg" centered>
+            <Stack gap="xs">
+                <Group gap="xl">
+                    <Text size="sm" c="dimmed">{t("Author")}: {q.author}</Text>
+                    <Text size="sm" c="dimmed">{t("Group")}: {q.group ?? t("General")}</Text>
+                    <Text size="sm" c="dimmed">{t("Exercise")}: {q.exercise ?? t("General")}</Text>
+                    <Text size="sm" c="dimmed">{t("Date")}: {formatDate(q.date)}</Text>
+                </Group>
+                <Divider />
+                <Text style={{ whiteSpace: "pre-wrap" }}>{q.content}</Text>
+            </Stack>
+        </Modal>
+    );
+}
+
 export default function QuestionsPage() {
     const { t } = useTranslation();
-    const navigate = useNavigate();
 
     //States
     const [questions, setQuestions] = useState<Question[]>(questionsData)
+    const [openedQuestion, setOpenedQuestion] = useState<Question | undefined>(undefined)
 
     const [search, setSearch] = useState<string>("");
     const [groupFilter, setGroupFilter] = useState<string>("none");
@@ -220,14 +257,20 @@ export default function QuestionsPage() {
             .filter(q => (q.group ?? "null") === groupFilter || groupFilter === "none")
             .filter(q => (q.exercise ?? "null") === exerciseFilter || exerciseFilter === "none")
             .map(((q,i) => (
-                <div key={i} style={q.isReaded ? {backgroundColor: "#D9D9D9"} : {backgroundColor: "#f0f0f0"}} className={classes.question}>
-                    <Text title={q.topic} onClick={() => navigate(`./${q.topic}`)}>{q.topic}</Text>
+                <div
+                    key={i}
+                    style={q.isReaded ? {backgroundColor: "#D9D9D9"} : {backgroundColor: "#f0f0f0"}}
+                    className={classes.question}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setOpenedQuestion(q)}
+                    onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setOpenedQuestion(q)}
+                >
+                    <Text title={q.topic}>{q.topic}</Text>
                     <Text title={q.author}>{q.author}</Text>
                     <Text title={q.group ?? "ogólne"}>{q.group}</Text>
                     <Text title={q.exercise ?? "ogólne"}>{q.exercise}</Text>
-                    <Text title={`${q.date.getUTCDate()}.${(q.date.getUTCMonth() < 9 ? "0" : "") + (q.date.getUTCMonth()+1)}.${q.date.getUTCFullYear()}`}>
-                        {`${q.date.getUTCDate()}.${(q.date.getUTCMonth() < 9 ? "0" : "") + (q.date.getUTCMonth()+1)}.${q.date.getUTCFullYear()}`}
-                    </Text>
+                    <Text title={formatDate(q.date)}>{formatDate(q.date)}</Text>
                 </div>
             )))
 
@@ -236,7 +279,9 @@ export default function QuestionsPage() {
             <div className={classes.header}>
                 <Title>{t("Questions and announcements")}</Title>
                 <QuestionFormModal />
-                <Button>{t("Add announcement")}</Button>
+                {/* The design marks "add announcement" as administrators only. There is
+                    no permission model yet, so it is left out of the participant view
+                    rather than shown to everyone. */}
             </div>
             <div className={classes.searchElement}>
                 <div className={classes.left}>
@@ -294,6 +339,7 @@ export default function QuestionsPage() {
                 {questionElemets}
             </div>
             <Center><Pagination total={Math.trunc(questions.length/10 + 1)} value={page} onChange={e=>setPage(e)} mx="auto" /></Center>
+            <QuestionModal question={openedQuestion} onClose={() => setOpenedQuestion(undefined)} />
         </>
     );
 }
