@@ -8,9 +8,8 @@ import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import Layout from './Layout';
 import HomePage from './pages/home/HomePage';
 import LoginPage from './pages/login/LoginPage';
-import ManagePage from './pages/manage/ManagePage';
+import ManagerPage from './pages/manager/ManagerPage';
 import RegisterPage from './pages/register/RegisterPage';
-import Authentication from './routers/Authentication';
 import AppLayout from './layouts/app/AppLayout';
 import ActivitiesPage from './pages/activities/ActivitiesPage';
 import ProblemsPage from './pages/activities/activity_id/problems/ProblemsPage';
@@ -22,6 +21,10 @@ import RulesPage from './pages/activities/activity_id/rules/RulesPage';
 import ProblemPage from './pages/activities/activity_id/problems/problem_id/ProblemPage';
 import SubmissionPage from './pages/activities/activity_id/submissions/submission_id/SubmissionPage';
 import CodePage from './pages/activities/activity_id/submissions/submission_id/code/CodePage';
+import UsersPage from './pages/manager/users/UsersPage';
+import RunnersPage from './pages/manager/runners/RunnersPage';
+import ManagerActivitiesPage from './pages/manager/activities/ManagerActivitiesPage';
+import { ApiProvider } from './provider/ApiProvider';
 
 function App() {
 
@@ -42,10 +45,6 @@ function App() {
                     path: "/register",
                     element: <RegisterPage />
                 },
-                {
-                    path: "/manage",
-                    element: <Authentication><ManagePage /></Authentication>
-                }
             ]
         },
         {
@@ -91,6 +90,22 @@ function App() {
                 {
                     path: "/activities/:activityId/submissions/:submissionId/code",
                     element: <CodePage />
+                },
+                {
+                    path: "/manager",
+                    element: <ManagerPage />
+                },
+                {
+                    path: "/manager/activities",
+                    element: <ManagerActivitiesPage />
+                },
+                {
+                    path: "/manager/users",
+                    element: <UsersPage />
+                },
+                {
+                    path: "/manager/runners",
+                    element: <RunnersPage />
                 }
             ]
         }
@@ -98,8 +113,10 @@ function App() {
 
     return (
             <MantineProvider>
-                <Notifications />
-                <RouterProvider router={router} />
+                <ApiProvider>
+                    <Notifications />
+                    <RouterProvider router={router} />
+                </ApiProvider>
             </MantineProvider>
     );
 }

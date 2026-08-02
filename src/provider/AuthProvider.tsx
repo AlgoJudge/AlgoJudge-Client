@@ -1,6 +1,5 @@
-import { FC, ReactNode, createContext, useContext, useEffect, useState } from "react";
+import { FC, ReactNode, createContext, useContext, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useSession } from "./SessionProvider";
 
 export interface LoginModel {
     email: string,
@@ -27,7 +26,6 @@ const AuthContext = createContext<AuthContextType>(initialState);
 export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { loginApi } = useSession();
     const redirectPath = location.state?.path || '/';
     const [user, setUser] = useState<User | null | undefined>(null);
     const login = (model: LoginModel) => {
@@ -41,12 +39,10 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
         navigate(redirectPath, { replace: true });
     }
 
-    // useEffect(() => {
-    //     loginApi.getInfo().then(info => {
-    //         setUser({ email: info.email });
-    //         navigate(redirectPath, { replace: true });
-    //     }).catch(() => setUser(null));
-    // }, [])
+    // Session restore is still not wired up, so this provider holds its own idea
+    // of the signed-in user while CoreApi.getUser() holds another. Unifying them
+    // needs a session-restore method on the CoreApi interface, which would also
+    // have to be implemented by the fake. Tracked as a follow-up.
 
     return (
         <AuthContext.Provider value={{ user, login, logout }}>{children}</AuthContext.Provider>

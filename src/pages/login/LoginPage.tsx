@@ -15,9 +15,9 @@ import { IconInfoCircle } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useTranslation } from "react-i18next";
 import { Navigate } from 'react-router-dom';
-import { UnauthorizedError } from '../../../api/ApiRequester';
+import { UnauthorizedError } from '../../api/ApiError';
 import { useAuth } from '../../provider/AuthProvider';
-import { useSession } from '../../provider/SessionProvider';
+import { useApiCall } from '../../provider/ApiProvider';
 import classes from './LoginPage.module.css';
 
 function LoginPage() {
@@ -29,14 +29,14 @@ function LoginPage() {
     const [error, setError] = useState<string | undefined>(undefined);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const { login } = useAuth();
-    const { loginApi } = useSession();
+    const apiCall = useApiCall();
     const icon = <IconInfoCircle />;
 
     const makeLogin = async () => {
         setError(undefined);
         setIsLoading(true);
         try {
-            await loginApi.login(email, password);
+            await apiCall(api => api.authApi.login(email, password));
         } catch (e) {
             if (e instanceof UnauthorizedError) {
                 setError(t('Invalid email or password'));
@@ -52,7 +52,7 @@ function LoginPage() {
 
     return (
         <Container size={420} my={40}>
-            {logged && (<Navigate to="/manage" replace={true} />)}
+            {logged && (<Navigate to="/manager" replace={true} />)}
             <Title ta="center" className={classes.title}>
                 {t('Login')}
             </Title>

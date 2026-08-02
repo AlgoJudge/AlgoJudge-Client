@@ -1,8 +1,8 @@
 import imageLight from '../../assets/algojudge.svg'
 import imageDark from '../../assets/algojudge-dark.svg'
-import { Image, useComputedColorScheme } from '@mantine/core';
+import { Image, ImageProps, useComputedColorScheme } from '@mantine/core';
 
-function Logo(props: any) {
+function Logo(props: ImageProps) {
     const colorScheme = useComputedColorScheme();
     return (
         <Image src={colorScheme == 'dark' ? imageDark : imageLight} h="1em" w="auto" {...props} />
