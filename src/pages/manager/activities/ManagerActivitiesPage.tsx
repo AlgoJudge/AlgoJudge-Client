@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Table } from '@mantine/core';
-import { Activity } from "../../api/ParticipantApi";
-import { useApiEffect } from "../../provider/ApiProvider";
+import { Table, Title } from '@mantine/core';
+import { useTranslation } from "react-i18next";
+import { Activity } from "../../../api/ParticipantApi";
+import { useApiEffect } from "../../../provider/ApiProvider";
 
-function ManagePage() {
-
+export default function ManagerActivitiesPage() {
+    const { t } = useTranslation();
     const [activities, setActivities] = useState<Activity[]>([]);
 
     useApiEffect(async (api) => {
@@ -13,7 +14,7 @@ function ManagePage() {
 
     return (
         <>
-            <h1>Manage</h1>
+            <Title>{t("Activities")}</Title>
             <Table>
                 <Table.Thead>
                     <Table.Tr>
@@ -39,5 +40,3 @@ function ManagePage() {
         </>
     )
 }
-
-export default ManagePage;

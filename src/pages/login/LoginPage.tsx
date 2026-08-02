@@ -52,7 +52,7 @@ function LoginPage() {
 
     return (
         <Container size={420} my={40}>
-            {logged && (<Navigate to="/manage" replace={true} />)}
+            {logged && (<Navigate to="/manager" replace={true} />)}
             <Title ta="center" className={classes.title}>
                 {t('Login')}
             </Title>
