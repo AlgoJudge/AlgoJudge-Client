@@ -39,15 +39,10 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
         navigate(redirectPath, { replace: true });
     }
 
-    // Restoring the session from the Server is not wired up yet. Enabling it
-    // also needs `useEffect` from react and `useSession` from ./SessionProvider:
-    //
-    // useEffect(() => {
-    //     loginApi.getInfo().then(info => {
-    //         setUser({ email: info.email });
-    //         navigate(redirectPath, { replace: true });
-    //     }).catch(() => setUser(null));
-    // }, [])
+    // Session restore is still not wired up, so this provider holds its own idea
+    // of the signed-in user while CoreApi.getUser() holds another. Unifying them
+    // needs a session-restore method on the CoreApi interface, which would also
+    // have to be implemented by the fake. Tracked as a follow-up.
 
     return (
         <AuthContext.Provider value={{ user, login, logout }}>{children}</AuthContext.Provider>

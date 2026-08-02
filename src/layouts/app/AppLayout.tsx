@@ -6,6 +6,7 @@ import classes from "./AppLayout.module.css";
 import { Icon, IconBox, IconChartBarPopular, IconChevronDown, IconChevronsLeft, IconChevronsRight, IconListDetails, IconLogout, IconMessageQuestion, IconMoon, IconNotes, IconPackageExport, IconProps, IconSectionSign, IconSun } from "@tabler/icons-react";
 import { ComponentPropsWithoutRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useApiEffect } from "../../provider/ApiProvider";
 
 interface Activity {
     id: string,
@@ -45,6 +46,15 @@ const ActivityNavbar = (props: { collapsed: boolean }) => {
             hasRules: true,
         });
     }
+    const updateName = (name: string) => {
+        setCurrentActivity({...currentActivity!, name});
+    }
+    useApiEffect(async (api) => {
+        if (!currentActivity) return;
+        api.participantApi.eventDispatcher.addEventListener("activityUpdated", (e) => e.data.activity.id === params.activityId && updateName(e.data.activity.name));
+        const activity = await api.participantApi.getActivity(params.activityId!);
+        updateName(activity.name);
+    }, [currentActivity?.id]);
     if (!currentActivity) return;
     const links = [
         { to: `/activities/${currentActivity.id}/problems`, label: t("Problems"), icon: IconNotes },

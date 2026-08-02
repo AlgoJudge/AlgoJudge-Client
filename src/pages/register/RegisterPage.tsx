@@ -3,8 +3,8 @@ import { useTranslation } from "react-i18next";
 import classes from './RegisterPage.module.css';
 import { IconInfoCircle } from "@tabler/icons-react";
 import { useState } from "react";
-import { useSession } from "../../provider/SessionProvider";
-import { UnauthorizedError } from "../../../api/ApiRequester";
+import { useApiCall } from "../../provider/ApiProvider";
+import { UnauthorizedError } from "../../api/ApiError";
 
 function RegisterPage() {
     const { t } = useTranslation();
@@ -12,14 +12,14 @@ function RegisterPage() {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [email, setEmail] = useState('test@test.pl');
     const [password, setPassword] = useState('Test1!');
-    const { loginApi } = useSession();
+    const apiCall = useApiCall();
     const icon = <IconInfoCircle />;
 
     const makeRegister = async () => {
         setError(undefined);
         setIsLoading(true);
         try {
-            await loginApi.register(email, password);
+            await apiCall(api => api.authApi.register(email, password));
         } catch (e) {
             if (e instanceof UnauthorizedError) {
                 setError(t('Invalid email or password'));

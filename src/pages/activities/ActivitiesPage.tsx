@@ -1,85 +1,12 @@
-import { Card, Stack, Title, Text, Group, Pagination } from "@mantine/core";
+import { Card, Stack, Title, Text, Group, Pagination, Loader } from "@mantine/core";
 import { IconSchool, IconTrophy } from "@tabler/icons-react";
 import classes from "./ActivitiesPage.module.css"
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
-
-interface Activity {
-    id: string,
-    type: string,
-    isActive: boolean,
-    name: string,
-    props: {key: string, value: string}[]
-}
-
-const data: Activity[] = [
-    {
-        id: "PCN1",
-        type: "contest",
-        isActive: true,
-        name: "Programming Contest No 1",
-        props: []
-    },
-    {
-        id: "PC1",
-        type: "course",
-        isActive: true,
-        name: "Programming course",
-        props: [
-            {
-                key: "Group",
-                value: "LA"
-            },
-            {
-                key: "Teacher",
-                value: "John Smith"
-            },
-        ]
-    },
-    {
-        id: "PCN2",
-        type: "contest",
-        isActive: true,
-        name: "Programming Contest No 2",
-        props: []
-    },
-    {
-        id: "PCN3",
-        type: "contest",
-        isActive: false,
-        name: "Programming Contest No 3",
-        props: []
-    },
-    {
-        id: "APC",
-        type: "course",
-        isActive: true,
-        name: "Advanced programming course",
-        props: []
-    },
-    {
-        id: "PCN4",
-        type: "contest",
-        isActive: true,
-        name: "Programming Contest No 4",
-        props: []
-    },
-    {
-        id: "PCN5",
-        type: "contest",
-        isActive: false,
-        name: "Programming Contest No 5",
-        props: []
-    },
-    {
-        id: "APC2",
-        type: "course",
-        isActive: true,
-        name: "Advanced programming course II",
-        props: []
-    },
-];
+import { Activity } from "../../api/ParticipantApi";
+import { useApiEffect } from "../../provider/ApiProvider";
+import { SortedList } from "../../utils/SortedList"
 
 const MAX_ITEMS_PER_PAGE = 5;
 
@@ -97,25 +24,40 @@ const getIcon = (type: string) => {
 export default function ActivitiesPage() {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const [data, setData] = useState<Activity[]>();
     const [page, setPage] = useState<number>(1);
-    const pages = Math.ceil(data.length / MAX_ITEMS_PER_PAGE);
-    const firstItem = MAX_ITEMS_PER_PAGE * (page - 1);
-    const list = data.slice(firstItem, firstItem + MAX_ITEMS_PER_PAGE).map(item =>
-        <Card key={item.id} className={classes.item + " " + (item.isActive && classes.active)} onClick={() => navigate(`/activities/${item.id}/problems`)}>
-            <Group justify="space-between">
-                <Group>
-                    {getIcon(item.type)}<Text size="lg">{item.name}</Text>
+    const sortedList: SortedList<Activity, string> = new SortedList(a => a.id, (a, b) => a.id.localeCompare(b.id), setData);
+    useApiEffect(async (api) => {
+        const getData = async () => {
+            const data = await api.participantApi.getActivities();
+            sortedList.addOrUpdate(data);
+        }
+        api.participantApi.eventDispatcher.addEventListener("activityCreated", evt => sortedList.addOrUpdate([evt.data.activity]));
+        api.participantApi.eventDispatcher.addEventListener("activityUpdated", evt => sortedList.addOrUpdate([evt.data.activity]));
+        await getData();
+    });
+    const pages = data ? Math.ceil(data.length / MAX_ITEMS_PER_PAGE) : 0;
+    const list = data && (() => {
+        const firstItem = MAX_ITEMS_PER_PAGE * (page - 1);
+        const list = data.slice(firstItem, firstItem + MAX_ITEMS_PER_PAGE).map(item =>
+            <Card key={item.id} className={classes.item + " " + (item.isActive && classes.active)} onClick={() => navigate(`/activities/${item.id}/problems`)}>
+                <Group justify="space-between">
+                    <Group>
+                        {getIcon(item.type)}<Text size="lg">{item.name}</Text>
+                    </Group>
+                    <Stack justify="flex-end" gap={0} className={classes.stack}>
+                        {item.props.map(p => <Text key={p.key}>{p.key}: {p.value}</Text>)}
+                    </Stack>
                 </Group>
-                <Stack justify="flex-end" gap={0} className={classes.stack}>
-                    {item.props.map(p => <Text key={p.key}>{p.key}: {p.value}</Text>)}
-                </Stack>
-            </Group>
-        </Card>
-    );
+            </Card>
+        );
+        return list;
+    })();
     return (
         <>
             <Title>{t("Activities")}</Title>
             {list}
+            {!data && <Loader color="blue" size="xl" />}
             <Group justify="center" mt="xl">
                 <Pagination total={pages} value={page} onChange={setPage} mx="auto" />
             </Group>

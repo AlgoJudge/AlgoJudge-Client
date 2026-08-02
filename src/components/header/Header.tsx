@@ -4,9 +4,8 @@ import { IconChevronDown } from '@tabler/icons-react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { EventType } from '../../../api/EventDispatcher';
 import { useAuth } from '../../provider/AuthProvider';
-import { useSession } from '../../provider/SessionProvider';
+import { useApiEffect } from '../../provider/ApiProvider';
 import Logo from '../logo/Logo';
 import classes from './Header.module.css';
 import { notifications } from '@mantine/notifications';
@@ -14,22 +13,16 @@ import { usePreferences } from '../../provider/PreferencesProvider';
 
 function Header() {
     const [opened, { toggle }] = useDisclosure(false);
-    const { eventDispatcher } = useSession();
 
-    const notify = (msg: string) => {
-        notifications.show({
-            title: 'Connection error',
-            message: 'Server response ' + msg,
-            color: "red"
-        })
-    }
-
-    useEffect(() => {
-        // TODO
-        eventDispatcher.addEventListener(EventType.FORBIDDEN, () => notify('FORBIDDEN'));
-        eventDispatcher.addEventListener(EventType.UNAUTHORIZED, () => notify('UNAUTHORIZED'));
-        eventDispatcher.addEventListener(EventType.INVALID_STATUS_CODE, () => notify('INVALID_STATUS_CODE'));
-    }, []);
+    useApiEffect(async (api) => {
+        api.authApi.eventDispatcher.addEventListener('systemMessage', (evt) => {
+            notifications.show({
+                title: evt.data.type === 'error' ? 'Connection error' : 'Notice',
+                message: evt.data.message,
+                color: evt.data.type === 'error' ? 'red' : 'blue'
+            });
+        });
+    });
 
     const { t, i18n } = useTranslation();
     const { user, logout } = useAuth();
