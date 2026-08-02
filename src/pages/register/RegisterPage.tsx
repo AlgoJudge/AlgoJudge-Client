@@ -1,4 +1,4 @@
-import { Alert, Anchor, Box, Button, Checkbox, Container, Group, LoadingOverlay, Paper, PasswordInput, Text, TextInput, Title } from "@mantine/core";
+import { Alert, Anchor, Box, Button, Checkbox, Container, Group, LoadingOverlay, Paper, PasswordInput, TextInput, Title } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import classes from './RegisterPage.module.css';
 import { IconInfoCircle } from "@tabler/icons-react";

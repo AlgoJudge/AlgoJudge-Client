@@ -1,13 +1,6 @@
 import { Anchor, Title } from "@mantine/core";
-import classes from "./SubmissionsPage.module.css"
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
-
-interface Model {
-    /* ... */
-}
-
-const data: Model = { /* ... */};
 
 export default function SubmissionsPage() {
     const { t } = useTranslation();

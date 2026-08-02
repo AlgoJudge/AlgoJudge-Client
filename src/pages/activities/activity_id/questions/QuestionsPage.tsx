@@ -2,12 +2,6 @@ import { Title } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import QuestionFormModal from "./submit_question/QuestionFormModal";
 
-interface Model {
-    /* ... */
-}
-
-const data: Model = { /* ... */};
-
 export default function QuestionsPage() {
     const { t } = useTranslation();
     return (

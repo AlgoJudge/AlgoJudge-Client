@@ -1,13 +1,6 @@
 import { Button, Group, Title } from "@mantine/core";
-import classes from "./SubmissionPage.module.css"
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
-
-interface Model {
-    /* ... */
-}
-
-const data: Model = { /* ... */ };
 
 export default function SubmissionPage() {
     const { t } = useTranslation();

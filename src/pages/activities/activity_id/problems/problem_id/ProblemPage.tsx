@@ -1,5 +1,4 @@
 import {Button, Group, Stack, Title} from "@mantine/core";
-import classes from "./ProblemPage.module.css"
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
@@ -21,7 +20,7 @@ export default function ProblemPage() {
     const params = useParams();
     return (
         <>
-            <Stack spacing={2}>
+            <Stack gap={2}>
                 <Title>{data.name}</Title>
                 <Group justify="space-between">
                     <Button onClick={() => navigate(-1)}>{t("Back")}</Button>

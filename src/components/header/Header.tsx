@@ -93,7 +93,7 @@ function Header() {
         <header className={classes.header}>
             <Container size="md">
                 <div className={classes.inner}>
-                    <Link to="/"><Logo size={28} /></Link>
+                    <Link to="/"><Logo /></Link>
                     <Group gap={5} visibleFrom="sm">
                         {items}
                     </Group>
