@@ -1,6 +1,5 @@
-import { FC, ReactNode, createContext, useContext, useEffect, useState } from "react";
+import { FC, ReactNode, createContext, useContext, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useSession } from "./SessionProvider";
 
 export interface LoginModel {
     email: string,
@@ -27,7 +26,6 @@ const AuthContext = createContext<AuthContextType>(initialState);
 export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { loginApi } = useSession();
     const redirectPath = location.state?.path || '/';
     const [user, setUser] = useState<User | null | undefined>(null);
     const login = (model: LoginModel) => {
@@ -41,6 +39,9 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
         navigate(redirectPath, { replace: true });
     }
 
+    // Restoring the session from the Server is not wired up yet. Enabling it
+    // also needs `useEffect` from react and `useSession` from ./SessionProvider:
+    //
     // useEffect(() => {
     //     loginApi.getInfo().then(info => {
     //         setUser({ email: info.email });

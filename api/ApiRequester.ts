@@ -19,8 +19,16 @@ class InvalidStatusError extends Error {
 class ApiRequester {
     constructor(private baseUrl: string, private eventDispatcher: EventDispatcher) { }
 
-    public async request(path: string, method: "GET" | "POST", query: any = {}, body: any = undefined): Promise<any> {
-        const url = this.baseUrl + path + "?" + new URLSearchParams(query);
+    public async request<T>(
+        path: string,
+        method: "GET" | "POST",
+        query: Record<string, string | number | boolean> = {},
+        body: BodyInit | undefined = undefined
+    ): Promise<T> {
+        const params = new URLSearchParams(
+            Object.entries(query ?? {}).map(([key, value]) => [key, String(value)])
+        );
+        const url = this.baseUrl + path + "?" + params;
         const res = await fetch(url, {
             method,
             body,
@@ -38,9 +46,9 @@ class ApiRequester {
             throw new InvalidStatusError();
         }
         try {
-            return await res.json();
-        } catch (e) { /* empty */ }
-        return "{}";
+            return await res.json() as T;
+        } catch { /* an empty body is not an error for every endpoint */ }
+        return {} as T;
     }
 }
 

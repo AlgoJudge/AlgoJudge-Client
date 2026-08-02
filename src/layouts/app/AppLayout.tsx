@@ -4,7 +4,7 @@ import { NavLink, Outlet, useParams } from "react-router-dom";
 import Logo from "../../components/logo/Logo";
 import classes from "./AppLayout.module.css";
 import { Icon, IconBox, IconChartBarPopular, IconChevronDown, IconChevronsLeft, IconChevronsRight, IconListDetails, IconLogout, IconMessageQuestion, IconMoon, IconNotes, IconPackageExport, IconProps, IconSectionSign, IconSun } from "@tabler/icons-react";
-import { useState } from "react";
+import { ComponentPropsWithoutRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useApiEffect } from "../../provider/ApiProvider";
 
@@ -105,7 +105,7 @@ const LangSelector = () => {
     );
 }
 
-const UserButton = (props: any) => {
+const UserButton = (props: ComponentPropsWithoutRef<'button'>) => {
     return (
         <UnstyledButton mx="xl" {...props} className={classes.user}>
             <Group>
