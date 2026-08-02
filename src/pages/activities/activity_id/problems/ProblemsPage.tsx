@@ -3,7 +3,7 @@ import classes from "./ProblemsPage.module.css";
 import { useEffect, useState } from "react";
 import { useInterval } from "@mantine/hooks";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 interface Problem {
     id: string,
