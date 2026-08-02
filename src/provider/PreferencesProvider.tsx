@@ -18,13 +18,11 @@ export const PreferencesProvider: FC<{ children: ReactNode }> = ({ children }) =
         setLang2(lang);
     }
     const setTheme = (theme: ThemeType) => {
-        console.log("FSDF");
         setTheme2(theme);
     }
     useEffect(() => {
         if (!theme) return;
         localStorage.setItem('theme', theme);
-        console.log("SEVE===============", theme);
     }, [theme]);
     useEffect(() => {
         if (!lang) return;
@@ -32,7 +30,6 @@ export const PreferencesProvider: FC<{ children: ReactNode }> = ({ children }) =
     }, [lang]);
     useEffect(() => {
         const lsTheme = localStorage.getItem('theme');
-        console.log("REST", lsTheme)
         if (lsTheme) setTheme(lsTheme == 'dark' ? 'dark' : 'light');
         const lsLang = localStorage.getItem('lang');
         if (lsLang) setLang(lsLang);

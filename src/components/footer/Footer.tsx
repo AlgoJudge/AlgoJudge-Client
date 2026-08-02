@@ -5,13 +5,10 @@ import { Link } from 'react-router-dom';
 import Logo from '../logo/Logo';
 import classes from './Footer.module.css';
 import { usePreferences } from '../../provider/PreferencesProvider';
-import { useEffect } from 'react';
 
 function Footer() {
     const { t } = useTranslation();
-    const { theme, setTheme, setLang } = usePreferences();
-
-    useEffect(() => console.log("XXD", [theme]))
+    const { setTheme, setLang } = usePreferences();
 
     const links = [
         { link: 'https://algojudge.pl', label: t('About'), prev: false },
@@ -31,7 +28,7 @@ function Footer() {
             label: 'Theme',
             links: [
                 { link: '#2-light', label: 'Light', func: () => setTheme('light') },
-                { link: '#2-dark', label: 'Dark', func: () => { console.log("DARK"); setTheme('dark') } },
+                { link: '#2-dark', label: 'Dark', func: () => setTheme('dark') },
             ],
         }
     ];
@@ -85,7 +82,7 @@ function Footer() {
         <Affix withinPortal={false} position={{ bottom: 0, left: 0, right: 0 }}>
             <div className={classes.footer}>
                 <Container className={classes.inner}>
-                    <Link to="/"><Logo size={28} /></Link>
+                    <Link to="/"><Logo /></Link>
                     <Group className={classes.links}>{items3}</Group>
                 </Container>
             </div>
