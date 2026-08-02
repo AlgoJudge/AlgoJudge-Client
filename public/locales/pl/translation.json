@@ -51,5 +51,9 @@
   "Time": "Czas",
   "Memory": "Pamięć",
   "Result": "Wynik",
-  "Comments": "Uwagi"
+  "Comments": "Uwagi",
+  "Place": "Miejsce",
+  "Contestant": "Uczestnik",
+  "Completed tasks": "Zaliczone rundy",
+  "Sum": "Suma"
 }

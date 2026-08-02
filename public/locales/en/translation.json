@@ -51,5 +51,9 @@
   "Time": "Time",
   "Memory": "Memory",
   "Result": "Result",
-  "Comments": "Comments"
+  "Comments": "Comments",
+  "Place": "Place",
+  "Contestant": "Contestant",
+  "Completed tasks": "Completed tasks",
+  "Sum": "Sum"
 }
