@@ -35,6 +35,7 @@ export default function ActivitiesPage() {
     const [page, setPage] = useState(1);
     const [items, setItems] = useState<Activity[] | undefined>(undefined);
     const [total, setTotal] = useState(0);
+    const [reload, setReload] = useState(0);
 
     // Paging and filtering are the Server's job. Fetching everything and slicing
     // in the Client only works while the list is short, and stops silently when
@@ -44,7 +45,17 @@ export default function ActivitiesPage() {
         const result = await api.participantApi.getActivities({ page, pageSize: PAGE_SIZE, states, types });
         setItems(result.items);
         setTotal(result.total);
-    }, [page, states.join(","), types.join(",")]);
+
+        // An activity appearing, vanishing or changing state moves it between
+        // pages, so the page is refetched rather than patched — splicing a new
+        // row into the visible page would put it wherever it happened to arrive
+        // instead of where the filters and the ordering put it.
+        const refetch = () => setReload(n => n + 1);
+        api.participantApi.eventDispatcher.addEventListener("activityCreated", refetch);
+        api.participantApi.eventDispatcher.addEventListener("activityDeleted", refetch);
+        api.participantApi.eventDispatcher.addEventListener("activityUpdated", evt =>
+            setItems(current => current?.map(a => a.id === evt.data.activity.id ? evt.data.activity : a)));
+    }, [page, states.join(","), types.join(","), reload]);
 
     const onFilterChange = <T,>(set: (value: T[]) => void) => (value: T[]) => {
         set(value);

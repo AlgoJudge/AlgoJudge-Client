@@ -100,6 +100,12 @@ export default function QuestionsPage() {
         api.participantApi.eventDispatcher.addEventListener("questionAnswered", evt => {
             if (evt.data.activityId === activity.id) refresh(evt.data.question);
         });
+        // A publication adds a row that was not visible before, so the page is
+        // refetched: patching would place it wherever it arrived rather than
+        // where the sort puts it, and could push another row off the page.
+        api.participantApi.eventDispatcher.addEventListener("questionPublished", evt => {
+            if (evt.data.activityId === activity.id) setReload(n => n + 1);
+        });
         api.participantApi.eventDispatcher.addEventListener("announcementPublished", evt => {
             if (evt.data.activityId === activity.id) setReload(n => n + 1);
         });

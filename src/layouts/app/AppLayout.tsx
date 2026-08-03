@@ -202,6 +202,13 @@ export default function AppLayout() {
             if (evt.data.activityId !== loaded.id) return;
             setSeries(current => current.map(s => s.id === evt.data.series.id ? evt.data.series : s));
         });
+        // The clock counts to the end of the running series, so a moved time has
+        // to reach it — otherwise the header keeps counting to an instant that
+        // no longer exists.
+        api.participantApi.eventDispatcher.addEventListener("activityTimesChanged", async evt => {
+            if (evt.data.activityId !== loaded.id) return;
+            setSeries(await api.participantApi.getSeries(loaded.id));
+        });
     }, [params.activityId]);
 
     const CollapseButton =

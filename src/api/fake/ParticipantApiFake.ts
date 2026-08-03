@@ -31,6 +31,17 @@ const paginate = <T>(items: T[], page = 1, pageSize = DEFAULT_PAGE_SIZE): Page<T
     };
 };
 
+/**
+ * Everything leaves the fake as a copy.
+ *
+ * Without this the fake hands out the very objects it goes on to mutate, and a
+ * view that stores one in state gets an object that changes underneath it. React
+ * then compares the new value to the old, finds the same reference, and skips the
+ * render — so a screen silently stops updating while the data behind it moves.
+ * A real HTTP API cannot do that; a fake that can is lying about the contract.
+ */
+const copy = <T>(value: T): T => structuredClone(value);
+
 const notFound = (what: string): never => Utils.throwError(`${what} does not exist`);
 
 /**
@@ -146,6 +157,16 @@ class FakeParticipantState {
             problem.status = problem.bestScore === 0 ? "attempted"
                 : problem.bestScore >= (problem.maxScore ?? 100) ? "solved"
                 : "partial";
+
+            // The detail carries the same standing as the summary, so it has to
+            // move with it or the statement screen shows a stale badge.
+            const detail = this.data.problems.get(`${activityId}/${problemSlug}`);
+            if (detail) {
+                detail.status = problem.status;
+                detail.bestScore = problem.bestScore;
+                detail.attempts = problem.attempts;
+            }
+
             this.events.dispatchEvent({
                 type: "problemStatusChanged",
                 data: { activityId, problem: { ...problem } },
@@ -203,25 +224,25 @@ export class ParticipantApiFake implements ParticipantApi {
         const matched = activities.filter(a =>
             (states.length === 0 || states.includes(a.state)) &&
             (types.length === 0 || types.includes(a.type.split("@")[0])));
-        return paginate(matched, filter.page, filter.pageSize);
+        return copy(paginate(matched, filter.page, filter.pageSize));
     }
 
     async getActivity(idOrSlug: string, signal: AbortSignal): Promise<Activity> {
         await this.settle(signal);
         const { activities } = this.state.dataset();
-        return activities.find(a => a.id === idOrSlug || a.slug === idOrSlug)
-            ?? notFound("Activity");
+        const activity = activities.find(a => a.id === idOrSlug || a.slug === idOrSlug);
+        return activity ? copy(activity) : notFound("Activity");
     }
 
     async getSeries(activityId: string, signal: AbortSignal): Promise<Series[]> {
         await this.settle(signal);
-        return this.state.dataset().series.get(activityId) ?? [];
+        return copy(this.state.dataset().series.get(activityId) ?? []);
     }
 
     async getProblem(activityId: string, problemSlug: string, signal: AbortSignal): Promise<ProblemDetail> {
         await this.settle(signal);
-        return this.state.dataset().problems.get(`${activityId}/${problemSlug}`)
-            ?? notFound("Problem");
+        const problem = this.state.dataset().problems.get(`${activityId}/${problemSlug}`);
+        return problem ? copy(problem) : notFound("Problem");
     }
 
     async getSubmissions(activityId: string, filter: SubmissionFilter, signal: AbortSignal): Promise<Page<SubmissionSummary>> {
@@ -232,14 +253,15 @@ export class ParticipantApiFake implements ParticipantApi {
             (!filter.problemId || s.problemId === filter.problemId) &&
             (!filter.seriesId || s.seriesId === filter.seriesId) &&
             (states.length === 0 || states.includes(s.state)));
-        return paginate(matched, filter.page, filter.pageSize ?? 10);
+        return copy(paginate(matched, filter.page, filter.pageSize ?? 10));
     }
 
     // The activity is part of the route and of the real endpoint's authorisation,
     // but the fake keeps submissions in one map keyed by id, so it goes unused.
     async getSubmission(_activityId: string, submissionId: string, signal: AbortSignal): Promise<SubmissionDetail> {
         await this.settle(signal);
-        return this.state.dataset().submissionDetails.get(submissionId) ?? notFound("Submission");
+        const detail = this.state.dataset().submissionDetails.get(submissionId);
+        return detail ? copy(detail) : notFound("Submission");
     }
 
     async getSubmissionFile(_activityId: string, submissionId: string, name: string, signal: AbortSignal): Promise<string> {
@@ -281,12 +303,13 @@ export class ParticipantApiFake implements ParticipantApi {
             data: { activityId, submission: { ...summary } },
         });
         this.state.scheduleEvaluation(activityId, id);
-        return summary;
+        return copy(summary);
     }
 
     async getRanking(activityId: string, signal: AbortSignal): Promise<unknown> {
         await this.settle(signal);
-        return this.state.dataset().rankings.get(activityId) ?? notFound("Ranking");
+        const ranking = this.state.dataset().rankings.get(activityId);
+        return ranking !== undefined ? copy(ranking) : notFound("Ranking");
     }
 
     async getQuestions(activityId: string, filter: QuestionFilter, signal: AbortSignal): Promise<Page<Question>> {
@@ -309,7 +332,7 @@ export class ParticipantApiFake implements ParticipantApi {
                 default: return direction * a.createdAt.localeCompare(b.createdAt);
             }
         });
-        return paginate(sorted, filter.page, filter.pageSize ?? 10);
+        return copy(paginate(sorted, filter.page, filter.pageSize ?? 10));
     }
 
     async askQuestion(activityId: string, input: AskQuestionInput, signal: AbortSignal): Promise<Question> {
@@ -335,7 +358,7 @@ export class ParticipantApiFake implements ParticipantApi {
             isRead: true,
         };
         data.questions.set(activityId, [question, ...(data.questions.get(activityId) ?? [])]);
-        return question;
+        return copy(question);
     }
 
     async markQuestionRead(activityId: string, questionId: string, signal: AbortSignal): Promise<void> {
@@ -346,7 +369,8 @@ export class ParticipantApiFake implements ParticipantApi {
 
     async getRules(activityId: string, signal: AbortSignal): Promise<unknown> {
         await this.settle(signal);
-        return this.state.dataset().rules.get(activityId) ?? notFound("Rules");
+        const rules = this.state.dataset().rules.get(activityId);
+        return rules !== undefined ? copy(rules) : notFound("Rules");
     }
 
     /** Latency, then the abort check — so a cancelled view never sees a result. */

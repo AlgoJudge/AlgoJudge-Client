@@ -1,39 +1,15 @@
-import { Badge, Box, Button, Card, Center, Group, Loader, Overlay, Stack, Text, Title } from "@mantine/core";
-import { IconCircle, IconCircleCheck, IconCircleDashed, IconCircleHalf2, IconLock } from "@tabler/icons-react";
+import { Box, Button, Card, Center, Group, Loader, Overlay, Stack, Text, Title } from "@mantine/core";
+import { IconLock } from "@tabler/icons-react";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
-import { Activity, ProblemStatus, ProblemSummary, Series } from "../../../../api/ParticipantApi";
+import { Activity, ProblemSummary, Series } from "../../../../api/ParticipantApi";
+import ProblemStatusBadge from "../../../../components/problem/ProblemStatusBadge";
 import ActivityTime from "../../../../components/time/ActivityTime";
 import Countdown from "../../../../components/time/Countdown";
 import { useApiCall, useApiEffect } from "../../../../provider/ApiProvider";
 import { activityRenderers } from "../../../../renderers";
 import classes from "./ProblemsPage.module.css";
-
-const STATUS_ICON: Record<ProblemStatus, { icon: typeof IconCircle; color: string }> = {
-    solved: { icon: IconCircleCheck, color: "teal" },
-    partial: { icon: IconCircleHalf2, color: "yellow" },
-    attempted: { icon: IconCircleDashed, color: "red" },
-    untouched: { icon: IconCircle, color: "gray" },
-};
-
-const ProblemStatusBadge = ({ problem }: { problem: ProblemSummary }) => {
-    const { t } = useTranslation();
-    const { icon: Icon, color } = STATUS_ICON[problem.status];
-    return (
-        <Group gap="xs" wrap="nowrap">
-            {problem.bestScore !== undefined && (
-                <Text size="sm" c="dimmed">{problem.bestScore} / {problem.maxScore ?? "?"}</Text>
-            )}
-            {problem.attempts > 0 && (
-                <Text size="sm" c="dimmed">{t("Attempts")}: {problem.attempts}</Text>
-            )}
-            <Badge color={color} variant="light" leftSection={<Icon size={14} />}>
-                {t(problem.status)}
-            </Badge>
-        </Group>
-    );
-};
 
 const ProblemRow = ({ problem, activitySlug }: { problem: ProblemSummary; activitySlug: string }) => {
     const { t } = useTranslation();
@@ -42,7 +18,7 @@ const ProblemRow = ({ problem, activitySlug }: { problem: ProblemSummary; activi
             <Group justify="space-between" wrap="nowrap">
                 <Text size="md" style={{ minWidth: 0 }}>[{problem.slug}] {problem.name}</Text>
                 <Group gap="md" wrap="nowrap">
-                    <ProblemStatusBadge problem={problem} />
+                    <ProblemStatusBadge status={problem.status} bestScore={problem.bestScore} maxScore={problem.maxScore} attempts={problem.attempts} />
                     <Button
                         component={Link}
                         to={`/activities/${activitySlug}/submit/${problem.slug}`}
@@ -141,6 +117,13 @@ export default function ProblemsPage() {
                 ...s,
                 problems: s.problems?.map(p => p.id === evt.data.problem.id ? evt.data.problem : p),
             })));
+        });
+        // A manager moving a start or end time changes every countdown and
+        // deadline on this page, and the series carry the times, so the whole
+        // set is reloaded rather than guessed at.
+        scoped.participantApi.eventDispatcher.addEventListener("activityTimesChanged", async evt => {
+            if (evt.data.activityId !== activity.id) return;
+            setSeries(await scoped.participantApi.getSeries(activity.id));
         });
     }, [activityId]);
 

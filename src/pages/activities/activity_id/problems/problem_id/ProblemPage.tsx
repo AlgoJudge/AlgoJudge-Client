@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Activity, ProblemDetail } from "../../../../../api/ParticipantApi";
+import ProblemStatusBadge from "../../../../../components/problem/ProblemStatusBadge";
 import { useApiEffect } from "../../../../../provider/ApiProvider";
 import { statementRenderers } from "../../../../../renderers";
 
@@ -23,6 +24,21 @@ export default function ProblemPage() {
         const activity = await api.participantApi.getActivity(activityId);
         setActivity(activity);
         setProblem(await api.participantApi.getProblem(activity.id, problemId));
+
+        // The statement is where a participant sits while waiting for a verdict,
+        // so their standing on this problem has to move here too — not only on
+        // the list they came from.
+        api.participantApi.eventDispatcher.addEventListener("problemStatusChanged", evt => {
+            if (evt.data.activityId !== activity.id) return;
+            setProblem(current => current && current.id === evt.data.problem.id
+                ? {
+                    ...current,
+                    status: evt.data.problem.status,
+                    bestScore: evt.data.problem.bestScore,
+                    attempts: evt.data.problem.attempts,
+                }
+                : current);
+        });
     }, [activityId, problemId]);
 
     if (!activity || !problem) {
@@ -38,6 +54,12 @@ export default function ProblemPage() {
                 <Stack gap={4}>
                     <Title>[{problem.slug}] {problem.name}</Title>
                     <Group gap="xs">
+                        <ProblemStatusBadge
+                            status={problem.status}
+                            bestScore={problem.bestScore}
+                            maxScore={problem.maxScore}
+                            attempts={problem.attempts}
+                        />
                         {/* Absent when the manager chose not to show them, so the
                             screen renders nothing rather than "undefined". */}
                         {problem.limits && (

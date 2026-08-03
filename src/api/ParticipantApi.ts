@@ -152,6 +152,15 @@ export interface ProblemDetail {
     /** Absent when the manager chose not to show them. */
     limits?: ProblemLimits,
     samples?: ProblemSample[],
+    /**
+     * The signed-in participant's own standing on this problem, the same as the
+     * list carries. Repeated here so the statement screen can show it and keep
+     * it current without loading the whole series.
+     */
+    status: ProblemStatus,
+    bestScore?: number,
+    maxScore?: number,
+    attempts: number,
     /** Configured on the assignment, so the same problem may differ between series. */
     languages: string[],
     maxUploadBytes: number,
