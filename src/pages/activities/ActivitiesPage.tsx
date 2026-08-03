@@ -11,7 +11,9 @@ import { SortedList } from "../../utils/SortedList"
 const MAX_ITEMS_PER_PAGE = 5;
 
 const getIcon = (type: string) => {
-    switch (type) {
+    // `type` is `name@version`; the icon follows the name, so a new version of a
+    // known type keeps its icon instead of falling through to the default.
+    switch (type.split("@")[0]) {
         case "contest":
             return <IconTrophy size="3em" />;
         case "course":
@@ -29,8 +31,11 @@ export default function ActivitiesPage() {
     const sortedList: SortedList<Activity, string> = new SortedList(a => a.id, (a, b) => a.id.localeCompare(b.id), setData);
     useApiEffect(async (api) => {
         const getData = async () => {
-            const data = await api.participantApi.getActivities();
-            sortedList.addOrUpdate(data);
+            // Still paging in the Client. The contract now pages on the Server;
+            // this screen is rewritten to use it along with the state and type
+            // filters, and asks for one large page until then.
+            const data = await api.participantApi.getActivities({ pageSize: 100 });
+            sortedList.addOrUpdate(data.items);
         }
         api.participantApi.eventDispatcher.addEventListener("activityCreated", evt => sortedList.addOrUpdate([evt.data.activity]));
         api.participantApi.eventDispatcher.addEventListener("activityUpdated", evt => sortedList.addOrUpdate([evt.data.activity]));
@@ -40,7 +45,7 @@ export default function ActivitiesPage() {
     const list = data && (() => {
         const firstItem = MAX_ITEMS_PER_PAGE * (page - 1);
         const list = data.slice(firstItem, firstItem + MAX_ITEMS_PER_PAGE).map(item =>
-            <Card key={item.id} className={classes.item + " " + (item.isActive && classes.active)} onClick={() => navigate(`/activities/${item.id}/problems`)}>
+            <Card key={item.id} className={classes.item + " " + (item.state === "ongoing" && classes.active)} onClick={() => navigate(`/activities/${item.slug}/problems`)}>
                 <Group justify="space-between">
                     <Group>
                         {getIcon(item.type)}<Text size="lg">{item.name}</Text>

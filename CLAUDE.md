@@ -28,10 +28,11 @@ verified as outdated and removed there.
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run build` | `tsc && vite build` |
 
-There are no tests and no CI, so lint, typecheck and build are the whole gate.
-All three must exit 0 before anything is merged. Lint currently reports seven
-warnings that do not gate the build: four `react-hooks/exhaustive-deps` and
-three `react-refresh/only-export-components`.
+There are no tests, so lint, typecheck and build are the whole gate. All three
+must exit 0 before anything is merged. Lint reports ten warnings that do not gate
+the build — five `react-hooks/exhaustive-deps` and five
+`react-refresh/only-export-components`, all in `provider/`, `components/header/`
+and `problems/`. Treat that as the baseline: it may shrink, not grow.
 
 ## Rules
 

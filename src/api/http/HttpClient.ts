@@ -33,10 +33,16 @@ export class HttpClient {
         const search = params.toString();
         const url = this.baseUrl + path + (search ? "?" + search : "");
 
+        // FormData passes through untouched: serialising it would destroy the
+        // upload, and the browser has to set the multipart boundary itself.
+        const isForm = options.body instanceof FormData;
+
         const response = await fetch(url, {
             method,
-            body: options.body === undefined ? undefined : JSON.stringify(options.body),
-            headers: new Headers({ "content-type": "application/json" }),
+            body: options.body === undefined
+                ? undefined
+                : isForm ? options.body as FormData : JSON.stringify(options.body),
+            headers: isForm ? undefined : new Headers({ "content-type": "application/json" }),
             credentials: "include",
             signal: options.signal,
         });

@@ -1,7 +1,40 @@
 import { Api } from "./Api";
 import { CoreApi, CoreEvent, CoreEventDispatcher, CoreEventType, SystemMessageEvent, User } from "./CoreApi";
-import { Activity, ActivityCreatedEvent, ActivityDeletedEvent, ActivityUpdatedEvent, ParticipantApi, ParticipantEvent, ParticipantEventDispatcher, ParticipantEventType } from "./ParticipantApi";
+import {
+    Activity,
+    ActivityCreatedEvent,
+    ActivityDeletedEvent,
+    ActivityFilter,
+    ActivityTimesChangedEvent,
+    ActivityUpdatedEvent,
+    AnnouncementPublishedEvent,
+    AskQuestionInput,
+    Page,
+    ParticipantApi,
+    ParticipantEvent,
+    ParticipantEventDispatcher,
+    ParticipantEventType,
+    ProblemDetail,
+    ProblemStatusChangedEvent,
+    Question,
+    QuestionAnsweredEvent,
+    QuestionFilter,
+    QuestionPublishedEvent,
+    RankingChangedEvent,
+    SectionOpenedEvent,
+    Series,
+    SubmissionDetail,
+    SubmissionFilter,
+    SubmissionStateChangedEvent,
+    SubmissionSummary,
+    SubmitPayload,
+} from "./ParticipantApi";
 
+/**
+ * Binds one AbortSignal to every call, so a view never has to pass one around.
+ * Purely mechanical: each method forwards to the same method on the underlying
+ * API with the signal appended, and must not drift from it.
+ */
 export class ScopedApi {
     authApi: ScopedCoreApi;
     participantApi: ScopedParticipantApi;
@@ -40,6 +73,14 @@ export class ScopedParticipantEventDispatcher {
     addEventListener(type: "activityCreated", listener: (evt: ActivityCreatedEvent) => void): void;
     addEventListener(type: "activityUpdated", listener: (evt: ActivityUpdatedEvent) => void): void;
     addEventListener(type: "activityDeleted", listener: (evt: ActivityDeletedEvent) => void): void;
+    addEventListener(type: "activityTimesChanged", listener: (evt: ActivityTimesChangedEvent) => void): void;
+    addEventListener(type: "sectionOpened", listener: (evt: SectionOpenedEvent) => void): void;
+    addEventListener(type: "problemStatusChanged", listener: (evt: ProblemStatusChangedEvent) => void): void;
+    addEventListener(type: "submissionStateChanged", listener: (evt: SubmissionStateChangedEvent) => void): void;
+    addEventListener(type: "rankingChanged", listener: (evt: RankingChangedEvent) => void): void;
+    addEventListener(type: "questionAnswered", listener: (evt: QuestionAnsweredEvent) => void): void;
+    addEventListener(type: "questionPublished", listener: (evt: QuestionPublishedEvent) => void): void;
+    addEventListener(type: "announcementPublished", listener: (evt: AnnouncementPublishedEvent) => void): void;
     addEventListener<T extends ParticipantEventType, V>(type: T, listener: (evt: ParticipantEvent<T, V>) => void): void {
         this.eventDispatcher.addEventListener(type, listener, this.signal);
     }
@@ -50,10 +91,49 @@ export class ScopedParticipantApi {
     constructor(private participantApi: ParticipantApi, private signal: AbortSignal) {
         this.eventDispatcher = new ScopedParticipantEventDispatcher(this.participantApi.eventDispatcher, this.signal);
     }
-    getActivities(): Promise<Activity[]> {
-        return this.participantApi.getActivities(this.signal);
+
+    getActivities(filter: ActivityFilter = {}): Promise<Page<Activity>> {
+        return this.participantApi.getActivities(filter, this.signal);
     }
-    getActivity(id: string): Promise<Activity> {
-        return this.participantApi.getActivity(id, this.signal);
+    getActivity(idOrSlug: string): Promise<Activity> {
+        return this.participantApi.getActivity(idOrSlug, this.signal);
+    }
+
+    getSeries(activityId: string): Promise<Series[]> {
+        return this.participantApi.getSeries(activityId, this.signal);
+    }
+    getProblem(activityId: string, problemSlug: string): Promise<ProblemDetail> {
+        return this.participantApi.getProblem(activityId, problemSlug, this.signal);
+    }
+
+    getSubmissions(activityId: string, filter: SubmissionFilter = {}): Promise<Page<SubmissionSummary>> {
+        return this.participantApi.getSubmissions(activityId, filter, this.signal);
+    }
+    getSubmission(activityId: string, submissionId: string): Promise<SubmissionDetail> {
+        return this.participantApi.getSubmission(activityId, submissionId, this.signal);
+    }
+    getSubmissionFile(activityId: string, submissionId: string, name: string): Promise<string> {
+        return this.participantApi.getSubmissionFile(activityId, submissionId, name, this.signal);
+    }
+    submit(activityId: string, problemSlug: string, payload: SubmitPayload): Promise<SubmissionSummary> {
+        return this.participantApi.submit(activityId, problemSlug, payload, this.signal);
+    }
+
+    getRanking(activityId: string): Promise<unknown> {
+        return this.participantApi.getRanking(activityId, this.signal);
+    }
+
+    getQuestions(activityId: string, filter: QuestionFilter = {}): Promise<Page<Question>> {
+        return this.participantApi.getQuestions(activityId, filter, this.signal);
+    }
+    askQuestion(activityId: string, input: AskQuestionInput): Promise<Question> {
+        return this.participantApi.askQuestion(activityId, input, this.signal);
+    }
+    markQuestionRead(activityId: string, questionId: string): Promise<void> {
+        return this.participantApi.markQuestionRead(activityId, questionId, this.signal);
+    }
+
+    getRules(activityId: string): Promise<unknown> {
+        return this.participantApi.getRules(activityId, this.signal);
     }
 }
