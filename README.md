@@ -66,6 +66,32 @@ them can hold a secret.
 configured, the real HTTP client otherwise. The fake serves generated data, so
 the interface can be developed without a running Server.
 
+## Docker
+
+Builds the static bundle and serves it from nginx. There is no Node.js runtime
+in the final image.
+
+```bash
+docker build -t algojudge-client .
+docker run -p 8080:80 algojudge-client
+```
+
+With no `VITE_APP_API_BASE_URL` the image runs against the fake API, which is
+useful for looking at the interface without a Server. To point it at one:
+
+```bash
+docker build --build-arg VITE_APP_API_BASE_URL=https://api.example.org -t algojudge-client .
+```
+
+**The configuration is baked in at build time.** Vite inlines `VITE_`-prefixed
+values into the bundle, so a running container cannot be reconfigured — build a
+separate image per environment. For the same reason none of those values may
+hold a secret; they all end up readable in the browser.
+
+`nginx.conf` falls back to `index.html` for anything that is not a file on disk,
+which is what makes a deep link such as `/activities/PCN1/problems` survive a
+refresh. Hashed assets are cached for a year, `index.html` never.
+
 ## Project structure
 
 ```text
