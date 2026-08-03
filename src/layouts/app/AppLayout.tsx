@@ -1,20 +1,14 @@
-import { AppShell, Burger, Group, UnstyledButton, Text, Divider, Tooltip, Menu, useMantineColorScheme, useComputedColorScheme } from "@mantine/core";
+import { AppShell, Burger, Group, UnstyledButton, Text, Divider, Tooltip, Menu, useMantineColorScheme, useComputedColorScheme, Badge } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { NavLink, Outlet, useMatch, useParams } from "react-router-dom";
 import Logo from "../../components/logo/Logo";
 import classes from "./AppLayout.module.css";
-import { Icon, IconAlignBoxCenterTop, IconBox, IconChartBarPopular, IconChevronDown, IconChevronsLeft, IconChevronsRight, IconDevicesPc, IconIdBadge2, IconListDetails, IconLogout, IconMessageQuestion, IconMoon, IconNotes, IconPackageExport, IconPrinter, IconProps, IconSectionSign, IconServer, IconSun, IconUserCheck, IconUsers, IconWorldWww } from "@tabler/icons-react";
+import { Icon, IconAlignBoxCenterTop, IconBox, IconChartBarPopular, IconChevronDown, IconChevronsLeft, IconChevronsRight, IconClock, IconDevicesPc, IconIdBadge2, IconListDetails, IconLogout, IconMessageQuestion, IconMoon, IconNotes, IconPackageExport, IconPrinter, IconProps, IconSectionSign, IconServer, IconSun, IconUserCheck, IconUsers, IconWorldWww } from "@tabler/icons-react";
 import { ComponentPropsWithoutRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useApiEffect } from "../../provider/ApiProvider";
-
-interface Activity {
-    id: string,
-    name: string,
-    hasRanking: boolean,
-    hasQestions: boolean,
-    hasRules: boolean,
-}
+import { Activity, Series } from "../../api/ParticipantApi";
+import Countdown from "../../components/time/Countdown";
 
 const NavbarLink = (props: { label: string, collapsed: boolean, to: string, icon: React.ForwardRefExoticComponent<IconProps & React.RefAttributes<Icon>> }) => {
     return (
@@ -59,44 +53,57 @@ const ManagerNavbar = (props: { collapsed: boolean }) => {
     );
 }
 
-const ActivityNavbar = (props: { collapsed: boolean }) => {
+const ActivityNavbar = (props: { collapsed: boolean, activity: Activity | undefined }) => {
     const { t } = useTranslation();
-    const [currentActivity, setCurrentActivity] = useState<Activity | undefined>(undefined);
-    const params = useParams();
-    if (params.activityId && currentActivity?.id !== params.activityId) {
-        setCurrentActivity({
-            id: params.activityId,
-            name: `The Best Programming Contest`,
-            hasRanking: true,
-            hasQestions: true,
-            hasRules: true,
-        });
-    }
-    const updateName = (name: string) => {
-        setCurrentActivity({...currentActivity!, name});
-    }
-    useApiEffect(async (api) => {
-        if (!currentActivity) return;
-        api.participantApi.eventDispatcher.addEventListener("activityUpdated", (e) => e.data.activity.id === params.activityId && updateName(e.data.activity.name));
-        const activity = await api.participantApi.getActivity(params.activityId!);
-        updateName(activity.name);
-    }, [currentActivity?.id]);
-    if (!currentActivity) return;
+    const activity = props.activity;
+    if (!activity) return;
+
+    // Which modules exist is the activity manager's decision, not a constant. A
+    // course legitimately has no ranking, and the entry must not be there when
+    // it does not.
+    const base = `/activities/${activity.slug}`;
     const links = [
-        { to: `/activities/${currentActivity.id}/problems`, label: t("Problems"), icon: IconNotes },
-        { to: `/activities/${currentActivity.id}/submit`, label: t("Submit"), icon: IconPackageExport },
-        { to: `/activities/${currentActivity.id}/submissions`, label: t("My submissions"), icon: IconBox },
-        currentActivity.hasRanking && { to: `/activities/${currentActivity.id}/ranking`, label: t("Ranking"), icon: IconChartBarPopular },
-        currentActivity.hasQestions && { to: `/activities/${currentActivity.id}/questions`, label: t("Questions and announcements"), icon: IconMessageQuestion },
-        currentActivity.hasRules && { to: `/activities/${currentActivity.id}/rules`, label: t("Rules"), icon: IconSectionSign },
+        { to: `${base}/problems`, label: t("Problems"), icon: IconNotes },
+        { to: `${base}/submit`, label: t("Submit"), icon: IconPackageExport },
+        { to: `${base}/submissions`, label: t("My submissions"), icon: IconBox },
+        activity.modules.ranking && { to: `${base}/ranking`, label: t("Ranking"), icon: IconChartBarPopular },
+        activity.modules.questions && { to: `${base}/questions`, label: t("Questions and announcements"), icon: IconMessageQuestion },
+        activity.modules.rules && { to: `${base}/rules`, label: t("Rules"), icon: IconSectionSign },
     ]
     return (
         <>
-            <Text className={classes.text}>{props.collapsed ? currentActivity.id : currentActivity.name}</Text>
+            <Text className={classes.text}>{props.collapsed ? activity.slug : activity.name}</Text>
             <Divider my="md" className={classes.divider} />
             {links.map(item => item && <NavbarLink key={item.to} to={item.to} label={item.label} icon={item.icon} collapsed={props.collapsed} />)}
             <Divider my="md" className={classes.divider} />
         </>
+    );
+}
+
+/**
+ * Time left in the series that is currently running.
+ *
+ * It starts only once a series has started and counts to that series' end, not
+ * to the activity's — an activity spanning three rounds has no single deadline a
+ * participant is working against.
+ */
+const ActivityClock = ({ activity, series }: { activity: Activity | undefined, series: Series[] }) => {
+    const { t } = useTranslation();
+    if (!activity) return null;
+
+    const now = Date.now();
+    const running = series.find(s =>
+        s.isOpen && s.endDate !== undefined &&
+        (s.startDate === undefined || Date.parse(s.startDate) <= now) &&
+        Date.parse(s.endDate) > now);
+    if (!running?.endDate) return null;
+
+    return (
+        <Tooltip label={`${running.name} — ${t("Time left")}`}>
+            <Badge size="lg" variant="light" color="blue" leftSection={<IconClock size={14} />}>
+                <Countdown target={running.endDate} />
+            </Badge>
+        </Tooltip>
     );
 }
 
@@ -172,6 +179,30 @@ export default function AppLayout() {
     const { t } = useTranslation();
     const [opened, { toggle }] = useDisclosure();
     const [collapsed, collapse] = useDisclosure();
+    const params = useParams();
+
+    // Loaded once here and shared by the sidebar and the clock, so entering an
+    // activity does not fetch it twice.
+    const [activity, setActivity] = useState<Activity | undefined>(undefined);
+    const [series, setSeries] = useState<Series[]>([]);
+
+    useApiEffect(async (api) => {
+        if (!params.activityId) {
+            setActivity(undefined);
+            setSeries([]);
+            return;
+        }
+        const loaded = await api.participantApi.getActivity(params.activityId);
+        setActivity(loaded);
+        setSeries(await api.participantApi.getSeries(loaded.id));
+        api.participantApi.eventDispatcher.addEventListener("activityUpdated", evt => {
+            if (evt.data.activity.id === loaded.id) setActivity(evt.data.activity);
+        });
+        api.participantApi.eventDispatcher.addEventListener("sectionOpened", evt => {
+            if (evt.data.activityId !== loaded.id) return;
+            setSeries(current => current.map(s => s.id === evt.data.series.id ? evt.data.series : s));
+        });
+    }, [params.activityId]);
 
     const CollapseButton =
         <>
@@ -212,6 +243,7 @@ export default function AppLayout() {
                     <NavLink to="/"><Logo h="1em" mx="xl" /></NavLink>
                 </Group>
                 <Group>
+                    <ActivityClock activity={activity} series={series} />
                     <ColorSchemeSwitch />
                     <LangSelector />
                     <UserMenu />
@@ -219,7 +251,7 @@ export default function AppLayout() {
             </AppShell.Header>
 
             <AppShell.Navbar p="md" className={classes.navbar}>
-                <ActivityNavbar collapsed={collapsed} />
+                <ActivityNavbar collapsed={collapsed} activity={activity} />
                 <ManagerNavbar collapsed={collapsed} />
                 <NavbarLink to={`/activities`} label={t("Activities")} icon={IconListDetails} collapsed={collapsed} />
                 <Divider my="md" className={classes.divider} />

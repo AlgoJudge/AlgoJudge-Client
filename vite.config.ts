@@ -59,6 +59,27 @@ export default defineConfig(({mode}) => {
                 '@tabler/icons-react': '@tabler/icons-react/dist/esm/icons/index.mjs',
             }
         },
+        // Monaco is reached through a lazy import, so Vite only discovers these
+        // when the submit screen is first opened — mid-navigation. It then
+        // re-optimises and asks the page to reload, and the import that
+        // triggered it fails with a 504. Declaring them up front makes the first
+        // dev run deterministic.
+        optimizeDeps: {
+            include: [
+                '@monaco-editor/react',
+                'monaco-editor/editor/editor.api.js',
+                'monaco-editor/languages/definitions/cpp/register.js',
+                'monaco-editor/languages/definitions/python/register.js',
+                'monaco-editor/languages/definitions/java/register.js',
+                'monaco-editor/languages/definitions/csharp/register.js',
+                'monaco-editor/languages/definitions/rust/register.js',
+                'monaco-editor/languages/definitions/go/register.js',
+                'monaco-editor/languages/definitions/pascal/register.js',
+                'monaco-editor/languages/definitions/javascript/register.js',
+                'monaco-editor/languages/definitions/typescript/register.js',
+                'katex',
+            ],
+        },
         server: {
             port: 5173,
             https: getHttpsOption(env)
