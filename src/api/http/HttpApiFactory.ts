@@ -2,6 +2,7 @@ import { Api } from "../Api";
 import { CoreEventDispatcherImpl } from "../impl/CoreEventDispatcherImpl";
 import { CoreApiHttp } from "./CoreApiHttp";
 import { HttpClient } from "./HttpClient";
+import { ManagerApiHttp } from "./ManagerApiHttp";
 import { ParticipantApiHttp } from "./ParticipantApiHttp";
 
 export class HttpApiFactory {
@@ -16,6 +17,7 @@ export class HttpApiFactory {
         return {
             authApi: new CoreApiHttp(http, coreEventDispatcher),
             participantApi: new ParticipantApiHttp(http),
+            managerApi: new ManagerApiHttp(http),
         };
     }
 }

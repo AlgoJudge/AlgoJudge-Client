@@ -24,6 +24,7 @@ import CodePage from './pages/activities/activity_id/submissions/submission_id/c
 import UsersPage from './pages/manager/users/UsersPage';
 import RunnersPage from './pages/manager/runners/RunnersPage';
 import ManagerActivitiesPage from './pages/manager/activities/ManagerActivitiesPage';
+import PermissionTemplatesPage from './pages/manager/permission_templates/PermissionTemplatesPage';
 import { ApiProvider } from './provider/ApiProvider';
 
 function App() {
@@ -102,6 +103,10 @@ function App() {
                 {
                     path: "/manager/users",
                     element: <UsersPage />
+                },
+                {
+                    path: "/manager/permission-templates",
+                    element: <PermissionTemplatesPage />
                 },
                 {
                     path: "/manager/runners",

@@ -1,6 +1,20 @@
 import { Api } from "./Api";
 import { CoreApi, CoreEvent, CoreEventDispatcher, CoreEventType, SystemMessageEvent, User } from "./CoreApi";
 import {
+    Grant,
+    GrantChangedEvent,
+    GrantFilter,
+    GrantInput,
+    ManagerApi,
+    ManagerEvent,
+    ManagerEventDispatcher,
+    ManagerEventType,
+    PermissionDefinition,
+    PermissionTemplate,
+    PermissionTemplateChangedEvent,
+    PermissionTemplateInput,
+} from "./ManagerApi";
+import {
     Activity,
     ActivityCreatedEvent,
     ActivityDeletedEvent,
@@ -38,9 +52,11 @@ import {
 export class ScopedApi {
     authApi: ScopedCoreApi;
     participantApi: ScopedParticipantApi;
+    managerApi: ScopedManagerApi;
     constructor(private api: Api, private signal: AbortSignal) {
         this.authApi = new ScopedCoreApi(this.api.authApi, this.signal);
         this.participantApi = new ScopedParticipantApi(this.api.participantApi, this.signal);
+        this.managerApi = new ScopedManagerApi(this.api.managerApi, this.signal);
     }
 }
 
@@ -135,5 +151,51 @@ export class ScopedParticipantApi {
 
     getRules(activityId: string): Promise<unknown> {
         return this.participantApi.getRules(activityId, this.signal);
+    }
+}
+
+export class ScopedManagerEventDispatcher {
+    constructor(private eventDispatcher: ManagerEventDispatcher, private signal: AbortSignal) {}
+    addEventListener(type: "permissionTemplateChanged", listener: (evt: PermissionTemplateChangedEvent) => void): void;
+    addEventListener(type: "grantChanged", listener: (evt: GrantChangedEvent) => void): void;
+    addEventListener<T extends ManagerEventType, V>(type: T, listener: (evt: ManagerEvent<T, V>) => void): void {
+        this.eventDispatcher.addEventListener(type, listener, this.signal);
+    }
+}
+
+export class ScopedManagerApi {
+    readonly eventDispatcher: ScopedManagerEventDispatcher;
+    constructor(private managerApi: ManagerApi, private signal: AbortSignal) {
+        this.eventDispatcher = new ScopedManagerEventDispatcher(this.managerApi.eventDispatcher, this.signal);
+    }
+
+    getPermissionCatalogue(): Promise<PermissionDefinition[]> {
+        return this.managerApi.getPermissionCatalogue(this.signal);
+    }
+    getMyPermissions(activityId?: string): Promise<string[]> {
+        return this.managerApi.getMyPermissions(activityId, this.signal);
+    }
+
+    getPermissionTemplates(): Promise<PermissionTemplate[]> {
+        return this.managerApi.getPermissionTemplates(this.signal);
+    }
+    createPermissionTemplate(input: PermissionTemplateInput): Promise<PermissionTemplate> {
+        return this.managerApi.createPermissionTemplate(input, this.signal);
+    }
+    updatePermissionTemplate(id: string, input: PermissionTemplateInput): Promise<PermissionTemplate> {
+        return this.managerApi.updatePermissionTemplate(id, input, this.signal);
+    }
+    deletePermissionTemplate(id: string): Promise<void> {
+        return this.managerApi.deletePermissionTemplate(id, this.signal);
+    }
+
+    getGrants(filter: GrantFilter = {}): Promise<Page<Grant>> {
+        return this.managerApi.getGrants(filter, this.signal);
+    }
+    setGrant(input: GrantInput): Promise<Grant> {
+        return this.managerApi.setGrant(input, this.signal);
+    }
+    revokeGrant(id: string): Promise<void> {
+        return this.managerApi.revokeGrant(id, this.signal);
     }
 }

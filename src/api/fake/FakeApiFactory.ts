@@ -1,5 +1,6 @@
 import { Api } from "../Api";
 import { CoreApiFake } from "./CoreApiFake";
+import { ManagerApiFake } from "./ManagerApiFake";
 import { ParticipantApiFake } from "./ParticipantApiFake";
 
 export class FakeApiFactory {
@@ -7,6 +8,7 @@ export class FakeApiFactory {
         return {
             authApi: new CoreApiFake(),
             participantApi: new ParticipantApiFake(),
+            managerApi: new ManagerApiFake(),
         }
     }
 }
