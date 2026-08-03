@@ -86,6 +86,26 @@
     }
 }
 
+/* A planned entry: visible so the shape of the product is legible, and inert so
+   nobody follows it into a page that does not exist. */
+.link[data-soon] {
+    opacity: 0.55;
+    cursor: default;
+
+    @mixin hover {
+        background-color: transparent;
+    }
+}
+
+.soon {
+    margin-left: auto;
+    padding-left: var(--mantine-spacing-xs);
+    font-size: 10px;
+    font-style: italic;
+    opacity: 0.9;
+    flex-shrink: 0;
+}
+
 .active,
 .active:hover {
     box-shadow: var(--mantine-shadow-sm);

@@ -10,7 +10,30 @@ import { useApiEffect } from "../../provider/ApiProvider";
 import { Activity, Series } from "../../api/ParticipantApi";
 import Countdown from "../../components/time/Countdown";
 
-const NavbarLink = (props: { label: string, collapsed: boolean, to: string, icon: React.ForwardRefExoticComponent<IconProps & React.RefAttributes<Icon>> }) => {
+const NavbarLink = (props: {
+    label: string,
+    collapsed: boolean,
+    to: string,
+    icon: React.ForwardRefExoticComponent<IconProps & React.RefAttributes<Icon>>,
+    /** Planned, not built. Rendered as a dead entry rather than a link to nothing. */
+    soon?: boolean,
+}) => {
+    const { t } = useTranslation();
+
+    // A link to a route that does not exist lands on a blank page, which reads
+    // as a bug rather than as a feature that has not arrived.
+    if (props.soon) {
+        return (
+            <Tooltip label={props.label} disabled={!props.collapsed} position="right" openDelay={500}>
+                <span className={classes.link} data-collapsed={props.collapsed || undefined} data-soon>
+                    <props.icon className={classes.linkIcon} stroke={1.5} />
+                    <span>{props.label}</span>
+                    {!props.collapsed && <span className={classes.soon}>{t("soon")}</span>}
+                </span>
+            </Tooltip>
+        );
+    }
+
     return (
         <Tooltip label={props.label} disabled={!props.collapsed} position="right" openDelay={500}>
             <NavLink
@@ -31,23 +54,26 @@ const ManagerNavbar = (props: { collapsed: boolean }) => {
     const { t } = useTranslation();
     const match = useMatch({path: "/manager", end: false});
     if (!match) return;
+    // `soon` marks a direction rather than a feature: integrations, workstations
+    // and printers are later stages. They stay visible so the shape of the
+    // product is legible, and dead so nobody follows one into a blank page.
     const links = [
         { to: `/manager/users`, label: t("Users"), icon: IconUsers },
-        { to: `/manager/roles`, label: t("Roles"), icon: IconUserCheck },
-        { to: `/manager/oidc`, label: t("External logins"), icon: IconIdBadge2 },
-        { to: `/manager/lti`, label: t("LTI platforms"), icon: IconAlignBoxCenterTop },
-        { to: `/manager/external-content`, label: t("Extarnal content"), icon: IconWorldWww },
-        { to: `/manager/runners`, label: t("Runners"), icon: IconServer },
-        { to: `/manager/workstations`, label: t("Workstations"), icon: IconDevicesPc },
-        { to: `/manager/printers`, label: t("Printers"), icon: IconPrinter },
+        { to: `/manager/permission-templates`, label: t("Permission templates"), icon: IconUserCheck },
         { to: `/manager/problems`, label: t("Problems"), icon: IconNotes },
         { to: `/manager/activities`, label: t("Activities"), icon: IconListDetails },
         { to: `/manager/submissions`, label: t("Submissions"), icon: IconBox },
         { to: `/manager/questions`, label: t("Questions and announcements"), icon: IconMessageQuestion },
+        { to: `/manager/runners`, label: t("Runners"), icon: IconServer },
+        { to: `/manager/oidc`, label: t("External logins"), icon: IconIdBadge2, soon: true },
+        { to: `/manager/lti`, label: t("LTI platforms"), icon: IconAlignBoxCenterTop, soon: true },
+        { to: `/manager/external-content`, label: t("External content"), icon: IconWorldWww, soon: true },
+        { to: `/manager/workstations`, label: t("Workstations"), icon: IconDevicesPc, soon: true },
+        { to: `/manager/printers`, label: t("Printers"), icon: IconPrinter, soon: true },
     ]
     return (
         <>
-            {links.map(item => item && <NavbarLink key={item.to} to={item.to} label={item.label} icon={item.icon} collapsed={props.collapsed} />)}
+            {links.map(item => item && <NavbarLink key={item.to} to={item.to} label={item.label} icon={item.icon} collapsed={props.collapsed} soon={item.soon} />)}
             <Divider my="md" className={classes.divider} />
         </>
     );

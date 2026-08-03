@@ -151,5 +151,8 @@
   "Sending creates a new submission; this one is left untouched.": "Sending creates a new submission; this one is left untouched.",
   "Could not load this page": "Could not load this page",
   "Try again": "Try again",
-  "No results yet": "No results yet"
+  "No results yet": "No results yet",
+  "soon": "soon",
+  "Permission templates": "Permission templates",
+  "External content": "External content"
 }

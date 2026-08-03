@@ -151,5 +151,8 @@
   "Sending creates a new submission; this one is left untouched.": "Wysłanie tworzy nowe zgłoszenie; to pozostaje bez zmian.",
   "Could not load this page": "Nie udało się wczytać tej strony",
   "Try again": "Spróbuj ponownie",
-  "No results yet": "Brak wyników"
+  "No results yet": "Brak wyników",
+  "soon": "wkrótce",
+  "Permission templates": "Szablony uprawnień",
+  "External content": "Zasoby zewnętrzne"
 }
