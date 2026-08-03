@@ -1,5 +1,5 @@
 import Editor, { loader } from "@monaco-editor/react";
-import { Center, Loader, useComputedColorScheme } from "@mantine/core";
+import { Center, Loader } from "@mantine/core";
 import * as monaco from "monaco-editor/editor/editor.api.js";
 import editorWorker from "monaco-editor/editor/editor.worker.js?worker";
 import { monacoLanguage } from "./languages";
@@ -46,12 +46,14 @@ export interface CodeEditorProps {
 }
 
 export default function CodeEditor({ value, onChange, language, height = 420, readOnly }: CodeEditorProps) {
-    const scheme = useComputedColorScheme("light");
     return (
         <Editor
             height={height}
             language={monacoLanguage(language)}
-            theme={scheme === "dark" ? "vs-dark" : "light"}
+            // Dark regardless of the application's colour scheme. A code surface
+            // is read differently from a page of prose, and every editor a
+            // participant already uses looks like this.
+            theme="vs-dark"
             value={value}
             onChange={v => onChange?.(v ?? "")}
             loading={<Center h={height}><Loader /></Center>}

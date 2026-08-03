@@ -31,13 +31,20 @@ export default function QuestionFormModal({ activityId, series, onCreated }: Que
 
     // A problem in a series that has not opened is not something a participant
     // can have read, so it cannot be asked about either.
+    //
+    // Grouped the way Mantine expects: `{ group, items }`. A flat option with a
+    // `group` key on it is read as a group whose `items` are missing, and the
+    // component crashes trying to map over them.
     const problems = series
         .filter(s => s.isOpen)
-        .flatMap(s => (s.problems ?? []).map(p => ({
-            value: p.id,
-            label: `[${p.slug}] ${p.name}`,
+        .map(s => ({
             group: s.name,
-        })));
+            items: (s.problems ?? []).map(p => ({
+                value: p.id,
+                label: `[${p.slug}] ${p.name}`,
+            })),
+        }))
+        .filter(g => g.items.length > 0);
 
     const close = () => {
         setOpened(false);

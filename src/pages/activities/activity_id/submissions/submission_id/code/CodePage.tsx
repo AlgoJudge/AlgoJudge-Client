@@ -1,5 +1,5 @@
 import { Alert, Button, Center, Group, Loader, Stack, Tabs, Text, Title } from "@mantine/core";
-import { IconCheck, IconCopy, IconDownload, IconEdit, IconSend } from "@tabler/icons-react";
+import { IconCopy, IconDownload, IconEdit, IconSend } from "@tabler/icons-react";
 import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -76,22 +76,23 @@ export default function CodePage() {
                 </Stack>
                 <Group>
                     <Button variant="default" onClick={() => navigate(-1)}>{t("Back")}</Button>
+                    {/* CopyButton and DownloadButton already render the button —
+                        the callback supplies its label. Returning another Button
+                        here nested one inside the other. */}
                     <CopyButton value={shown}>
-                        {({ copied, copy }) => (
-                            <Button
-                                variant="light"
-                                onClick={copy}
-                                leftSection={copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
-                            >
-                                {copied ? t("Copied") : t("Copy")}
-                            </Button>
+                        {() => (
+                            <Group gap={6} wrap="nowrap">
+                                <IconCopy size={16} />
+                                {t("Copy")}
+                            </Group>
                         )}
                     </CopyButton>
                     <DownloadButton file={new Blob([shown], { type: "text/plain" })} filename={active}>
-                        {({ download }) => (
-                            <Button variant="light" onClick={download} leftSection={<IconDownload size={16} />}>
+                        {() => (
+                            <Group gap={6} wrap="nowrap">
+                                <IconDownload size={16} />
                                 {t("Download")}
-                            </Button>
+                            </Group>
                         )}
                     </DownloadButton>
                     {editing

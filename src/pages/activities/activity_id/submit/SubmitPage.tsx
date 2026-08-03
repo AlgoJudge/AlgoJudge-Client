@@ -75,7 +75,13 @@ export default function SubmitPage() {
         setError(undefined);
     }, [problemId]);
 
-    if (!activity || !series) {
+    // The picker shows only when the route carries no problem. Rendering it
+    // whenever `problem` is still undefined flashed the whole list for one frame
+    // on the way to a form that already knew which problem it was for.
+    //
+    // Matching the slug rather than testing for presence also covers moving from
+    // one problem to another, where the previous one is still in state.
+    if (!activity || !series || (problemId && problem?.slug !== problemId)) {
         return <Center my="xl"><Loader size="xl" /></Center>;
     }
 
