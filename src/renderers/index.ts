@@ -1,6 +1,11 @@
 import { ComponentType, lazy } from "react";
 import { Attachment } from "../api/ParticipantApi";
 import UnsupportedContent from "./UnsupportedContent";
+import StandardIoResult from "./results/StandardIoResult";
+import UnsupportedResult from "./results/UnsupportedResult";
+import IcpcRanking from "./ranking/IcpcRanking";
+import PointsRanking from "./ranking/PointsRanking";
+import UnsupportedRanking from "./ranking/UnsupportedRanking";
 import { TypeRegistry } from "./TypeRegistry";
 
 // KaTeX and the block renderers are only needed on a statement or the rules
@@ -50,6 +55,30 @@ export const statementRenderers = new TypeRegistry<StatementRenderer>(Unsupporte
     .register("standard-io@*", ContentView)
     // The rules page has no problem type of its own; it uses the same format.
     .register("rules@*", ContentView);
+
+/**
+ * Draws the evaluation document a Runner attached to a result. The Server stores
+ * it without parsing, so what a verdict or a per-test row means is settled here,
+ * per problem type.
+ */
+export type ResultRenderer = ComponentType<{ detail: unknown }>;
+
+export const resultRenderers = new TypeRegistry<ResultRenderer>(UnsupportedResult)
+    .register("standard-io@*", StandardIoResult);
+
+/**
+ * Draws the ranking. Keyed by `Activity.rankingType`, **not** by the activity
+ * type: which ranking an activity uses is independent of what kind of activity
+ * it is, and ICPC is a different table from the points board rather than a
+ * different sort of the same one.
+ */
+export type RankingRenderer = ComponentType<{ ranking: unknown; timeZone: string }>;
+
+export const rankingRenderers = new TypeRegistry<RankingRenderer>(UnsupportedRanking)
+    .register("icpc", IcpcRanking)
+    .register("icpc@*", IcpcRanking)
+    .register("points", PointsRanking)
+    .register("points@*", PointsRanking);
 
 export { TypeRegistry, typeName } from "./TypeRegistry";
 export type { Resolved } from "./TypeRegistry";

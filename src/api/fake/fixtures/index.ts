@@ -152,6 +152,20 @@ const standardIoDetail = (tests: { status: string; timeMs: number; memoryMb: num
     })),
 });
 
+/** Four tests whose outcome adds up to the submission's score. */
+const testsFor = (score: number | undefined) => {
+    const passed = Math.round(((score ?? 0) / 100) * 4);
+    const notes = [
+        "Abnormal program termination. Exit status: 6",
+        "Przekroczenie limitu czasu",
+        "warning: control reaches end of non-void function",
+        "Zła odpowiedź",
+    ];
+    return Array.from({ length: 4 }, (_, i) => i < passed
+        ? { status: "OK", timeMs: 20 + i * 5, memoryMb: 12, score: 10 }
+        : { status: "ERROR", timeMs: i === 2 ? 1000 : 20, memoryMb: 12, score: 0, note: notes[i] });
+};
+
 export const createDataset = (): Dataset => {
     const activities: Activity[] = [];
     const series = new Map<string, Series[]>();
@@ -300,6 +314,7 @@ export const createDataset = (): Dataset => {
         const finished = s.state === "completed" || s.state === "failed";
         submissionDetails.set(s.id, {
             ...s,
+            problemType: "standard-io@1",
             authorName: "Amy Horsefighter",
             attempts: [
                 {
@@ -312,13 +327,11 @@ export const createDataset = (): Dataset => {
                     score: s.score,
                 },
             ],
+            // Derived from the score so the table agrees with the verdict above
+            // it. A fixture that says 100/100 next to three failed tests reads
+            // as a rendering bug.
             detail: finished
-                ? standardIoDetail([
-                    { status: "OK", timeMs: 20, memoryMb: 12, score: 10 },
-                    { status: "ERROR", timeMs: 20, memoryMb: 12, score: 0, note: "Abnormal program termination. Exit status: 6" },
-                    { status: "ERROR", timeMs: 1000, memoryMb: 12, score: 0, note: "Przekroczenie limitu czasu" },
-                    { status: "ERROR", timeMs: 20, memoryMb: 12, score: 0, note: "warning: control reaches end of non-void function" },
-                ])
+                ? standardIoDetail(testsFor(s.score))
                 : { kind: "standard-io", version: 1, tests: [] },
             files: [{ name: "main.cpp", language: "cpp" }],
         });
@@ -465,6 +478,7 @@ export const createDataset = (): Dataset => {
     for (const s of submissions.get(courseId)!) {
         submissionDetails.set(s.id, {
             ...s,
+            problemType: "standard-io@1",
             authorName: "Amy Horsefighter",
             attempts: [{ id: `${s.id}-job-1`, attempt: 1, startedAt: s.submittedAt, finishedAt: s.submittedAt, state: s.state, verdict: s.verdict, score: s.score }],
             detail: standardIoDetail([

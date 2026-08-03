@@ -194,6 +194,13 @@ export interface SubmissionFile {
 }
 
 export interface SubmissionDetail extends SubmissionSummary {
+    /**
+     * The problem's type discriminator. Needed here because the evaluation
+     * document is rendered by the type, and the detail view is where it is
+     * drawn — without it the renderer would have to be found by fetching the
+     * problem again.
+     */
+    problemType: string,
     authorName: string,
     /** Newest first. */
     attempts: EvaluationAttempt[],

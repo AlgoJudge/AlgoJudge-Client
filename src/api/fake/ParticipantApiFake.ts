@@ -268,6 +268,7 @@ export class ParticipantApiFake implements ParticipantApi {
         data.submissions.set(activityId, [summary, ...(data.submissions.get(activityId) ?? [])]);
         data.submissionDetails.set(id, {
             ...summary,
+            problemType: problem.type,
             authorName: "Amy Horsefighter",
             attempts: [{ id: `${id}-job-1`, attempt: 1, startedAt: summary.submittedAt, state: "queued" }],
             detail: { kind: "standard-io", version: 1, tests: [] },

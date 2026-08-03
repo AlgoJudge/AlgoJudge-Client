@@ -1,247 +1,148 @@
-import { Button, Grid, Group, Stack, Title, Text, Table, Container } from "@mantine/core";
-import classes from "./SubmissionPage.module.css"
+import { Accordion, Alert, Button, Card, Center, Code, Grid, Group, Loader, Stack, Text, Title } from "@mantine/core";
+import { IconClockPlay, IconFileText, IconTerminal2 } from "@tabler/icons-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { Activity, SubmissionDetail } from "../../../../../api/ParticipantApi";
+import ActivityTime from "../../../../../components/time/ActivityTime";
+import { useApiEffect } from "../../../../../provider/ApiProvider";
+import { resultRenderers } from "../../../../../renderers";
+import StateBadge from "../../../../../components/submission/StateBadge";
 
-
-interface SubmissionDetails {
-    id: string;
-    author: string;
-    timeOfSubmission: string;
-    dateOfSubmission: string;
-    language: string;
-    result: number;
-    maxResult: number;
-    status: string;
-
-}
-
-interface Test {
-    testNo: string;
-    status: string;
-    time: number;
-    timeLimit: number;
-    memory: number;
-    memoryLimit: number;
-    result: number;
-    maxResult: number;
-    comments: string;
-
-}
-
-interface Model {
-    taskName: string;
-    taskId: number;
-    submission: SubmissionDetails;
-    tests: Test[];
-}
-
-const data: Model = {
-    taskName: "Tytul Zadania",
-    taskId: 111,
-    submission: {
-        id: "69",
-        author: "Sigma Boy",
-        timeOfSubmission: "21:37:00",
-        dateOfSubmission: "24.12.1998",
-        language: "C--",
-        result: 10,
-        maxResult: 40,
-        status: "OK"
-    },
-    tests: [
-        {
-            testNo: "1",
-            status: "OK",
-            time: 20,
-            timeLimit: 1000,
-            memory: 0,
-            memoryLimit: 32,
-            result: 10,
-            maxResult: 10,
-            comments: ""
-
-        },
-        {
-            testNo: "2",
-            status: "ERROR",
-            time: 20,
-            timeLimit: 1000,
-            memory: 0,
-            memoryLimit: 32,
-            result: 0,
-            maxResult: 10,
-            comments: "Abnormal Program Termination, exit status: 6"
-
-        },
-        {
-            testNo: "3",
-            status: "ERROR",
-            time: 1000,
-            timeLimit: 1000,
-            memory: 0,
-            memoryLimit: 32,
-            result: 0,
-            maxResult: 10,
-            comments: "Time limit exceeded"
-        },
-        {
-            testNo: "4",
-            status: "ERROR",
-            time: 20,
-            timeLimit: 1000,
-            memory: 0,
-            memoryLimit: 32,
-            result: 0,
-            maxResult: 10,
-            comments: "Warning: control reaches end of non void function"
-
-        },
-
-    ]
-
-};
-//helper functions
-const getStatusBackground = (status: string) => {
-    switch (status) {
-        case "OK":
-            return classes.submissionSuccessBackground;
-        case "ERROR":
-            return classes.submissionErrorBackground;
-        case "WARNING":
-            return classes.submissionWarningBackground;
-        default:
-            return "";
-    }
-}
-const getStatusText = (status: string) => {
-    switch (status) {
-        case "OK":
-            return classes.submissionSuccessText;
-        case "ERROR":
-            return classes.submissionErrorText;
-        case "WARNING":
-            return classes.submissionWarningText;
-        default:
-            return "";
-    }
-}
-const getTimeBackground = (time: number, maxTime: number) => {
-    if (time >= maxTime) {
-        return classes.submissionErrorBackground;
-    }
-    else if (time > maxTime / 2 + 1) {
-        return classes.submissionWarningBackground;
-    }
-    else {
-        return "";
-    }
-}
-//components
-const SubmissionHeader = (props: { taskName: string }) => {
-    const { t } = useTranslation();
-    return (
-        <Stack
-            align="flex-start"
-            justify="flex-start"
-            gap="xs"
-        >
-            <Title order={2}> {t("Submission")} </Title>
-            <Title order={1}> {props.taskName}</Title>
-        </Stack>
-    );
-}
-
-const SubmissionDetails = (props: { details: SubmissionDetails }) => {
-    const { t } = useTranslation();
-    return (
-        <Stack
-            justify="flex-start"
-            align="flex-start"
-            gap="xs"
-            className={classes.verticalLineText}
-        >
-            <Text>
-                <Text component="span" fw={700}> {t("Author")}: </Text>
-                {props.details.author}
-            </Text>
-            <Text>
-                <Text component="span" fw={700}> {t("Submission date")}: </Text>
-                {props.details.timeOfSubmission} {props.details.dateOfSubmission}
-            </Text >
-            <Text>
-                <Text component="span" fw={700}> {t("Language")}: </Text>
-                {props.details.language}
-            </Text>
-            <Text>
-                <Text component="span" fw={700}>
-                    {t("ID")}:</Text> {props.details.id}
-            </Text>
-            <Text>
-                <Text component="span" fw={700}> {t("Result")}:</Text>
-                {props.details.result} / {props.details.maxResult}
-            </Text>
-            <Text>
-                <Text component="span" fw={700}> {t("Status")}:</Text>
-                <span className={getStatusText(props.details.status)}> {props.details.status} </span>
-            </Text>
-        </Stack >
-    )
-}
-
-const SubmissionTests = (props: { tests: Test[] }) => {
-    const { t } = useTranslation();
-    const rows = props.tests.map((test) => (
-        <Table.Tr key={test.testNo}>
-            <Table.Td> {test.testNo} </Table.Td>
-            <Table.Td className={getStatusBackground(test.status)}> {t(test.status)} </Table.Td>
-            <Table.Td className={getTimeBackground(test.time, test.timeLimit)}> {(test.time / 1000).toFixed(2)}s / {(test.timeLimit / 1000).toFixed(2)}s </Table.Td>
-            <Table.Td className={getTimeBackground(test.memory, test.memoryLimit)}> {test.memory} / {test.memoryLimit} </Table.Td>
-            <Table.Td> {test.result} / {test.maxResult} </Table.Td>
-            <Table.Td> {test.comments} </Table.Td>
-        </Table.Tr>
-    ));
-    return (
-        <Table withTableBorder withColumnBorders >
-            <Table.Thead fw={700}>
-                <Table.Td> {t("Test")} </Table.Td>
-                <Table.Td> {t("Status")} </Table.Td>
-                <Table.Td> {t("Time")} </Table.Td>
-                <Table.Td> {t("Memory")} </Table.Td>
-                <Table.Td> {t("Result")} </Table.Td>
-                <Table.Td> {t("Comments")} </Table.Td>
-            </Table.Thead>
-            <Table.Tbody>
-                {rows}
-            </Table.Tbody>
-        </Table>
-    );
-}
-
+const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <Text>
+        <Text component="span" fw={700}>{label}: </Text>
+        {children}
+    </Text>
+);
 
 export default function SubmissionPage() {
     const { t } = useTranslation();
     const navigate = useNavigate();
-    const params = useParams();
+    const { activityId, submissionId } = useParams();
+
+    const [activity, setActivity] = useState<Activity | undefined>(undefined);
+    const [submission, setSubmission] = useState<SubmissionDetail | undefined>(undefined);
+
+    useApiEffect(async (api) => {
+        if (!activityId || !submissionId) return;
+        const activity = await api.participantApi.getActivity(activityId);
+        setActivity(activity);
+        setSubmission(await api.participantApi.getSubmission(activity.id, submissionId));
+
+        api.participantApi.eventDispatcher.addEventListener("submissionStateChanged", async evt => {
+            if (evt.data.submission.id !== submissionId) return;
+            // The summary in the event is not the detail, and the per-test
+            // document only exists once the job finishes — so refetch rather
+            // than patch a partial view over a finished one.
+            setSubmission(await api.participantApi.getSubmission(activity.id, submissionId));
+        });
+    }, [activityId, submissionId]);
+
+    if (!activity || !submission) {
+        return <Center my="xl"><Loader size="xl" /></Center>;
+    }
+
+    const pending = submission.state === "queued" || submission.state === "running";
+    const Result = resultRenderers.resolve(submission.problemType).value;
+
     return (
-        <Container size="90%">
-            {/*<Title>{t("Submission")}</Title>*/}
+        <Stack gap="md">
             <Group justify="space-between">
-                <Button onClick={() => navigate(-1)}>{t("Back")}</Button>
-                <Button component={Link} to={`/activities/${params.activityId}/submissions/${params.submissionId}/code`}>{t("Source code")}</Button>
+                <Button variant="default" onClick={() => navigate(-1)}>{t("Back")}</Button>
+                <Group>
+                    <Button
+                        variant="light"
+                        component={Link}
+                        to={`/activities/${activity.slug}/problems/${submission.problemSlug}`}
+                        leftSection={<IconFileText size={16} />}
+                    >
+                        {t("Problem")}
+                    </Button>
+                    <Button
+                        component={Link}
+                        to={`/activities/${activity.slug}/submissions/${submission.id}/code`}
+                        leftSection={<IconTerminal2 size={16} />}
+                    >
+                        {t("Source code")}
+                    </Button>
+                </Group>
             </Group>
-            <Grid style={{ marginTop: "20px" }}>
+
+            <Grid>
                 <Grid.Col span={{ base: 12, sm: 6 }}>
-                    <SubmissionHeader taskName={data.taskName} />
+                    <Stack gap={2}>
+                        <Title order={2}>{t("Submission")}</Title>
+                        <Title>[{submission.problemSlug}] {submission.problemName}</Title>
+                    </Stack>
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, sm: 6 }}>
-                    <Group justify="flex-end">
-                        <SubmissionDetails details={data.submission} />
-                    </Group>
+                    <Stack gap={4}>
+                        <Field label={t("Author")}>{submission.authorName}</Field>
+                        <Field label={t("Submission date")}>
+                            <ActivityTime value={submission.submittedAt} timeZone={activity.timeZone} />
+                        </Field>
+                        <Field label={t("Language")}>{submission.language ?? "—"}</Field>
+                        <Field label={t("ID")}><Code>{submission.id}</Code></Field>
+                        <Field label={t("Result")}>
+                            {submission.score === undefined ? "—" : `${submission.score} / ${submission.maxScore ?? "?"}`}
+                        </Field>
+                        <Group gap="xs">
+                            <Text fw={700}>{t("Status")}:</Text>
+                            <StateBadge state={submission.state} verdict={submission.verdict} score={submission.score} maxScore={submission.maxScore} />
+                        </Group>
+                    </Stack>
                 </Grid.Col>
             </Grid>
-            <SubmissionTests tests={data.tests} />
-        </Container >
 
+            {/* A submission is visible long before it has a verdict, so the
+                waiting state is a state of this screen, not an empty table. */}
+            {pending ? (
+                <Alert color="blue" icon={<IconClockPlay size={18} />} title={t(submission.state)}>
+                    <Group gap="sm">
+                        <Loader size="sm" />
+                        <Text size="sm">
+                            {submission.state === "queued"
+                                ? t("Waiting for a runner to pick this up")
+                                : t("A runner is evaluating this submission")}
+                        </Text>
+                    </Group>
+                </Alert>
+            ) : (
+                <Result detail={submission.detail} />
+            )}
+
+            {submission.attempts.length > 1 && (
+                <Card withBorder radius="sm" p="xs">
+                    <Accordion variant="contained">
+                        <Accordion.Item value="attempts">
+                            <Accordion.Control>
+                                {t("Evaluation attempts")} ({submission.attempts.length})
+                            </Accordion.Control>
+                            <Accordion.Panel>
+                                <Stack gap="xs">
+                                    {submission.attempts.map(attempt => (
+                                        <Group key={attempt.id} justify="space-between">
+                                            <Text size="sm">#{attempt.attempt}</Text>
+                                            <ActivityTime value={attempt.startedAt} timeZone={activity.timeZone} size="sm" />
+                                            <StateBadge state={attempt.state} verdict={attempt.verdict} score={attempt.score} maxScore={submission.maxScore} />
+                                            <Text size="sm">{attempt.score ?? "—"}</Text>
+                                        </Group>
+                                    ))}
+                                </Stack>
+                            </Accordion.Panel>
+                        </Accordion.Item>
+                    </Accordion>
+                </Card>
+            )}
+
+            {/* Present only when the activity's log visibility permits it. */}
+            {submission.log && (
+                <Card withBorder radius="sm">
+                    <Title order={4} mb="xs">{t("Evaluation log")}</Title>
+                    <Code block style={{ whiteSpace: "pre-wrap" }}>{submission.log}</Code>
+                </Card>
+            )}
+        </Stack>
     );
 }

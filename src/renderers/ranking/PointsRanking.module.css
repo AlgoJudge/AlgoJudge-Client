@@ -1,0 +1,18 @@
+.seriesHeader {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: inherit;
+}
+
+.problemHeader,
+.problemCell {
+    text-align: center;
+    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+}
+
+.me td {
+    font-weight: 700;
+    outline: 2px solid var(--mantine-color-blue-5);
+    outline-offset: -2px;
+}
