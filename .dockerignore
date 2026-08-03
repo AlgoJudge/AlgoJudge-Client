@@ -1,0 +1,17 @@
+node_modules
+dist
+.git
+.github
+.vscode
+.idea
+
+# Keep the tracked .env out of the image build. Vite would otherwise let it
+# override the build arguments, so an image built for one environment could
+# silently pick up another one's configuration.
+.env
+.env.*
+!.env.example
+
+Dockerfile
+.dockerignore
+*.md

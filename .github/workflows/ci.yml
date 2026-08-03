@@ -41,3 +41,27 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  docker:
+    name: Build the container image
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # Built but not pushed: no registry has been chosen yet. This exists so
+      # the Dockerfile cannot rot unnoticed while nobody is deploying.
+      - name: Build image
+        run: docker build -t algojudge-client:ci .
+
+      - name: Serve it and check the SPA fallback
+        run: |
+          docker run -d --name ci-check -p 8080:80 algojudge-client:ci
+          for i in $(seq 1 15); do
+            curl -fsS http://localhost:8080/ >/dev/null && break
+            sleep 1
+          done
+          curl -fsS http://localhost:8080/ >/dev/null
+          # A deep link is not a file on disk; without the nginx fallback this 404s.
+          curl -fsS http://localhost:8080/activities/PCN1/problems >/dev/null
+          docker stop ci-check
