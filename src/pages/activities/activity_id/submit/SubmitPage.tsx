@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { Activity, ProblemDetail, Series } from "../../../../api/ParticipantApi";
 import { useApiCall, useApiEffect } from "../../../../provider/ApiProvider";
+import LoadState from "../../../../components/LoadState";
 
 // Monaco is large and only this screen and the source preview need it, so it is
 // split out of the main bundle rather than paid for on every page load.
@@ -54,7 +55,7 @@ export default function SubmitPage() {
     const [error, setError] = useState<string | undefined>(undefined);
     const [sending, setSending] = useState(false);
 
-    useApiEffect(async (api) => {
+    const loadError = useApiEffect(async (api) => {
         if (!activityId) return;
         const activity = await api.participantApi.getActivity(activityId);
         setActivity(activity);
@@ -82,7 +83,7 @@ export default function SubmitPage() {
     // Matching the slug rather than testing for presence also covers moving from
     // one problem to another, where the previous one is still in state.
     if (!activity || !series || (problemId && problem?.slug !== problemId)) {
-        return <Center my="xl"><Loader size="xl" /></Center>;
+        return <LoadState error={loadError} loading={!loadError} />;
     }
 
     if (!problem) {

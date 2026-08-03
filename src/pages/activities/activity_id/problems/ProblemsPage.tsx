@@ -1,4 +1,4 @@
-import { Box, Button, Card, Center, Group, Loader, Overlay, Stack, Text, Title } from "@mantine/core";
+import { Box, Button, Card, Group, Overlay, Stack, Text, Title } from "@mantine/core";
 import { IconLock } from "@tabler/icons-react";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -8,6 +8,7 @@ import ProblemStatusBadge from "../../../../components/problem/ProblemStatusBadg
 import ActivityTime from "../../../../components/time/ActivityTime";
 import Countdown from "../../../../components/time/Countdown";
 import { useApiCall, useApiEffect } from "../../../../provider/ApiProvider";
+import LoadState from "../../../../components/LoadState";
 import { activityRenderers } from "../../../../renderers";
 import classes from "./ProblemsPage.module.css";
 
@@ -98,7 +99,7 @@ export default function ProblemsPage() {
         setSeries(loaded.series);
     }, [activityId, call]);
 
-    useApiEffect(async (scoped) => {
+    const error = useApiEffect(async (scoped) => {
         if (!activityId) return;
         const activity = await scoped.participantApi.getActivity(activityId);
         setActivity(activity);
@@ -128,7 +129,7 @@ export default function ProblemsPage() {
     }, [activityId]);
 
     if (!activity || !series) {
-        return <Center my="xl"><Loader size="xl" /></Center>;
+        return <LoadState error={error} loading={!error} />;
     }
 
     const renderer = activityRenderers.resolve(activity.type).value;

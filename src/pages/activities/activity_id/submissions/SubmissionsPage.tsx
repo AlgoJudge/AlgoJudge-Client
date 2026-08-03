@@ -5,6 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Activity, JobState, Series, SubmissionSummary } from "../../../../api/ParticipantApi";
 import ActivityTime from "../../../../components/time/ActivityTime";
 import { useApiEffect } from "../../../../provider/ApiProvider";
+import LoadState from "../../../../components/LoadState";
 import StateBadge from "../../../../components/submission/StateBadge";
 
 const PAGE_SIZE = 10;
@@ -25,7 +26,7 @@ export default function SubmissionsPage() {
     const [seriesId, setSeriesId] = useState<string | null>(null);
     const [state, setState] = useState<string | null>(null);
 
-    useApiEffect(async (api) => {
+    const error = useApiEffect(async (api) => {
         if (!activityId) return;
         const activity = await api.participantApi.getActivity(activityId);
         setActivity(activity);
@@ -59,7 +60,7 @@ export default function SubmissionsPage() {
         setPage(1);
     };
 
-    if (!activity) return <Center my="xl"><Loader size="xl" /></Center>;
+    if (!activity) return <LoadState error={error} loading={!error} />;
 
     return (
         <Stack gap="md">

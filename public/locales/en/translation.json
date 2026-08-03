@@ -148,5 +148,8 @@
   "Give the question a topic and a body": "Give the question a topic and a body",
   "Send as a new submission": "Send as a new submission",
   "Edit and resubmit": "Edit and resubmit",
-  "Sending creates a new submission; this one is left untouched.": "Sending creates a new submission; this one is left untouched."
+  "Sending creates a new submission; this one is left untouched.": "Sending creates a new submission; this one is left untouched.",
+  "Could not load this page": "Could not load this page",
+  "Try again": "Try again",
+  "No results yet": "No results yet"
 }

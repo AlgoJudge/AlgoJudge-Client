@@ -6,6 +6,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { Activity, ProblemDetail } from "../../../../../api/ParticipantApi";
 import ProblemStatusBadge from "../../../../../components/problem/ProblemStatusBadge";
 import { useApiEffect } from "../../../../../provider/ApiProvider";
+import LoadState from "../../../../../components/LoadState";
 import { statementRenderers } from "../../../../../renderers";
 
 /** `content.json` and `content.pdf` are the statement, not material beside it. */
@@ -19,7 +20,7 @@ export default function ProblemPage() {
     const [activity, setActivity] = useState<Activity | undefined>(undefined);
     const [problem, setProblem] = useState<ProblemDetail | undefined>(undefined);
 
-    useApiEffect(async (api) => {
+    const error = useApiEffect(async (api) => {
         if (!activityId || !problemId) return;
         const activity = await api.participantApi.getActivity(activityId);
         setActivity(activity);
@@ -42,7 +43,7 @@ export default function ProblemPage() {
     }, [activityId, problemId]);
 
     if (!activity || !problem) {
-        return <Center my="xl"><Loader size="xl" /></Center>;
+        return <LoadState error={error} loading={!error} />;
     }
 
     const Statement = statementRenderers.resolve(problem.type).value;

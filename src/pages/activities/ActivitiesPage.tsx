@@ -1,10 +1,11 @@
-import { Badge, Card, Center, Chip, Group, Loader, Pagination, Stack, Text, Title } from "@mantine/core";
+import { Badge, Card, Chip, Group, Pagination, Stack, Text, Title } from "@mantine/core";
 import { IconQuestionMark, IconSchool, IconTrophy } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Activity, ActivityState } from "../../api/ParticipantApi";
 import { useApiEffect } from "../../provider/ApiProvider";
+import LoadState from "../../components/LoadState";
 import { typeName } from "../../renderers";
 import classes from "./ActivitiesPage.module.css";
 
@@ -40,7 +41,7 @@ export default function ActivitiesPage() {
     // Paging and filtering are the Server's job. Fetching everything and slicing
     // in the Client only works while the list is short, and stops silently when
     // it is not.
-    useApiEffect(async (api) => {
+    const error = useApiEffect(async (api) => {
         setItems(undefined);
         const result = await api.participantApi.getActivities({ page, pageSize: PAGE_SIZE, states, types });
         setItems(result.items);
@@ -92,11 +93,11 @@ export default function ActivitiesPage() {
                 </Chip.Group>
             </Group>
 
-            {!items && <Center my="xl"><Loader size="xl" /></Center>}
-
-            {items?.length === 0 && (
-                <Text px="md" c="dimmed">{t("No activities match the filters")}</Text>
-            )}
+            <LoadState error={error} loading={!items}>
+                {items?.length === 0 && (
+                    <Text px="md" c="dimmed">{t("No activities match the filters")}</Text>
+                )}
+            </LoadState>
 
             {items?.map(item => (
                 <Card

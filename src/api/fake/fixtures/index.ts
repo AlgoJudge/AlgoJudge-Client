@@ -543,6 +543,17 @@ export const createDataset = (): Dataset => {
     });
     series.set(finishedId, []);
     rules.set(finishedId, contestRules);
+    // A finished contest still has a board. An activity whose module is switched
+    // on must have something to serve, or the screen asks for a document that
+    // does not exist.
+    rankings.set(finishedId, {
+        format: "icpc", frozen: false, me: "team-me",
+        problems: [{ slug: "A", name: "Zadanie A" }, { slug: "B", name: "Zadanie B" }],
+        rows: [
+            { rank: 1, id: "team-x", name: "Uniwersytet Warszawski 1", solved: 2, penalty: 96, cells: { A: { attempts: 1, acceptedAt: 21 }, B: { attempts: 2, acceptedAt: 55 } } },
+            { rank: 2, id: "team-me", name: "Politechnika Poznańska 3", solved: 1, penalty: 63, cells: { A: { attempts: 3, acceptedAt: 23 }, B: { attempts: 1 } } },
+        ],
+    });
 
     const openId = "018f2c00-0000-7000-8000-000000000004";
     activities.push({
@@ -559,6 +570,8 @@ export const createDataset = (): Dataset => {
         props: [],
     });
     series.set(openId, []);
+    // Nobody has solved anything yet, so the board is empty rather than absent.
+    rankings.set(openId, { format: "points", frozen: false, series: [], rows: [] });
 
     // Deliberately unsupported, to prove the controlled fallback. Every screen
     // must render a notice for this activity rather than break.
@@ -605,7 +618,7 @@ export const createDataset = (): Dataset => {
             membership: "enrolled",
             startDate: nowPlus(-days(1000 + i * 365)),
             endDate: nowPlus(-days(1000 + i * 365) + hours(5)),
-            modules: { ranking: true, questions: false, rules: false },
+            modules: { ranking: false, questions: false, rules: false },
             finalScore: i,
             maxScore: 8,
             props: [],

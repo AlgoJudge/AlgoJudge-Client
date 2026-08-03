@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { Activity } from "../../../../api/ParticipantApi";
 import { useApiEffect } from "../../../../provider/ApiProvider";
+import LoadState from "../../../../components/LoadState";
 import { statementRenderers } from "../../../../renderers";
 
 export default function RulesPage() {
@@ -13,7 +14,7 @@ export default function RulesPage() {
     const [activity, setActivity] = useState<Activity | undefined>(undefined);
     const [rules, setRules] = useState<unknown>(undefined);
 
-    useApiEffect(async (api) => {
+    const error = useApiEffect(async (api) => {
         if (!activityId) return;
         const activity = await api.participantApi.getActivity(activityId);
         setActivity(activity);
@@ -21,7 +22,7 @@ export default function RulesPage() {
     }, [activityId]);
 
     if (!activity || rules === undefined) {
-        return <Center my="xl"><Loader size="xl" /></Center>;
+        return <LoadState error={error} loading={!error} />;
     }
 
     // Rules use the same content format as a problem statement, so they use the

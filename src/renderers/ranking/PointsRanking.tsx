@@ -1,5 +1,5 @@
-import { Stack, Table, Text, UnstyledButton } from "@mantine/core";
-import { IconChevronDown, IconChevronRight } from "@tabler/icons-react";
+import { Alert, Stack, Table, Text, UnstyledButton } from "@mantine/core";
+import { IconChevronDown, IconChevronRight, IconInfoCircle } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FindMeButton, FreezeBanner } from "./common";
@@ -88,11 +88,22 @@ export default function PointsRanking({ ranking, timeZone }: RankingProps) {
     const rows = asArray(document.rows).map(parseRow).filter((r): r is Row => !!r);
     const me = asString(document.me);
 
+
     // The series being worked on right now opens by default; the rest stay
     // collapsed so the table is readable at a glance.
     const [expanded, setExpanded] = useState<string | undefined>(() => asString(document.activeSeriesId));
 
     const toggle = (id: string) => setExpanded(current => current === id ? undefined : id);
+    // A board with nobody on it is a normal state — an activity that has not
+    // started, or one where nothing has been solved yet. It is not an error and
+    // must not read as one.
+    if (rows.length === 0) {
+        return (
+            <Alert color="gray" icon={<IconInfoCircle size={18} />}>
+                {t("No results yet")}
+            </Alert>
+        );
+    }
 
     return (
         <Stack gap="sm">

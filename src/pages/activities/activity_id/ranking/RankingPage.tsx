@@ -1,9 +1,10 @@
-import { Center, Loader, Stack, Title } from "@mantine/core";
+import { Stack, Title } from "@mantine/core";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { Activity } from "../../../../api/ParticipantApi";
 import { useApiEffect } from "../../../../provider/ApiProvider";
+import LoadState from "../../../../components/LoadState";
 import { rankingRenderers } from "../../../../renderers";
 
 export default function RankingPage() {
@@ -13,7 +14,7 @@ export default function RankingPage() {
     const [activity, setActivity] = useState<Activity | undefined>(undefined);
     const [ranking, setRanking] = useState<unknown>(undefined);
 
-    useApiEffect(async (api) => {
+    const error = useApiEffect(async (api) => {
         if (!activityId) return;
         const activity = await api.participantApi.getActivity(activityId);
         setActivity(activity);
@@ -29,7 +30,7 @@ export default function RankingPage() {
     }, [activityId]);
 
     if (!activity || ranking === undefined) {
-        return <Center my="xl"><Loader size="xl" /></Center>;
+        return <LoadState error={error} loading={!error} />;
     }
 
     // Chosen by the activity's ranking type, not by its activity type: ICPC and

@@ -6,6 +6,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Activity, SubmissionDetail } from "../../../../../../api/ParticipantApi";
 import { CopyButton, DownloadButton } from "../../../../../../components/buttons";
 import { useApiCall, useApiEffect } from "../../../../../../provider/ApiProvider";
+import LoadState from "../../../../../../components/LoadState";
 
 const CodeEditor = lazy(() => import("../../../../../../components/editor/CodeEditor"));
 
@@ -24,7 +25,7 @@ export default function CodePage() {
     const [error, setError] = useState<string | undefined>(undefined);
     const [sending, setSending] = useState(false);
 
-    useApiEffect(async (api) => {
+    const loadError = useApiEffect(async (api) => {
         if (!activityId || !submissionId) return;
         const activity = await api.participantApi.getActivity(activityId);
         setActivity(activity);
@@ -40,7 +41,7 @@ export default function CodePage() {
     }, [activityId, submissionId]);
 
     if (!activity || !submission || !active) {
-        return <Center my="xl"><Loader size="xl" /></Center>;
+        return <LoadState error={loadError} loading={!loadError} />;
     }
 
     const current = files[active] ?? "";

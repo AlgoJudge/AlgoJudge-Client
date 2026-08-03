@@ -6,6 +6,7 @@ import { useParams } from "react-router-dom";
 import { Activity, Question, QuestionKind, Series } from "../../../../api/ParticipantApi";
 import ActivityTime from "../../../../components/time/ActivityTime";
 import { useApiCall, useApiEffect } from "../../../../provider/ApiProvider";
+import LoadState from "../../../../components/LoadState";
 import QuestionFormModal from "./submit_question/QuestionFormModal";
 import classes from "./QuestionsPage.module.css";
 
@@ -77,7 +78,7 @@ export default function QuestionsPage() {
     const [opened, setOpened] = useState<Question | undefined>(undefined);
     const [reload, setReload] = useState(0);
 
-    useApiEffect(async (api) => {
+    const error = useApiEffect(async (api) => {
         if (!activityId) return;
         const activity = await api.participantApi.getActivity(activityId);
         setActivity(activity);
@@ -130,7 +131,7 @@ export default function QuestionsPage() {
         setPage(1);
     };
 
-    if (!activity) return <Center my="xl"><Loader size="xl" /></Center>;
+    if (!activity) return <LoadState error={error} loading={!error} />;
 
     return (
         <Stack gap="md">

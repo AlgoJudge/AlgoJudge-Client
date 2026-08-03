@@ -1,4 +1,5 @@
-import { Stack, Table, Text, Tooltip } from "@mantine/core";
+import { Alert, Stack, Table, Text, Tooltip } from "@mantine/core";
+import { IconInfoCircle } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { FindMeButton, FreezeBanner } from "./common";
 import { asArray, asNumber, asString, isRecord, RankingProps } from "./parse";
@@ -105,6 +106,17 @@ export default function IcpcRanking({ ranking, timeZone }: RankingProps) {
         .filter((p): p is { slug: string; name: string } => !!p);
     const rows = asArray(ranking.rows).map(parseRow).filter((r): r is Row => !!r);
     const me = asString(ranking.me);
+
+    // A board with nobody on it is a normal state — an activity that has not
+    // started, or one where nothing has been solved yet. It is not an error and
+    // must not read as one.
+    if (rows.length === 0) {
+        return (
+            <Alert color="gray" icon={<IconInfoCircle size={18} />}>
+                {t("No results yet")}
+            </Alert>
+        );
+    }
 
     return (
         <Stack gap="sm">

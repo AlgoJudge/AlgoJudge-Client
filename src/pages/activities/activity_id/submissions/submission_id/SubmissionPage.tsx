@@ -1,4 +1,4 @@
-import { Accordion, Alert, Button, Card, Center, Code, Grid, Group, Loader, Stack, Text, Title } from "@mantine/core";
+import { Accordion, Alert, Button, Card, Code, Grid, Group, Loader, Stack, Text, Title } from "@mantine/core";
 import { IconClockPlay, IconFileText, IconTerminal2 } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -6,6 +6,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { Activity, SubmissionDetail } from "../../../../../api/ParticipantApi";
 import ActivityTime from "../../../../../components/time/ActivityTime";
 import { useApiEffect } from "../../../../../provider/ApiProvider";
+import LoadState from "../../../../../components/LoadState";
 import { resultRenderers } from "../../../../../renderers";
 import StateBadge from "../../../../../components/submission/StateBadge";
 
@@ -24,7 +25,7 @@ export default function SubmissionPage() {
     const [activity, setActivity] = useState<Activity | undefined>(undefined);
     const [submission, setSubmission] = useState<SubmissionDetail | undefined>(undefined);
 
-    useApiEffect(async (api) => {
+    const error = useApiEffect(async (api) => {
         if (!activityId || !submissionId) return;
         const activity = await api.participantApi.getActivity(activityId);
         setActivity(activity);
@@ -40,7 +41,7 @@ export default function SubmissionPage() {
     }, [activityId, submissionId]);
 
     if (!activity || !submission) {
-        return <Center my="xl"><Loader size="xl" /></Center>;
+        return <LoadState error={error} loading={!error} />;
     }
 
     const pending = submission.state === "queued" || submission.state === "running";
