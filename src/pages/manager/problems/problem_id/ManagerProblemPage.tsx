@@ -21,7 +21,7 @@ import { tryValidateContent } from "../../../../content/validate";
 import { useApiCall, useApiEffect } from "../../../../provider/ApiProvider";
 import { sha256 } from "../../../../utils/sha256";
 import { statementRenderers } from "../../../../renderers";
-import { imageReference, linkReference } from "../../../../content/reference";
+import { canEmbed, embedReference, linkReference } from "../../../../content/reference";
 
 export default function ManagerProblemPage() {
     const { t } = useTranslation();
@@ -465,14 +465,16 @@ export default function ManagerProblemPage() {
                                                     {/* Copied rather than typed: a name
                                                         with a space needs the angle
                                                         bracket form, and nobody should
-                                                        have to know that. */}
+                                                        have to know that. The form that
+                                                        shows the file where it can be
+                                                        shown, a link where it cannot. */}
                                                     {file.scope === "participant" && !isStatementName(file.name) && (
                                                         <Tooltip label={t("Copy the reference")}>
                                                             <CopyButton
                                                                 variant="subtle"
                                                                 size="compact-sm"
-                                                                value={file.mimeType.startsWith("image/")
-                                                                    ? imageReference(file.name)
+                                                                value={canEmbed(file.mimeType)
+                                                                    ? embedReference(file.name)
                                                                     : linkReference(file.name)}
                                                             >
                                                                 {() => <IconCopy size={14} />}
@@ -528,13 +530,12 @@ export default function ManagerProblemPage() {
 
                             {files.length === 0 && <Text size="sm" c="dimmed">{t("No files yet")}</Text>}
 
-                            {/* Both forms, because they are two different pieces of
-                                syntax: the sentence used to promise a link for a PDF
-                                while showing only the image form. The angle brackets
-                                are what a name with a space needs — the copy button
-                                beside each file writes the right one either way. */}
+                            {/* The two forms do two different things, and the note
+                                has to say which is which: the exclamation mark shows
+                                the file, its absence points at it. Saying "a PDF is a
+                                link" left the form that displays one unmentioned. */}
                             <Alert color="blue">
-                                {t("A figure goes into the statement as ![description](<name.png>), and a PDF or any other file as a link: [description](<name.pdf>). The angle brackets are needed when the name contains a space; the copy button beside a file writes the whole reference. Only participant-scoped files can be pointed at.")}
+                                {t("![description](<name>) shows the file inside the statement — a picture appears, a PDF opens in a frame. [description](<name>) is a link to it instead. The angle brackets are needed when the name contains a space; the copy button beside a file writes the whole reference. Only participant-scoped files can be pointed at.")}
                             </Alert>
                         </Stack>
                     ) : (

@@ -115,13 +115,31 @@ else fail("the angle-bracket form did not parse as an image");
 // 4b. A name with a space survives the round trip: the editor writes the angle
 //     bracket form, markdown-it percent-encodes it, and the renderer has to
 //     decode it back to the file it names.
-const { imageReference, referenceName } = await import(`../${OUT}/content/reference.js`);
+const { canEmbed, embedReference, linkReference, referenceName } = await import(`../${OUT}/content/reference.js`);
 const spaced = "Zrzut ekranu 2026-08-03 231251.png";
-const rendered = md.render(validateContent(wrap(imageReference(spaced))).body);
+const rendered = md.render(validateContent(wrap(embedReference(spaced))).body);
 const src = /src="([^"]+)"/.exec(rendered)?.[1];
 if (!src) fail("a bracketed name did not render as an image");
 else if (referenceName(src) !== spaced) fail(`the name did not survive: ${referenceName(src)}`);
 else ok("a name with spaces round-trips");
+
+// 4c. The two forms are two different things, and both are legal for the same
+//     file: `![…]` shows it, `[…]` points at it. The note beside the file list
+//     says exactly this, so it has to stay true.
+{
+    const shown = md.render(validateContent(wrap(embedReference("tresc.pdf"))).body);
+    const pointed = md.render(validateContent(wrap(linkReference("tresc.pdf"))).body);
+    if (!/<img|<object/.test(shown)) fail("the embed form of a PDF did not render as an embed");
+    else if (!/<a[^>]+href="tresc\.pdf"/.test(pointed)) fail("the link form of a PDF did not render as a link");
+    else ok("a PDF can be embedded and linked, and the two differ");
+
+    // A `.txt` has no rendering, so the editor must not offer to embed one.
+    if (canEmbed("application/pdf") && canEmbed("image/png") && !canEmbed("text/plain") && !canEmbed("text/markdown")) {
+        ok("only images and PDFs are offered as embeds");
+    } else {
+        fail("canEmbed admits a file that cannot be shown");
+    }
+}
 
 // 5. Extended syntax the format promises is actually parsed.
 const extended = wrap("| a | b |\n|---|---|\n| 1 | 2 |\n\nTekst[^n] ~~skreślony~~.\n\n[^n]: Przypis.\n");

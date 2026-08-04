@@ -4,7 +4,7 @@ import {
 } from "@tabler/icons-react";
 import { useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { imageReference, linkReference } from "../../content/reference";
+import { canEmbed, embedReference, linkReference } from "../../content/reference";
 import { tryValidateContent } from "../../content/validate";
 
 /**
@@ -41,8 +41,10 @@ export default function ContentEditor({ value, onChange, attachments }: ContentE
     const { t } = useTranslation();
     const area = useRef<HTMLTextAreaElement>(null);
 
-    const images = attachments.filter(a => a.mimeType.startsWith("image/"));
-    const others = attachments.filter(a => !a.mimeType.startsWith("image/"));
+    // Two menus for two different things, not for two kinds of file: `![…]`
+    // shows a file inside the statement, `[…]` points at it. A PDF can do both,
+    // a `.txt` only the second.
+    const embeddable = attachments.filter(a => canEmbed(a.mimeType));
 
     // Validated on every keystroke by the validator the renderer uses, so an
     // author sees the refusal while writing rather than after publishing.
@@ -95,22 +97,22 @@ export default function ContentEditor({ value, onChange, attachments }: ContentE
                             variant="light"
                             size="compact-sm"
                             leftSection={<IconPhoto size={14} />}
-                            disabled={images.length === 0}
+                            disabled={embeddable.length === 0}
                         >
-                            {t("snippet.image")}
+                            {t("snippet.embed")}
                         </Button>
                     </Menu.Target>
                     <Menu.Dropdown>
-                        {/* An image names one of this problem's own attachments, so
-                            it is a choice rather than a free field: a statement
-                            cannot reach outside itself. Only the files that are
-                            images are offered — a PDF or a `.md` inserted this way
-                            renders as a broken picture. */}
-                        {images.map(file => (
+                        {/* A reference names one of this problem's own attachments,
+                            so it is a choice rather than a free field: a statement
+                            cannot reach outside itself. Only what can be shown is
+                            offered here — a `.md` or a `.txt` behind `![…]` renders
+                            as a broken picture. */}
+                        {embeddable.map(file => (
                             <Menu.Item
                                 key={file.name}
                                 leftSection={<IconPlus size={14} />}
-                                onClick={() => insert(`${imageReference(file.name)}\n`)}
+                                onClick={() => insert(`${embedReference(file.name)}\n`)}
                             >
                                 {file.name}
                             </Menu.Item>
@@ -123,16 +125,16 @@ export default function ContentEditor({ value, onChange, attachments }: ContentE
                             variant="light"
                             size="compact-sm"
                             leftSection={<IconLink size={14} />}
-                            disabled={others.length === 0}
+                            disabled={attachments.length === 0}
                         >
                             {t("snippet.link")}
                         </Button>
                     </Menu.Target>
                     <Menu.Dropdown>
-                        {/* Everything else — a PDF, sample data, an archive — is a
-                            link, which is what the note beside the file list has
-                            always promised. */}
-                        {others.map(file => (
+                        {/* Every attachment can be linked, the ones above included:
+                            a figure a reader may want to open full size is a link,
+                            not a second copy of the picture. */}
+                        {attachments.map(file => (
                             <Menu.Item
                                 key={file.name}
                                 leftSection={<IconPlus size={14} />}

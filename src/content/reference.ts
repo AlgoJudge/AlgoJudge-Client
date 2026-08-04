@@ -31,10 +31,26 @@ export const referenceName = (target: string): string => {
     }
 };
 
-/** A whole image reference, ready to paste into a statement. */
-export const imageReference = (name: string): string =>
+/**
+ * A whole embed, ready to paste into a statement.
+ *
+ * `![…]` means "show this here", as it does everywhere Markdown is written: an
+ * image appears, a PDF opens in a frame. The exclamation mark is the difference
+ * between showing a file and pointing at it, and both are things a statement
+ * legitimately wants.
+ */
+export const embedReference = (name: string): string =>
     `![${name}](${referenceTarget(name)})`;
 
-/** A whole link, for a PDF or any other file that is not an image. */
+/** A whole link: points at the file, shows nothing. */
 export const linkReference = (name: string): string =>
     `[${name}](${referenceTarget(name)})`;
+
+/**
+ * Whether a file can be shown inside the statement rather than only linked.
+ *
+ * Images and PDFs; anything else — a `.txt`, an archive, a `.cpp` — has no
+ * rendering, and `![…]` around it produces a broken picture.
+ */
+export const canEmbed = (mimeType: string): boolean =>
+    mimeType.startsWith("image/") || mimeType === "application/pdf";

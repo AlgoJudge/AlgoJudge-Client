@@ -308,7 +308,6 @@
   "snippet.math": "Formula",
   "snippet.table": "Table",
   "snippet.code": "Code",
-  "snippet.image": "Image",
   "Line": "Line",
   "New activity": "New activity",
   "A contest, a course, a practice set — one place where problems are given to people.": "A contest, a course, a practice set — one place where problems are given to people.",
@@ -623,7 +622,6 @@
   "content.* is the statement; edit it in the Statement tab": "content.* is the statement; edit it in the Statement tab",
   "This version already has a file called": "This version already has a file called",
   "Files of the version shown. A participant receives the participant-scoped ones; the statement points at them by name. Additions and removals are published with the next version.": "Files of the version shown. A participant receives the participant-scoped ones; the statement points at them by name. Additions and removals are published with the next version.",
-  "A figure goes into the statement as ![description](<name.png>), and a PDF or any other file as a link: [description](<name.pdf>). The angle brackets are needed when the name contains a space; the copy button beside a file writes the whole reference. Only participant-scoped files can be pointed at.": "A figure goes into the statement as ![description](<name.png>), and a PDF or any other file as a link: [description](<name.pdf>). The angle brackets are needed when the name contains a space; the copy button beside a file writes the whole reference. Only participant-scoped files can be pointed at.",
   "statement": "statement",
   "new package": "new package",
   "package unchanged": "package unchanged",
@@ -661,5 +659,7 @@
   "Apply to the default limits": "Apply to the default limits",
   "The tests in the groups marked as examples are published for the participant as examples.zip.": "The tests in the groups marked as examples are published for the participant as examples.zip.",
   "No group is marked as examples, so the participant receives no example tests.": "No group is marked as examples, so the participant receives no example tests.",
-  "Copy the reference": "Copy the reference"
+  "Copy the reference": "Copy the reference",
+  "![description](<name>) shows the file inside the statement — a picture appears, a PDF opens in a frame. [description](<name>) is a link to it instead. The angle brackets are needed when the name contains a space; the copy button beside a file writes the whole reference. Only participant-scoped files can be pointed at.": "![description](<name>) shows the file inside the statement — a picture appears, a PDF opens in a frame. [description](<name>) is a link to it instead. The angle brackets are needed when the name contains a space; the copy button beside a file writes the whole reference. Only participant-scoped files can be pointed at.",
+  "snippet.embed": "Embed a file"
 }

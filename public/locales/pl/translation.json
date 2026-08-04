@@ -308,7 +308,6 @@
   "snippet.math": "Wzór",
   "snippet.table": "Tabela",
   "snippet.code": "Kod",
-  "snippet.image": "Obrazek",
   "Line": "Wiersz",
   "New activity": "Nowa aktywność",
   "A contest, a course, a practice set — one place where problems are given to people.": "Zawody, kurs, zbiór treningowy — jedno miejsce, w którym zadania trafiają do ludzi.",
@@ -623,7 +622,6 @@
   "content.* is the statement; edit it in the Statement tab": "content.* to treść zadania; edytuje się ją w zakładce Treść",
   "This version already has a file called": "Ta wersja ma już plik o nazwie",
   "Files of the version shown. A participant receives the participant-scoped ones; the statement points at them by name. Additions and removals are published with the next version.": "Pliki pokazywanej wersji. Uczestnik dostaje te w zakresie „uczestnik”; treść wskazuje je po nazwie. Dodania i usunięcia publikują się razem z następną wersją.",
-  "A figure goes into the statement as ![description](<name.png>), and a PDF or any other file as a link: [description](<name.pdf>). The angle brackets are needed when the name contains a space; the copy button beside a file writes the whole reference. Only participant-scoped files can be pointed at.": "Obrazek wstawia się w treści jako ![opis](<nazwa.png>), a PDF lub inny plik jako odnośnik: [opis](<nazwa.pdf>). Nawiasy ostre są potrzebne, gdy nazwa zawiera spację; przycisk kopiowania przy pliku wstawia gotowe odwołanie. Wskazać można wyłącznie pliki w zakresie „uczestnik”.",
   "statement": "treść",
   "new package": "nowa paczka",
   "package unchanged": "paczka bez zmian",
@@ -661,5 +659,7 @@
   "Apply to the default limits": "Zastosuj do limitów domyślnych",
   "The tests in the groups marked as examples are published for the participant as examples.zip.": "Testy z grup oznaczonych jako przykłady publikują się dla uczestnika jako examples.zip.",
   "No group is marked as examples, so the participant receives no example tests.": "Żadna grupa nie jest oznaczona jako przykłady, więc uczestnik nie dostanie testów przykładowych.",
-  "Copy the reference": "Kopiuj odwołanie"
+  "Copy the reference": "Kopiuj odwołanie",
+  "![description](<name>) shows the file inside the statement — a picture appears, a PDF opens in a frame. [description](<name>) is a link to it instead. The angle brackets are needed when the name contains a space; the copy button beside a file writes the whole reference. Only participant-scoped files can be pointed at.": "![opis](<nazwa>) pokazuje plik w treści — obrazek się wyświetla, PDF otwiera się w ramce. [opis](<nazwa>) daje zamiast tego odnośnik do niego. Nawiasy ostre są potrzebne, gdy nazwa zawiera spację; przycisk kopiowania przy pliku wstawia gotowe odwołanie. Wskazać można wyłącznie pliki w zakresie „uczestnik”.",
+  "snippet.embed": "Osadź plik"
 }
