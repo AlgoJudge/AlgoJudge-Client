@@ -332,12 +332,16 @@ export class ParticipantApiFake implements ParticipantApi {
             (!filter.seriesId || q.seriesId === filter.seriesId) &&
             (!filter.problemId || q.problemId === filter.problemId));
 
-        const direction = filter.direction === "asc" ? 1 : -1;
+        // Sorted on the Server, because the page is cut afterwards: sorting in
+        // the Client would order the twenty rows it happens to hold.
+        const order = filter.order === "asc" ? 1 : -1;
         const sorted = [...matched].sort((a, b) => {
-            switch (filter.sort) {
-                case "topic": return direction * a.topic.localeCompare(b.topic);
-                case "author": return direction * a.authorName.localeCompare(b.authorName);
-                default: return direction * a.createdAt.localeCompare(b.createdAt);
+            switch (filter.sortBy) {
+                // A question about the activity at large belongs at the end of a
+                // scope sort rather than at the top: it is the least specific.
+                case "series": return order * (a.seriesName ?? "\uffff").localeCompare(b.seriesName ?? "\uffff");
+                case "problem": return order * (a.problemSlug ?? "\uffff").localeCompare(b.problemSlug ?? "\uffff");
+                default: return order * a.createdAt.localeCompare(b.createdAt);
             }
         });
         return copy(paginate(sorted, filter.page, filter.pageSize ?? 10));

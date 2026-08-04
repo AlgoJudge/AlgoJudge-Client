@@ -371,6 +371,10 @@ export const createDataset = (): Dataset => {
             id: "q-3", kind: "question", topic: "Limit pamięci w zadaniu B",
             body: "Czy limit 512 MB dotyczy również stosu?",
             authorName: "Amy Horsefighter", createdAt: nowPlus(-minutes(55)),
+            // A question about a problem always names its series: the problem is
+            // in one, and a scope sort would otherwise put this row among the
+            // activity-wide questions.
+            seriesId: round1.id, seriesName: round1.name,
             problemId: "problem-B", problemSlug: "B", problemName: "Najkrótsza ścieżka",
             isPublished: false, isRead: true,
         },

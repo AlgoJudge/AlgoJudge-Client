@@ -1,6 +1,6 @@
 import {
     Alert, Badge, Button, Card, Code, Group, Modal, NumberInput, Pagination, Select, Stack, Switch,
-    Table, Tabs, TagsInput, Text, TextInput, Title, Tooltip,
+    Table, Tabs, TagsInput, Text, Textarea, TextInput, Title, Tooltip,
 } from "@mantine/core";
 import { IconDownload, IconKey, IconLock, IconLockOpen, IconPlus, IconSearch, IconUsersPlus } from "@tabler/icons-react";
 import { useState } from "react";
@@ -15,14 +15,25 @@ import { useApiCall, useApiEffect } from "../../../provider/ApiProvider";
 
 const PAGE_SIZE = 20;
 
-/** Blocked, expired and active are three different things and read differently. */
-const stateOf = (user: ManagedUser): "blocked" | "expired" | "active" => {
+/**
+ * Blocked, expired, pending and active are four different things.
+ *
+ * Blocked is a decision somebody made, expired happened by itself, and pending
+ * is an account that arrived and has not been let in — the state an installation
+ * that approves by hand rather than by email spends most of its time in.
+ */
+const stateOf = (user: ManagedUser): "blocked" | "expired" | "pending" | "active" => {
     if (user.blockedAt) return "blocked";
     if (user.expiresAt && Date.parse(user.expiresAt) < Date.now()) return "expired";
+    if (!user.approvedAt) return "pending";
     return "active";
 };
 
-const STATE_COLOUR = { blocked: "red", expired: "gray", active: "teal" } as const;
+const STATE_COLOUR = { blocked: "red", expired: "gray", pending: "orange", active: "teal" } as const;
+
+/** What to call somebody: their name if they gave one, otherwise their login. */
+const displayName = (user: ManagedUser): string =>
+    [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username;
 
 /** The handout a manager prints or pastes into a spreadsheet. */
 const credentialsCsv = (credentials: CreatedCredential[]) =>
@@ -44,10 +55,11 @@ export default function UsersPage() {
 
     const [selected, setSelected] = useState<ManagedUser | undefined>(undefined);
     const [grants, setGrants] = useState<Grant[]>([]);
+    const [edited, setEdited] = useState({ firstName: "", lastName: "", email: "", note: "" });
     const [tags, setTags] = useState<string[]>([]);
 
     const [creating, setCreating] = useState(false);
-    const [draft, setDraft] = useState({ username: "", name: "", email: "" });
+    const [draft, setDraft] = useState({ username: "", firstName: "", lastName: "", email: "" });
     const [bulk, setBulk] = useState<{
         open: boolean; prefix: string; count: number; expiresAt?: string; activityId: string; template: string;
     }>({ open: false, prefix: "", count: 20, activityId: "", template: "" });
@@ -94,6 +106,12 @@ export default function UsersPage() {
     const open = async (user: ManagedUser) => {
         setSelected(user);
         setTags(user.tags);
+        setEdited({
+            firstName: user.firstName ?? "",
+            lastName: user.lastName ?? "",
+            email: user.email ?? "",
+            note: user.note ?? "",
+        });
         setGrants((await call(api => api.managerApi.getGrants({ userId: user.id, pageSize: 50 }))).items);
     };
 
@@ -173,7 +191,7 @@ export default function UsersPage() {
                                 <Table.Td>
                                     <Stack gap={0}>
                                         <Group gap="xs">
-                                            <Text fw={500}>{user.name}</Text>
+                                            <Text fw={500}>{displayName(user)}</Text>
                                             {user.isTemporary && (
                                                 <Badge size="sm" variant="outline" color="gray">{t("temporary")}</Badge>
                                             )}
@@ -181,7 +199,18 @@ export default function UsersPage() {
                                         <Text size="xs" c="dimmed" ff="monospace">{user.username}</Text>
                                     </Stack>
                                 </Table.Td>
-                                <Table.Td><Text size="sm">{user.email ?? "—"}</Text></Table.Td>
+                                <Table.Td>
+                                    <Group gap={4} wrap="nowrap">
+                                        <Text size="sm">{user.email ?? "—"}</Text>
+                                        {/* An unconfirmed address is one nobody
+                                            has proved reaches this person. */}
+                                        {user.email && !user.emailConfirmed && (
+                                            <Tooltip label={t("Address not confirmed")}>
+                                                <Badge size="xs" variant="light" color="orange">?</Badge>
+                                            </Tooltip>
+                                        )}
+                                    </Group>
+                                </Table.Td>
                                 <Table.Td>
                                     <Group gap={4}>
                                         {user.tags.map(tag => (
@@ -204,6 +233,16 @@ export default function UsersPage() {
                                 </Table.Td>
                                 <Table.Td>
                                     <Group gap="xs" justify="flex-end" wrap="nowrap">
+                                        {stateOf(user) === "pending" && (
+                                            <Button
+                                                variant="light"
+                                                size="compact-sm"
+                                                loading={busy}
+                                                onClick={() => run(() => call(api => api.managerApi.approveUser(user.id)))}
+                                            >
+                                                {t("Approve")}
+                                            </Button>
+                                        )}
                                         <Button variant="light" size="compact-sm" onClick={() => open(user)}>
                                             {t("Open")}
                                         </Button>
@@ -236,7 +275,7 @@ export default function UsersPage() {
             <Modal
                 opened={selected !== undefined}
                 onClose={() => setSelected(undefined)}
-                title={<Title order={4}>{selected?.name}</Title>}
+                title={<Title order={4}>{selected && displayName(selected)}</Title>}
                 size="lg"
                 centered
             >
@@ -267,12 +306,45 @@ export default function UsersPage() {
                                         <Badge variant="outline" color="gray" size="sm">{t("temporary")}</Badge>
                                     )}
                                 </Group>
+                                {selected.note && (
+                                    <Alert color="gray" p="xs">
+                                        <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>{selected.note}</Text>
+                                    </Alert>
+                                )}
                                 {selected.expiresAt && (
                                     <Text size="sm" c="dimmed">
                                         {t("Expires")}: <ActivityTime value={selected.expiresAt} timeZone="Europe/Warsaw" />
                                     </Text>
                                 )}
 
+                                <Group grow>
+                                    <TextInput
+                                        label={t("First name")}
+                                        description={t("Optional")}
+                                        value={edited.firstName}
+                                        onChange={e => setEdited({ ...edited, firstName: e.currentTarget.value })}
+                                    />
+                                    <TextInput
+                                        label={t("Last name")}
+                                        description={t("Optional")}
+                                        value={edited.lastName}
+                                        onChange={e => setEdited({ ...edited, lastName: e.currentTarget.value })}
+                                    />
+                                </Group>
+                                <TextInput
+                                    label={t("Email")}
+                                    description={t("Changing it makes the address unconfirmed again")}
+                                    value={edited.email}
+                                    onChange={e => setEdited({ ...edited, email: e.currentTarget.value })}
+                                />
+                                <Textarea
+                                    label={t("Note")}
+                                    description={t("A sentence for other staff. The person does not see it.")}
+                                    autosize
+                                    minRows={2}
+                                    value={edited.note}
+                                    onChange={e => setEdited({ ...edited, note: e.currentTarget.value })}
+                                />
                                 <TagsInput
                                     label={t("Tags")}
                                     description={t("Display labels only. The Server stores them and never queries them.")}
@@ -284,7 +356,10 @@ export default function UsersPage() {
                                         size="compact-sm"
                                         variant="light"
                                         loading={busy}
-                                        onClick={() => run(() => call(api => api.managerApi.setUserTags(selected.id, tags)))}
+                                        onClick={() => run(() => call(api => api.managerApi.updateUser(selected.id, {
+                                            ...edited,
+                                            tags,
+                                        })))}
                                     >
                                         {t("Save")}
                                     </Button>
@@ -334,17 +409,26 @@ export default function UsersPage() {
             <Modal opened={creating} onClose={() => setCreating(false)} title={<Title order={4}>{t("New account")}</Title>} centered>
                 <Stack gap="sm">
                     <TextInput
-                        label={t("Name")}
-                        value={draft.name}
-                        onChange={e => setDraft({ ...draft, name: e.currentTarget.value })}
-                        required
-                    />
-                    <TextInput
                         label={t("Username")}
+                        description={t("The only required field: it is what they sign in as")}
                         value={draft.username}
                         onChange={e => setDraft({ ...draft, username: e.currentTarget.value })}
                         required
                     />
+                    <Group grow>
+                        <TextInput
+                            label={t("First name")}
+                            description={t("Optional")}
+                            value={draft.firstName}
+                            onChange={e => setDraft({ ...draft, firstName: e.currentTarget.value })}
+                        />
+                        <TextInput
+                            label={t("Last name")}
+                            description={t("Optional")}
+                            value={draft.lastName}
+                            onChange={e => setDraft({ ...draft, lastName: e.currentTarget.value })}
+                        />
+                    </Group>
                     <TextInput
                         label={t("Email")}
                         value={draft.email}
@@ -357,15 +441,16 @@ export default function UsersPage() {
                         <Button variant="default" onClick={() => setCreating(false)}>{t("Back")}</Button>
                         <Button
                             loading={busy}
-                            disabled={!draft.username.trim() || !draft.name.trim()}
+                            disabled={!draft.username.trim()}
                             onClick={() => run(async () => {
                                 const created = await call(api => api.managerApi.createUser({
                                     username: draft.username.trim(),
-                                    name: draft.name.trim(),
+                                    firstName: draft.firstName.trim() || undefined,
+                                    lastName: draft.lastName.trim() || undefined,
                                     email: draft.email.trim() || undefined,
                                 }));
                                 setCreating(false);
-                                setDraft({ username: "", name: "", email: "" });
+                                setDraft({ username: "", firstName: "", lastName: "", email: "" });
                                 setCredentials([created]);
                             })}
                         >

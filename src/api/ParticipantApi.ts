@@ -285,21 +285,37 @@ export interface Question {
     answer?: QuestionAnswer,
 }
 
+/**
+ * What a question list may be ordered by.
+ *
+ * Three, because those are the three a reader looks for: when it was asked, and
+ * what it is about. Topic and author were sortable in the mock-up and are not
+ * here — nobody looks for a question by the first letter of its subject.
+ */
+export type QuestionSort = "createdAt" | "series" | "problem";
+
 export interface QuestionFilter {
     page?: number,
     pageSize?: number,
     search?: string,
     kind?: QuestionKind,
+    /** The mock-up called this "group"; a group **is** a series. */
     seriesId?: string,
     problemId?: string,
-    sort?: "createdAt" | "topic" | "author",
-    direction?: "asc" | "desc",
+    /** Defaults to `createdAt`. */
+    sortBy?: QuestionSort,
+    /** Defaults to `desc`, so the newest question is the first one. */
+    order?: "asc" | "desc",
 }
 
+/**
+ * A question is asked about **one** of three things, and the pair below says
+ * which: both absent is the activity at large, `seriesId` alone is a series,
+ * `problemId` is one problem — and its series is filled in from it.
+ */
 export interface AskQuestionInput {
     topic: string,
     body: string,
-    /** Optional: a question may be about the activity in general. */
     problemId?: string,
     seriesId?: string,
 }

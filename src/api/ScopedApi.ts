@@ -49,6 +49,7 @@ import {
     SeriesProblemInput,
     UserChangedEvent,
     UserInput,
+    UserUpdateInput,
 } from "./ManagerApi";
 import {
     Activity,
@@ -280,8 +281,11 @@ export class ScopedManagerApi {
     resetUserPassword(id: string): Promise<CreatedCredential> {
         return this.managerApi.resetUserPassword(id, this.signal);
     }
-    setUserTags(id: string, tags: string[]): Promise<ManagedUser> {
-        return this.managerApi.setUserTags(id, tags, this.signal);
+    updateUser(id: string, input: UserUpdateInput): Promise<ManagedUser> {
+        return this.managerApi.updateUser(id, input, this.signal);
+    }
+    approveUser(id: string): Promise<ManagedUser> {
+        return this.managerApi.approveUser(id, this.signal);
     }
     getManagedActivities(): Promise<ManagedActivitySummary[]> {
         return this.managerApi.getManagedActivities(this.signal);

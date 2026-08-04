@@ -35,6 +35,7 @@ import {
     SeriesProblemInput,
     StatementVariant,
     UserInput,
+    UserUpdateInput,
 } from "../ManagerApi";
 import { Page } from "../ParticipantApi";
 import { ManagerEventDispatcherImpl } from "../impl/ManagerEventDispatcher";
@@ -168,8 +169,12 @@ export class ManagerApiHttp implements ManagerApi {
         return this.http.request<CreatedCredential>(`/users/${encodeURIComponent(id)}/password`, "POST", { signal });
     }
 
-    setUserTags(id: string, tags: string[], signal: AbortSignal): Promise<ManagedUser> {
-        return this.http.request<ManagedUser>(`/users/${encodeURIComponent(id)}/tags`, "POST", { signal, body: { tags } });
+    updateUser(id: string, input: UserUpdateInput, signal: AbortSignal): Promise<ManagedUser> {
+        return this.http.request<ManagedUser>(`/users/${encodeURIComponent(id)}`, "POST", { signal, body: input });
+    }
+
+    approveUser(id: string, signal: AbortSignal): Promise<ManagedUser> {
+        return this.http.request<ManagedUser>(`/users/${encodeURIComponent(id)}/approve`, "POST", { signal });
     }
 
     getManagedActivities(signal: AbortSignal): Promise<ManagedActivitySummary[]> {

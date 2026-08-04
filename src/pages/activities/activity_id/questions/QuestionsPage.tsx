@@ -1,9 +1,9 @@
-import { Badge, Center, Divider, Group, Loader, Modal, Pagination, Select, Stack, Table, Text, TextInput, Title } from "@mantine/core";
-import { IconMessageReply, IconSearch, IconSpeakerphone } from "@tabler/icons-react";
+import { Badge, Center, Divider, Group, Loader, Modal, Pagination, Select, Stack, Table, Text, TextInput, Title, UnstyledButton } from "@mantine/core";
+import { IconArrowDown, IconArrowUp, IconMessageReply, IconSearch, IconSelector, IconSpeakerphone } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
-import { Activity, Question, QuestionKind, Series } from "../../../../api/ParticipantApi";
+import { Activity, Question, QuestionKind, QuestionSort, Series } from "../../../../api/ParticipantApi";
 import ActivityTime from "../../../../components/time/ActivityTime";
 import { useApiCall, useApiEffect } from "../../../../provider/ApiProvider";
 import LoadState from "../../../../components/LoadState";
@@ -11,6 +11,33 @@ import QuestionFormModal from "./submit_question/QuestionFormModal";
 import classes from "./QuestionsPage.module.css";
 
 const PAGE_SIZE = 10;
+
+/**
+ * A column header that sorts.
+ *
+ * Sorting is a request, not a client-side reorder: the page is cut on the
+ * Server, so ordering the rows here would order the ten that happen to be shown.
+ */
+const SortableTh = ({ label, column, sortBy, order, onSort }: {
+    label: string;
+    column: QuestionSort;
+    sortBy: QuestionSort;
+    order: "asc" | "desc";
+    onSort: (column: QuestionSort) => void;
+}) => {
+    const active = sortBy === column;
+    const Icon = !active ? IconSelector : order === "asc" ? IconArrowUp : IconArrowDown;
+    return (
+        <Table.Th>
+            <UnstyledButton onClick={() => onSort(column)} style={{ width: "100%" }}>
+                <Group gap={4} wrap="nowrap">
+                    <Text size="sm" fw={500}>{label}</Text>
+                    <Icon size={14} opacity={active ? 1 : 0.4} />
+                </Group>
+            </UnstyledButton>
+        </Table.Th>
+    );
+};
 
 const KindBadge = ({ kind }: { kind: QuestionKind }) => {
     const { t } = useTranslation();
@@ -74,6 +101,9 @@ export default function QuestionsPage() {
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState("");
     const [kind, setKind] = useState<string | null>(null);
+    const [seriesId, setSeriesId] = useState<string | null>(null);
+    const [sortBy, setSortBy] = useState<QuestionSort>("createdAt");
+    const [order, setOrder] = useState<"asc" | "desc">("desc");
     const [problemId, setProblemId] = useState<string | null>(null);
     const [opened, setOpened] = useState<Question | undefined>(undefined);
     const [reload, setReload] = useState(0);
@@ -91,7 +121,10 @@ export default function QuestionsPage() {
             page, pageSize: PAGE_SIZE,
             search: search || undefined,
             kind: (kind as QuestionKind) ?? undefined,
+            seriesId: seriesId ?? undefined,
             problemId: problemId ?? undefined,
+            sortBy,
+            order,
         });
         setItems(result.items);
         setTotal(result.total);
@@ -110,7 +143,7 @@ export default function QuestionsPage() {
         api.participantApi.eventDispatcher.addEventListener("announcementPublished", evt => {
             if (evt.data.activityId === activity.id) setReload(n => n + 1);
         });
-    }, [activityId, page, search, kind, problemId, reload]);
+    }, [activityId, page, search, kind, seriesId, problemId, sortBy, order, reload]);
 
     const open = async (question: Question) => {
         setOpened(question);
@@ -128,6 +161,15 @@ export default function QuestionsPage() {
 
     const onFilter = <T,>(set: (v: T) => void) => (value: T) => {
         set(value);
+        setPage(1);
+    };
+
+    const onSort = (column: QuestionSort) => {
+        // Clicking the column already sorted on flips the direction; a new
+        // column starts descending, which is what "newest first" means for the
+        // date and what a reader expects the first click to do.
+        setOrder(sortBy === column && order === "desc" ? "asc" : "desc");
+        setSortBy(column);
         setPage(1);
     };
 
@@ -166,6 +208,14 @@ export default function QuestionsPage() {
                     w={180}
                 />
                 <Select
+                    placeholder={t("All series")}
+                    data={series.map(s => ({ value: s.id, label: s.name }))}
+                    value={seriesId}
+                    onChange={onFilter(setSeriesId)}
+                    clearable
+                    w={220}
+                />
+                <Select
                     placeholder={t("All problems")}
                     data={problems}
                     value={problemId}
@@ -185,8 +235,9 @@ export default function QuestionsPage() {
                             <Table.Tr>
                                 <Table.Th>{t("Topic")}</Table.Th>
                                 <Table.Th>{t("Author")}</Table.Th>
-                                <Table.Th>{t("Applies to")}</Table.Th>
-                                <Table.Th>{t("Date")}</Table.Th>
+                                <SortableTh label={t("Series")} column="series" sortBy={sortBy} order={order} onSort={onSort} />
+                                <SortableTh label={t("Problem")} column="problem" sortBy={sortBy} order={order} onSort={onSort} />
+                                <SortableTh label={t("Date")} column="createdAt" sortBy={sortBy} order={order} onSort={onSort} />
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
@@ -204,7 +255,14 @@ export default function QuestionsPage() {
                                         </Group>
                                     </Table.Td>
                                     <Table.Td>{q.authorName}</Table.Td>
-                                    <Table.Td><Scope question={q} /></Table.Td>
+                                    <Table.Td>
+                                        {q.seriesName ?? <Text size="sm" c="dimmed">{t("Whole activity")}</Text>}
+                                    </Table.Td>
+                                    <Table.Td>
+                                        {q.problemSlug
+                                            ? <Text size="sm">[{q.problemSlug}] {q.problemName}</Text>
+                                            : <Text size="sm" c="dimmed">—</Text>}
+                                    </Table.Td>
                                     <Table.Td>
                                         <ActivityTime value={q.createdAt} timeZone={activity.timeZone} format="date" hideZone />
                                     </Table.Td>

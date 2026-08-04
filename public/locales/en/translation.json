@@ -525,5 +525,17 @@
   "Everything above is what the Runner reported about itself. Only the tags are set here.": "Everything above is what the Runner reported about itself. Only the tags are set here.",
   "Used to steer work at particular machines": "Used to steer work at particular machines",
   "Waiting for approval": "Waiting for approval",
-  "Public key": "Public key"
+  "Public key": "Public key",
+  "userState.pending": "Pending",
+  "First name": "First name",
+  "Last name": "Last name",
+  "Optional": "Optional",
+  "The only required field: it is what they sign in as": "The only required field: it is what they sign in as",
+  "Note": "Note",
+  "A sentence for other staff. The person does not see it.": "A sentence for other staff. The person does not see it.",
+  "Address not confirmed": "Address not confirmed",
+  "Changing it makes the address unconfirmed again": "Changing it makes the address unconfirmed again",
+  "Whole activity": "Whole activity",
+  "Choose the series": "Choose the series",
+  "Choose the problem": "Choose the problem"
 }

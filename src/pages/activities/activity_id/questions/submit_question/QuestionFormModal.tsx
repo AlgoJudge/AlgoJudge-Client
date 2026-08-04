@@ -1,4 +1,4 @@
-import { Alert, Button, Group, Modal, Select, Stack, TextInput, Textarea, Title } from "@mantine/core";
+import { Alert, Button, Group, Modal, SegmentedControl, Select, Stack, TextInput, Textarea, Title } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -14,10 +14,13 @@ export interface QuestionFormModalProps {
 /**
  * Asking a question.
  *
- * There is no group selector: everything here is within one activity, so the
- * only useful narrowing is which problem it concerns — and that is optional,
- * because a question about the rules concerns none of them.
+ * A question is about **one** of three things: the activity at large, one
+ * series, or one problem. The mock-up called a series a "group" and offered it
+ * as a free-text field; it is a real scope, and choosing it is the first thing
+ * the form asks — because it decides who ends up reading the question.
  */
+
+type Scope = "activity" | "series" | "problem";
 export default function QuestionFormModal({ activityId, series, onCreated }: QuestionFormModalProps) {
     const { t } = useTranslation();
     const call = useApiCall();
@@ -25,6 +28,8 @@ export default function QuestionFormModal({ activityId, series, onCreated }: Que
     const [opened, setOpened] = useState(false);
     const [topic, setTopic] = useState("");
     const [body, setBody] = useState("");
+    const [scope, setScope] = useState<Scope>("activity");
+    const [seriesId, setSeriesId] = useState<string | null>(null);
     const [problemId, setProblemId] = useState<string | null>(null);
     const [error, setError] = useState<string | undefined>(undefined);
     const [sending, setSending] = useState(false);
@@ -46,14 +51,32 @@ export default function QuestionFormModal({ activityId, series, onCreated }: Que
         }))
         .filter(g => g.items.length > 0);
 
+    // A series that has not opened holds nothing a participant has read, so it
+    // cannot be asked about either.
+    const openSeries = series.filter(s => s.isOpen);
+
     const close = () => {
         setOpened(false);
         setError(undefined);
     };
 
+    const reset = (next: Scope) => {
+        setScope(next);
+        setSeriesId(null);
+        setProblemId(null);
+    };
+
     const send = async () => {
         if (topic.trim().length === 0 || body.trim().length === 0) {
             setError(t("Give the question a topic and a body"));
+            return;
+        }
+        if (scope === "series" && !seriesId) {
+            setError(t("Choose the series"));
+            return;
+        }
+        if (scope === "problem" && !problemId) {
+            setError(t("Choose the problem"));
             return;
         }
         setSending(true);
@@ -62,11 +85,15 @@ export default function QuestionFormModal({ activityId, series, onCreated }: Que
             await call(api => api.participantApi.askQuestion(activityId, {
                 topic: topic.trim(),
                 body: body.trim(),
-                problemId: problemId ?? undefined,
+                // Exactly one of the two travels; the Server fills the series in
+                // from the problem, so sending both would be two answers to one
+                // question.
+                seriesId: scope === "series" ? seriesId ?? undefined : undefined,
+                problemId: scope === "problem" ? problemId ?? undefined : undefined,
             }));
             setTopic("");
             setBody("");
-            setProblemId(null);
+            reset("activity");
             setOpened(false);
             onCreated();
         } catch (e) {
@@ -90,16 +117,38 @@ export default function QuestionFormModal({ activityId, series, onCreated }: Que
                 centered
             >
                 <Stack gap="sm">
-                    <Select
-                        label={t("Problem")}
-                        description={t("Leave empty for a general question")}
-                        placeholder={t("General")}
-                        data={problems}
-                        value={problemId}
-                        onChange={setProblemId}
-                        searchable
-                        clearable
+                    <SegmentedControl
+                        fullWidth
+                        value={scope}
+                        onChange={value => reset(value as Scope)}
+                        data={[
+                            { value: "activity", label: t("Whole activity") },
+                            { value: "series", label: t("Series") },
+                            { value: "problem", label: t("Problem") },
+                        ]}
                     />
+                    {scope === "series" && (
+                        <Select
+                            label={t("Series")}
+                            placeholder={t("Choose the series")}
+                            data={openSeries.map(s => ({ value: s.id, label: s.name }))}
+                            value={seriesId}
+                            onChange={setSeriesId}
+                            searchable
+                            required
+                        />
+                    )}
+                    {scope === "problem" && (
+                        <Select
+                            label={t("Problem")}
+                            placeholder={t("Choose the problem")}
+                            data={problems}
+                            value={problemId}
+                            onChange={setProblemId}
+                            searchable
+                            required
+                        />
+                    )}
                     <TextInput
                         label={t("Topic")}
                         value={topic}

@@ -467,9 +467,30 @@ export interface AnnouncementInput {
  */
 export interface ManagedUser {
     id: string;
+    /**
+     * The only required identifier. A temporary account has no address and a
+     * person may decline to give a name, but everybody signs in as something.
+     */
     username: string;
-    name: string;
+    /** Both optional: a contest account may be `contest-001` and nothing more. */
+    firstName?: string;
+    lastName?: string;
+    /** Optional, and unverified until `emailConfirmed`. */
     email?: string;
+    /**
+     * Whether the address was confirmed. Separate from approval on purpose:
+     * confirming an address proves the address, approving an account is a
+     * decision somebody made.
+     */
+    emailConfirmed: boolean;
+    /**
+     * When an administrator let the account in. Absent means **pending** — the
+     * state an installation gets when it approves accounts by hand instead of
+     * by email.
+     */
+    approvedAt?: string;
+    /** A sentence about the account, written by staff. Not a tag. */
+    note?: string;
     /** Free display metadata, never queried. The Client's own labels. */
     tags: string[];
     /**
@@ -498,8 +519,22 @@ export interface ManagedUserFilter {
 
 export interface UserInput {
     username: string;
-    name: string;
+    firstName?: string;
+    lastName?: string;
     email?: string;
+}
+
+/**
+ * What may be changed afterwards. The username is not here: it is what a person
+ * signs in as and what a manager knows them by, so it is fixed at creation the
+ * way an activity's slug is.
+ */
+export interface UserUpdateInput {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    note?: string;
+    tags?: string[];
 }
 
 /**
@@ -718,8 +753,10 @@ export interface ManagerApi {
     setUserBlocked(id: string, blocked: boolean, reason: string | undefined, signal: AbortSignal): Promise<ManagedUser>;
     /** Issues a new password and returns it once. */
     resetUserPassword(id: string, signal: AbortSignal): Promise<CreatedCredential>;
-    /** Free display labels the Server stores and never queries. */
-    setUserTags(id: string, tags: string[], signal: AbortSignal): Promise<ManagedUser>;
+    /** Name, address, note and the free display labels, in one act. */
+    updateUser(id: string, input: UserUpdateInput, signal: AbortSignal): Promise<ManagedUser>;
+    /** Lets a pending account in, where approval is by hand rather than by email. */
+    approveUser(id: string, signal: AbortSignal): Promise<ManagedUser>;
     getManagedActivities(signal: AbortSignal): Promise<ManagedActivitySummary[]>;
 
     getActivities(filter: ManagedActivityFilter, signal: AbortSignal): Promise<Page<ManagedActivity>>;

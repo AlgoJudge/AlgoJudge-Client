@@ -38,6 +38,7 @@ import {
     StatementVariant,
     SeriesProblemInput,
     UserInput,
+    UserUpdateInput,
 } from "../ManagerApi";
 import { Page } from "../ParticipantApi";
 import {
@@ -490,7 +491,7 @@ export class ManagerApiFake implements ManagerApi {
             .filter(u => filter.includeBlocked || u.blockedAt === undefined)
             .filter(u => !filter.temporaryOnly || u.isTemporary)
             .filter(u => !needle
-                || u.name.toLowerCase().includes(needle)
+                || `${u.firstName ?? ""} ${u.lastName ?? ""}`.toLowerCase().includes(needle)
                 || u.username.toLowerCase().includes(needle)
                 || (u.email ?? "").toLowerCase().includes(needle)
                 || u.tags.some(tag => tag.toLowerCase().includes(needle)))
@@ -504,8 +505,13 @@ export class ManagerApiFake implements ManagerApi {
         const user: ManagedUser = {
             id: newId(),
             username: input.username.trim(),
-            name: input.name.trim(),
+            firstName: input.firstName?.trim() || undefined,
+            lastName: input.lastName?.trim() || undefined,
             email: input.email?.trim() || undefined,
+            emailConfirmed: false,
+            // Created by staff, so it is in — the pending state is for accounts
+            // that arrived on their own.
+            approvedAt: new Date().toISOString(),
             tags: [],
             isTemporary: false,
             createdAt: new Date().toISOString(),
@@ -537,7 +543,8 @@ export class ManagerApiFake implements ManagerApi {
             const user: ManagedUser = {
                 id: newId(),
                 username,
-                name: `${prefix} ${taken + i}`,
+                emailConfirmed: false,
+                approvedAt: new Date().toISOString(),
                 tags: [...(input.tags ?? []), "temporary"],
                 isTemporary: true,
                 expiresAt: input.expiresAt,
@@ -551,7 +558,7 @@ export class ManagerApiFake implements ManagerApi {
                 this.grants = [...this.grants, {
                     id: newId(),
                     userId: user.id,
-                    userName: user.name,
+                    userName: user.username,
                     activityId: input.activityId,
                     activityName: MANAGED_ACTIVITIES.find(a => a.id === input.activityId)?.name,
                     permissions: [...(input.permissions ?? [])],
@@ -581,10 +588,28 @@ export class ManagerApiFake implements ManagerApi {
         return { userId: user.id, username: user.username, password: password() };
     }
 
-    async setUserTags(id: string, tags: string[], signal: AbortSignal): Promise<ManagedUser> {
+    async updateUser(id: string, input: UserUpdateInput, signal: AbortSignal): Promise<ManagedUser> {
         await this.settle(signal);
         const user = this.findUser(id);
-        user.tags = [...tags];
+        if (input.firstName !== undefined) user.firstName = input.firstName.trim() || undefined;
+        if (input.lastName !== undefined) user.lastName = input.lastName.trim() || undefined;
+        if (input.email !== undefined) {
+            const address = input.email.trim() || undefined;
+            // A changed address is an unconfirmed address, whatever the old one
+            // was worth.
+            if (address !== user.email) user.emailConfirmed = false;
+            user.email = address;
+        }
+        if (input.note !== undefined) user.note = input.note.trim() || undefined;
+        if (input.tags !== undefined) user.tags = [...input.tags];
+        this.announceUser(user);
+        return copy(this.withGrantCount(user));
+    }
+
+    async approveUser(id: string, signal: AbortSignal): Promise<ManagedUser> {
+        await this.settle(signal);
+        const user = this.findUser(id);
+        user.approvedAt = new Date().toISOString();
         this.announceUser(user);
         return copy(this.withGrantCount(user));
     }

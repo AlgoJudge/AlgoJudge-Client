@@ -114,8 +114,8 @@ export class ParticipantApiHttp implements ParticipantApi {
                     kind: filter.kind,
                     seriesId: filter.seriesId,
                     problemId: filter.problemId,
-                    sort: filter.sort,
-                    direction: filter.direction,
+                    sortBy: filter.sortBy,
+                    order: filter.order,
                 }),
             });
     }
