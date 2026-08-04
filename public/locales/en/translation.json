@@ -590,5 +590,17 @@
   "Files of the newest version. A participant receives the participant-scoped ones; the statement points at them by name.": "Files of the newest version. A participant receives the participant-scoped ones; the statement points at them by name.",
   "A figure is referenced from the statement as ![description](name.png), and a PDF as a link. Only participant-scoped files can be pointed at.": "A figure is referenced from the statement as ![description](name.png), and a PDF as a link. Only participant-scoped files can be pointed at.",
   "Publish a version first: a file is attached to one.": "Publish a version first: a file is attached to one.",
-  "The statement is edited in the Statement tab": "The statement is edited in the Statement tab"
+  "The statement is edited in the Statement tab": "The statement is edited in the Statement tab",
+  "Package uploaded": "Package uploaded",
+  "No package": "No package",
+  "Nothing can be judged until a package is uploaded.": "Nothing can be judged until a package is uploaded.",
+  "Open the stored package": "Open the stored package",
+  "There is no package to open": "There is no package to open",
+  "The stored package is loaded below. Publishing replaces it.": "The stored package is loaded below. Publishing replaces it.",
+  "You are looking at version": "You are looking at version",
+  "of": "of",
+  "Older versions are read-only: a correction is published as a new one.": "Older versions are read-only: a correction is published as a new one.",
+  "Back to the newest": "Back to the newest",
+  "Show": "Show",
+  "Shown": "Shown"
 }

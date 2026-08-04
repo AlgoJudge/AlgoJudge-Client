@@ -853,6 +853,14 @@ export interface ManagerApi {
     /** Publishes a new version. Versions are append-only; nothing is edited in place. */
     createProblemVersion(problemId: string, input: ProblemVersionInput, signal: AbortSignal): Promise<ManagedProblemVersion>;
     /**
+     * The package stored for a version, or undefined where there is none.
+     *
+     * Read back so the builder can open what is already there: a correction
+     * starts from the package that is live, not from an empty form.
+     */
+    getProblemPackage(problemId: string, versionId: string, signal: AbortSignal): Promise<Blob | undefined>;
+
+    /**
      * Attaches an ordinary file to a version — a figure, a PDF statement, sample
      * data, a model solution.
      *

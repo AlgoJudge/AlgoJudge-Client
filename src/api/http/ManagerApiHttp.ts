@@ -387,6 +387,18 @@ export class ManagerApiHttp implements ManagerApi {
             `/problems/${encodeURIComponent(problemId)}/versions`, "POST", { signal, body: input });
     }
 
+    async getProblemPackage(problemId: string, versionId: string, signal: AbortSignal): Promise<Blob | undefined> {
+        try {
+            return await this.http.download(
+                `/problems/${encodeURIComponent(problemId)}/versions/${encodeURIComponent(versionId)}/package`,
+                signal);
+        } catch {
+            // A version without a package is not a failure; it is a version
+            // nobody has finished preparing.
+            return undefined;
+        }
+    }
+
     async uploadProblemFile(
         problemId: string,
         versionId: string,

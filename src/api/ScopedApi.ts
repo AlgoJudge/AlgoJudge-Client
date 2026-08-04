@@ -448,6 +448,9 @@ export class ScopedManagerApi {
         return this.managerApi.createProblemVersion(problemId, input, this.signal);
     }
 
+    getProblemPackage(problemId: string, versionId: string): Promise<Blob | undefined> {
+        return this.managerApi.getProblemPackage(problemId, versionId, this.signal);
+    }
     uploadProblemFile(problemId: string, versionId: string, file: File, scope: FileScope, sha256: string): Promise<ManagedProblemVersion> {
         return this.managerApi.uploadProblemFile(problemId, versionId, file, scope, sha256, this.signal);
     }

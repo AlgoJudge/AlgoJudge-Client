@@ -52,6 +52,8 @@ import {
     PERMISSION_CATALOGUE,
 } from "./fixtures/permissions";
 import { ActivityRecord, createActivityLibrary } from "./fixtures/activities";
+import { buildPackage } from "../../package/build";
+import { emptyConfig } from "../../package/types";
 import { createProblemLibrary, fakeSha, ME, ProblemRecord } from "./fixtures/problems";
 import { createQuestions } from "./fixtures/questions";
 import { createRunners, runnerFile } from "./fixtures/runners";
@@ -107,6 +109,8 @@ export class ManagerApiFake implements ManagerApi {
     private activities: ActivityRecord[] = createActivityLibrary();
     private submissions: ManagedSubmissionDetail[] = createSubmissions();
     private questions: ManagedQuestion[] = createQuestions();
+    /** Package bytes, by version id. Uploaded ones are kept; seeded ones are built. */
+    private packages = new Map<string, Blob>();
     private users: ManagedUser[] = createUsers();
     private runners: ManagedRunner[] = createRunners();
 
@@ -940,6 +944,32 @@ export class ManagerApiFake implements ManagerApi {
         return copy(version);
     }
 
+    async getProblemPackage(problemId: string, versionId: string, signal: AbortSignal): Promise<Blob | undefined> {
+        await this.settle(signal);
+        const record = this.find(problemId);
+        const version = record.versions.find(v => v.id === versionId) ?? notFound("Version");
+        if (!version.hasPackage) return undefined;
+
+        const held = this.packages.get(versionId);
+        if (held) return held;
+
+        // A seeded version has no bytes, because nobody uploaded any. Rather
+        // than answer "there is a package but you cannot have it", the fake
+        // assembles one from the version's own configuration — the same builder
+        // the manager screen uses, so what comes back opens.
+        const config = (version.config ?? emptyConfig()) as ReturnType<typeof emptyConfig>;
+        const archive = await buildPackage({
+            config,
+            tests: [
+                { name: "0a", group: 0, letter: "a", input: "4 3\n1 2\n2 3\n3 4", output: "TAK" },
+                { name: "1a", group: 1, letter: "a", input: "1 0", output: "TAK" },
+                { name: "2a", group: 2, letter: "a", input: "4 2\n1 2\n3 4", output: "NIE" },
+            ],
+        });
+        this.packages.set(versionId, archive);
+        return archive;
+    }
+
     async uploadProblemFile(
         problemId: string,
         versionId: string,
@@ -1005,6 +1035,7 @@ export class ManagerApiFake implements ManagerApi {
         }
 
         version.hasPackage = true;
+        this.packages.set(versionId, archive);
         version.files = [
             ...version.files.filter(f => f.name !== "package.zip"),
             {

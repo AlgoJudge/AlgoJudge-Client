@@ -1,10 +1,11 @@
 import { Alert, Badge, Button, Card, Center, Grid, Group, Loader, MultiSelect, Select, Stack, Table, Tabs, Text, TextInput, Title, Tooltip } from "@mantine/core";
 import {
-    IconAlertTriangle, IconArrowLeft, IconCheck, IconCopy, IconDeviceFloppy, IconDownload, IconTrash, IconUpload,
+    IconAlertTriangle, IconArrowLeft, IconCheck, IconCopy, IconDeviceFloppy, IconDownload, IconInfoCircle,
+    IconTrash, IconUpload,
 } from "@tabler/icons-react";
 import { Suspense, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
     FileScope, ManagedProblem, ManagedProblemVersion, ManagedUserSummary, ProblemVisibility,
 } from "../../../../api/ManagerApi";
@@ -27,6 +28,10 @@ export default function ManagerProblemPage() {
     const navigate = useNavigate();
     const call = useApiCall();
     const { problemId } = useParams();
+    // Which version the other tabs show. In the URL, so "look at version 2 of
+    // this problem" is a link, and so a reload does not jump back to the newest.
+    const [query, setQuery] = useSearchParams();
+    const selectedId = query.get("version") ?? undefined;
     const fileInput = useRef<HTMLInputElement>(null);
     const attachmentInput = useRef<HTMLInputElement>(null);
 
@@ -53,10 +58,10 @@ export default function ManagerProblemPage() {
         const history = await api.managerApi.getProblemVersions(problemId);
         setVersions(history);
 
-        // The editor always starts from the newest version. Older ones are
-        // history, and history is read rather than edited: a correction becomes
-        // a new version.
-        const newest = history[0];
+        // The selected version, defaulting to the newest. Older ones are
+        // history: they can be read, and a correction to them is published as a
+        // new version rather than written over the old one.
+        const newest = history.find(v => v.id === selectedId) ?? history[0];
         if (newest) {
             // Edited as the text it is. An unreadable document still opens, so
             // the author can see and repair what is wrong with it.
@@ -69,7 +74,7 @@ export default function ManagerProblemPage() {
             setSources(loadedSources);
             setLanguage(DEFAULT_LANGUAGE);
         }
-    }, [problemId, reload]);
+    }, [problemId, selectedId, reload]);
 
     const run = async (operation: () => Promise<unknown>) => {
         setError(undefined);
@@ -137,7 +142,13 @@ export default function ManagerProblemPage() {
 
     const Statement = statementRenderers.resolve(problem.type).value;
     const newest = versions[0];
-    const files = newest?.files ?? [];
+    const selected = versions.find(v => v.id === selectedId) ?? newest;
+    // History is read, not rewritten: an older version takes no new statement,
+    // no new files and no new package. The banner says so and every control
+    // that would change it is disabled.
+    const isNewest = selected?.id === newest?.id;
+    const locked = !!problem.archivedAt || !isNewest;
+    const files = selected?.files ?? [];
     const participantFiles = files.filter(f => f.scope === "participant" && !/^content\./i.test(f.name));
     const attachmentNames = participantFiles.map(f => f.name);
 
@@ -153,10 +164,10 @@ export default function ManagerProblemPage() {
     }));
 
     const uploadAttachment = async (file: File) => {
-        if (!newest) return;
+        if (!selected) return;
         await run(async () => {
             const checksum = await sha256(file);
-            await call(api => api.managerApi.uploadProblemFile(problem.id, newest.id, file, uploadScope, checksum));
+            await call(api => api.managerApi.uploadProblemFile(problem.id, selected.id, file, uploadScope, checksum));
         });
     };
 
@@ -180,6 +191,24 @@ export default function ManagerProblemPage() {
             {problem.archivedAt && (
                 <Alert color="gray" icon={<IconAlertTriangle size={18} />}>
                     {t("An archived problem takes no new versions. Restore it to keep editing.")}
+                </Alert>
+            )}
+
+            {!isNewest && selected && (
+                <Alert color="blue" icon={<IconInfoCircle size={18} />}>
+                    <Group justify="space-between" wrap="wrap">
+                        <Text size="sm">
+                            {t("You are looking at version")} {selected.version} {t("of")} {versions.length}.{" "}
+                            {t("Older versions are read-only: a correction is published as a new one.")}
+                        </Text>
+                        <Button
+                            variant="light"
+                            size="compact-sm"
+                            onClick={() => setQuery(q => { q.delete("version"); return q; }, { replace: true })}
+                        >
+                            {t("Back to the newest")}
+                        </Button>
+                    </Group>
                 </Alert>
             )}
 
@@ -262,7 +291,7 @@ export default function ManagerProblemPage() {
                                             <Button
                                                 leftSection={<IconDeviceFloppy size={16} />}
                                                 loading={busy}
-                                                disabled={!!problem.archivedAt}
+                                                disabled={locked}
                                                 onClick={publish}
                                             >
                                                 {t("Publish a new version")}
@@ -287,7 +316,7 @@ export default function ManagerProblemPage() {
                 </Tabs.Panel>
 
                 <Tabs.Panel value="files" pt="md">
-                    {newest ? (
+                    {selected ? (
                         <Stack gap="md">
                             <Group justify="space-between" wrap="wrap">
                                 <Text size="sm" c="dimmed" maw={620}>
@@ -306,7 +335,7 @@ export default function ManagerProblemPage() {
                                     />
                                     <Button
                                         leftSection={<IconUpload size={16} />}
-                                        disabled={!!problem.archivedAt}
+                                        disabled={locked}
                                         loading={busy}
                                         onClick={() => attachmentInput.current?.click()}
                                     >
@@ -392,10 +421,10 @@ export default function ManagerProblemPage() {
                                                             variant="subtle"
                                                             color="red"
                                                             size="compact-sm"
-                                                            disabled={!!problem.archivedAt || /^content\./i.test(file.name)}
+                                                            disabled={locked || /^content\./i.test(file.name)}
                                                             loading={busy}
                                                             onClick={() => run(() => call(api =>
-                                                                api.managerApi.deleteProblemFile(problem.id, newest.id, file.name)))}
+                                                                api.managerApi.deleteProblemFile(problem.id, selected.id, file.name)))}
                                                         >
                                                             <IconTrash size={14} />
                                                         </Button>
@@ -421,13 +450,15 @@ export default function ManagerProblemPage() {
                 </Tabs.Panel>
 
                 <Tabs.Panel value="package" pt="md">
-                    {versions[0] ? (
+                    {selected ? (
                         <PackageBuilder
-                            disabled={!!problem.archivedAt}
+                            disabled={locked}
+                            stored={files.find(f => f.name === "package.zip")}
+                            onOpenStored={() => call(api => api.managerApi.getProblemPackage(problem.id, selected.id))}
                             onUpload={async archive => {
                                 // Computed here, where the bytes were assembled.
                                 const checksum = await sha256(archive);
-                                await call(api => api.managerApi.uploadProblemPackage(problem.id, versions[0].id, archive, checksum));
+                                await call(api => api.managerApi.uploadProblemPackage(problem.id, selected.id, archive, checksum));
                                 setReload(n => n + 1);
                             }}
                         />
@@ -447,11 +478,12 @@ export default function ManagerProblemPage() {
                                 <Table.Th>{t("Author")}</Table.Th>
                                 <Table.Th>{t("What changed")}</Table.Th>
                                 <Table.Th>{t("Package")}</Table.Th>
+                                <Table.Th />
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
                             {versions.map(version => (
-                                <Table.Tr key={version.id}>
+                                <Table.Tr key={version.id} bg={version.id === selected?.id ? "var(--mantine-color-blue-light)" : undefined}>
                                     <Table.Td>
                                         <Group gap="xs">
                                             <Text fw={500}>v{version.version}</Text>
@@ -469,6 +501,22 @@ export default function ManagerProblemPage() {
                                         {version.hasPackage
                                             ? <Badge variant="light" color="teal" size="sm">{t("Uploaded")}</Badge>
                                             : <Badge variant="light" color="gray" size="sm">{t("Missing")}</Badge>}
+                                    </Table.Td>
+                                    <Table.Td>
+                                        <Group justify="flex-end">
+                                            {/* Selecting a version points the
+                                                statement, package and attachment
+                                                tabs at it. */}
+                                            <Button
+                                                variant={version.id === selected?.id ? "filled" : "light"}
+                                                size="compact-sm"
+                                                onClick={() => setQuery(
+                                                    version.id === newest?.id ? {} : { version: version.id },
+                                                    { replace: true })}
+                                            >
+                                                {version.id === selected?.id ? t("Shown") : t("Show")}
+                                            </Button>
+                                        </Group>
                                     </Table.Td>
                                 </Table.Tr>
                             ))}

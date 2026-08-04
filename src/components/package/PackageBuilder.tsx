@@ -17,6 +17,14 @@ import { hasErrors, validatePackage } from "../../package/validate";
 export interface PackageBuilderProps {
     /** Publishes the built archive against the current version. */
     onUpload: (archive: Blob) => Promise<void>;
+    /**
+     * What is stored for this version, if anything. Shown before the form: the
+     * first question a manager has is whether there is a package at all, and the
+     * second is whether it is the one they meant.
+     */
+    stored?: { sizeBytes: number; sha256: string };
+    /** Fetches the stored archive, so a correction starts from what is live. */
+    onOpenStored?: () => Promise<Blob | undefined>;
     disabled?: boolean;
 }
 
@@ -29,7 +37,7 @@ const download = (blob: Blob, name: string) => {
     URL.revokeObjectURL(url);
 };
 
-export default function PackageBuilder({ onUpload, disabled }: PackageBuilderProps) {
+export default function PackageBuilder({ onUpload, stored, onOpenStored, disabled }: PackageBuilderProps) {
     const { t } = useTranslation();
     const filesInput = useRef<HTMLInputElement>(null);
     const packageInput = useRef<HTMLInputElement>(null);
@@ -38,6 +46,7 @@ export default function PackageBuilder({ onUpload, disabled }: PackageBuilderPro
     const [checker, setChecker] = useState<ExtraFile | undefined>(undefined);
     const [modelSolution, setModelSolution] = useState<ExtraFile | undefined>(undefined);
     const [unrecognised, setUnrecognised] = useState<string[]>([]);
+    const [opened, setOpened] = useState(false);
     const [config, setConfig] = useState<PackageConfig>(emptyConfig());
     const [error, setError] = useState<string | undefined>(undefined);
     const [busy, setBusy] = useState(false);
@@ -127,8 +136,84 @@ export default function PackageBuilder({ onUpload, disabled }: PackageBuilderPro
 
     const exampleTests = tests.filter(t => configWithPrograms.groups.find(g => g.group === t.group)?.examples);
 
+    const openStored = async () => {
+        if (!onOpenStored) return;
+        setError(undefined);
+        setBusy(true);
+        try {
+            const archive = await onOpenStored();
+            if (!archive) {
+                setError(t("There is no package to open"));
+                return;
+            }
+            const contents = await readPackage(archive);
+            setConfig(contents.config);
+            setTests(contents.tests);
+            setChecker(contents.checker);
+            setModelSolution(contents.modelSolution);
+            setUnrecognised([]);
+            setOpened(true);
+        } catch (e) {
+            setError(e instanceof Error ? e.message : String(e));
+        } finally {
+            setBusy(false);
+        }
+    };
+
     return (
         <Stack gap="md">
+            {/* The state of the version's package, before anything about
+                building a new one: nothing else on this screen answers "is this
+                problem ready to be judged". */}
+            <Card withBorder radius="sm">
+                <Group justify="space-between" wrap="wrap">
+                    <Group gap="sm">
+                        {stored
+                            ? <Badge color="teal" variant="light" leftSection={<IconFileZip size={12} />}>{t("Package uploaded")}</Badge>
+                            : <Badge color="red" variant="light" leftSection={<IconAlertTriangle size={12} />}>{t("No package")}</Badge>}
+                        {stored && (
+                            <Text size="sm" c="dimmed">
+                                {Math.max(1, Math.ceil(stored.sizeBytes / 1024))} kB ·{" "}
+                                <Text component="span" ff="monospace" fz="xs">sha256 {stored.sha256.slice(0, 16)}…</Text>
+                            </Text>
+                        )}
+                        {!stored && (
+                            <Text size="sm" c="dimmed">{t("Nothing can be judged until a package is uploaded.")}</Text>
+                        )}
+                    </Group>
+                    <Group gap="xs">
+                        <Button
+                            variant="light"
+                            size="compact-sm"
+                            leftSection={<IconDownload size={14} />}
+                            disabled={!stored || !onOpenStored}
+                            loading={busy}
+                            onClick={async () => {
+                                const archive = await onOpenStored?.();
+                                if (archive) download(archive, "package.zip");
+                            }}
+                        >
+                            {t("Download")}
+                        </Button>
+                        <Button
+                            variant="light"
+                            size="compact-sm"
+                            leftSection={<IconFileZip size={14} />}
+                            disabled={!stored || !onOpenStored}
+                            loading={busy}
+                            onClick={openStored}
+                        >
+                            {t("Open the stored package")}
+                        </Button>
+                    </Group>
+                </Group>
+                {opened && (
+                    <Alert color="blue" mt="sm" p="xs">
+                        <Text size="sm">{t("The stored package is loaded below. Publishing replaces it.")}</Text>
+                    </Alert>
+                )}
+            </Card>
+
             <Group gap="xs" wrap="wrap">
                 <Button variant="light" leftSection={<IconUpload size={16} />} onClick={() => filesInput.current?.click()} loading={busy}>
                     {t("Add test files")}
