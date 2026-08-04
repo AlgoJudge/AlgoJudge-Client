@@ -9,6 +9,10 @@ import {
     ManagedProblem,
     ManagedProblemVersion,
     ManagedSeries,
+    AnnouncementInput,
+    AnswerInput,
+    ManagedQuestion,
+    ManagedQuestionFilter,
     ManagedSubmission,
     ManagedSubmissionDetail,
     ManagedSubmissionFilter,
@@ -170,6 +174,37 @@ export class ManagerApiHttp implements ManagerApi {
     reorderSeriesProblems(seriesId: string, orderedIds: string[], signal: AbortSignal): Promise<ManagedSeries> {
         return this.http.request<ManagedSeries>(
             `/series/${encodeURIComponent(seriesId)}/problems/order`, "POST", { signal, body: { orderedIds } });
+    }
+
+    getQuestions(filter: ManagedQuestionFilter, signal: AbortSignal): Promise<Page<ManagedQuestion>> {
+        const query: Record<string, string | number | boolean> = {};
+        if (filter.page !== undefined) query.page = filter.page;
+        if (filter.pageSize !== undefined) query.pageSize = filter.pageSize;
+        if (filter.activityId) query.activityId = filter.activityId;
+        if (filter.seriesId) query.seriesId = filter.seriesId;
+        if (filter.kind) query.kind = filter.kind;
+        if (filter.unansweredOnly) query.unansweredOnly = true;
+        if (filter.search) query.search = filter.search;
+        return this.http.request<Page<ManagedQuestion>>("/questions", "GET", { signal, query });
+    }
+
+    answerQuestion(id: string, input: AnswerInput, signal: AbortSignal): Promise<ManagedQuestion> {
+        return this.http.request<ManagedQuestion>(
+            `/questions/${encodeURIComponent(id)}/answer`, "POST", { signal, body: input });
+    }
+
+    setQuestionPublished(id: string, published: boolean, signal: AbortSignal): Promise<ManagedQuestion> {
+        return this.http.request<ManagedQuestion>(
+            `/questions/${encodeURIComponent(id)}/published`, "POST", { signal, body: { published } });
+    }
+
+    createAnnouncement(activityId: string, input: AnnouncementInput, signal: AbortSignal): Promise<ManagedQuestion> {
+        return this.http.request<ManagedQuestion>(
+            `/activities/${encodeURIComponent(activityId)}/announcements`, "POST", { signal, body: input });
+    }
+
+    async deleteAnnouncement(id: string, signal: AbortSignal): Promise<void> {
+        await this.http.request<void>(`/questions/${encodeURIComponent(id)}/delete`, "POST", { signal });
     }
 
     getSubmissions(filter: ManagedSubmissionFilter, signal: AbortSignal): Promise<Page<ManagedSubmission>> {

@@ -1,5 +1,5 @@
 import { Event } from "./Event";
-import { JobState, Page } from "./ParticipantApi";
+import { JobState, Page, QuestionAnswer, QuestionKind } from "./ParticipantApi";
 
 /**
  * The manager-facing API.
@@ -396,8 +396,69 @@ export interface ManagedSubmissionFilter {
     search?: string;
 }
 
+
+/**
+ * A question or an announcement, as staff see it.
+ *
+ * One model for both because they are one table: an announcement is a question
+ * nobody asked, published from the start. Splitting them would double every
+ * filter and every screen for a difference of two fields.
+ */
+export interface ManagedQuestion {
+    id: string;
+    activityId: string;
+    activitySlug: string;
+    kind: QuestionKind;
+    topic: string;
+    body: string;
+    /** Absent for an announcement: nobody asked it. */
+    authorUserId?: string;
+    authorName?: string;
+    createdAt: string;
+    /** Set when it concerns one series rather than the whole activity. */
+    seriesId?: string;
+    seriesName?: string;
+    /** Set when it concerns one problem. */
+    seriesProblemId?: string;
+    problemSlug?: string;
+    problemName?: string;
+    answer?: QuestionAnswer;
+    /**
+     * Published means every participant sees it, not only the person who asked.
+     * Answering and publishing are two acts: an answer meant for one team is the
+     * common case, and publishing it by default would leak it.
+     */
+    isPublished: boolean;
+    /** How many participants have opened it. Only meaningful once published. */
+    readCount: number;
+}
+
+export interface ManagedQuestionFilter {
+    page?: number;
+    pageSize?: number;
+    activityId?: string;
+    seriesId?: string;
+    kind?: QuestionKind;
+    /** `true` narrows to those still waiting for an answer. */
+    unansweredOnly?: boolean;
+    search?: string;
+}
+
+export interface AnswerInput {
+    body: string;
+    /** Answer and publish in one act, which is what an FAQ-worthy question wants. */
+    publish?: boolean;
+}
+
+export interface AnnouncementInput {
+    topic: string;
+    body: string;
+    /** Optional: an announcement may concern one series. */
+    seriesId?: string;
+}
+
 export type ManagerEventType = "permissionTemplateChanged" | "grantChanged" | "problemChanged"
-    | "activityChanged" | "seriesChanged" | "submissionChanged";
+    | "activityChanged" | "seriesChanged" | "submissionChanged" | "questionChanged";
 export type ManagerEvent<T extends ManagerEventType, V> = Event<T, V>;
 
 export type PermissionTemplateChangedEvent = ManagerEvent<"permissionTemplateChanged", {
@@ -432,6 +493,11 @@ export type SubmissionChangedEvent = ManagerEvent<"submissionChanged", {
     submission: ManagedSubmission;
 }>;
 
+export type QuestionChangedEvent = ManagerEvent<"questionChanged", {
+    question?: ManagedQuestion;
+    deletedId?: string;
+}>;
+
 export interface ManagerEventDispatcher {
     addEventListener(type: "permissionTemplateChanged", listener: (evt: PermissionTemplateChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "grantChanged", listener: (evt: GrantChangedEvent) => void, signal: AbortSignal): void;
@@ -439,6 +505,7 @@ export interface ManagerEventDispatcher {
     addEventListener(type: "activityChanged", listener: (evt: ActivityChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "seriesChanged", listener: (evt: SeriesChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "submissionChanged", listener: (evt: SubmissionChangedEvent) => void, signal: AbortSignal): void;
+    addEventListener(type: "questionChanged", listener: (evt: QuestionChangedEvent) => void, signal: AbortSignal): void;
     addEventListener<T extends ManagerEventType, V>(type: T, listener: (evt: ManagerEvent<T, V>) => void, signal: AbortSignal): void;
 }
 
@@ -495,6 +562,15 @@ export interface ManagerApi {
     /** Refused once anything has been submitted against the assignment. */
     detachProblem(seriesProblemId: string, signal: AbortSignal): Promise<ManagedSeries>;
     reorderSeriesProblems(seriesId: string, orderedIds: string[], signal: AbortSignal): Promise<ManagedSeries>;
+
+    getQuestions(filter: ManagedQuestionFilter, signal: AbortSignal): Promise<Page<ManagedQuestion>>;
+    /** Answering leaves it unpublished unless the input says otherwise. */
+    answerQuestion(id: string, input: AnswerInput, signal: AbortSignal): Promise<ManagedQuestion>;
+    /** Publishing a question shows it, and its answer, to every participant. */
+    setQuestionPublished(id: string, published: boolean, signal: AbortSignal): Promise<ManagedQuestion>;
+    createAnnouncement(activityId: string, input: AnnouncementInput, signal: AbortSignal): Promise<ManagedQuestion>;
+    /** Only an announcement may be deleted; a participant's question is theirs. */
+    deleteAnnouncement(id: string, signal: AbortSignal): Promise<void>;
 
     getSubmissions(filter: ManagedSubmissionFilter, signal: AbortSignal): Promise<Page<ManagedSubmission>>;
     getSubmission(id: string, signal: AbortSignal): Promise<ManagedSubmissionDetail>;

@@ -26,10 +26,15 @@ import {
     PermissionTemplate,
     PermissionTemplateChangedEvent,
     PermissionTemplateInput,
+    AnnouncementInput,
+    AnswerInput,
+    ManagedQuestion,
+    ManagedQuestionFilter,
     ManagedSubmission,
     ManagedSubmissionDetail,
     ManagedSubmissionFilter,
     ProblemChangedEvent,
+    QuestionChangedEvent,
     SeriesChangedEvent,
     StatementVariant,
     SubmissionChangedEvent,
@@ -184,6 +189,7 @@ export class ScopedManagerEventDispatcher {
     addEventListener(type: "activityChanged", listener: (evt: ActivityChangedEvent) => void): void;
     addEventListener(type: "seriesChanged", listener: (evt: SeriesChangedEvent) => void): void;
     addEventListener(type: "submissionChanged", listener: (evt: SubmissionChangedEvent) => void): void;
+    addEventListener(type: "questionChanged", listener: (evt: QuestionChangedEvent) => void): void;
     addEventListener<T extends ManagerEventType, V>(type: T, listener: (evt: ManagerEvent<T, V>) => void): void {
         this.eventDispatcher.addEventListener(type, listener, this.signal);
     }
@@ -278,6 +284,22 @@ export class ScopedManagerApi {
     }
     reorderSeriesProblems(seriesId: string, orderedIds: string[]): Promise<ManagedSeries> {
         return this.managerApi.reorderSeriesProblems(seriesId, orderedIds, this.signal);
+    }
+
+    getQuestions(filter: ManagedQuestionFilter = {}): Promise<Page<ManagedQuestion>> {
+        return this.managerApi.getQuestions(filter, this.signal);
+    }
+    answerQuestion(id: string, input: AnswerInput): Promise<ManagedQuestion> {
+        return this.managerApi.answerQuestion(id, input, this.signal);
+    }
+    setQuestionPublished(id: string, published: boolean): Promise<ManagedQuestion> {
+        return this.managerApi.setQuestionPublished(id, published, this.signal);
+    }
+    createAnnouncement(activityId: string, input: AnnouncementInput): Promise<ManagedQuestion> {
+        return this.managerApi.createAnnouncement(activityId, input, this.signal);
+    }
+    deleteAnnouncement(id: string): Promise<void> {
+        return this.managerApi.deleteAnnouncement(id, this.signal);
     }
 
     getSubmissions(filter: ManagedSubmissionFilter = {}): Promise<Page<ManagedSubmission>> {

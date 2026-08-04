@@ -38,6 +38,7 @@ const ManagerProblemsPage = lazy(() => import('./pages/manager/problems/ManagerP
 const ManagerProblemPage = lazy(() => import('./pages/manager/problems/problem_id/ManagerProblemPage'));
 const ManagerSubmissionsPage = lazy(() => import('./pages/manager/submissions/ManagerSubmissionsPage'));
 const ManagerSubmissionPage = lazy(() => import('./pages/manager/submissions/submission_id/ManagerSubmissionPage'));
+const ManagerQuestionsPage = lazy(() => import('./pages/manager/questions/ManagerQuestionsPage'));
 
 function App() {
 
@@ -135,6 +136,10 @@ function App() {
                 {
                     path: "/manager/submissions/:submissionId",
                     element: <ManagerSubmissionPage />
+                },
+                {
+                    path: "/manager/questions",
+                    element: <ManagerQuestionsPage />
                 },
                 {
                     path: "/manager/grants",

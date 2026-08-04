@@ -1,6 +1,8 @@
 import { ManagerEventDispatcherImpl } from "../impl/ManagerEventDispatcher";
 import {
     ActivityInput,
+    AnnouncementInput,
+    AnswerInput,
     Grant,
     GrantFilter,
     GrantInput,
@@ -10,6 +12,8 @@ import {
     ManagedProblem,
     ManagedProblemVersion,
     ManagedAttempt,
+    ManagedQuestion,
+    ManagedQuestionFilter,
     ManagedSeries,
     ManagedSeriesProblem,
     ManagedSubmission,
@@ -39,6 +43,7 @@ import {
 } from "./fixtures/permissions";
 import { ActivityRecord, createActivityLibrary } from "./fixtures/activities";
 import { createProblemLibrary, fakeSha, ME, ProblemRecord } from "./fixtures/problems";
+import { createQuestions } from "./fixtures/questions";
 import { createSubmissions, submissionSource } from "./fixtures/submissions";
 import { sha256 } from "../../utils/sha256";
 import { Utils } from "./Utils";
@@ -75,6 +80,7 @@ export class ManagerApiFake implements ManagerApi {
     private library: ProblemRecord[] = createProblemLibrary();
     private activities: ActivityRecord[] = createActivityLibrary();
     private submissions: ManagedSubmissionDetail[] = createSubmissions();
+    private questions: ManagedQuestion[] = createQuestions();
 
     constructor(private sleepMs: number = 300) {}
 
@@ -389,6 +395,92 @@ export class ManagerApiFake implements ManagerApi {
         return copy(series);
     }
 
+    async getQuestions(filter: ManagedQuestionFilter, signal: AbortSignal): Promise<Page<ManagedQuestion>> {
+        await this.settle(signal);
+        const needle = filter.search?.trim().toLowerCase();
+        const matched = this.questions
+            .filter(q => !filter.activityId || q.activityId === filter.activityId)
+            .filter(q => !filter.seriesId || q.seriesId === filter.seriesId)
+            .filter(q => !filter.kind || q.kind === filter.kind)
+            // An announcement is never unanswered: nobody asked it.
+            .filter(q => !filter.unansweredOnly || (q.kind === "question" && q.answer === undefined))
+            .filter(q => !needle
+                || q.topic.toLowerCase().includes(needle)
+                || q.body.toLowerCase().includes(needle)
+                || (q.authorName ?? "").toLowerCase().includes(needle))
+            .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+        return copy(paginate(matched, filter.page, filter.pageSize));
+    }
+
+    async answerQuestion(id: string, input: AnswerInput, signal: AbortSignal): Promise<ManagedQuestion> {
+        await this.settle(signal);
+        const question = this.findQuestion(id);
+        if (question.kind === "announcement") {
+            Utils.throwError("An announcement has no question to answer");
+        }
+        question.answer = {
+            body: input.body,
+            authorName: "Amy Horsefighter",
+            answeredAt: new Date().toISOString(),
+        };
+        // Answering and publishing are two acts, and this is the one that keeps
+        // them apart: an answer stays private unless the caller says otherwise.
+        if (input.publish) question.isPublished = true;
+        this.announceQuestion(question);
+        return copy(question);
+    }
+
+    async setQuestionPublished(id: string, published: boolean, signal: AbortSignal): Promise<ManagedQuestion> {
+        await this.settle(signal);
+        const question = this.findQuestion(id);
+        if (published && question.kind === "question" && question.answer === undefined) {
+            // Publishing an unanswered question shows everyone the doubt without
+            // the answer, which is the opposite of what publishing is for.
+            Utils.throwError("Answer it before publishing it");
+        }
+        question.isPublished = published;
+        this.announceQuestion(question);
+        return copy(question);
+    }
+
+    async createAnnouncement(activityId: string, input: AnnouncementInput, signal: AbortSignal): Promise<ManagedQuestion> {
+        await this.settle(signal);
+        const record = this.findActivity(activityId);
+        this.assertNotArchived(record);
+        const series = input.seriesId
+            ? record.series.find(s => s.id === input.seriesId) ?? notFound("Series")
+            : undefined;
+        const announcement: ManagedQuestion = {
+            id: newId(),
+            activityId: record.activity.id,
+            activitySlug: record.activity.slug,
+            kind: "announcement",
+            topic: input.topic,
+            body: input.body,
+            createdAt: new Date().toISOString(),
+            seriesId: series?.id,
+            seriesName: series?.name,
+            // Published from the start: an announcement nobody can read is a note
+            // to oneself.
+            isPublished: true,
+            readCount: 0,
+        };
+        this.questions = [announcement, ...this.questions];
+        this.announceQuestion(announcement);
+        return copy(announcement);
+    }
+
+    async deleteAnnouncement(id: string, signal: AbortSignal): Promise<void> {
+        await this.settle(signal);
+        const question = this.findQuestion(id);
+        if (question.kind !== "announcement") {
+            // A participant's question is theirs. Staff answer it or leave it.
+            Utils.throwError("A question cannot be deleted");
+        }
+        this.questions = this.questions.filter(q => q.id !== id);
+        this.eventDispatcher.dispatchEvent({ type: "questionChanged", data: { deletedId: id } });
+    }
+
     async getSubmissions(filter: ManagedSubmissionFilter, signal: AbortSignal): Promise<Page<ManagedSubmission>> {
         await this.settle(signal);
         const needle = filter.search?.trim().toLowerCase();
@@ -646,6 +738,14 @@ export class ManagerApiFake implements ManagerApi {
         ];
         this.announce(record.problem);
         return copy(version);
+    }
+
+    private findQuestion(id: string): ManagedQuestion {
+        return this.questions.find(q => q.id === id) ?? notFound("Question");
+    }
+
+    private announceQuestion(question: ManagedQuestion): void {
+        this.eventDispatcher.dispatchEvent({ type: "questionChanged", data: { question: copy(question) } });
     }
 
     private findSubmission(id: string): ManagedSubmissionDetail {
