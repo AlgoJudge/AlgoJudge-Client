@@ -524,5 +524,6 @@
   "cores": "rdzeni",
   "Everything above is what the Runner reported about itself. Only the tags are set here.": "Wszystko powyżej zgłosił o sobie sam Runner. Tutaj ustawia się wyłącznie etykiety.",
   "Used to steer work at particular machines": "Służą do kierowania pracy na konkretne maszyny",
-  "Waiting for approval": "Czeka na zatwierdzenie"
+  "Waiting for approval": "Czeka na zatwierdzenie",
+  "Public key": "Klucz publiczny"
 }

@@ -524,5 +524,6 @@
   "cores": "cores",
   "Everything above is what the Runner reported about itself. Only the tags are set here.": "Everything above is what the Runner reported about itself. Only the tags are set here.",
   "Used to steer work at particular machines": "Used to steer work at particular machines",
-  "Waiting for approval": "Waiting for approval"
+  "Waiting for approval": "Waiting for approval",
+  "Public key": "Public key"
 }

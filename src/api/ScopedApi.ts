@@ -258,6 +258,9 @@ export class ScopedManagerApi {
     setRunnerTags(id: string, tags: string[]): Promise<ManagedRunner> {
         return this.managerApi.setRunnerTags(id, tags, this.signal);
     }
+    getRunnerAttachment(runnerId: string, attachmentId: string): Promise<string> {
+        return this.managerApi.getRunnerAttachment(runnerId, attachmentId, this.signal);
+    }
     forgetRunner(id: string): Promise<void> {
         return this.managerApi.forgetRunner(id, this.signal);
     }

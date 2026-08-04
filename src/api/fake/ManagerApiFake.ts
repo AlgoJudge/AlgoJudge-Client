@@ -51,7 +51,7 @@ import {
 import { ActivityRecord, createActivityLibrary } from "./fixtures/activities";
 import { createProblemLibrary, fakeSha, ME, ProblemRecord } from "./fixtures/problems";
 import { createQuestions } from "./fixtures/questions";
-import { createRunners } from "./fixtures/runners";
+import { createRunners, runnerFile } from "./fixtures/runners";
 import { createUsers } from "./fixtures/users";
 import { createSubmissions, submissionSource } from "./fixtures/submissions";
 import { sha256 } from "../../utils/sha256";
@@ -464,6 +464,13 @@ export class ManagerApiFake implements ManagerApi {
         runner.tags = [...tags];
         this.announceRunner(runner);
         return copy(runner);
+    }
+
+    async getRunnerAttachment(runnerId: string, attachmentId: string, signal: AbortSignal): Promise<string> {
+        await this.settle(signal);
+        const runner = this.findRunner(runnerId);
+        if (!runner.attachments.some(a => a.id === attachmentId)) notFound("Attachment");
+        return runnerFile(attachmentId);
     }
 
     async forgetRunner(id: string, signal: AbortSignal): Promise<void> {

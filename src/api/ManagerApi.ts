@@ -549,7 +549,9 @@ export interface ManagedRunner {
     /** Free labels used to steer work at it. Set here, not by the Runner. */
     tags: string[];
     address: string;
-    /** Of the Ed25519 public key it registered with. Immutable for its lifetime. */
+    /** The Ed25519 public key it registered with. Immutable for its lifetime. */
+    publicKey: string;
+    /** Of {@link publicKey}, for reading aloud when approving one. */
     fingerprint: string;
     state: RunnerState;
     /** Whether its connection is up right now. Says nothing about approval. */
@@ -569,6 +571,26 @@ export interface ManagedRunner {
     /** The job it is running, if any, and how many it has finished. */
     currentSubmissionId?: string;
     completedJobs: number;
+    /**
+     * Whatever the Runner uploaded about itself — `lscpu`, `free`, its log.
+     *
+     * Ordinary files, sent through the ordinary file API and attached to the
+     * Runner. The Server stores the bytes and does not know one from another,
+     * so a Runner that starts reporting something new needs no Server change
+     * and no migration: the panel renders every text attachment it finds.
+     */
+    attachments: RunnerAttachment[];
+}
+
+export interface RunnerAttachment {
+    /** File id, as `POST /files` returned it. */
+    id: string;
+    /** `lscpu.txt`, `free.txt`, `runner.log`. The name is the tab's label. */
+    name: string;
+    mimeType: string;
+    sizeBytes: number;
+    sha256: string;
+    uploadedAt: string;
 }
 
 /**
@@ -683,6 +705,8 @@ export interface ManagerApi {
      */
     revokeRunner(id: string, reason: string | undefined, signal: AbortSignal): Promise<ManagedRunner>;
     setRunnerTags(id: string, tags: string[], signal: AbortSignal): Promise<ManagedRunner>;
+    /** The bytes of one attachment, as text. Only sensible for a text one. */
+    getRunnerAttachment(runnerId: string, attachmentId: string, signal: AbortSignal): Promise<string>;
     /** Forgets a revoked Runner entirely. Refused while it is anything else. */
     forgetRunner(id: string, signal: AbortSignal): Promise<void>;
 
