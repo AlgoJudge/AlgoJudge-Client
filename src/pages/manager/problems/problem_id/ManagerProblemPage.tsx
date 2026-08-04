@@ -1,5 +1,7 @@
 import { Alert, Badge, Button, Card, Center, Grid, Group, Loader, MultiSelect, Select, Stack, Table, Tabs, Text, TextInput, Title, Tooltip } from "@mantine/core";
-import { IconAlertTriangle, IconArrowLeft, IconDeviceFloppy, IconDownload, IconTrash, IconUpload } from "@tabler/icons-react";
+import {
+    IconAlertTriangle, IconArrowLeft, IconCheck, IconCopy, IconDeviceFloppy, IconDownload, IconTrash, IconUpload,
+} from "@tabler/icons-react";
 import { Suspense, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -11,12 +13,14 @@ import LanguageTabs, { DEFAULT_LANGUAGE } from "../../../../components/content/L
 import ContentEditor from "../../../../components/content/ContentEditor";
 import PackageBuilder from "../../../../components/package/PackageBuilder";
 import LoadState from "../../../../components/LoadState";
+import { CopyButton } from "../../../../components/buttons";
 import ActivityTime from "../../../../components/time/ActivityTime";
 import { emptyDocument, statementFileName } from "../../../../content/types";
 import { tryValidateContent } from "../../../../content/validate";
 import { useApiCall, useApiEffect } from "../../../../provider/ApiProvider";
 import { sha256 } from "../../../../utils/sha256";
 import { statementRenderers } from "../../../../renderers";
+import { imageReference, linkReference } from "../../../../content/reference";
 
 export default function ManagerProblemPage() {
     const { t } = useTranslation();
@@ -350,6 +354,23 @@ export default function ManagerProblemPage() {
                                             </Table.Td>
                                             <Table.Td>
                                                 <Group gap="xs" justify="flex-end" wrap="nowrap">
+                                                    {/* Copied rather than typed: a name
+                                                        with a space needs the angle
+                                                        bracket form, and nobody should
+                                                        have to know that. */}
+                                                    {file.scope === "participant" && !/^content\./i.test(file.name) && (
+                                                        <CopyButton
+                                                            value={file.mimeType.startsWith("image/")
+                                                                ? imageReference(file.name)
+                                                                : linkReference(file.name)}
+                                                        >
+                                                            {({ copied, copy }) => (
+                                                                <Button variant="subtle" size="compact-sm" onClick={copy}>
+                                                                    {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
+                                                                </Button>
+                                                            )}
+                                                        </CopyButton>
+                                                    )}
                                                     {file.url && (
                                                         <Button
                                                             variant="subtle"

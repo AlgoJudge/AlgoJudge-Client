@@ -2,6 +2,7 @@ import { Alert, Button, Group, Menu, Stack, Text, Textarea } from "@mantine/core
 import { IconAlertTriangle, IconCheck, IconCode, IconMath, IconPhoto, IconPlus, IconTable, IconTestPipe } from "@tabler/icons-react";
 import { useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { imageReference } from "../../content/reference";
 import { tryValidateContent } from "../../content/validate";
 
 /**
@@ -96,7 +97,7 @@ export default function ContentEditor({ value, onChange, attachmentNames }: Cont
                             <Menu.Item
                                 key={name}
                                 leftSection={<IconPlus size={14} />}
-                                onClick={() => insert(`![${name}](${name})\n`)}
+                                onClick={() => insert(`${imageReference(name)}\n`)}
                             >
                                 {name}
                             </Menu.Item>

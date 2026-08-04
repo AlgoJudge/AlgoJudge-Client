@@ -102,6 +102,15 @@ refuses("external image", wrap("![a](https://example.com/a.png)"));
 refuses("external link", wrap("[a](https://example.com)"));
 refuses("path traversal", wrap("![a](../secret.png)"));
 refuses("not a string", { version: 1, blocks: [] });
+// The exact failure a screenshot named "Zrzut ekranu 2026-08-03 231251.png"
+// produced: CommonMark ends a destination at the first space, so the reference
+// never became an image and reached the reader as text.
+refuses("image name with a space", wrap("![opis](moja grafika.png)"));
+
+// And the form that works, which the editor now writes for such a name.
+const bracketed = validateContent(wrap("![opis](<moja grafika.png>)"));
+if (md.render(bracketed.body).includes("<img")) ok("a bracketed name is an image");
+else fail("the angle-bracket form did not parse as an image");
 
 // 5. Extended syntax the format promises is actually parsed.
 const extended = wrap("| a | b |\n|---|---|\n| 1 | 2 |\n\nTekst[^n] ~~skreślony~~.\n\n[^n]: Przypis.\n");

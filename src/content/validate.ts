@@ -65,6 +65,29 @@ const validateReferences = (tokens: Token[], offset: number): void => {
     }
 };
 
+/**
+ * An image that never parsed.
+ *
+ * `![a](my file.png)` is not an image token — CommonMark stops the destination
+ * at the space — so it slips past every check above and reaches the reader as
+ * literal text. The pattern only survives in text when the parse failed, which
+ * makes it a precise thing to refuse rather than a guess.
+ */
+const UNPARSED_IMAGE = /!\[[^\]]*\]\([^)]*\)/;
+
+const validateBrokenImages = (tokens: Token[], offset: number): void => {
+    for (const token of tokens) {
+        if (token.type === "text" && UNPARSED_IMAGE.test(token.content)) {
+            throw new ContentError(
+                "Odwołanie do obrazka nie zostało rozpoznane — nazwa ze spacją musi "
+                + "być w nawiasach ostrych, na przykład ![opis](<moja grafika.png>)",
+                line(token, offset)
+            );
+        }
+        if (token.children) validateBrokenImages(token.children, offset);
+    }
+};
+
 const validateSamples = (tokens: Token[], offset: number): void => {
     for (let i = 0; i < tokens.length; i++) {
         const token = tokens[i];
@@ -116,6 +139,7 @@ export const validateContent = (source: unknown): ContentDocument => {
     validateSamples(tokens, offset);
     validateMath(tokens, offset);
     validateReferences(tokens, offset);
+    validateBrokenImages(tokens, offset);
 
     return { version, body };
 };
