@@ -43,7 +43,7 @@ const tests = [
 
 const config = {
     ...emptyConfig(),
-    limits: { timeMs: 1500, memoryMb: 256 },
+    limits: { timeMs: 1500, memoryKib: 256 * 1024 },
     groups: [
         { group: 0, points: 0, examples: true },
         { group: 1, points: 40 },
@@ -75,7 +75,7 @@ if (JSON.stringify(entries) !== JSON.stringify(expected)) {
 }
 
 const back = await readPackage(archive);
-if (back.config.limits.timeMs !== 1500 || back.config.limits.memoryMb !== 256) fail("limits did not survive");
+if (back.config.limits.timeMs !== 1500 || back.config.limits.memoryKib !== 256 * 1024) fail("limits did not survive");
 else ok("limits survived the round trip");
 
 if (back.config.groups.length !== 3 || back.config.groups[2].points !== 60) fail("groups did not survive");
@@ -128,14 +128,14 @@ if (JSON.stringify(sampleEntries) !== JSON.stringify(["0a.in", "0a.out"])) {
         groups: [
             { group: 0, points: 0, examples: true },
             { group: 1, points: 40, limits: { timeMs: 3000 } },
-            { group: 2, points: 60, limits: { timeMs: 5000, memoryMb: 512 } },
+            { group: 2, points: 60, limits: { timeMs: 5000, memoryKib: 512 * 1024 } },
         ],
     };
     const archive = await buildPackage({ config: withGroupLimits, tests, checker });
     const back = await readPackage(archive);
     const second = back.config.groups.find(g => g.group === 2);
     if (back.config.groups.find(g => g.group === 1)?.limits?.timeMs !== 3000) fail("a group time limit was lost");
-    else if (second?.limits?.memoryMb !== 512) fail("a group memory limit was lost");
+    else if (second?.limits?.memoryKib !== 512 * 1024) fail("a group memory limit was lost");
     else if (back.config.groups.find(g => g.group === 0)?.limits !== undefined) fail("a group without limits gained one");
     else ok("per-group limits round-trip");
 

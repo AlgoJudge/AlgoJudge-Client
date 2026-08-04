@@ -1,10 +1,10 @@
-import { Alert, Badge, Button, Card, Code, Group, NumberInput, Stack, Switch, Table, Text, Title } from "@mantine/core";
+import { Alert, Badge, Button, Card, Code, Group, NumberInput, Select, Stack, Switch, Table, Text, Title } from "@mantine/core";
 import { IconAlertTriangle, IconCheck, IconDownload, IconFileZip, IconInfoCircle, IconUpload } from "@tabler/icons-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { buildPackage, buildSampleArchive, ExtraFile, readPackage } from "../../package/build";
 import { groupsOf, intakeFiles } from "../../package/intake";
-import { emptyConfig, PackageConfig, PackageGroup, PackageLimits, TestFile } from "../../package/types";
+import { emptyConfig, KIB_PER_MIB, PackageConfig, PackageGroup, PackageLimits, TestFile } from "../../package/types";
 import { hasErrors, validatePackage } from "../../package/validate";
 
 /**
@@ -35,6 +35,51 @@ const download = (blob: Blob, name: string) => {
     anchor.download = name;
     anchor.click();
     URL.revokeObjectURL(url);
+};
+
+type MemoryUnit = "KiB" | "MiB";
+
+/**
+ * A memory limit, entered in the unit a person is thinking in.
+ *
+ * `config.yml` holds kibibytes, because that is what `sinolpack` holds and an
+ * import should be a copy rather than a division. Nobody types 262144 to mean
+ * 256 MiB, so the field converts — and it starts in MiB when the value is a
+ * whole number of them, which is what a limit somebody wrote by hand looks like.
+ */
+const MemoryInput = ({ label, valueKib, placeholderKib, onChange, w }: {
+    label?: string;
+    valueKib: number | undefined;
+    placeholderKib?: number;
+    onChange: (kib: number | undefined) => void;
+    w?: number;
+}) => {
+    const [unit, setUnit] = useState<MemoryUnit>(
+        valueKib !== undefined && valueKib % KIB_PER_MIB !== 0 ? "KiB" : "MiB");
+    const factor = unit === "MiB" ? KIB_PER_MIB : 1;
+
+    return (
+        <Group gap={4} align="flex-end" wrap="nowrap">
+            <NumberInput
+                label={label}
+                min={1}
+                w={w ?? 130}
+                placeholder={placeholderKib === undefined ? undefined : `${placeholderKib / factor}`}
+                value={valueKib === undefined ? "" : valueKib / factor}
+                onChange={v => {
+                    const parsed = typeof v === "number" ? v : Number(v);
+                    onChange(Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed * factor) : undefined);
+                }}
+            />
+            <Select
+                data={["KiB", "MiB"]}
+                value={unit}
+                onChange={next => next && setUnit(next as MemoryUnit)}
+                w={80}
+                allowDeselect={false}
+            />
+        </Group>
+    );
 };
 
 export default function PackageBuilder({ onUpload, stored, onOpenStored, disabled }: PackageBuilderProps) {
@@ -285,11 +330,11 @@ export default function PackageBuilder({ onUpload, stored, onOpenStored, disable
                         value={config.limits.timeMs}
                         onChange={v => setConfig(c => ({ ...c, limits: { ...c.limits, timeMs: Number(v) || 0 } }))}
                     />
-                    <NumberInput
-                        label={t("Memory limit (MB)")}
-                        min={1}
-                        value={config.limits.memoryMb}
-                        onChange={v => setConfig(c => ({ ...c, limits: { ...c.limits, memoryMb: Number(v) || 0 } }))}
+                    <MemoryInput
+                        label={t("Memory limit")}
+                        valueKib={config.limits.memoryKib}
+                        w={160}
+                        onChange={kib => setConfig(c => ({ ...c, limits: { ...c.limits, memoryKib: kib ?? 0 } }))}
                     />
                 </Group>
             </Card>
@@ -304,7 +349,7 @@ export default function PackageBuilder({ onUpload, stored, onOpenStored, disable
                                 <Table.Th>{t("Tests")}</Table.Th>
                                 <Table.Th>{t("Points")}</Table.Th>
                                 <Table.Th>{t("Time limit (ms)")}</Table.Th>
-                                <Table.Th>{t("Memory limit (MB)")}</Table.Th>
+                                <Table.Th>{t("Memory limit")}</Table.Th>
                                 <Table.Th>{t("Examples")}</Table.Th>
                             </Table.Tr>
                         </Table.Thead>
@@ -339,12 +384,10 @@ export default function PackageBuilder({ onUpload, stored, onOpenStored, disable
                                         />
                                     </Table.Td>
                                     <Table.Td>
-                                        <NumberInput
-                                            min={1}
-                                            w={130}
-                                            placeholder={`${config.limits.memoryMb}`}
-                                            value={group.limits?.memoryMb ?? ""}
-                                            onChange={v => setGroupLimit(group.group, "memoryMb", v)}
+                                        <MemoryInput
+                                            valueKib={group.limits?.memoryKib}
+                                            placeholderKib={config.limits.memoryKib}
+                                            onChange={kib => setGroupLimit(group.group, "memoryKib", kib ?? "")}
                                         />
                                     </Table.Td>
                                     <Table.Td>

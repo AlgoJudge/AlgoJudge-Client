@@ -970,7 +970,11 @@ export class ManagerApiFake implements ManagerApi {
             ...emptyConfig(),
             limits: {
                 timeMs: versionConfig?.limits?.timeMs ?? 1000,
-                memoryMb: versionConfig?.limits?.memoryMb ?? 256,
+                // The version's chain speaks megabytes, because that is what a
+                // participant is shown; the package speaks kibibytes, because
+                // that is what `sinolpack` speaks. The conversion happens here,
+                // once, at the boundary between the two.
+                memoryKib: (versionConfig?.limits?.memoryMb ?? 256) * 1024,
             },
             groups: [
                 { group: 0, points: 0, examples: true },

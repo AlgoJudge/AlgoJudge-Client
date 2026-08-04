@@ -602,5 +602,6 @@
   "Older versions are read-only: a correction is published as a new one.": "Starsze wersje są tylko do odczytu: poprawkę publikuje się jako nową.",
   "Back to the newest": "Wróć do najnowszej",
   "Show": "Pokaż",
-  "Shown": "Pokazana"
+  "Shown": "Pokazana",
+  "Memory limit": "Limit pamięci"
 }

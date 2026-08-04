@@ -9,10 +9,20 @@
 export const PACKAGE_FORMAT = "standard-io";
 export const PACKAGE_VERSION = 1;
 
+/**
+ * Limits as `config.yml` states them.
+ *
+ * Memory is in **kibibytes** — 1024 bytes — which is the unit `sinolpack` uses,
+ * so importing one is a copy rather than a division with a rounding rule. What a
+ * person types is another matter: the builder offers KiB or MiB and converts, so
+ * nobody has to write 262144 to mean 256 MiB.
+ */
 export interface PackageLimits {
     timeMs: number;
-    memoryMb: number;
+    memoryKib: number;
 }
+
+export const KIB_PER_MIB = 1024;
 
 export interface PackageGroup {
     group: number;
@@ -64,7 +74,7 @@ export interface PackageIssue {
 export const emptyConfig = (): PackageConfig => ({
     format: PACKAGE_FORMAT,
     version: PACKAGE_VERSION,
-    limits: { timeMs: 1000, memoryMb: 256 },
+    limits: { timeMs: 1000, memoryKib: 256 * KIB_PER_MIB },
     groups: [],
 });
 
