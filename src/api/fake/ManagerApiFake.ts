@@ -313,6 +313,19 @@ export class ManagerApiFake implements ManagerApi {
         return copy(version);
     }
 
+    async uploadProblemPackage(problemId: string, versionId: string, archive: Blob, signal: AbortSignal): Promise<ManagedProblemVersion> {
+        await this.settle(signal);
+        const record = this.find(problemId);
+        const version = record.versions.find(v => v.id === versionId) ?? notFound("Version");
+        version.hasPackage = true;
+        version.files = [
+            ...version.files.filter(f => f.name !== "package.zip"),
+            { name: "package.zip", scope: "runner", sizeBytes: archive.size },
+        ];
+        this.announce(record.problem);
+        return copy(version);
+    }
+
     private find(id: string): ProblemRecord {
         return this.library.find(r => r.problem.id === id) ?? notFound("Problem");
     }

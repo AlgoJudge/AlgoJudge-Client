@@ -5,10 +5,11 @@ import './App.css';
 import { MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import { RouterProvider, createBrowserRouter } from 'react-router-dom';
+import { lazy } from 'react';
 import Layout from './Layout';
 import HomePage from './pages/home/HomePage';
 import LoginPage from './pages/login/LoginPage';
-import ManagerPage from './pages/manager/ManagerPage';
+
 import RegisterPage from './pages/register/RegisterPage';
 import AppLayout from './layouts/app/AppLayout';
 import ActivitiesPage from './pages/activities/ActivitiesPage';
@@ -21,14 +22,19 @@ import RulesPage from './pages/activities/activity_id/rules/RulesPage';
 import ProblemPage from './pages/activities/activity_id/problems/problem_id/ProblemPage';
 import SubmissionPage from './pages/activities/activity_id/submissions/submission_id/SubmissionPage';
 import CodePage from './pages/activities/activity_id/submissions/submission_id/code/CodePage';
-import UsersPage from './pages/manager/users/UsersPage';
-import RunnersPage from './pages/manager/runners/RunnersPage';
-import ManagerActivitiesPage from './pages/manager/activities/ManagerActivitiesPage';
-import PermissionTemplatesPage from './pages/manager/permission_templates/PermissionTemplatesPage';
-import GrantsPage from './pages/manager/grants/GrantsPage';
-import ManagerProblemsPage from './pages/manager/problems/ManagerProblemsPage';
-import ManagerProblemPage from './pages/manager/problems/problem_id/ManagerProblemPage';
+
 import { ApiProvider } from './provider/ApiProvider';
+
+// The manager panel is a different application wearing the same shell, and a
+// participant never opens it. Split out so they do not download it.
+const ManagerPage = lazy(() => import('./pages/manager/ManagerPage'));
+const UsersPage = lazy(() => import('./pages/manager/users/UsersPage'));
+const RunnersPage = lazy(() => import('./pages/manager/runners/RunnersPage'));
+const ManagerActivitiesPage = lazy(() => import('./pages/manager/activities/ManagerActivitiesPage'));
+const PermissionTemplatesPage = lazy(() => import('./pages/manager/permission_templates/PermissionTemplatesPage'));
+const GrantsPage = lazy(() => import('./pages/manager/grants/GrantsPage'));
+const ManagerProblemsPage = lazy(() => import('./pages/manager/problems/ManagerProblemsPage'));
+const ManagerProblemPage = lazy(() => import('./pages/manager/problems/problem_id/ManagerProblemPage'));
 
 function App() {
 

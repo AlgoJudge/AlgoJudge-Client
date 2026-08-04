@@ -250,4 +250,8 @@ export class ScopedManagerApi {
     createProblemVersion(problemId: string, input: ProblemVersionInput): Promise<ManagedProblemVersion> {
         return this.managerApi.createProblemVersion(problemId, input, this.signal);
     }
+
+    uploadProblemPackage(problemId: string, versionId: string, archive: Blob): Promise<ManagedProblemVersion> {
+        return this.managerApi.uploadProblemPackage(problemId, versionId, archive, this.signal);
+    }
 }

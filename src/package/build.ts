@@ -1,0 +1,123 @@
+import { PackageConfig, TestFile } from "./types";
+
+/**
+ * Assembles and reads the package archive, in the browser.
+ *
+ * Deliberately not on the Server: the layout is a property of the problem type,
+ * and the Server is not allowed to know one type from another. A Server that
+ * built this archive would have to be changed for every new type — the thing the
+ * whole design exists to avoid.
+ *
+ * `yaml` and `fflate` are imported dynamically so that only a manager opening the
+ * builder pays for them.
+ */
+
+export interface ExtraFile {
+    /** Name inside its directory, without a path. */
+    name: string;
+    content: string;
+}
+
+export interface PackageContents {
+    config: PackageConfig;
+    tests: TestFile[];
+    checker?: ExtraFile;
+    modelSolution?: ExtraFile;
+}
+
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+export const buildPackage = async (contents: PackageContents): Promise<Blob> => {
+    const [{ stringify }, { zipSync }] = await Promise.all([
+        import("yaml"),
+        import("fflate"),
+    ]);
+
+    const files: Record<string, Uint8Array> = {};
+
+    // YAML rather than JSON because this is the one file a problem author edits
+    // by hand, and it is the only place in the product a comment survives.
+    files["config.yml"] = encoder.encode(stringify(contents.config));
+
+    for (const test of contents.tests) {
+        files[`tests/${test.name}.in`] = encoder.encode(test.input);
+        if (test.output !== undefined) {
+            files[`tests/${test.name}.out`] = encoder.encode(test.output);
+        }
+    }
+    if (contents.checker) {
+        files[`checker/${contents.checker.name}`] = encoder.encode(contents.checker.content);
+    }
+    if (contents.modelSolution) {
+        files[`solutions/${contents.modelSolution.name}`] = encoder.encode(contents.modelSolution.content);
+    }
+
+    return new Blob([zipSync(files, { level: 6 })], { type: "application/zip" });
+};
+
+/**
+ * Reads a package back, so a built archive can be downloaded, corrected by hand
+ * and uploaded again. The builder assembles the format; it does not own it.
+ */
+export const readPackage = async (file: Blob): Promise<PackageContents> => {
+    const [{ parse }, { unzipSync }] = await Promise.all([
+        import("yaml"),
+        import("fflate"),
+    ]);
+
+    const entries = unzipSync(new Uint8Array(await file.arrayBuffer()));
+    const text = (path: string) => entries[path] ? decoder.decode(entries[path]) : undefined;
+
+    const raw = text("config.yml");
+    if (raw === undefined) {
+        throw new Error("The archive has no config.yml");
+    }
+    const config = parse(raw) as PackageConfig;
+
+    const tests = new Map<string, TestFile>();
+    for (const path of Object.keys(entries)) {
+        const match = /^tests\/(\d+)([a-z]+)\.(in|out)$/i.exec(path);
+        if (!match) continue;
+        const name = `${match[1]}${match[2].toLowerCase()}`;
+        const existing = tests.get(name) ?? {
+            name,
+            group: Number(match[1]),
+            letter: match[2].toLowerCase(),
+            input: "",
+        };
+        if (match[3].toLowerCase() === "in") existing.input = decoder.decode(entries[path]);
+        else existing.output = decoder.decode(entries[path]);
+        tests.set(name, existing);
+    }
+
+    const extra = (prefix: string): ExtraFile | undefined => {
+        const path = Object.keys(entries).find(p => p.startsWith(prefix));
+        if (!path) return undefined;
+        return { name: path.slice(prefix.length), content: decoder.decode(entries[path]) };
+    };
+
+    return {
+        config,
+        tests: [...tests.values()].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })),
+        checker: extra("checker/"),
+        modelSolution: extra("solutions/"),
+    };
+};
+
+/**
+ * The sample tests, as the participant receives them.
+ *
+ * A separate archive rather than the package itself: the package is scoped to
+ * the Runner and carries every hidden test, so handing it over would disclose
+ * the whole problem.
+ */
+export const buildSampleArchive = async (tests: TestFile[]): Promise<Blob> => {
+    const { zipSync } = await import("fflate");
+    const files: Record<string, Uint8Array> = {};
+    for (const test of tests) {
+        files[`${test.name}.in`] = encoder.encode(test.input);
+        if (test.output !== undefined) files[`${test.name}.out`] = encoder.encode(test.output);
+    }
+    return new Blob([zipSync(files, { level: 6 })], { type: "application/zip" });
+};

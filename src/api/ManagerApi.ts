@@ -239,4 +239,12 @@ export interface ManagerApi {
     getProblemContent(problemId: string, versionId: string, signal: AbortSignal): Promise<unknown>;
     /** Publishes a new version. Versions are append-only; nothing is edited in place. */
     createProblemVersion(problemId: string, input: ProblemVersionInput, signal: AbortSignal): Promise<ManagedProblemVersion>;
+    /**
+     * Attaches the Runner package to a version.
+     *
+     * The archive is assembled in the Client, because its layout belongs to the
+     * problem type and the Server is not allowed to know one type from another.
+     * The Server stores the bytes under `FileScope.Runner`.
+     */
+    uploadProblemPackage(problemId: string, versionId: string, archive: Blob, signal: AbortSignal): Promise<ManagedProblemVersion>;
 }

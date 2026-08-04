@@ -145,4 +145,14 @@ export class ManagerApiHttp implements ManagerApi {
         return this.http.request<ManagedProblemVersion>(
             `/problems/${encodeURIComponent(problemId)}/versions`, "POST", { signal, body: input });
     }
+
+    async uploadProblemPackage(problemId: string, versionId: string, archive: Blob, signal: AbortSignal): Promise<ManagedProblemVersion> {
+        // Multipart: the transport leaves FormData alone and lets the browser
+        // set the boundary, which a serialised body would destroy.
+        const form = new FormData();
+        form.append("package", archive, "package.zip");
+        return this.http.request<ManagedProblemVersion>(
+            `/problems/${encodeURIComponent(problemId)}/versions/${encodeURIComponent(versionId)}/package`,
+            "POST", { signal, body: form });
+    }
 }

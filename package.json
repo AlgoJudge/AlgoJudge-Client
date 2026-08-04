@@ -8,7 +8,8 @@
     "build": "tsc && vite build",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:package": "tsc src/package/types.ts src/package/validate.ts src/package/build.ts --outDir .package-check --module esnext --target es2022 --moduleResolution bundler --skipLibCheck && node scripts/check-package.mjs"
   },
   "dependencies": {
     "@mantine/code-highlight": "^7.17.3",
@@ -20,6 +21,7 @@
     "@monaco-editor/react": "^4.7.0",
     "@tabler/icons-react": "^3.31.0",
     "dayjs": "^1.11.13",
+    "fflate": "^0.8.3",
     "i18next": "^24.2.3",
     "i18next-browser-languagedetector": "^8.0.4",
     "i18next-http-backend": "^3.0.2",
@@ -28,7 +30,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-i18next": "^15.4.1",
-    "react-router-dom": "^7.3.0"
+    "react-router-dom": "^7.3.0",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@faker-js/faker": "^9.6.0",

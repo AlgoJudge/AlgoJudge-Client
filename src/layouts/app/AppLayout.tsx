@@ -1,10 +1,10 @@
-import { AppShell, Burger, Group, UnstyledButton, Text, Divider, Tooltip, Menu, useMantineColorScheme, useComputedColorScheme, Badge } from "@mantine/core";
+import { AppShell, Burger, Center, Group, Loader, UnstyledButton, Text, Divider, Tooltip, Menu, useMantineColorScheme, useComputedColorScheme, Badge } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { NavLink, Outlet, useMatch, useParams } from "react-router-dom";
 import Logo from "../../components/logo/Logo";
 import classes from "./AppLayout.module.css";
 import { Icon, IconAlignBoxCenterTop, IconBox, IconChartBarPopular, IconChevronDown, IconChevronsLeft, IconChevronsRight, IconClock, IconDevicesPc, IconIdBadge2, IconKey, IconListDetails, IconLogout, IconMessageQuestion, IconMoon, IconNotes, IconPackageExport, IconPrinter, IconProps, IconSectionSign, IconServer, IconSun, IconUserCheck, IconUsers, IconWorldWww } from "@tabler/icons-react";
-import { ComponentPropsWithoutRef, useState } from "react";
+import { ComponentPropsWithoutRef, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useApiEffect } from "../../provider/ApiProvider";
 import { Activity, Series } from "../../api/ParticipantApi";
@@ -293,7 +293,11 @@ export default function AppLayout() {
             </AppShell.Navbar>
 
             <AppShell.Main>
-                <Outlet />
+                {/* One boundary for every lazily loaded route, rather than one
+                    per screen that each has to remember to add. */}
+                <Suspense fallback={<Center my="xl"><Loader size="xl" /></Center>}>
+                    <Outlet />
+                </Suspense>
             </AppShell.Main>
         </AppShell>
     );

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { ManagedProblem, ManagedProblemVersion, ManagedUserSummary, ProblemVisibility } from "../../../../api/ManagerApi";
 import ContentEditor from "../../../../components/content/ContentEditor";
+import PackageBuilder from "../../../../components/package/PackageBuilder";
 import LoadState from "../../../../components/LoadState";
 import ActivityTime from "../../../../components/time/ActivityTime";
 import { ContentBlock, CONTENT_VERSION } from "../../../../content/types";
@@ -127,6 +128,7 @@ export default function ManagerProblemPage() {
             <Tabs defaultValue="content">
                 <Tabs.List>
                     <Tabs.Tab value="content">{t("Statement")}</Tabs.Tab>
+                    <Tabs.Tab value="package">{t("Package")}</Tabs.Tab>
                     <Tabs.Tab value="versions">{t("Versions")} ({versions.length})</Tabs.Tab>
                     <Tabs.Tab value="sharing">{t("Sharing")}</Tabs.Tab>
                 </Tabs.List>
@@ -207,6 +209,22 @@ export default function ManagerProblemPage() {
                             </Card>
                         </Grid.Col>
                     </Grid>
+                </Tabs.Panel>
+
+                <Tabs.Panel value="package" pt="md">
+                    {versions[0] ? (
+                        <PackageBuilder
+                            disabled={!!problem.archivedAt}
+                            onUpload={async archive => {
+                                await call(api => api.managerApi.uploadProblemPackage(problem.id, versions[0].id, archive));
+                                setReload(n => n + 1);
+                            }}
+                        />
+                    ) : (
+                        <Alert color="yellow">
+                            {t("Publish a version first: a package is attached to one.")}
+                        </Alert>
+                    )}
                 </Tabs.Panel>
 
                 <Tabs.Panel value="versions" pt="md">
