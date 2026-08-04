@@ -1,9 +1,35 @@
 // Round-trips a package through the real builder: assemble, read back, compare.
-// Run from the Client root after compiling src/package into ./tmp-pkgtest/out.
-import { buildPackage, readPackage, buildSampleArchive } from "../.package-check/build.js";
-import { validatePackage, hasErrors } from "../.package-check/validate.js";
-import { emptyConfig } from "../.package-check/types.js";
-import { unzipSync } from "fflate";
+import { execFileSync } from "node:child_process";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { unzipSync, zipSync } from "fflate";
+
+const OUT = ".package-check";
+
+execFileSync("npx", ["tsc",
+    "src/package/types.ts", "src/package/validate.ts", "src/package/build.ts",
+    "--outDir", OUT, "--rootDir", "src/package",
+    "--module", "esnext", "--target", "es2022", "--moduleResolution", "bundler", "--skipLibCheck",
+], { stdio: "inherit", shell: process.platform === "win32" });
+
+// The application resolves extensionless imports through Vite; Node does not.
+// Needed since `build.ts` began importing a value rather than only types.
+const addExtensions = (directory) => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+        const path = join(directory, entry.name);
+        if (entry.isDirectory()) addExtensions(path);
+        else if (entry.name.endsWith(".js")) {
+            writeFileSync(path, readFileSync(path, "utf8")
+                .replace(/(from\s+")(\.[^"]*?)(")/g, (all, a, specifier, b) =>
+                    specifier.endsWith(".js") ? all : `${a}${specifier}.js${b}`));
+        }
+    }
+};
+addExtensions(OUT);
+
+const { buildPackage, readPackage, buildSampleArchive } = await import(`../${OUT}/build.js`);
+const { validatePackage, hasErrors } = await import(`../${OUT}/validate.js`);
+const { emptyConfig } = await import(`../${OUT}/types.js`);
 
 const fail = (message) => { console.error("FAIL:", message); process.exitCode = 1; };
 const ok = (message) => console.log("  ok  ", message);
@@ -92,6 +118,26 @@ if (JSON.stringify(sampleEntries) !== JSON.stringify(["0a.in", "0a.out"])) {
     fail(`the sample archive carries ${sampleEntries.join(", ")} — it must carry only the examples`);
 } else {
     ok("the sample archive carries only the examples, not the hidden tests");
+}
+
+// A hand-edited config.yml may drop a whole section. Reading one has to produce
+// a usable configuration rather than an object the next reader iterates and dies
+// on — which is what happened when a version's opaque configuration was handed
+// over in place of a package one.
+{
+    const encoder = new TextEncoder();
+    const bare = new Blob([zipSync({
+        "config.yml": encoder.encode("format: algojudge-package\nversion: 1\n"),
+        "tests/1a.in": encoder.encode("1 0"),
+        "tests/1a.out": encoder.encode("TAK"),
+    })]);
+    const contents = await readPackage(bare);
+    if (!Array.isArray(contents.config.groups)) fail("groups did not default to an array");
+    else ok("a config.yml without groups reads");
+
+    const issues = validatePackage(contents.tests, contents.config, []);
+    if (!Array.isArray(issues)) fail("validation did not survive a bare config");
+    else ok("validation survives a bare config");
 }
 
 console.log(process.exitCode ? "\nFAILED" : "\nall checks passed");

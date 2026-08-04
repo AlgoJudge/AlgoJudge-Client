@@ -27,6 +27,12 @@ export const validatePackage = (tests: TestFile[], config: PackageConfig, fileNa
         }
     }
 
+    if (!Array.isArray(config.groups)) {
+        // Reachable from a hand-written `config.yml`. A missing section is a
+        // finding to report, not an exception to fall over.
+        issues.push({ level: "error", message: "config.yml has no groups section", file: "config.yml" });
+    }
+
     for (const test of tests) {
         if (test.input.trim().length === 0) {
             issues.push({ level: "error", message: "The input is empty", file: `${test.name}.in` });

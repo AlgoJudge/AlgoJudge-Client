@@ -955,9 +955,28 @@ export class ManagerApiFake implements ManagerApi {
 
         // A seeded version has no bytes, because nobody uploaded any. Rather
         // than answer "there is a package but you cannot have it", the fake
-        // assembles one from the version's own configuration — the same builder
-        // the manager screen uses, so what comes back opens.
-        const config = (version.config ?? emptyConfig()) as ReturnType<typeof emptyConfig>;
+        // assembles one — with the same builder the manager screen uses, so what
+        // comes back opens.
+        //
+        // `ProblemVersion.Config` is **not** a package configuration: it is the
+        // opaque chain the Client and the Runner read, and it carries `scoring`
+        // where a package carries `groups`. Conflating the two is what produced
+        // an archive whose `config.yml` had no groups at all.
+        const versionConfig = version.config as {
+            limits?: { timeMs?: number; memoryMb?: number };
+            scoring?: { groups?: { group: number; points: number }[] };
+        } | undefined;
+        const config = {
+            ...emptyConfig(),
+            limits: {
+                timeMs: versionConfig?.limits?.timeMs ?? 1000,
+                memoryMb: versionConfig?.limits?.memoryMb ?? 256,
+            },
+            groups: [
+                { group: 0, points: 0, examples: true },
+                ...(versionConfig?.scoring?.groups ?? [{ group: 1, points: 100 }]),
+            ],
+        };
         const archive = await buildPackage({
             config,
             tests: [

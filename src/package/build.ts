@@ -1,4 +1,4 @@
-import { PackageConfig, TestFile } from "./types";
+import { emptyConfig, PackageConfig, TestFile } from "./types";
 
 /**
  * Assembles and reads the package archive, in the browser.
@@ -73,7 +73,17 @@ export const readPackage = async (file: Blob): Promise<PackageContents> => {
     if (raw === undefined) {
         throw new Error("The archive has no config.yml");
     }
-    const config = parse(raw) as PackageConfig;
+    // Merged over the defaults rather than trusted. `config.yml` is edited by
+    // hand — that is the point of it being YAML — so a file without `groups` or
+    // without `limits` is an ordinary thing to receive, and every reader after
+    // this point would otherwise iterate undefined.
+    const parsed = (parse(raw) ?? {}) as Partial<PackageConfig>;
+    const config: PackageConfig = {
+        ...emptyConfig(),
+        ...parsed,
+        limits: { ...emptyConfig().limits, ...(parsed.limits ?? {}) },
+        groups: Array.isArray(parsed.groups) ? parsed.groups : [],
+    };
 
     const tests = new Map<string, TestFile>();
     for (const path of Object.keys(entries)) {
