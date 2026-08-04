@@ -9,8 +9,12 @@ import {
     ManagedActivitySummary,
     ManagedProblem,
     ManagedProblemVersion,
+    ManagedAttempt,
     ManagedSeries,
     ManagedSeriesProblem,
+    ManagedSubmission,
+    ManagedSubmissionDetail,
+    ManagedSubmissionFilter,
     ManagedUserSummary,
     ManagerApi,
     ProblemFilter,
@@ -35,6 +39,7 @@ import {
 } from "./fixtures/permissions";
 import { ActivityRecord, createActivityLibrary } from "./fixtures/activities";
 import { createProblemLibrary, fakeSha, ME, ProblemRecord } from "./fixtures/problems";
+import { createSubmissions, submissionSource } from "./fixtures/submissions";
 import { sha256 } from "../../utils/sha256";
 import { Utils } from "./Utils";
 
@@ -53,6 +58,13 @@ const sortByGiven = <T extends { id: string }>(items: T[], orderedIds: string[])
     ...items.filter(i => !orderedIds.includes(i.id)),
 ];
 
+/** The list carries no attempts and no files: a page of them is a page of rows. */
+const summary = (detail: ManagedSubmissionDetail): ManagedSubmission => {
+    const { attemptList, files, problemType, ...rest } = detail;
+    void attemptList; void files; void problemType;
+    return rest;
+};
+
 const newId = () => `018f2c00-0000-7000-8000-${Math.random().toString(16).slice(2, 14).padEnd(12, "0")}`;
 
 export class ManagerApiFake implements ManagerApi {
@@ -62,6 +74,7 @@ export class ManagerApiFake implements ManagerApi {
     private grants = createGrants();
     private library: ProblemRecord[] = createProblemLibrary();
     private activities: ActivityRecord[] = createActivityLibrary();
+    private submissions: ManagedSubmissionDetail[] = createSubmissions();
 
     constructor(private sleepMs: number = 300) {}
 
@@ -376,6 +389,74 @@ export class ManagerApiFake implements ManagerApi {
         return copy(series);
     }
 
+    async getSubmissions(filter: ManagedSubmissionFilter, signal: AbortSignal): Promise<Page<ManagedSubmission>> {
+        await this.settle(signal);
+        const needle = filter.search?.trim().toLowerCase();
+        // Filtered before paged, which is the order the Server must use too: the
+        // other way round filters one page and calls it a result.
+        const matched = this.submissions
+            .filter(s => !filter.activityId || s.activityId === filter.activityId)
+            .filter(s => !filter.seriesId || s.seriesId === filter.seriesId)
+            .filter(s => !filter.seriesProblemId || s.seriesProblemId === filter.seriesProblemId)
+            .filter(s => !filter.userId || s.userId === filter.userId)
+            .filter(s => !filter.state || s.state === filter.state)
+            .filter(s => !filter.verdict || s.verdict === filter.verdict)
+            .filter(s => !needle
+                || s.userName.toLowerCase().includes(needle)
+                || s.problemSlug.toLowerCase().includes(needle)
+                || s.problemName.toLowerCase().includes(needle))
+            .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))
+            .map(summary);
+        return copy(paginate(matched, filter.page, filter.pageSize));
+    }
+
+    async getSubmission(id: string, signal: AbortSignal): Promise<ManagedSubmissionDetail> {
+        await this.settle(signal);
+        return copy(this.findSubmission(id));
+    }
+
+    async getSubmissionFile(id: string, name: string, signal: AbortSignal): Promise<string> {
+        await this.settle(signal);
+        const submission = this.findSubmission(id);
+        if (!submission.files.some(f => f.name === name)) notFound("File");
+        return submissionSource(submission.language);
+    }
+
+    async rejudgeSubmission(id: string, signal: AbortSignal): Promise<ManagedSubmission> {
+        await this.settle(signal);
+        return copy(summary(this.queueRejudge(this.findSubmission(id))));
+    }
+
+    async rejudgeSeriesProblem(seriesProblemId: string, signal: AbortSignal): Promise<number> {
+        await this.settle(signal);
+        const affected = this.submissions.filter(s => s.seriesProblemId === seriesProblemId);
+        for (const submission of affected) this.queueRejudge(submission);
+        return affected.length;
+    }
+
+    async rejudgeSeries(seriesId: string, signal: AbortSignal): Promise<number> {
+        await this.settle(signal);
+        const affected = this.submissions.filter(s => s.seriesId === seriesId);
+        for (const submission of affected) this.queueRejudge(submission);
+        return affected.length;
+    }
+
+    async cancelAttempt(submissionId: string, attemptId: string, signal: AbortSignal): Promise<ManagedSubmissionDetail> {
+        await this.settle(signal);
+        const submission = this.findSubmission(submissionId);
+        const attempt = submission.attemptList.find(a => a.id === attemptId) ?? notFound("Attempt");
+        if (attempt.state === "completed" || attempt.state === "failed") {
+            // A finished job is history. Cancelling one would rewrite a result
+            // that a participant has already been shown.
+            Utils.throwError("This attempt has already finished and cannot be cancelled");
+        }
+        attempt.state = "cancelled";
+        attempt.finishedAt = new Date().toISOString();
+        submission.state = "cancelled";
+        this.announceSubmission(submission);
+        return copy(submission);
+    }
+
     async getProblems(filter: ProblemFilter, signal: AbortSignal): Promise<Page<ManagedProblem>> {
         await this.settle(signal);
         const needle = filter.search?.trim().toLowerCase();
@@ -565,6 +646,63 @@ export class ManagerApiFake implements ManagerApi {
         ];
         this.announce(record.problem);
         return copy(version);
+    }
+
+    private findSubmission(id: string): ManagedSubmissionDetail {
+        return this.submissions.find(s => s.id === id) ?? notFound("Submission");
+    }
+
+    /**
+     * A rejudge adds an attempt rather than replacing one: the earlier result
+     * belongs to what it was judged against. The fake then walks the new job
+     * through running and completed, so the live paths are exercised without a
+     * Server.
+     */
+    private queueRejudge(submission: ManagedSubmissionDetail): ManagedSubmissionDetail {
+        const attempt: ManagedAttempt = {
+            id: `${submission.id}-job-${submission.attemptList.length + 1}`,
+            attempt: submission.attemptList.length + 1,
+            state: "queued",
+            startedAt: new Date().toISOString(),
+        };
+        submission.attemptList = [attempt, ...submission.attemptList];
+        submission.attempts = submission.attemptList.length;
+        submission.state = "queued";
+        submission.verdict = undefined;
+        submission.score = undefined;
+        this.announceSubmission(submission);
+
+        window.setTimeout(() => {
+            attempt.state = "running";
+            attempt.runnerName = "Main runner";
+            submission.state = "running";
+            this.announceSubmission(submission);
+        }, 1500);
+
+        window.setTimeout(() => {
+            const previous = submission.attemptList[1];
+            attempt.state = "completed";
+            attempt.finishedAt = new Date().toISOString();
+            // The same verdict as before: a rejudge against unchanged tests
+            // should reproduce the result, and a fake that shuffled it would
+            // teach the screen to expect noise.
+            attempt.detail = previous?.detail;
+            submission.state = "completed";
+            submission.verdict = previous?.state === "completed"
+                ? (previous.detail as { verdict?: string } | undefined)?.verdict
+                : undefined;
+            submission.score = (previous?.detail as { score?: number } | undefined)?.score;
+            this.announceSubmission(submission);
+        }, 4000);
+
+        return submission;
+    }
+
+    private announceSubmission(submission: ManagedSubmissionDetail): void {
+        this.eventDispatcher.dispatchEvent({
+            type: "submissionChanged",
+            data: { submission: copy(summary(submission)) },
+        });
     }
 
     private findActivity(idOrSlug: string): ActivityRecord {

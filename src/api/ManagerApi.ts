@@ -1,5 +1,5 @@
 import { Event } from "./Event";
-import { Page } from "./ParticipantApi";
+import { JobState, Page } from "./ParticipantApi";
 
 /**
  * The manager-facing API.
@@ -331,8 +331,73 @@ export interface StatementVariant {
     content: unknown;
 }
 
+
+/**
+ * A submission as a manager sees it: whose it is and where it sits, which the
+ * participant's own view has no need to say.
+ */
+export interface ManagedSubmission {
+    id: string;
+    activityId: string;
+    activitySlug: string;
+    seriesId: string;
+    seriesName: string;
+    /** The assignment, not the library entry: the slug is the activity's. */
+    seriesProblemId: string;
+    problemSlug: string;
+    problemName: string;
+    userId: string;
+    userName: string;
+    submittedAt: string;
+    language?: string;
+    state: JobState;
+    /** Short label from the Runner. Its meaning belongs to the problem type. */
+    verdict?: string;
+    score?: number;
+    maxScore?: number;
+    /** How many evaluation jobs it has had. A rejudge adds one. */
+    attempts: number;
+}
+
+/** One evaluation job. The unit a rejudge creates and a cancellation stops. */
+export interface ManagedAttempt {
+    id: string;
+    attempt: number;
+    state: JobState;
+    startedAt: string;
+    finishedAt?: string;
+    /** Which Runner claimed it, once one has. */
+    runnerName?: string;
+    /** The Runner's result document, rendered by the problem type. */
+    detail?: unknown;
+    /** Compiler output and the judge's messages. Managers always see it. */
+    log?: string;
+}
+
+export interface ManagedSubmissionDetail extends ManagedSubmission {
+    /** Selects the result renderer, as it does on the participant's screen. */
+    problemType: string;
+    /** Newest first. */
+    attemptList: ManagedAttempt[];
+    files: { name: string; language?: string; sizeBytes: number; sha256: string }[];
+}
+
+export interface ManagedSubmissionFilter {
+    page?: number;
+    pageSize?: number;
+    activityId?: string;
+    seriesId?: string;
+    seriesProblemId?: string;
+    userId?: string;
+    state?: JobState;
+    /** Matched against the verdict label exactly; the Server does not parse it. */
+    verdict?: string;
+    /** User name or problem slug. */
+    search?: string;
+}
+
 export type ManagerEventType = "permissionTemplateChanged" | "grantChanged" | "problemChanged"
-    | "activityChanged" | "seriesChanged";
+    | "activityChanged" | "seriesChanged" | "submissionChanged";
 export type ManagerEvent<T extends ManagerEventType, V> = Event<T, V>;
 
 export type PermissionTemplateChangedEvent = ManagerEvent<"permissionTemplateChanged", {
@@ -362,12 +427,18 @@ export type SeriesChangedEvent = ManagerEvent<"seriesChanged", {
     deletedId?: string;
 }>;
 
+/** Sent as a job is claimed, finishes, or is cancelled. */
+export type SubmissionChangedEvent = ManagerEvent<"submissionChanged", {
+    submission: ManagedSubmission;
+}>;
+
 export interface ManagerEventDispatcher {
     addEventListener(type: "permissionTemplateChanged", listener: (evt: PermissionTemplateChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "grantChanged", listener: (evt: GrantChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "problemChanged", listener: (evt: ProblemChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "activityChanged", listener: (evt: ActivityChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "seriesChanged", listener: (evt: SeriesChangedEvent) => void, signal: AbortSignal): void;
+    addEventListener(type: "submissionChanged", listener: (evt: SubmissionChangedEvent) => void, signal: AbortSignal): void;
     addEventListener<T extends ManagerEventType, V>(type: T, listener: (evt: ManagerEvent<T, V>) => void, signal: AbortSignal): void;
 }
 
@@ -424,6 +495,23 @@ export interface ManagerApi {
     /** Refused once anything has been submitted against the assignment. */
     detachProblem(seriesProblemId: string, signal: AbortSignal): Promise<ManagedSeries>;
     reorderSeriesProblems(seriesId: string, orderedIds: string[], signal: AbortSignal): Promise<ManagedSeries>;
+
+    getSubmissions(filter: ManagedSubmissionFilter, signal: AbortSignal): Promise<Page<ManagedSubmission>>;
+    getSubmission(id: string, signal: AbortSignal): Promise<ManagedSubmissionDetail>;
+    /** The submitted source, as stored. */
+    getSubmissionFile(id: string, name: string, signal: AbortSignal): Promise<string>;
+
+    /**
+     * Adds an evaluation job. The previous attempts stay: a result belongs to
+     * what it was judged against, and a rejudge is a new attempt rather than a
+     * correction of an old one.
+     */
+    rejudgeSubmission(id: string, signal: AbortSignal): Promise<ManagedSubmission>;
+    /** Every submission of one assignment. Returns how many jobs were added. */
+    rejudgeSeriesProblem(seriesProblemId: string, signal: AbortSignal): Promise<number>;
+    rejudgeSeries(seriesId: string, signal: AbortSignal): Promise<number>;
+    /** Stops a job that has not finished. A finished one is history. */
+    cancelAttempt(submissionId: string, attemptId: string, signal: AbortSignal): Promise<ManagedSubmissionDetail>;
 
     getProblems(filter: ProblemFilter, signal: AbortSignal): Promise<Page<ManagedProblem>>;
     getProblem(id: string, signal: AbortSignal): Promise<ManagedProblem>;

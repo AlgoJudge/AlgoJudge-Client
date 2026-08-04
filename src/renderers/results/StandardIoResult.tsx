@@ -14,7 +14,7 @@ import classes from "./StandardIoResult.module.css";
 
 interface StandardIoTest {
     no: number;
-    status: string;
+    status?: string;
     timeMs?: number;
     memoryMb?: number;
     score?: number;
@@ -43,8 +43,11 @@ const parse = (raw: unknown): StandardIoDocument | undefined => {
     };
 };
 
-const statusClass = (status: string) => {
-    switch (status.toUpperCase()) {
+const statusClass = (status: string | undefined) => {
+    // The document is whatever a Runner attached. A row without a status is a
+    // row, not a crash: this component is the last thing between a malformed
+    // result and a blank screen.
+    switch ((status ?? "").toUpperCase()) {
         case "OK": return classes.ok;
         case "WARNING": return classes.warning;
         case "ERROR": return classes.error;
@@ -100,7 +103,7 @@ export default function StandardIoResult({ detail }: { detail: unknown }) {
                 {document.tests.map(test => (
                     <Table.Tr key={test.no}>
                         <Table.Td>{test.no}</Table.Td>
-                        <Table.Td className={statusClass(test.status)}>{t(test.status)}</Table.Td>
+                        <Table.Td className={statusClass(test.status)}>{test.status ? t(test.status) : "—"}</Table.Td>
                         <Table.Td className={usageClass(test.timeMs, timeLimit)}>
                             {seconds(test.timeMs)}{timeLimit !== undefined ? ` / ${seconds(timeLimit)}` : ""}
                         </Table.Td>

@@ -9,6 +9,9 @@ import {
     ManagedProblem,
     ManagedProblemVersion,
     ManagedSeries,
+    ManagedSubmission,
+    ManagedSubmissionDetail,
+    ManagedSubmissionFilter,
     ManagedUserSummary,
     ManagerApi,
     ProblemFilter,
@@ -167,6 +170,48 @@ export class ManagerApiHttp implements ManagerApi {
     reorderSeriesProblems(seriesId: string, orderedIds: string[], signal: AbortSignal): Promise<ManagedSeries> {
         return this.http.request<ManagedSeries>(
             `/series/${encodeURIComponent(seriesId)}/problems/order`, "POST", { signal, body: { orderedIds } });
+    }
+
+    getSubmissions(filter: ManagedSubmissionFilter, signal: AbortSignal): Promise<Page<ManagedSubmission>> {
+        const query: Record<string, string | number> = {};
+        if (filter.page !== undefined) query.page = filter.page;
+        if (filter.pageSize !== undefined) query.pageSize = filter.pageSize;
+        if (filter.activityId) query.activityId = filter.activityId;
+        if (filter.seriesId) query.seriesId = filter.seriesId;
+        if (filter.seriesProblemId) query.seriesProblemId = filter.seriesProblemId;
+        if (filter.userId) query.userId = filter.userId;
+        if (filter.state) query.state = filter.state;
+        if (filter.verdict) query.verdict = filter.verdict;
+        if (filter.search) query.search = filter.search;
+        return this.http.request<Page<ManagedSubmission>>("/submissions", "GET", { signal, query });
+    }
+
+    getSubmission(id: string, signal: AbortSignal): Promise<ManagedSubmissionDetail> {
+        return this.http.request<ManagedSubmissionDetail>(`/submissions/${encodeURIComponent(id)}`, "GET", { signal });
+    }
+
+    getSubmissionFile(id: string, name: string, signal: AbortSignal): Promise<string> {
+        return this.http.request<string>(
+            `/submissions/${encodeURIComponent(id)}/files/${encodeURIComponent(name)}`, "GET", { signal });
+    }
+
+    rejudgeSubmission(id: string, signal: AbortSignal): Promise<ManagedSubmission> {
+        return this.http.request<ManagedSubmission>(`/submissions/${encodeURIComponent(id)}/rejudge`, "POST", { signal });
+    }
+
+    rejudgeSeriesProblem(seriesProblemId: string, signal: AbortSignal): Promise<number> {
+        return this.http.request<number>(
+            `/series-problems/${encodeURIComponent(seriesProblemId)}/rejudge`, "POST", { signal });
+    }
+
+    rejudgeSeries(seriesId: string, signal: AbortSignal): Promise<number> {
+        return this.http.request<number>(`/series/${encodeURIComponent(seriesId)}/rejudge`, "POST", { signal });
+    }
+
+    cancelAttempt(submissionId: string, attemptId: string, signal: AbortSignal): Promise<ManagedSubmissionDetail> {
+        return this.http.request<ManagedSubmissionDetail>(
+            `/submissions/${encodeURIComponent(submissionId)}/attempts/${encodeURIComponent(attemptId)}/cancel`,
+            "POST", { signal });
     }
 
     getProblems(filter: ProblemFilter, signal: AbortSignal): Promise<Page<ManagedProblem>> {

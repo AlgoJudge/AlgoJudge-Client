@@ -26,9 +26,13 @@ import {
     PermissionTemplate,
     PermissionTemplateChangedEvent,
     PermissionTemplateInput,
+    ManagedSubmission,
+    ManagedSubmissionDetail,
+    ManagedSubmissionFilter,
     ProblemChangedEvent,
     SeriesChangedEvent,
     StatementVariant,
+    SubmissionChangedEvent,
     SeriesInput,
     SeriesProblemInput,
 } from "./ManagerApi";
@@ -179,6 +183,7 @@ export class ScopedManagerEventDispatcher {
     addEventListener(type: "problemChanged", listener: (evt: ProblemChangedEvent) => void): void;
     addEventListener(type: "activityChanged", listener: (evt: ActivityChangedEvent) => void): void;
     addEventListener(type: "seriesChanged", listener: (evt: SeriesChangedEvent) => void): void;
+    addEventListener(type: "submissionChanged", listener: (evt: SubmissionChangedEvent) => void): void;
     addEventListener<T extends ManagerEventType, V>(type: T, listener: (evt: ManagerEvent<T, V>) => void): void {
         this.eventDispatcher.addEventListener(type, listener, this.signal);
     }
@@ -273,6 +278,28 @@ export class ScopedManagerApi {
     }
     reorderSeriesProblems(seriesId: string, orderedIds: string[]): Promise<ManagedSeries> {
         return this.managerApi.reorderSeriesProblems(seriesId, orderedIds, this.signal);
+    }
+
+    getSubmissions(filter: ManagedSubmissionFilter = {}): Promise<Page<ManagedSubmission>> {
+        return this.managerApi.getSubmissions(filter, this.signal);
+    }
+    getSubmission(id: string): Promise<ManagedSubmissionDetail> {
+        return this.managerApi.getSubmission(id, this.signal);
+    }
+    getSubmissionFile(id: string, name: string): Promise<string> {
+        return this.managerApi.getSubmissionFile(id, name, this.signal);
+    }
+    rejudgeSubmission(id: string): Promise<ManagedSubmission> {
+        return this.managerApi.rejudgeSubmission(id, this.signal);
+    }
+    rejudgeSeriesProblem(seriesProblemId: string): Promise<number> {
+        return this.managerApi.rejudgeSeriesProblem(seriesProblemId, this.signal);
+    }
+    rejudgeSeries(seriesId: string): Promise<number> {
+        return this.managerApi.rejudgeSeries(seriesId, this.signal);
+    }
+    cancelAttempt(submissionId: string, attemptId: string): Promise<ManagedSubmissionDetail> {
+        return this.managerApi.cancelAttempt(submissionId, attemptId, this.signal);
     }
 
     getProblems(filter: ProblemFilter = {}): Promise<Page<ManagedProblem>> {
