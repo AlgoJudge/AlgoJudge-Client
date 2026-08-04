@@ -1,7 +1,8 @@
-import { ActionButton } from "./ActionButton";
+import { ActionButton, ActionButtonProps } from "./ActionButton";
 import { useProps } from "@mantine/core";
 
-export interface DownloadButtonProps {
+export interface DownloadButtonProps extends Omit<ActionButtonProps, "children" | "action"> {
+  /** Renders the label. Not another button — see `ActionButton`. */
   children: (payload: {
     downloaded: boolean;
     download: () => void;
@@ -12,9 +13,6 @@ export interface DownloadButtonProps {
 
   /** Filename that will be used for the file when the button is clicked */
   filename: string;
-
-  /** Active state timeout in ms, `1000` by default */
-  timeout?: number;
 }
 
 export function DownloadButton(props: DownloadButtonProps) {
@@ -34,9 +32,9 @@ export function DownloadButton(props: DownloadButtonProps) {
   };
 
   return (
-    <ActionButton action={downloadAction} timeout={timeout}>
+    <ActionButton action={downloadAction} timeout={timeout} {...others}>
       {({ active, action }) => (
-        <>{children({ download: action, downloaded: active, ...others })}</>
+        <>{children({ download: action, downloaded: active })}</>
       )}
     </ActionButton>
   );

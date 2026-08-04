@@ -1,11 +1,19 @@
 import { useState } from "react";
-import { useProps, Button } from "@mantine/core";
+import { useProps, Button, ButtonProps } from "@mantine/core";
 import { IconCheck } from "@tabler/icons-react";
 
 /* Mostly copy of mantine CopyButton but with arbitrary callback action and some styling */
 /* @mantine/core/src/components/CopyButton/CopyButton.tsx */
 
-export interface ActionButtonProps {
+/**
+ * This component **is** the button. The children callback renders its label —
+ * an icon, a word, or both — and must not render another button: a `<button>`
+ * inside a `<button>` is invalid, and it looks like the doubled control it is.
+ *
+ * Styling is passed through to Mantine's `Button`, so a caller that wants a
+ * subtle compact one says so here rather than by nesting one inside.
+ */
+export interface ActionButtonProps extends Omit<ButtonProps, "children" | "onClick"> {
   /** Children callback, provides current button status and click function (action) as an argument */
   children: (payload: {
     active: boolean;
@@ -24,7 +32,7 @@ const defaultProps: Partial<ActionButtonProps> = {
 };
 
 export function ActionButton(props: ActionButtonProps) {
-  const { children, timeout, action, ...others } = useProps(
+  const { children, timeout, action, variant, color, style, ...others } = useProps(
     "ActionButton",
     defaultProps,
     props
@@ -37,13 +45,16 @@ export function ActionButton(props: ActionButtonProps) {
   };
   return (
     <Button
-      variant={active ? "filled" : "default"}
-      color="teal"
+      variant={active ? "filled" : variant ?? "default"}
+      color={color ?? "teal"}
       onClick={actionWrapper}
-      style={{ position: "relative" }}
+      // Relative, so the confirmation mark can sit over the label. A caller's
+      // own styles are kept beside it rather than replaced.
+      style={{ position: "relative", ...(typeof style === "object" ? style : {}) }}
+      {...others}
     >
       <span style={{ visibility: active ? "hidden" : "visible" }}>
-        {children({ action: actionWrapper, active, ...others })}
+        {children({ action: actionWrapper, active })}
       </span>
       {active && (
         <IconCheck

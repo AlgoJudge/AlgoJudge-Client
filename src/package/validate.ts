@@ -37,10 +37,18 @@ export const validatePackage = (tests: TestFile[], config: PackageConfig, fileNa
         // Zero or a negative number is not "inherit" — it is a limit nothing can
         // pass. An emptied field removes the override instead.
         if (group.limits?.timeMs !== undefined && group.limits.timeMs <= 0) {
-            issues.push({ level: "error", message: `Group ${group.group} has a time limit of ${group.limits.timeMs} ms` });
+            issues.push({
+                level: "error",
+                message: "Group {{group}} has a time limit that is not positive",
+                values: { group: group.group },
+            });
         }
         if (group.limits?.memoryKib !== undefined && group.limits.memoryKib <= 0) {
-            issues.push({ level: "error", message: `Group ${group.group} has a memory limit of ${group.limits.memoryKib} KiB` });
+            issues.push({
+                level: "error",
+                message: "Group {{group}} has a memory limit that is not positive",
+                values: { group: group.group },
+            });
         }
     }
 
@@ -72,12 +80,16 @@ export const validatePackage = (tests: TestFile[], config: PackageConfig, fileNa
     const testGroups = new Set(tests.map(t => t.group));
     for (const group of config.groups) {
         if (!testGroups.has(group.group)) {
-            issues.push({ level: "error", message: `Group ${group.group} has no tests` });
+            issues.push({ level: "error", message: "Group {{group}} has no tests", values: { group: group.group } });
         }
     }
     for (const group of testGroups) {
         if (!config.groups.some(g => g.group === group)) {
-            issues.push({ level: "error", message: `Group ${group} has tests but is not in the configuration` });
+            issues.push({
+                level: "error",
+                message: "Group {{group}} has tests but is not in the configuration",
+                values: { group },
+            });
         }
     }
 
@@ -85,7 +97,7 @@ export const validatePackage = (tests: TestFile[], config: PackageConfig, fileNa
     if (config.groups.length > 0 && total !== 100) {
         // Not an error: a problem may deliberately be worth something other than
         // a hundred. It is almost always a mistake, so it is said out loud.
-        issues.push({ level: "warning", message: `The groups add up to ${total} points, not 100` });
+        issues.push({ level: "warning", message: "The groups add up to {{total}} points, not 100", values: { total } });
     }
 
     if (config.checker && !fileNames.includes(config.checker.source.split("/").pop() ?? "")) {
@@ -100,6 +112,23 @@ export const validatePackage = (tests: TestFile[], config: PackageConfig, fileNa
     }
     if (config.limits.memoryKib <= 0) {
         issues.push({ level: "error", message: "The memory limit must be positive" });
+    }
+
+    for (const field of ["time", "memory"] as const) {
+        const rule = config.calibration?.[field];
+        if (rule === undefined) continue;
+        // A factor of zero derives a limit of zero from any measurement, which
+        // is a package that fails everything including the solution it was
+        // calibrated on.
+        if (rule.factor !== undefined && rule.factor <= 0) {
+            issues.push({ level: "error", message: "A calibration factor must be positive" });
+        }
+        if ((rule.add ?? 0) < 0 || (rule.roundTo ?? 0) < 0) {
+            issues.push({ level: "error", message: "A calibration rule cannot subtract" });
+        }
+    }
+    if (config.calibration && !config.modelSolution) {
+        issues.push({ level: "warning", message: "Calibration is configured but there is no model solution to measure" });
     }
 
     return issues;

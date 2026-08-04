@@ -1,15 +1,13 @@
-import { ActionButton } from "./ActionButton";
+import { ActionButton, ActionButtonProps } from "./ActionButton";
 import { useProps } from "@mantine/core";
 import { useClipboard } from "@mantine/hooks";
 
-export interface CopyButtonProps {
+export interface CopyButtonProps extends Omit<ActionButtonProps, "children" | "action"> {
+  /** Renders the label. Not another button — see `ActionButton`. */
   children: (payload: { copied: boolean; copy: () => void }) => React.ReactNode;
 
   /** Value that will be copied to the clipboard when the button is clicked */
   value: string;
-
-  /** Active state timeout in ms, `1000` by default */
-  timeout?: number;
 }
 
 export function CopyButton(props: CopyButtonProps) {
@@ -23,9 +21,9 @@ export function CopyButton(props: CopyButtonProps) {
   const copyAction = () => clipboard.copy(value);
 
   return (
-    <ActionButton action={copyAction} timeout={timeout}>
+    <ActionButton action={copyAction} timeout={timeout} {...others}>
       {({ active, action }) => (
-        <>{children({ copy: action, copied: active, ...others })}</>
+        <>{children({ copy: action, copied: active })}</>
       )}
     </ActionButton>
   );

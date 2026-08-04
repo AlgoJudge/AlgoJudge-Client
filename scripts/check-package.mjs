@@ -7,7 +7,7 @@ import { unzipSync, zipSync } from "fflate";
 const OUT = ".package-check";
 
 execFileSync("npx", ["tsc",
-    "src/package/types.ts", "src/package/validate.ts", "src/package/build.ts",
+    "src/package/types.ts", "src/package/validate.ts", "src/package/build.ts", "src/package/calibration.ts",
     "--outDir", OUT, "--rootDir", "src/package",
     "--module", "esnext", "--target", "es2022", "--moduleResolution", "bundler", "--skipLibCheck",
 ], { stdio: "inherit", shell: process.platform === "win32" });
@@ -30,6 +30,7 @@ addExtensions(OUT);
 const { buildPackage, readPackage, buildSampleArchive } = await import(`../${OUT}/build.js`);
 const { validatePackage, hasErrors } = await import(`../${OUT}/validate.js`);
 const { emptyConfig } = await import(`../${OUT}/types.js`);
+const { applyCalibration, calibratedLimits } = await import(`../${OUT}/calibration.js`);
 
 const fail = (message) => { console.error("FAIL:", message); process.exitCode = 1; };
 const ok = (message) => console.log("  ok  ", message);
@@ -108,9 +109,14 @@ const pathy = validatePackage(tests, config, ["../escape.in"]);
 if (!pathy.some(i => i.level === "error" && i.message.includes("path"))) fail("a path in a file name was accepted");
 else ok("a path in a file name is refused");
 
+// A finding names its subject in `values` rather than in the sentence, so the
+// screen can translate it. The check reads it the same way the screen does.
 const orphan = validatePackage(tests, { ...config, groups: [...config.groups, { group: 9, points: 0 }] }, []);
-if (!orphan.some(i => i.message.includes("Group 9 has no tests"))) fail("an empty group was accepted");
-else ok("a group with no tests is refused");
+if (!orphan.some(i => i.message === "Group {{group}} has no tests" && i.values?.group === 9)) {
+    fail("an empty group was accepted");
+} else {
+    ok("a group with no tests is refused");
+}
 
 const samples = await buildSampleArchive(tests.filter(t => t.group === 0));
 const sampleEntries = Object.keys(unzipSync(new Uint8Array(await samples.arrayBuffer()))).sort();
@@ -143,8 +149,66 @@ if (JSON.stringify(sampleEntries) !== JSON.stringify(["0a.in", "0a.out"])) {
         ...config,
         groups: [{ group: 1, points: 100, limits: { timeMs: 0 } }],
     }, []);
-    if (!bad.some(i => i.message.includes("time limit of 0"))) fail("a zero group limit was accepted");
-    else ok("a zero group limit is refused");
+    if (!bad.some(i => i.message === "Group {{group}} has a time limit that is not positive")) {
+        fail("a zero group limit was accepted");
+    } else {
+        ok("a zero group limit is refused");
+    }
+}
+
+// Calibration: the rule travels in the package, and the arithmetic that turns a
+// measurement into a limit is the same everywhere it is applied.
+{
+    if (applyCalibration({ factor: 3, add: 100, roundTo: 100 }, 240) !== 900) {
+        fail("240 ms × 3 + 100, rounded up to 100, is 900 ms");
+    } else if (applyCalibration({ factor: 1, add: 16 * 1024, roundTo: 1024 }, 31000) !== 48128) {
+        fail("31000 KiB + 16 MiB, rounded up to a MiB, is 48128 KiB");
+    } else if (applyCalibration(undefined, 250) !== 250) {
+        fail("no rule leaves a measurement as it is");
+    } else {
+        ok("calibration arithmetic rounds up, after multiplying and adding");
+    }
+
+    const calibration = {
+        time: { factor: 3, add: 100, roundTo: 100 },
+        memory: { factor: 1, add: 16 * 1024, roundTo: 1024 },
+        measured: { timeMs: 240, memoryKib: 31000, at: "2026-08-05T10:00:00Z", runner: "runner-01" },
+    };
+    const withCalibration = {
+        ...config,
+        modelSolution: { source: "solutions/model.cpp", language: "cpp" },
+        calibration,
+    };
+    const back = await readPackage(await buildPackage({
+        config: withCalibration,
+        tests,
+        checker,
+        modelSolution: { name: "model.cpp", content: "int main(){}\n" },
+    }));
+    if (back.config.calibration?.time?.factor !== 3) fail("a calibration factor was lost");
+    else if (back.config.calibration?.memory?.add !== 16 * 1024) fail("a calibration offset was lost");
+    else if (back.config.calibration?.measured?.timeMs !== 240) fail("the measurement was lost");
+    else ok("calibration round-trips, measurement included");
+
+    const derived = calibratedLimits(calibration);
+    if (derived.timeMs !== 900 || derived.memoryKib !== 48128) {
+        fail(`derived limits are ${derived.timeMs} ms and ${derived.memoryKib} KiB`);
+    } else {
+        ok("the measurement derives both limits together");
+    }
+
+    const zero = validatePackage(tests, { ...withCalibration, calibration: { time: { factor: 0 } } }, ["checker.cpp", "model.cpp"]);
+    if (!zero.some(i => i.message === "A calibration factor must be positive")) {
+        fail("a zero calibration factor was accepted");
+    } else {
+        ok("a zero calibration factor is refused");
+    }
+
+    const orphaned = validatePackage(tests, { ...config, calibration: { time: { factor: 2 } } }, ["checker.cpp"]);
+    const warning = orphaned.find(i => i.message === "Calibration is configured but there is no model solution to measure");
+    if (!warning) fail("calibration without a model solution passed unmentioned");
+    else if (warning.level !== "warning") fail("calibration without a model solution blocks the package");
+    else ok("calibration without a model solution is a warning, not an error");
 }
 
 // A hand-edited config.yml may drop a whole section. Reading one has to produce

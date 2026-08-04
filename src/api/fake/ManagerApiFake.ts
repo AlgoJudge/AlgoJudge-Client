@@ -911,8 +911,11 @@ export class ManagerApiFake implements ManagerApi {
         const removed = new Set(input.removedFiles ?? []);
         // The statement files and the package are rebuilt below from what was
         // published; everything else is carried forward unless it was removed.
+        // `examples.zip` is derived from the package, so a new package replaces
+        // it and an unchanged one leaves it alone.
+        const rebuilt = new Set(["package.zip", ...(input.package ? ["examples.zip"] : [])]);
         const carried = (previous?.files ?? []).filter(f =>
-            !isStatementName(f.name) && f.name !== "package.zip" && !removed.has(f.name));
+            !isStatementName(f.name) && !rebuilt.has(f.name) && !removed.has(f.name));
 
         for (const entry of staged) {
             if (await sha256(entry.file) !== entry.sha256) {
@@ -933,6 +936,9 @@ export class ManagerApiFake implements ManagerApi {
         }
         if (input.package && await sha256(input.package.archive) !== input.package.sha256) {
             Utils.throwError("The package does not match its checksum and was not stored");
+        }
+        if (input.package?.samples && await sha256(input.package.samples.archive) !== input.package.samples.sha256) {
+            Utils.throwError("The examples do not match their checksum and were not stored");
         }
 
         const version: ManagedProblemVersion = {
@@ -998,6 +1004,14 @@ export class ManagerApiFake implements ManagerApi {
             ...(archive ? [{
                 name: "package.zip", scope: "runner" as const, mimeType: "application/zip",
                 sizeBytes: archive.size, sha256: input.package?.sha256 ?? await sha256(archive),
+            }] : []),
+            // The examples the participant downloads. Participant scope, so the
+            // Server hands them over without the Client asking twice.
+            ...(input.package?.samples ? [{
+                name: "examples.zip", scope: "participant" as const, mimeType: "application/zip",
+                sizeBytes: input.package.samples.archive.size,
+                sha256: input.package.samples.sha256,
+                url: URL.createObjectURL(input.package.samples.archive),
             }] : []),
         ];
         record.problem.currentVersion = version.version;

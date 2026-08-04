@@ -398,10 +398,13 @@ export class ManagerApiHttp implements ManagerApi {
             // The metadata travels beside the parts rather than inside them: a
             // scope and a checksum are not properties of a multipart part.
             files: (input.files ?? []).map(f => ({ name: f.file.name, scope: f.scope, sha256: f.sha256 })),
-            package: input.package ? { sha256: input.package.sha256 } : undefined,
+            package: input.package
+                ? { sha256: input.package.sha256, samples: input.package.samples?.sha256 }
+                : undefined,
         })], { type: "application/json" }));
         for (const staged of input.files ?? []) form.append("files", staged.file, staged.file.name);
         if (input.package) form.append("package", input.package.archive, "package.zip");
+        if (input.package?.samples) form.append("samples", input.package.samples.archive, "examples.zip");
 
         return this.http.request<ManagedProblemVersion>(
             `/problems/${encodeURIComponent(problemId)}/versions`, "POST", { signal, body: form });

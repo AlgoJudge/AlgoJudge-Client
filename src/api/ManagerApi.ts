@@ -386,6 +386,16 @@ export interface NewProblemFile {
 export interface NewProblemPackage {
     archive: Blob;
     sha256: string;
+    /**
+     * The example tests, as the participant receives them — stored beside the
+     * package as a participant-scoped `examples.zip`.
+     *
+     * A separate archive rather than the package itself: the package is scoped
+     * to the Runner and carries every hidden test, so handing it over would
+     * disclose the whole problem. Derived from the same builder state, so it
+     * travels with the package rather than as an ordinary attachment.
+     */
+    samples?: { archive: Blob; sha256: string };
 }
 
 /** A statement in one language. `language` absent means the default `content.md`. */

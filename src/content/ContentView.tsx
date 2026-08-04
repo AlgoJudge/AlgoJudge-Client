@@ -1,5 +1,5 @@
-import { Alert, Button, Code, Group, Stack, Text } from "@mantine/core";
-import { IconAlertTriangle, IconCheck, IconCopy } from "@tabler/icons-react";
+import { Alert, Code, Group, Stack, Text } from "@mantine/core";
+import { IconAlertTriangle, IconCopy } from "@tabler/icons-react";
 import "katex/dist/katex.min.css";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -26,16 +26,14 @@ const Sample = ({ sample }: { sample: SampleSegment }) => {
         <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
             <Group justify="space-between" align="center">
                 <Text size="sm" fw={600}>{label}</Text>
-                <CopyButton value={value}>
-                    {({ copied, copy }) => (
-                        <Button
-                            size="compact-xs"
-                            variant="subtle"
-                            onClick={copy}
-                            leftSection={copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
-                        >
-                            {copied ? t("Copied") : t("Copy")}
-                        </Button>
+                {/* The children render the label; the button is the component
+                    itself, and it shows its own confirmation. */}
+                <CopyButton value={value} size="compact-xs" variant="subtle">
+                    {() => (
+                        <Group gap={6} wrap="nowrap">
+                            <IconCopy size={14} />
+                            {t("Copy")}
+                        </Group>
                     )}
                 </CopyButton>
             </Group>

@@ -3,14 +3,19 @@ import {
     Table, Text, Textarea, TextInput, Title, Tooltip,
 } from "@mantine/core";
 import {
-    IconAlertTriangle, IconCheck, IconCopy, IconDownload, IconEye, IconFileZip, IconInfoCircle, IconPlus,
-    IconTrash, IconUpload,
+    IconAlertTriangle, IconCheck, IconCopy, IconDownload, IconEye, IconFileZip, IconGauge, IconInfoCircle,
+    IconPlus, IconTrash, IconUpload,
 } from "@tabler/icons-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { buildPackage, buildSampleArchive, ExtraFile, readPackage } from "../../package/build";
 import { groupsOf, intakeFiles } from "../../package/intake";
-import { emptyConfig, KIB_PER_MIB, PackageConfig, PackageGroup, PackageLimits, TestFile } from "../../package/types";
+import {
+    applyCalibration, calibratedLimits, calibrationRule, EXAMPLE_MEMORY_KIB, EXAMPLE_TIME_MS,
+} from "../../package/calibration";
+import {
+    CalibrationRule, emptyConfig, KIB_PER_MIB, PackageConfig, PackageGroup, PackageLimits, TestFile,
+} from "../../package/types";
 import { hasErrors, validatePackage } from "../../package/validate";
 import { CopyButton, DownloadButton } from "../buttons";
 import CodeHighlight from "../codehighlight/CodeHighlight";
@@ -43,6 +48,11 @@ export interface PackageBuilderProps {
 export interface PackageDraft {
     /** Assembles what is on screen. Called once, when the version is published. */
     build: () => Promise<Blob>;
+    /**
+     * The example tests, for the participant. Undefined when no group is marked
+     * as examples — a problem may legitimately show none.
+     */
+    buildSamples: () => Promise<Blob | undefined>;
     /** Whether the validator refuses it. Publishing waits until it does not. */
     blocked: boolean;
 }
@@ -70,6 +80,12 @@ const MEMORY_UNITS: UnitOption[] = [{ label: "KiB", factor: 1 }, { label: "MiB",
 /** The coarsest unit the value is a whole number of. */
 const fittingUnit = (units: UnitOption[], value: number | undefined): UnitOption =>
     [...units].reverse().find(u => value === undefined || value % u.factor === 0) ?? units[0];
+
+/** A value written in the coarsest unit that keeps it whole: `48 MiB`, `800 ms`. */
+const inUnits = (units: UnitOption[], value: number): string => {
+    const unit = fittingUnit(units, value);
+    return `${value / unit.factor} ${unit.label}`;
+};
 
 /**
  * A limit, entered in the unit a person is thinking in and stored in the unit
@@ -206,15 +222,25 @@ export default function PackageBuilder({ stored, onOpenStored, onDraftChange, di
     );
     const blocked = hasErrors(issues);
 
+    const exampleTests = useMemo(
+        () => tests.filter(t => configWithPrograms.groups.find(g => g.group === t.group)?.examples),
+        [tests, configWithPrograms]);
+
     const build = useCallback(
         () => buildPackage({ config: configWithPrograms, tests, checker, modelSolution }),
         [configWithPrograms, tests, checker, modelSolution]);
 
+    // The examples travel with the package because they are made from it. The
+    // package itself never reaches a participant: it carries every hidden test.
+    const buildSamples = useCallback(
+        async () => exampleTests.length > 0 ? buildSampleArchive(exampleTests) : undefined,
+        [exampleTests]);
+
     // What the editor publishes. Reported rather than uploaded: a package cannot
     // be added to a version that already exists.
     useEffect(() => {
-        onDraftChange?.(touched && !disabled ? { build, blocked } : undefined);
-    }, [touched, disabled, build, blocked, onDraftChange]);
+        onDraftChange?.(touched && !disabled ? { build, buildSamples, blocked } : undefined);
+    }, [touched, disabled, build, buildSamples, blocked, onDraftChange]);
 
     const guard = async (operation: () => Promise<void>) => {
         setError(undefined);
@@ -319,6 +345,24 @@ export default function PackageBuilder({ stored, onOpenStored, onDraftChange, di
         setConfig(c => ({ ...c, limits: { ...c.limits, [key]: value ?? 0 } }));
     };
 
+    /**
+     * Sets one part of a calibration rule.
+     *
+     * Writing any part writes the whole rule, defaults included: a `config.yml`
+     * that states a factor and leaves the rounding implicit would change meaning
+     * the day the default changes.
+     */
+    const setCalibration = (field: "time" | "memory", part: keyof CalibrationRule, value: number | undefined) => {
+        setTouched(true);
+        setConfig(c => ({
+            ...c,
+            calibration: {
+                ...c.calibration,
+                [field]: { ...calibrationRule(c.calibration, field), [part]: value ?? 0 },
+            },
+        }));
+    };
+
     const removeTest = (name: string) => {
         setTouched(true);
         setTests(current => current.filter(test => test.name !== name));
@@ -356,7 +400,6 @@ export default function PackageBuilder({ stored, onOpenStored, onDraftChange, di
         setTouched(true);
     });
 
-    const exampleTests = tests.filter(t => configWithPrograms.groups.find(g => g.group === t.group)?.examples);
     const sizes = useMemo(() => new Map(tests.map(test =>
         [test.name, { input: sizeOf(test.input), output: sizeOf(test.output) }])), [tests]);
 
@@ -452,6 +495,18 @@ export default function PackageBuilder({ stored, onOpenStored, onDraftChange, di
                         >
                             {t("Reopen the stored package")}
                         </Button>
+                        {/* Replacing the whole package belongs with the other
+                            whole-package actions, not with adding a test. */}
+                        <Button
+                            variant="light"
+                            size="compact-sm"
+                            leftSection={<IconUpload size={14} />}
+                            disabled={disabled}
+                            loading={busy}
+                            onClick={() => packageInput.current?.click()}
+                        >
+                            {t("Open an existing package")}
+                        </Button>
                     </Group>
                 </Group>
                 {opened && !touched && (
@@ -468,24 +523,10 @@ export default function PackageBuilder({ stored, onOpenStored, onDraftChange, di
                 )}
             </Card>
 
-            <Group gap="xs" wrap="wrap">
-                <Button variant="light" leftSection={<IconUpload size={16} />} disabled={disabled} onClick={() => filesInput.current?.click()} loading={busy}>
-                    {t("Add test files")}
-                </Button>
-                <Button variant="light" leftSection={<IconFileZip size={16} />} disabled={disabled} onClick={() => packageInput.current?.click()} loading={busy}>
-                    {t("Open an existing package")}
-                </Button>
-                <input ref={filesInput} type="file" multiple style={{ display: "none" }}
-                    onChange={e => { take(e.currentTarget.files); e.currentTarget.value = ""; }} />
-                <input ref={packageInput} type="file" accept=".zip" style={{ display: "none" }}
-                    onChange={e => { openExisting(e.currentTarget.files?.[0]); e.currentTarget.value = ""; }} />
-            </Group>
-
-            <Alert color="blue" icon={<IconInfoCircle size={18} />} p="xs">
-                <Text size="sm">
-                    {t("Files are paired by name: 1a.in goes with 1a.out. The number is the group, the letter the test.")}
-                </Text>
-            </Alert>
+            <input ref={filesInput} type="file" multiple style={{ display: "none" }}
+                onChange={e => { take(e.currentTarget.files); e.currentTarget.value = ""; }} />
+            <input ref={packageInput} type="file" accept=".zip" style={{ display: "none" }}
+                onChange={e => { openExisting(e.currentTarget.files?.[0]); e.currentTarget.value = ""; }} />
 
             {error && <Alert color="red" withCloseButton onClose={() => setError(undefined)}>{error}</Alert>}
 
@@ -498,7 +539,9 @@ export default function PackageBuilder({ stored, onOpenStored, onDraftChange, di
                             icon={<IconAlertTriangle size={16} />}
                             p="xs"
                         >
-                            <Text size="sm">{issue.file ? `${issue.file}: ` : ""}{issue.message}</Text>
+                            {/* Translated where it is shown: the validator states
+                                findings, the screen speaks the reader's language. */}
+                            <Text size="sm">{issue.file ? `${issue.file}: ` : ""}{t(issue.message, issue.values)}</Text>
                         </Alert>
                     ))}
                 </Stack>
@@ -533,31 +576,48 @@ export default function PackageBuilder({ stored, onOpenStored, onDraftChange, di
             </Card>
 
             <Card withBorder radius="sm">
-                <Group justify="space-between" mb="sm">
+                <Group justify="space-between" mb="xs">
                     <Title order={5}>{t("Tests")} ({tests.length})</Title>
-                    <Button
-                        variant="light"
-                        size="compact-sm"
-                        leftSection={<IconPlus size={14} />}
-                        disabled={disabled}
-                        onClick={() => {
-                            // The group being worked on is the last one there is;
-                            // the letter, the first one free in it.
-                            const groups = groupsOf(tests);
-                            const group = groups.length > 0 ? groups[groups.length - 1] : 1;
-                            setAdding({
-                                group,
-                                letter: nextLetter(new Set(tests
-                                    .filter(test => test.group === group)
-                                    .map(test => test.letter))),
-                                input: "",
-                                output: "",
-                            });
-                        }}
-                    >
-                        {t("Add a test")}
-                    </Button>
+                    {/* The two ways of adding a test, side by side: from files, or
+                        typed in. They answer the same question. */}
+                    <Group gap="xs">
+                        <Button
+                            variant="light"
+                            size="compact-sm"
+                            leftSection={<IconUpload size={14} />}
+                            disabled={disabled}
+                            loading={busy}
+                            onClick={() => filesInput.current?.click()}
+                        >
+                            {t("Add test files")}
+                        </Button>
+                        <Button
+                            variant="light"
+                            size="compact-sm"
+                            leftSection={<IconPlus size={14} />}
+                            disabled={disabled}
+                            onClick={() => {
+                                // The group being worked on is the last one there
+                                // is; the letter, the first one free in it.
+                                const groups = groupsOf(tests);
+                                const group = groups.length > 0 ? groups[groups.length - 1] : 1;
+                                setAdding({
+                                    group,
+                                    letter: nextLetter(new Set(tests
+                                        .filter(test => test.group === group)
+                                        .map(test => test.letter))),
+                                    input: "",
+                                    output: "",
+                                });
+                            }}
+                        >
+                            {t("Add a test")}
+                        </Button>
+                    </Group>
                 </Group>
+                <Text size="xs" c="dimmed" mb="sm">
+                    {t("Files are paired by name: 1a.in goes with 1a.out. The number is the group, the letter the test.")}
+                </Text>
                 {tests.length === 0 ? (
                     <Text size="sm" c="dimmed">{t("No tests yet")}</Text>
                 ) : (
@@ -713,6 +773,116 @@ export default function PackageBuilder({ stored, onOpenStored, onDraftChange, di
                 </Text>
             </Card>
 
+            {/* Only with a model solution: there is nothing to measure without
+                one, and a rule nobody can apply is a field nobody can answer. */}
+            {modelSolution && (
+                <Card withBorder radius="sm">
+                    <Title order={5} mb={4}>{t("Limit calibration")}</Title>
+                    <Text size="xs" c="dimmed" mb="sm">
+                        {t("The model solution is measured once, on request, and the limits below are written into the package. Judging never runs it: a limit has to be a number every submission was held to, not one recomputed per run.")}
+                    </Text>
+                    <Table>
+                        <Table.Thead>
+                            <Table.Tr>
+                                <Table.Th />
+                                <Table.Th>{t("Multiplier")}</Table.Th>
+                                <Table.Th>{t("Plus")}</Table.Th>
+                                <Table.Th>{t("Rounded up to")}</Table.Th>
+                                <Table.Th>{t("Example")}</Table.Th>
+                            </Table.Tr>
+                        </Table.Thead>
+                        <Table.Tbody>
+                            {([
+                                {
+                                    field: "time" as const,
+                                    label: t("Time limit"),
+                                    units: TIME_UNITS,
+                                    measured: config.calibration?.measured?.timeMs,
+                                    example: EXAMPLE_TIME_MS,
+                                },
+                                {
+                                    field: "memory" as const,
+                                    label: t("Memory limit"),
+                                    units: MEMORY_UNITS,
+                                    measured: config.calibration?.measured?.memoryKib,
+                                    example: EXAMPLE_MEMORY_KIB,
+                                },
+                            ]).map(row => {
+                                const rule = calibrationRule(config.calibration, row.field);
+                                const from = row.measured ?? row.example;
+                                return (
+                                    <Table.Tr key={row.field}>
+                                        <Table.Td><Text size="sm" fw={500}>{row.label}</Text></Table.Td>
+                                        <Table.Td>
+                                            <NumberInput
+                                                min={0.1}
+                                                step={0.5}
+                                                w={100}
+                                                disabled={disabled}
+                                                value={rule.factor ?? 1}
+                                                onChange={v => setCalibration(row.field, "factor", Number(v) || undefined)}
+                                            />
+                                        </Table.Td>
+                                        <Table.Td>
+                                            <UnitInput
+                                                units={row.units}
+                                                value={rule.add || undefined}
+                                                placeholder={0}
+                                                onChange={v => setCalibration(row.field, "add", v)}
+                                            />
+                                        </Table.Td>
+                                        <Table.Td>
+                                            <UnitInput
+                                                units={row.units}
+                                                value={rule.roundTo || undefined}
+                                                placeholder={0}
+                                                onChange={v => setCalibration(row.field, "roundTo", v)}
+                                            />
+                                        </Table.Td>
+                                        <Table.Td>
+                                            <Text size="sm" c="dimmed">
+                                                {row.measured === undefined ? `${t("at")} ` : `${t("measured")} `}
+                                                {inUnits(row.units, from)} → <b>{inUnits(row.units, applyCalibration(rule, from))}</b>
+                                            </Text>
+                                        </Table.Td>
+                                    </Table.Tr>
+                                );
+                            })}
+                        </Table.Tbody>
+                    </Table>
+                    <Group justify="space-between" mt="sm" wrap="wrap">
+                        {/* Measuring needs a Runner, and there is none yet. Shown
+                            disabled rather than hidden: the rule above is only
+                            legible next to the thing that will apply it. */}
+                        <Tooltip label={t("A calibration job needs a Runner. There is none yet.")}>
+                            <Button variant="light" size="compact-sm" disabled leftSection={<IconGauge size={14} />}>
+                                {t("Measure the model solution")}
+                            </Button>
+                        </Tooltip>
+                        {config.calibration?.measured && (
+                            <Button
+                                variant="light"
+                                size="compact-sm"
+                                disabled={disabled}
+                                onClick={() => {
+                                    const limits = calibratedLimits(config.calibration);
+                                    setTouched(true);
+                                    setConfig(c => ({
+                                        ...c,
+                                        limits: {
+                                            timeMs: limits.timeMs ?? c.limits.timeMs,
+                                            memoryKib: limits.memoryKib ?? c.limits.memoryKib,
+                                        },
+                                    }));
+                                }}
+                            >
+                                {t("Apply to the default limits")}
+                            </Button>
+                        )}
+                    </Group>
+                </Card>
+            )}
+
             {unrecognised.length > 0 && (
                 <Alert color="yellow" icon={<IconAlertTriangle size={16} />} title={t("Ignored files")}>
                     <Text size="sm">{unrecognised.join(", ")}</Text>
@@ -733,11 +903,19 @@ export default function PackageBuilder({ stored, onOpenStored, onDraftChange, di
                     variant="subtle"
                     leftSection={<IconDownload size={16} />}
                     disabled={exampleTests.length === 0}
-                    onClick={async () => download(await buildSampleArchive(exampleTests), "examples.zip")}
+                    onClick={async () => {
+                        const samples = await buildSamples();
+                        if (samples) download(samples, "examples.zip");
+                    }}
                 >
                     {t("Download the samples")}
                 </Button>
             </Group>
+            <Text size="xs" c="dimmed" mt={-8}>
+                {exampleTests.length > 0
+                    ? t("The tests in the groups marked as examples are published for the participant as examples.zip.")
+                    : t("No group is marked as examples, so the participant receives no example tests.")}
+            </Text>
 
             <Modal
                 opened={preview !== undefined}
@@ -752,30 +930,24 @@ export default function PackageBuilder({ stored, onOpenStored, onDraftChange, di
                                 <Group justify="space-between" wrap="nowrap">
                                     <Text size="sm" ff="monospace">{file.name}</Text>
                                     <Group gap={4} wrap="nowrap">
-                                        <CopyButton value={file.content}>
-                                            {({ copied, copy }) => (
-                                                <Tooltip label={t("Copy")}>
-                                                    <Button variant="subtle" size="compact-sm" onClick={copy}>
-                                                        {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
-                                                    </Button>
-                                                </Tooltip>
-                                            )}
-                                        </CopyButton>
+                                        <Tooltip label={t("Copy")}>
+                                            <CopyButton value={file.content} variant="subtle" size="compact-sm">
+                                                {() => <IconCopy size={14} />}
+                                            </CopyButton>
+                                        </Tooltip>
                                         {/* One button per file rather than one for the
                                             pair: a manager checking an output does not
                                             want the input in their downloads. */}
-                                        <DownloadButton
-                                            file={new Blob([file.content], { type: "text/plain" })}
-                                            filename={file.name}
-                                        >
-                                            {({ download: save }) => (
-                                                <Tooltip label={`${t("Download")} ${file.name}`}>
-                                                    <Button variant="subtle" size="compact-sm" onClick={save}>
-                                                        <IconDownload size={14} />
-                                                    </Button>
-                                                </Tooltip>
-                                            )}
-                                        </DownloadButton>
+                                        <Tooltip label={`${t("Download")} ${file.name}`}>
+                                            <DownloadButton
+                                                variant="subtle"
+                                                size="compact-sm"
+                                                file={new Blob([file.content], { type: "text/plain" })}
+                                                filename={file.name}
+                                            >
+                                                {() => <IconDownload size={14} />}
+                                            </DownloadButton>
+                                        </Tooltip>
                                     </Group>
                                 </Group>
                                 <ScrollArea.Autosize mah={400}>

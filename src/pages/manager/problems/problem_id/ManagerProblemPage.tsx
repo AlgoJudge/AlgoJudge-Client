@@ -1,6 +1,6 @@
 import { Alert, Badge, Button, Card, Center, Grid, Group, Loader, MultiSelect, Select, Stack, Table, Tabs, Text, TextInput, Title, Tooltip } from "@mantine/core";
 import {
-    IconAlertTriangle, IconArrowLeft, IconCheck, IconCopy, IconDeviceFloppy, IconDownload, IconInfoCircle,
+    IconAlertTriangle, IconArrowLeft, IconCopy, IconDeviceFloppy, IconDownload, IconInfoCircle,
     IconTrash, IconUpload,
 } from "@tabler/icons-react";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -133,7 +133,17 @@ export default function ManagerProblemPage() {
             sha256: await sha256(entry.file),
         })));
         const archive = await packageDraft?.build();
-        const built = archive ? { archive, sha256: await sha256(archive) } : undefined;
+        // The examples go with it: they are cut from the same package, and a
+        // version whose statement shows one sample and whose download holds
+        // another is worse than no download at all.
+        const samples = archive ? await packageDraft?.buildSamples() : undefined;
+        const built = archive
+            ? {
+                archive,
+                sha256: await sha256(archive),
+                samples: samples ? { archive: samples, sha256: await sha256(samples) } : undefined,
+            }
+            : undefined;
         await call(api => api.managerApi.createProblemVersion(problemId, {
             note: note.trim() || undefined,
             content: sources[DEFAULT_LANGUAGE],
@@ -457,17 +467,17 @@ export default function ManagerProblemPage() {
                                                         bracket form, and nobody should
                                                         have to know that. */}
                                                     {file.scope === "participant" && !isStatementName(file.name) && (
-                                                        <CopyButton
-                                                            value={file.mimeType.startsWith("image/")
-                                                                ? imageReference(file.name)
-                                                                : linkReference(file.name)}
-                                                        >
-                                                            {({ copied, copy }) => (
-                                                                <Button variant="subtle" size="compact-sm" onClick={copy}>
-                                                                    {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
-                                                                </Button>
-                                                            )}
-                                                        </CopyButton>
+                                                        <Tooltip label={t("Copy the reference")}>
+                                                            <CopyButton
+                                                                variant="subtle"
+                                                                size="compact-sm"
+                                                                value={file.mimeType.startsWith("image/")
+                                                                    ? imageReference(file.name)
+                                                                    : linkReference(file.name)}
+                                                            >
+                                                                {() => <IconCopy size={14} />}
+                                                            </CopyButton>
+                                                        </Tooltip>
                                                     )}
                                                     {file.url && (
                                                         <Button
