@@ -1,6 +1,6 @@
 import { AppShell, Burger, Center, Group, Loader, UnstyledButton, Text, Divider, Tooltip, Menu, useMantineColorScheme, useComputedColorScheme, Badge } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { NavLink, Outlet, useMatch, useParams } from "react-router-dom";
+import { NavLink, Outlet, useMatch } from "react-router-dom";
 import Logo from "../../components/logo/Logo";
 import classes from "./AppLayout.module.css";
 import { Icon, IconAlignBoxCenterTop, IconBox, IconChartBarPopular, IconChevronDown, IconChevronsLeft, IconChevronsRight, IconClock, IconDevicesPc, IconIdBadge2, IconKey, IconListDetails, IconLogout, IconMessageQuestion, IconMoon, IconNotes, IconPackageExport, IconPrinter, IconProps, IconSectionSign, IconServer, IconSun, IconUserCheck, IconUsers, IconWorldWww } from "@tabler/icons-react";
@@ -206,7 +206,11 @@ export default function AppLayout() {
     const { t } = useTranslation();
     const [opened, { toggle }] = useDisclosure();
     const [collapsed, collapse] = useDisclosure();
-    const params = useParams();
+    // Matched on the participant route rather than read from any parameter named
+    // `activityId`: the manager screens use that name too, and the participant
+    // shell must not appear over them.
+    const participantRoute = useMatch({ path: "/activities/:activityId", end: false });
+    const activityId = participantRoute?.params.activityId;
 
     // Loaded once here and shared by the sidebar and the clock, so entering an
     // activity does not fetch it twice.
@@ -214,12 +218,12 @@ export default function AppLayout() {
     const [series, setSeries] = useState<Series[]>([]);
 
     useApiEffect(async (api) => {
-        if (!params.activityId) {
+        if (!activityId) {
             setActivity(undefined);
             setSeries([]);
             return;
         }
-        const loaded = await api.participantApi.getActivity(params.activityId);
+        const loaded = await api.participantApi.getActivity(activityId);
         setActivity(loaded);
         setSeries(await api.participantApi.getSeries(loaded.id));
         api.participantApi.eventDispatcher.addEventListener("activityUpdated", evt => {
@@ -236,7 +240,7 @@ export default function AppLayout() {
             if (evt.data.activityId !== loaded.id) return;
             setSeries(await api.participantApi.getSeries(loaded.id));
         });
-    }, [params.activityId]);
+    }, [activityId]);
 
     const CollapseButton =
         <>

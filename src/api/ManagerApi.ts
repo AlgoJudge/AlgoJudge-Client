@@ -102,6 +102,158 @@ export interface ManagedActivitySummary {
 }
 
 /**
+ * Visibility and enrolment, mirroring the Server enums. Score and log are two
+ * settings rather than one policy: a manager may want a public scoreboard while
+ * the compiler output stays internal.
+ */
+export type ScoreVisibility = "everyone" | "participantOnly" | "managersOnly";
+export type LogVisibility = "managersOnly" | "participant";
+export type JoinPolicy = "closed" | "invitation" | "open";
+
+/**
+ * An activity as its manager sees it: everything the participant model hides,
+ * plus the counts that make the list useful.
+ */
+export interface ManagedActivity {
+    id: string;
+    slug: string;
+    name: string;
+    /** Type discriminator, `name@version`. Selects the layout renderer. */
+    type: string;
+    /** Selects the ranking renderer. Independent of `type`. */
+    rankingType: string;
+    /** IANA zone the activity's clock is displayed in. */
+    timeZone: string;
+    /** Absent when the activity spans its series instead of stating its own bounds. */
+    startDate?: string;
+    endDate?: string;
+    modules: { ranking: boolean; questions: boolean; rules: boolean };
+    scoreVisibility: ScoreVisibility;
+    logVisibility: LogVisibility;
+    joinPolicy: JoinPolicy;
+    /**
+     * The three limits the **Server** enforces, so none of them may live in the
+     * opaque configuration chain. Time and memory are the Runner's and do.
+     */
+    maxUploadBytes: number;
+    maxAttachments: number;
+    /** Null or absent means unlimited. */
+    maxSubmissionsPerProblem?: number;
+    /** Set once ended: still readable, accepting nothing new. */
+    archivedAt?: string;
+    seriesCount: number;
+    problemCount: number;
+    participantCount: number;
+}
+
+export interface ActivityInput {
+    slug: string;
+    name: string;
+    type: string;
+    rankingType: string;
+    timeZone: string;
+    startDate?: string;
+    endDate?: string;
+    modules: { ranking: boolean; questions: boolean; rules: boolean };
+    scoreVisibility: ScoreVisibility;
+    logVisibility: LogVisibility;
+    joinPolicy: JoinPolicy;
+    maxUploadBytes: number;
+    maxAttachments: number;
+    maxSubmissionsPerProblem?: number;
+}
+
+export interface ManagedActivityFilter {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    includeArchived?: boolean;
+}
+
+export interface ManagedSeries {
+    id: string;
+    activityId: string;
+    slug: string;
+    name: string;
+    order: number;
+    startDate?: string;
+    endDate?: string;
+    /** Whether a closed series admits how many problems it holds. */
+    revealProblemCount: boolean;
+    /**
+     * Between these two instants the Server withholds ranking entries. The
+     * ranking is assembled in the Client, so anything sent is disclosed —
+     * freezing has to happen where the data leaves.
+     */
+    rankingFreezeAt?: string;
+    rankingRevealAt?: string;
+    problems: ManagedSeriesProblem[];
+}
+
+export interface SeriesInput {
+    slug: string;
+    name: string;
+    startDate?: string;
+    endDate?: string;
+    revealProblemCount: boolean;
+    rankingFreezeAt?: string;
+    rankingRevealAt?: string;
+}
+
+/**
+ * One problem assigned to one series — where a library entry becomes something
+ * a participant can solve, which is why the per-use settings are here and not on
+ * the problem.
+ */
+export interface ManagedSeriesProblem {
+    id: string;
+    seriesId: string;
+    problemId: string;
+    /** From the library, for a manager who needs to know what was attached. */
+    problemSlug: string;
+    problemName: string;
+    /** The label a participant sees and the URL segment. Unique across the activity. */
+    slug: string;
+    /** Overrides the library name for this assignment. */
+    name?: string;
+    order: number;
+    /**
+     * Pins the content version this assignment evaluates against. Absent means
+     * the current one, which is only safe while nobody is editing it underneath
+     * a running series.
+     */
+    pinnedProblemVersionId?: string;
+    pinnedVersion?: number;
+    /** The library's newest version, so the screen can say what "current" means. */
+    currentVersion: number;
+    /** Whether the evaluated version has a Runner package. Nothing judges without one. */
+    hasPackage: boolean;
+    /**
+     * How much has been submitted against this assignment. **Detaching is
+     * refused above zero** — a result belongs to what it was judged against, and
+     * removing the assignment would orphan it.
+     */
+    submissionCount: number;
+    /** Per-assignment configuration. Opaque to the Server. */
+    config: unknown;
+    /** Narrow the activity's ceilings. Absent inherits. */
+    maxUploadBytes?: number;
+    maxAttachments?: number;
+    maxSubmissions?: number;
+}
+
+export interface SeriesProblemInput {
+    problemId: string;
+    slug: string;
+    name?: string;
+    pinnedProblemVersionId?: string;
+    config?: unknown;
+    maxUploadBytes?: number;
+    maxAttachments?: number;
+    maxSubmissions?: number;
+}
+
+/**
  * Who can see a problem in the library. Private is the default: a manager's
  * drafts are not everyone's business.
  *
@@ -171,7 +323,8 @@ export interface ProblemVersionInput {
     config?: unknown;
 }
 
-export type ManagerEventType = "permissionTemplateChanged" | "grantChanged" | "problemChanged";
+export type ManagerEventType = "permissionTemplateChanged" | "grantChanged" | "problemChanged"
+    | "activityChanged" | "seriesChanged";
 export type ManagerEvent<T extends ManagerEventType, V> = Event<T, V>;
 
 export type PermissionTemplateChangedEvent = ManagerEvent<"permissionTemplateChanged", {
@@ -189,10 +342,24 @@ export type ProblemChangedEvent = ManagerEvent<"problemChanged", {
     deletedId?: string;
 }>;
 
+export type ActivityChangedEvent = ManagerEvent<"activityChanged", {
+    activity?: ManagedActivity;
+    deletedId?: string;
+}>;
+
+/** Carries the whole series, assignments included: they are edited together. */
+export type SeriesChangedEvent = ManagerEvent<"seriesChanged", {
+    activityId: string;
+    series?: ManagedSeries;
+    deletedId?: string;
+}>;
+
 export interface ManagerEventDispatcher {
     addEventListener(type: "permissionTemplateChanged", listener: (evt: PermissionTemplateChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "grantChanged", listener: (evt: GrantChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "problemChanged", listener: (evt: ProblemChangedEvent) => void, signal: AbortSignal): void;
+    addEventListener(type: "activityChanged", listener: (evt: ActivityChangedEvent) => void, signal: AbortSignal): void;
+    addEventListener(type: "seriesChanged", listener: (evt: SeriesChangedEvent) => void, signal: AbortSignal): void;
     addEventListener<T extends ManagerEventType, V>(type: T, listener: (evt: ManagerEvent<T, V>) => void, signal: AbortSignal): void;
 }
 
@@ -222,6 +389,33 @@ export interface ManagerApi {
 
     searchUsers(query: string, signal: AbortSignal): Promise<ManagedUserSummary[]>;
     getManagedActivities(signal: AbortSignal): Promise<ManagedActivitySummary[]>;
+
+    getActivities(filter: ManagedActivityFilter, signal: AbortSignal): Promise<Page<ManagedActivity>>;
+    /** Accepts an id or a slug: the manager's URLs read like the participant's. */
+    getActivity(idOrSlug: string, signal: AbortSignal): Promise<ManagedActivity>;
+    createActivity(input: ActivityInput, signal: AbortSignal): Promise<ManagedActivity>;
+    updateActivity(id: string, input: ActivityInput, signal: AbortSignal): Promise<ManagedActivity>;
+    /** The ordinary way an activity ends. Readable, accepting nothing new. */
+    setActivityArchived(id: string, archived: boolean, signal: AbortSignal): Promise<ManagedActivity>;
+    /**
+     * Destroys the submissions participants may still want to look back at,
+     * which is why it is a permission of its own and not in the manager
+     * template. Refused while the activity holds anything.
+     */
+    deleteActivity(id: string, signal: AbortSignal): Promise<void>;
+
+    getSeries(activityId: string, signal: AbortSignal): Promise<ManagedSeries[]>;
+    createSeries(activityId: string, input: SeriesInput, signal: AbortSignal): Promise<ManagedSeries>;
+    updateSeries(seriesId: string, input: SeriesInput, signal: AbortSignal): Promise<ManagedSeries>;
+    /** Refused once anything has been submitted to it. */
+    deleteSeries(seriesId: string, signal: AbortSignal): Promise<void>;
+    reorderSeries(activityId: string, orderedIds: string[], signal: AbortSignal): Promise<ManagedSeries[]>;
+
+    attachProblem(seriesId: string, input: SeriesProblemInput, signal: AbortSignal): Promise<ManagedSeries>;
+    updateSeriesProblem(seriesProblemId: string, input: SeriesProblemInput, signal: AbortSignal): Promise<ManagedSeries>;
+    /** Refused once anything has been submitted against the assignment. */
+    detachProblem(seriesProblemId: string, signal: AbortSignal): Promise<ManagedSeries>;
+    reorderSeriesProblems(seriesId: string, orderedIds: string[], signal: AbortSignal): Promise<ManagedSeries>;
 
     getProblems(filter: ProblemFilter, signal: AbortSignal): Promise<Page<ManagedProblem>>;
     getProblem(id: string, signal: AbortSignal): Promise<ManagedProblem>;

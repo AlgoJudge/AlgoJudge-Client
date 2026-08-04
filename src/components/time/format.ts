@@ -32,6 +32,17 @@ export const formatInZone = (value: string, timeZone: string, format: TimeFormat
 export const zoneLabel = (value: string, timeZone: string): string =>
     dayjs(value).tz(timeZone).format("z");
 
+/**
+ * The two directions a form needs, in the activity's zone rather than the
+ * browser's. A manager sets "18:00" meaning the activity's clock; reading it
+ * back as the browser's would move the contest by an hour for anyone abroad.
+ */
+export const toZonedInput = (value: string | undefined, timeZone: string): string =>
+    value ? dayjs(value).tz(timeZone).format("YYYY-MM-DDTHH:mm") : "";
+
+export const fromZonedInput = (value: string, timeZone: string): string | undefined =>
+    value ? dayjs.tz(value, timeZone).toISOString() : undefined;
+
 const pad = (n: number) => String(n).padStart(2, "0");
 
 /**

@@ -31,6 +31,7 @@ const ManagerPage = lazy(() => import('./pages/manager/ManagerPage'));
 const UsersPage = lazy(() => import('./pages/manager/users/UsersPage'));
 const RunnersPage = lazy(() => import('./pages/manager/runners/RunnersPage'));
 const ManagerActivitiesPage = lazy(() => import('./pages/manager/activities/ManagerActivitiesPage'));
+const ManagerActivityPage = lazy(() => import('./pages/manager/activities/activity_id/ManagerActivityPage'));
 const PermissionTemplatesPage = lazy(() => import('./pages/manager/permission_templates/PermissionTemplatesPage'));
 const GrantsPage = lazy(() => import('./pages/manager/grants/GrantsPage'));
 const ManagerProblemsPage = lazy(() => import('./pages/manager/problems/ManagerProblemsPage'));
@@ -108,6 +109,10 @@ function App() {
                 {
                     path: "/manager/activities",
                     element: <ManagerActivitiesPage />
+                },
+                {
+                    path: "/manager/activities/:activityId",
+                    element: <ManagerActivityPage />
                 },
                 {
                     path: "/manager/users",

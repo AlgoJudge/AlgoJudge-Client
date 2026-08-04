@@ -1,10 +1,14 @@
 import {
+    ActivityInput,
     Grant,
     GrantFilter,
     GrantInput,
+    ManagedActivity,
+    ManagedActivityFilter,
     ManagedActivitySummary,
     ManagedProblem,
     ManagedProblemVersion,
+    ManagedSeries,
     ManagedUserSummary,
     ManagerApi,
     ProblemFilter,
@@ -14,6 +18,8 @@ import {
     PermissionDefinition,
     PermissionTemplate,
     PermissionTemplateInput,
+    SeriesInput,
+    SeriesProblemInput,
 } from "../ManagerApi";
 import { Page } from "../ParticipantApi";
 import { ManagerEventDispatcherImpl } from "../impl/ManagerEventDispatcher";
@@ -86,6 +92,80 @@ export class ManagerApiHttp implements ManagerApi {
 
     getManagedActivities(signal: AbortSignal): Promise<ManagedActivitySummary[]> {
         return this.http.request<ManagedActivitySummary[]>("/manager/activities", "GET", { signal });
+    }
+
+    getActivities(filter: ManagedActivityFilter, signal: AbortSignal): Promise<Page<ManagedActivity>> {
+        const query: Record<string, string | number | boolean> = {};
+        if (filter.page !== undefined) query.page = filter.page;
+        if (filter.pageSize !== undefined) query.pageSize = filter.pageSize;
+        if (filter.search) query.search = filter.search;
+        if (filter.includeArchived) query.includeArchived = true;
+        return this.http.request<Page<ManagedActivity>>("/activities", "GET", { signal, query });
+    }
+
+    getActivity(idOrSlug: string, signal: AbortSignal): Promise<ManagedActivity> {
+        return this.http.request<ManagedActivity>(`/activities/${encodeURIComponent(idOrSlug)}`, "GET", { signal });
+    }
+
+    createActivity(input: ActivityInput, signal: AbortSignal): Promise<ManagedActivity> {
+        return this.http.request<ManagedActivity>("/activities", "POST", { signal, body: input });
+    }
+
+    updateActivity(id: string, input: ActivityInput, signal: AbortSignal): Promise<ManagedActivity> {
+        return this.http.request<ManagedActivity>(`/activities/${encodeURIComponent(id)}`, "POST", { signal, body: input });
+    }
+
+    setActivityArchived(id: string, archived: boolean, signal: AbortSignal): Promise<ManagedActivity> {
+        return this.http.request<ManagedActivity>(`/activities/${encodeURIComponent(id)}/archived`, "POST", {
+            signal, body: { archived },
+        });
+    }
+
+    async deleteActivity(id: string, signal: AbortSignal): Promise<void> {
+        await this.http.request<void>(`/activities/${encodeURIComponent(id)}/delete`, "POST", { signal });
+    }
+
+    getSeries(activityId: string, signal: AbortSignal): Promise<ManagedSeries[]> {
+        return this.http.request<ManagedSeries[]>(
+            `/activities/${encodeURIComponent(activityId)}/series`, "GET", { signal });
+    }
+
+    createSeries(activityId: string, input: SeriesInput, signal: AbortSignal): Promise<ManagedSeries> {
+        return this.http.request<ManagedSeries>(
+            `/activities/${encodeURIComponent(activityId)}/series`, "POST", { signal, body: input });
+    }
+
+    updateSeries(seriesId: string, input: SeriesInput, signal: AbortSignal): Promise<ManagedSeries> {
+        return this.http.request<ManagedSeries>(`/series/${encodeURIComponent(seriesId)}`, "POST", { signal, body: input });
+    }
+
+    async deleteSeries(seriesId: string, signal: AbortSignal): Promise<void> {
+        await this.http.request<void>(`/series/${encodeURIComponent(seriesId)}/delete`, "POST", { signal });
+    }
+
+    reorderSeries(activityId: string, orderedIds: string[], signal: AbortSignal): Promise<ManagedSeries[]> {
+        return this.http.request<ManagedSeries[]>(
+            `/activities/${encodeURIComponent(activityId)}/series/order`, "POST", { signal, body: { orderedIds } });
+    }
+
+    attachProblem(seriesId: string, input: SeriesProblemInput, signal: AbortSignal): Promise<ManagedSeries> {
+        return this.http.request<ManagedSeries>(
+            `/series/${encodeURIComponent(seriesId)}/problems`, "POST", { signal, body: input });
+    }
+
+    updateSeriesProblem(seriesProblemId: string, input: SeriesProblemInput, signal: AbortSignal): Promise<ManagedSeries> {
+        return this.http.request<ManagedSeries>(
+            `/series-problems/${encodeURIComponent(seriesProblemId)}`, "POST", { signal, body: input });
+    }
+
+    detachProblem(seriesProblemId: string, signal: AbortSignal): Promise<ManagedSeries> {
+        return this.http.request<ManagedSeries>(
+            `/series-problems/${encodeURIComponent(seriesProblemId)}/detach`, "POST", { signal });
+    }
+
+    reorderSeriesProblems(seriesId: string, orderedIds: string[], signal: AbortSignal): Promise<ManagedSeries> {
+        return this.http.request<ManagedSeries>(
+            `/series/${encodeURIComponent(seriesId)}/problems/order`, "POST", { signal, body: { orderedIds } });
     }
 
     getProblems(filter: ProblemFilter, signal: AbortSignal): Promise<Page<ManagedProblem>> {

@@ -1,13 +1,18 @@
 import { Api } from "./Api";
 import { CoreApi, CoreEvent, CoreEventDispatcher, CoreEventType, SystemMessageEvent, User } from "./CoreApi";
 import {
+    ActivityChangedEvent,
+    ActivityInput,
     Grant,
     GrantChangedEvent,
     GrantFilter,
     GrantInput,
+    ManagedActivity,
+    ManagedActivityFilter,
     ManagedActivitySummary,
     ManagedProblem,
     ManagedProblemVersion,
+    ManagedSeries,
     ManagedUserSummary,
     ManagerApi,
     ProblemFilter,
@@ -22,6 +27,9 @@ import {
     PermissionTemplateChangedEvent,
     PermissionTemplateInput,
     ProblemChangedEvent,
+    SeriesChangedEvent,
+    SeriesInput,
+    SeriesProblemInput,
 } from "./ManagerApi";
 import {
     Activity,
@@ -168,6 +176,8 @@ export class ScopedManagerEventDispatcher {
     addEventListener(type: "permissionTemplateChanged", listener: (evt: PermissionTemplateChangedEvent) => void): void;
     addEventListener(type: "grantChanged", listener: (evt: GrantChangedEvent) => void): void;
     addEventListener(type: "problemChanged", listener: (evt: ProblemChangedEvent) => void): void;
+    addEventListener(type: "activityChanged", listener: (evt: ActivityChangedEvent) => void): void;
+    addEventListener(type: "seriesChanged", listener: (evt: SeriesChangedEvent) => void): void;
     addEventListener<T extends ManagerEventType, V>(type: T, listener: (evt: ManagerEvent<T, V>) => void): void {
         this.eventDispatcher.addEventListener(type, listener, this.signal);
     }
@@ -214,6 +224,54 @@ export class ScopedManagerApi {
     }
     getManagedActivities(): Promise<ManagedActivitySummary[]> {
         return this.managerApi.getManagedActivities(this.signal);
+    }
+
+    getActivities(filter: ManagedActivityFilter = {}): Promise<Page<ManagedActivity>> {
+        return this.managerApi.getActivities(filter, this.signal);
+    }
+    getActivity(idOrSlug: string): Promise<ManagedActivity> {
+        return this.managerApi.getActivity(idOrSlug, this.signal);
+    }
+    createActivity(input: ActivityInput): Promise<ManagedActivity> {
+        return this.managerApi.createActivity(input, this.signal);
+    }
+    updateActivity(id: string, input: ActivityInput): Promise<ManagedActivity> {
+        return this.managerApi.updateActivity(id, input, this.signal);
+    }
+    setActivityArchived(id: string, archived: boolean): Promise<ManagedActivity> {
+        return this.managerApi.setActivityArchived(id, archived, this.signal);
+    }
+    deleteActivity(id: string): Promise<void> {
+        return this.managerApi.deleteActivity(id, this.signal);
+    }
+
+    getSeries(activityId: string): Promise<ManagedSeries[]> {
+        return this.managerApi.getSeries(activityId, this.signal);
+    }
+    createSeries(activityId: string, input: SeriesInput): Promise<ManagedSeries> {
+        return this.managerApi.createSeries(activityId, input, this.signal);
+    }
+    updateSeries(seriesId: string, input: SeriesInput): Promise<ManagedSeries> {
+        return this.managerApi.updateSeries(seriesId, input, this.signal);
+    }
+    deleteSeries(seriesId: string): Promise<void> {
+        return this.managerApi.deleteSeries(seriesId, this.signal);
+    }
+    reorderSeries(activityId: string, orderedIds: string[]): Promise<ManagedSeries[]> {
+        return this.managerApi.reorderSeries(activityId, orderedIds, this.signal);
+    }
+
+    attachProblem(seriesId: string, input: SeriesProblemInput): Promise<ManagedSeries> {
+        return this.managerApi.attachProblem(seriesId, input, this.signal);
+    }
+    updateSeriesProblem(seriesProblemId: string, input: SeriesProblemInput): Promise<ManagedSeries> {
+        return this.managerApi.updateSeriesProblem(seriesProblemId, input, this.signal);
+    }
+    detachProblem(seriesProblemId: string): Promise<ManagedSeries> {
+        return this.managerApi.detachProblem(seriesProblemId, this.signal);
+    }
+    reorderSeriesProblems(seriesId: string, orderedIds: string[]): Promise<ManagedSeries> {
+        return this.managerApi.reorderSeriesProblems(seriesId, orderedIds, this.signal);
     }
 
     getProblems(filter: ProblemFilter = {}): Promise<Page<ManagedProblem>> {
