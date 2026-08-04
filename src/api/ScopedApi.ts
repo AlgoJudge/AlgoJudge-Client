@@ -5,6 +5,8 @@ import {
     CoreEventDispatcher,
     CoreEventType,
     InstanceInfo,
+    LegalDocument,
+    LegalDocumentKind,
     ProfileInput,
     RegisterInput,
     Session,
@@ -124,6 +126,9 @@ export class ScopedCoreApi {
     }
     getInstanceInfo(): Promise<InstanceInfo> {
         return this.coreApi.getInstanceInfo(this.signal);
+    }
+    getLegalDocument(kind: LegalDocumentKind): Promise<LegalDocument | undefined> {
+        return this.coreApi.getLegalDocument(kind, this.signal);
     }
     getSession(): Promise<Session | undefined> {
         return this.coreApi.getSession(this.signal);

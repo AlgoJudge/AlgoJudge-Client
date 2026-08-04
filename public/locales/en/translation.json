@@ -573,5 +573,12 @@
   "Immediate and irreversible. Your submissions and results stay, under an identifier that no longer names you.": "Immediate and irreversible. Your submissions and results stay, under an identifier that no longer names you.",
   "Type DELETE to confirm": "Type DELETE to confirm",
   "This account is managed by the identity provider. Your name, login, address and password are changed there.": "This account is managed by the identity provider. Your name, login, address and password are changed there.",
-  "An account from the identity provider is removed by an administrator. Write to them to ask for it.": "An account from the identity provider is removed by an administrator. Write to them to ask for it."
+  "An account from the identity provider is removed by an administrator. Write to them to ask for it.": "An account from the identity provider is removed by an administrator. Write to them to ask for it.",
+  "legal.terms": "Terms",
+  "legal.privacy": "Privacy policy",
+  "legal.cookies": "Cookies",
+  "legal.accessibility": "Accessibility statement",
+  "This instance publishes no such document. Ask whoever runs it.": "This instance publishes no such document. Ask whoever runs it.",
+  "This is the template that ships with the software. The operator of this instance has not replaced it yet, so it is not binding.": "This is the template that ships with the software. The operator of this instance has not replaced it yet, so it is not binding.",
+  "Updated": "Updated"
 }

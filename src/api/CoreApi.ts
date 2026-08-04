@@ -39,6 +39,31 @@ export interface InstanceInfo {
     requireEmail: boolean,
     /** Whether an address must be confirmed before the account can sign in. */
     requireConfirmedEmail: boolean,
+    /** Which documents this instance publishes. Empty is a legitimate answer. */
+    legalDocuments: LegalDocumentKind[],
+}
+
+/**
+ * The documents an instance publishes.
+ *
+ * Instance configuration rather than product content: the operator is the data
+ * controller, and each installation has its own. `algojudge.pl` describes the
+ * project and processes nothing, so the text does not live there.
+ */
+export type LegalDocumentKind = "terms" | "privacy" | "cookies" | "accessibility";
+
+export interface LegalDocument {
+    kind: LegalDocumentKind,
+    title: string,
+    /** `content.md` source, rendered by the same renderer a statement uses. */
+    content: string,
+    updatedAt?: string,
+    /**
+     * True while the operator is still using what shipped with the software.
+     * A template names the wrong controller, so the screen has to say so out
+     * loud rather than let it pass for a policy.
+     */
+    isTemplate: boolean,
 }
 
 export interface ProfileInput {
@@ -81,6 +106,9 @@ export interface CoreApi {
 
     /** What the installation admits to a screen nobody has signed in to. */
     getInstanceInfo(signal: AbortSignal): Promise<InstanceInfo>;
+
+    /** One published document, or undefined where the instance has none. */
+    getLegalDocument(kind: LegalDocumentKind, signal: AbortSignal): Promise<LegalDocument | undefined>;
 
     /**
      * The session the browser already holds, or undefined when there is none.

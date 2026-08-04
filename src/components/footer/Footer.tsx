@@ -5,10 +5,20 @@ import { Link } from 'react-router-dom';
 import Logo from '../logo/Logo';
 import classes from './Footer.module.css';
 import { usePreferences } from '../../provider/PreferencesProvider';
+import { useApiEffect } from '../../provider/ApiProvider';
+import { LegalDocumentKind } from '../../api/CoreApi';
+import { useState } from 'react';
 
 function Footer() {
     const { t } = useTranslation();
     const { setTheme, setLang } = usePreferences();
+
+    // Read from the instance: which documents exist is its decision, and an
+    // instance that publishes none must not show four dead links.
+    const [documents, setDocuments] = useState<LegalDocumentKind[]>([]);
+    useApiEffect(async (api) => {
+        setDocuments((await api.authApi.getInstanceInfo()).legalDocuments);
+    }, []);
 
     const links = [
         { link: 'https://algojudge.pl', label: t('About'), prev: false },
@@ -76,7 +86,13 @@ function Footer() {
             </Link>
         );
     });
-    const items3 = [...items, ...items2];
+    const legalItems = documents.map(kind => (
+        <Anchor c="dimmed" key={kind} component={Link} to={`/${kind}`} size="sm">
+            {t(`legal.${kind}`)}
+        </Anchor>
+    ));
+
+    const items3 = [...items, ...legalItems, ...items2];
 
     return (
         <Affix withinPortal={false} position={{ bottom: 0, left: 0, right: 0 }}>

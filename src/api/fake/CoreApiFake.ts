@@ -1,6 +1,15 @@
 import { UnauthorizedError } from "../ApiError";
-import { CoreApi, InstanceInfo, ProfileInput, RegisterInput, Session } from "../CoreApi";
+import {
+    CoreApi,
+    InstanceInfo,
+    LegalDocument,
+    LegalDocumentKind,
+    ProfileInput,
+    RegisterInput,
+    Session,
+} from "../CoreApi";
 import { CoreEventDispatcherImpl } from "../impl/CoreEventDispatcherImpl";
+import { legalDocument, legalDocumentKinds } from "./fixtures/legal";
 import { Utils } from "./Utils";
 
 /**
@@ -112,7 +121,12 @@ export class CoreApiFake implements CoreApi {
         const instance: InstanceInfo = stored
             ? JSON.parse(stored) as InstanceInfo
             // The shipped default: accounts come from an organiser or from SSO.
-            : { localRegistrationEnabled: false, requireEmail: false, requireConfirmedEmail: false };
+            : {
+                localRegistrationEnabled: false,
+                requireEmail: false,
+                requireConfirmedEmail: false,
+                legalDocuments: legalDocumentKinds(),
+            };
 
         const query = new URLSearchParams(window.location.search);
         const flag = (name: string): boolean | undefined => {
@@ -146,6 +160,12 @@ export class CoreApiFake implements CoreApi {
     async getInstanceInfo(signal: AbortSignal): Promise<InstanceInfo> {
         await this.settle(signal);
         return { ...this.instance };
+    }
+
+    async getLegalDocument(kind: LegalDocumentKind, signal: AbortSignal): Promise<LegalDocument | undefined> {
+        await this.settle(signal);
+        const document = legalDocument(kind);
+        return document ? { ...document } : undefined;
     }
 
     async getSession(signal: AbortSignal): Promise<Session | undefined> {

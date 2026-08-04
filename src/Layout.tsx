@@ -1,7 +1,8 @@
 import Header from './components/header/Header';
 import Footer from './components/footer/Footer';
 import { Outlet } from 'react-router-dom';
-import { Container } from '@mantine/core';
+import { Center, Container, Loader } from '@mantine/core';
+import { Suspense } from 'react';
 
 function Layout() {
     return (
@@ -10,7 +11,11 @@ function Layout() {
                 session instead of one each. */}
             <Header />
             <Container size={'lg'} my={40}>
-                <Outlet />
+                {/* The legal pages are split out, so the public shell needs a
+                    boundary of its own — the application shell already has one. */}
+                <Suspense fallback={<Center my="xl"><Loader size="xl" /></Center>}>
+                    <Outlet />
+                </Suspense>
             </Container>
             <Footer />
         </>

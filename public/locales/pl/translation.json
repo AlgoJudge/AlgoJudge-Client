@@ -573,5 +573,12 @@
   "Immediate and irreversible. Your submissions and results stay, under an identifier that no longer names you.": "Natychmiastowe i nieodwracalne. Twoje zgłoszenia i wyniki zostają, pod identyfikatorem, który już Cię nie nazywa.",
   "Type DELETE to confirm": "Wpisz DELETE, aby potwierdzić",
   "This account is managed by the identity provider. Your name, login, address and password are changed there.": "To konto prowadzi dostawca tożsamości. Imię, nazwisko, login, adres i hasło zmienia się tam.",
-  "An account from the identity provider is removed by an administrator. Write to them to ask for it.": "Konto od dostawcy tożsamości usuwa administrator. Napisz do niego z prośbą."
+  "An account from the identity provider is removed by an administrator. Write to them to ask for it.": "Konto od dostawcy tożsamości usuwa administrator. Napisz do niego z prośbą.",
+  "legal.terms": "Regulamin",
+  "legal.privacy": "Polityka prywatności",
+  "legal.cookies": "Ciasteczka",
+  "legal.accessibility": "Deklaracja dostępności",
+  "This instance publishes no such document. Ask whoever runs it.": "Ta instancja nie publikuje takiego dokumentu. Zapytaj osobę, która ją prowadzi.",
+  "This is the template that ships with the software. The operator of this instance has not replaced it yet, so it is not binding.": "To szablon dostarczony wraz z oprogramowaniem. Operator tej instancji jeszcze go nie zastąpił, więc dokument nie jest wiążący.",
+  "Updated": "Aktualizacja"
 }

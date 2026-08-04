@@ -27,6 +27,7 @@ import { ApiProvider } from './provider/ApiProvider';
 import { AuthProvider } from './provider/AuthProvider';
 import RequireSession from './routers/Authentication';
 const AccountPage = lazy(() => import('./pages/account/AccountPage'));
+const LegalPage = lazy(() => import('./pages/legal/LegalPage'));
 
 // The manager panel is a different application wearing the same shell, and a
 // participant never opens it. Split out so they do not download it.
@@ -61,6 +62,24 @@ function App() {
                 {
                     path: "/register",
                     element: <RegisterPage />
+                },
+                // Public: somebody has to be able to read the privacy policy
+                // before deciding whether to have an account at all.
+                {
+                    path: "/terms",
+                    element: <LegalPage />
+                },
+                {
+                    path: "/privacy",
+                    element: <LegalPage />
+                },
+                {
+                    path: "/cookies",
+                    element: <LegalPage />
+                },
+                {
+                    path: "/accessibility",
+                    element: <LegalPage />
                 },
             ]
         },

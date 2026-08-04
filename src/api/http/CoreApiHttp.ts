@@ -1,4 +1,12 @@
-import { CoreApi, InstanceInfo, ProfileInput, RegisterInput, Session } from "../CoreApi";
+import {
+    CoreApi,
+    InstanceInfo,
+    LegalDocument,
+    LegalDocumentKind,
+    ProfileInput,
+    RegisterInput,
+    Session,
+} from "../CoreApi";
 import { CoreEventDispatcherImpl } from "../impl/CoreEventDispatcherImpl";
 import { HttpClient } from "./HttpClient";
 
@@ -18,6 +26,17 @@ export class CoreApiHttp implements CoreApi {
 
     getInstanceInfo(signal: AbortSignal): Promise<InstanceInfo> {
         return this.http.request<InstanceInfo>("/instance", "GET", { signal });
+    }
+
+    async getLegalDocument(kind: LegalDocumentKind, signal: AbortSignal): Promise<LegalDocument | undefined> {
+        try {
+            return await this.http.request<LegalDocument>(
+                `/instance/legal/${encodeURIComponent(kind)}`, "GET", { signal });
+        } catch {
+            // An instance that publishes no such document is not an error; the
+            // screen says it is missing rather than that something broke.
+            return undefined;
+        }
     }
 
     async getSession(signal: AbortSignal): Promise<Session | undefined> {
