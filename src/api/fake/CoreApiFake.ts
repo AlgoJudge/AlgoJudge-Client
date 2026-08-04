@@ -117,16 +117,28 @@ export class CoreApiFake implements CoreApi {
      * Each choice sticks until it is changed or the tab closes.
      */
     private static restoreInstance(): InstanceInfo {
+        // The shipped default: accounts come from an organiser or from SSO.
+        const defaults: InstanceInfo = {
+            localRegistrationEnabled: false,
+            requireEmail: false,
+            requireConfirmedEmail: false,
+            legalDocuments: legalDocumentKinds(),
+        };
+
+        // Merged over the defaults rather than trusting what was stored. A tab
+        // that kept settings written by an older build has an object missing
+        // whatever was added since, and reading a field that is not there is how
+        // `undefined.map` reaches a screen.
         const stored = sessionStorage.getItem(INSTANCE_KEY);
-        const instance: InstanceInfo = stored
-            ? JSON.parse(stored) as InstanceInfo
-            // The shipped default: accounts come from an organiser or from SSO.
-            : {
-                localRegistrationEnabled: false,
-                requireEmail: false,
-                requireConfirmedEmail: false,
-                legalDocuments: legalDocumentKinds(),
-            };
+        let instance = defaults;
+        if (stored) {
+            try {
+                instance = { ...defaults, ...JSON.parse(stored) as Partial<InstanceInfo> };
+            } catch {
+                instance = defaults;
+            }
+        }
+        if (!Array.isArray(instance.legalDocuments)) instance.legalDocuments = defaults.legalDocuments;
 
         const query = new URLSearchParams(window.location.search);
         const flag = (name: string): boolean | undefined => {

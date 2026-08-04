@@ -17,7 +17,10 @@ function Footer() {
     // instance that publishes none must not show four dead links.
     const [documents, setDocuments] = useState<LegalDocumentKind[]>([]);
     useApiEffect(async (api) => {
-        setDocuments((await api.authApi.getInstanceInfo()).legalDocuments);
+        // Defaulted, because the Server does not implement `/instance` yet and a
+        // field it omits must not become a crash in the shell that frames every
+        // page.
+        setDocuments((await api.authApi.getInstanceInfo()).legalDocuments ?? []);
     }, []);
 
     const links = [
