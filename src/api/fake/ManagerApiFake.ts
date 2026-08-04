@@ -4,8 +4,14 @@ import {
     GrantFilter,
     GrantInput,
     ManagedActivitySummary,
+    ManagedProblem,
+    ManagedProblemVersion,
     ManagedUserSummary,
     ManagerApi,
+    ProblemFilter,
+    ProblemInput,
+    ProblemVersionInput,
+    ProblemVisibility,
     PermissionDefinition,
     PermissionTemplate,
     PermissionTemplateInput,
@@ -19,6 +25,7 @@ import {
     MY_SYSTEM_PERMISSIONS,
     PERMISSION_CATALOGUE,
 } from "./fixtures/permissions";
+import { createProblemLibrary, ME, ProblemRecord } from "./fixtures/problems";
 import { Utils } from "./Utils";
 
 const copy = <T>(value: T): T => structuredClone(value);
@@ -37,6 +44,7 @@ export class ManagerApiFake implements ManagerApi {
 
     private templates = createTemplates();
     private grants = createGrants();
+    private library: ProblemRecord[] = createProblemLibrary();
 
     constructor(private sleepMs: number = 300) {}
 
@@ -155,6 +163,168 @@ export class ManagerApiFake implements ManagerApi {
     async getManagedActivities(signal: AbortSignal): Promise<ManagedActivitySummary[]> {
         await this.settle(signal);
         return copy(MANAGED_ACTIVITIES);
+    }
+
+    async getProblems(filter: ProblemFilter, signal: AbortSignal): Promise<Page<ManagedProblem>> {
+        await this.settle(signal);
+        const needle = filter.search?.trim().toLowerCase();
+        const matched = this.library
+            .map(r => r.problem)
+            // Private is the default, so the library a manager sees is their own
+            // plus whatever was shared with them plus whatever is instance-wide.
+            .filter(p => p.visibility !== "private" || p.ownerUserId === ME || p.sharedWith.includes(ME))
+            .filter(p => !filter.mineOnly || p.ownerUserId === ME)
+            .filter(p => filter.includeArchived || p.archivedAt === undefined)
+            .filter(p => !needle
+                || p.name.toLowerCase().includes(needle)
+                || p.slug.toLowerCase().includes(needle));
+        return copy(paginate(matched, filter.page, filter.pageSize));
+    }
+
+    async getProblem(id: string, signal: AbortSignal): Promise<ManagedProblem> {
+        await this.settle(signal);
+        return copy(this.find(id).problem);
+    }
+
+    async createProblem(input: ProblemInput, signal: AbortSignal): Promise<ManagedProblem> {
+        await this.settle(signal);
+        this.assertSlugFree(input.slug);
+        const problem: ManagedProblem = {
+            id: newId(),
+            ...input,
+            ownerUserId: ME,
+            ownerName: "Amy Horsefighter",
+            visibility: "private",
+            sharedWith: [],
+            currentVersion: 0,
+            versionCount: 0,
+            createdAt: new Date().toISOString(),
+            attachedCount: 0,
+        };
+        this.library = [{ problem, versions: [], content: new Map() }, ...this.library];
+        this.announce(problem);
+        return copy(problem);
+    }
+
+    async updateProblem(id: string, input: ProblemInput, signal: AbortSignal): Promise<ManagedProblem> {
+        await this.settle(signal);
+        const record = this.find(id);
+        this.assertSlugFree(input.slug, id);
+        Object.assign(record.problem, input);
+        this.announce(record.problem);
+        return copy(record.problem);
+    }
+
+    async duplicateProblem(id: string, signal: AbortSignal): Promise<ManagedProblem> {
+        await this.settle(signal);
+        const source = this.find(id);
+        // Only the newest version travels, as version 1 of the new problem: the
+        // history belongs to what it was judged against, not to the copy.
+        const newest = source.versions[0];
+        const versionId = newId();
+        const problem: ManagedProblem = {
+            ...source.problem,
+            id: newId(),
+            slug: source.problem.slug + "-kopia",
+            name: source.problem.name + " (kopia)",
+            ownerUserId: ME,
+            ownerName: "Amy Horsefighter",
+            visibility: "private",
+            sharedWith: [],
+            archivedAt: undefined,
+            currentVersion: newest ? 1 : 0,
+            versionCount: newest ? 1 : 0,
+            createdAt: new Date().toISOString(),
+            attachedCount: 0,
+        };
+        const versions = newest
+            ? [{ ...newest, id: versionId, version: 1, createdAt: problem.createdAt, note: undefined }]
+            : [];
+        const content = new Map<string, unknown>();
+        if (newest) content.set(versionId, source.content.get(newest.id));
+        this.library = [{ problem, versions, content }, ...this.library];
+        this.announce(problem);
+        return copy(problem);
+    }
+
+    async setProblemVisibility(id: string, visibility: ProblemVisibility, sharedWith: string[], signal: AbortSignal): Promise<ManagedProblem> {
+        await this.settle(signal);
+        const record = this.find(id);
+        record.problem.visibility = visibility;
+        record.problem.sharedWith = visibility === "shared" ? [...sharedWith] : [];
+        this.announce(record.problem);
+        return copy(record.problem);
+    }
+
+    async setProblemArchived(id: string, archived: boolean, signal: AbortSignal): Promise<ManagedProblem> {
+        await this.settle(signal);
+        const record = this.find(id);
+        record.problem.archivedAt = archived ? new Date().toISOString() : undefined;
+        this.announce(record.problem);
+        return copy(record.problem);
+    }
+
+    async deleteProblem(id: string, signal: AbortSignal): Promise<void> {
+        await this.settle(signal);
+        const record = this.find(id);
+        if (record.problem.attachedCount > 0) {
+            // Retiring a problem must not break an activity that ran with it.
+            Utils.throwError("This problem is attached to an activity. Archive it instead of deleting it.");
+        }
+        this.library = this.library.filter(r => r.problem.id !== id);
+        this.eventDispatcher.dispatchEvent({ type: "problemChanged", data: { deletedId: id } });
+    }
+
+    async getProblemVersions(problemId: string, signal: AbortSignal): Promise<ManagedProblemVersion[]> {
+        await this.settle(signal);
+        return copy(this.find(problemId).versions);
+    }
+
+    async getProblemContent(problemId: string, versionId: string, signal: AbortSignal): Promise<unknown> {
+        await this.settle(signal);
+        return copy(this.find(problemId).content.get(versionId));
+    }
+
+    async createProblemVersion(problemId: string, input: ProblemVersionInput, signal: AbortSignal): Promise<ManagedProblemVersion> {
+        await this.settle(signal);
+        const record = this.find(problemId);
+        if (record.problem.archivedAt) {
+            Utils.throwError("An archived problem takes no new versions");
+        }
+        const previous = record.versions[0];
+        const version: ManagedProblemVersion = {
+            id: newId(),
+            version: (previous?.version ?? 0) + 1,
+            createdAt: new Date().toISOString(),
+            createdByName: "Amy Horsefighter",
+            note: input.note,
+            config: input.config ?? previous?.config ?? {},
+            hasPackage: previous?.hasPackage ?? false,
+            files: previous?.files ?? [],
+        };
+        // Append-only: a correction publishes a new version rather than editing
+        // an old one, so a finished result stays attached to what it was judged
+        // against.
+        record.versions = [version, ...record.versions];
+        record.content.set(version.id, input.content ?? record.content.get(previous?.id ?? ""));
+        record.problem.currentVersion = version.version;
+        record.problem.versionCount = record.versions.length;
+        this.announce(record.problem);
+        return copy(version);
+    }
+
+    private find(id: string): ProblemRecord {
+        return this.library.find(r => r.problem.id === id) ?? notFound("Problem");
+    }
+
+    private announce(problem: ManagedProblem): void {
+        this.eventDispatcher.dispatchEvent({ type: "problemChanged", data: { problem: copy(problem) } });
+    }
+
+    private assertSlugFree(slug: string, exceptId?: string): void {
+        if (this.library.some(r => r.problem.slug.toLowerCase() === slug.trim().toLowerCase() && r.problem.id !== exceptId)) {
+            Utils.throwError("A problem with that slug already exists");
+        }
     }
 
     private assertNameFree(name: string, exceptId?: string): void {

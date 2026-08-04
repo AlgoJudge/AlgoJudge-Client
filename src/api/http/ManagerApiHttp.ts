@@ -3,8 +3,14 @@ import {
     GrantFilter,
     GrantInput,
     ManagedActivitySummary,
+    ManagedProblem,
+    ManagedProblemVersion,
     ManagedUserSummary,
     ManagerApi,
+    ProblemFilter,
+    ProblemInput,
+    ProblemVersionInput,
+    ProblemVisibility,
     PermissionDefinition,
     PermissionTemplate,
     PermissionTemplateInput,
@@ -80,5 +86,63 @@ export class ManagerApiHttp implements ManagerApi {
 
     getManagedActivities(signal: AbortSignal): Promise<ManagedActivitySummary[]> {
         return this.http.request<ManagedActivitySummary[]>("/manager/activities", "GET", { signal });
+    }
+
+    getProblems(filter: ProblemFilter, signal: AbortSignal): Promise<Page<ManagedProblem>> {
+        const query: Record<string, string | number | boolean> = {};
+        if (filter.page !== undefined) query.page = filter.page;
+        if (filter.pageSize !== undefined) query.pageSize = filter.pageSize;
+        if (filter.search) query.search = filter.search;
+        if (filter.mineOnly) query.mineOnly = true;
+        if (filter.includeArchived) query.includeArchived = true;
+        return this.http.request<Page<ManagedProblem>>("/problems", "GET", { signal, query });
+    }
+
+    getProblem(id: string, signal: AbortSignal): Promise<ManagedProblem> {
+        return this.http.request<ManagedProblem>(`/problems/${encodeURIComponent(id)}`, "GET", { signal });
+    }
+
+    createProblem(input: ProblemInput, signal: AbortSignal): Promise<ManagedProblem> {
+        return this.http.request<ManagedProblem>("/problems", "POST", { signal, body: input });
+    }
+
+    updateProblem(id: string, input: ProblemInput, signal: AbortSignal): Promise<ManagedProblem> {
+        return this.http.request<ManagedProblem>(`/problems/${encodeURIComponent(id)}`, "POST", { signal, body: input });
+    }
+
+    duplicateProblem(id: string, signal: AbortSignal): Promise<ManagedProblem> {
+        return this.http.request<ManagedProblem>(`/problems/${encodeURIComponent(id)}/duplicate`, "POST", { signal });
+    }
+
+    setProblemVisibility(id: string, visibility: ProblemVisibility, sharedWith: string[], signal: AbortSignal): Promise<ManagedProblem> {
+        return this.http.request<ManagedProblem>(`/problems/${encodeURIComponent(id)}/visibility`, "POST", {
+            signal, body: { visibility, sharedWith },
+        });
+    }
+
+    setProblemArchived(id: string, archived: boolean, signal: AbortSignal): Promise<ManagedProblem> {
+        return this.http.request<ManagedProblem>(`/problems/${encodeURIComponent(id)}/archived`, "POST", {
+            signal, body: { archived },
+        });
+    }
+
+    async deleteProblem(id: string, signal: AbortSignal): Promise<void> {
+        await this.http.request<void>(`/problems/${encodeURIComponent(id)}/delete`, "POST", { signal });
+    }
+
+    getProblemVersions(problemId: string, signal: AbortSignal): Promise<ManagedProblemVersion[]> {
+        return this.http.request<ManagedProblemVersion[]>(
+            `/problems/${encodeURIComponent(problemId)}/versions`, "GET", { signal });
+    }
+
+    getProblemContent(problemId: string, versionId: string, signal: AbortSignal): Promise<unknown> {
+        return this.http.request<unknown>(
+            `/problems/${encodeURIComponent(problemId)}/versions/${encodeURIComponent(versionId)}/content`,
+            "GET", { signal });
+    }
+
+    createProblemVersion(problemId: string, input: ProblemVersionInput, signal: AbortSignal): Promise<ManagedProblemVersion> {
+        return this.http.request<ManagedProblemVersion>(
+            `/problems/${encodeURIComponent(problemId)}/versions`, "POST", { signal, body: input });
     }
 }

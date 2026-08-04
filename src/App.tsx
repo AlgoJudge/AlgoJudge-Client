@@ -26,6 +26,8 @@ import RunnersPage from './pages/manager/runners/RunnersPage';
 import ManagerActivitiesPage from './pages/manager/activities/ManagerActivitiesPage';
 import PermissionTemplatesPage from './pages/manager/permission_templates/PermissionTemplatesPage';
 import GrantsPage from './pages/manager/grants/GrantsPage';
+import ManagerProblemsPage from './pages/manager/problems/ManagerProblemsPage';
+import ManagerProblemPage from './pages/manager/problems/problem_id/ManagerProblemPage';
 import { ApiProvider } from './provider/ApiProvider';
 
 function App() {
@@ -104,6 +106,14 @@ function App() {
                 {
                     path: "/manager/users",
                     element: <UsersPage />
+                },
+                {
+                    path: "/manager/problems",
+                    element: <ManagerProblemsPage />
+                },
+                {
+                    path: "/manager/problems/:problemId",
+                    element: <ManagerProblemPage />
                 },
                 {
                     path: "/manager/grants",

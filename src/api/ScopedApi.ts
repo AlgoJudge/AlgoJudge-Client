@@ -6,8 +6,14 @@ import {
     GrantFilter,
     GrantInput,
     ManagedActivitySummary,
+    ManagedProblem,
+    ManagedProblemVersion,
     ManagedUserSummary,
     ManagerApi,
+    ProblemFilter,
+    ProblemInput,
+    ProblemVersionInput,
+    ProblemVisibility,
     ManagerEvent,
     ManagerEventDispatcher,
     ManagerEventType,
@@ -15,6 +21,7 @@ import {
     PermissionTemplate,
     PermissionTemplateChangedEvent,
     PermissionTemplateInput,
+    ProblemChangedEvent,
 } from "./ManagerApi";
 import {
     Activity,
@@ -160,6 +167,7 @@ export class ScopedManagerEventDispatcher {
     constructor(private eventDispatcher: ManagerEventDispatcher, private signal: AbortSignal) {}
     addEventListener(type: "permissionTemplateChanged", listener: (evt: PermissionTemplateChangedEvent) => void): void;
     addEventListener(type: "grantChanged", listener: (evt: GrantChangedEvent) => void): void;
+    addEventListener(type: "problemChanged", listener: (evt: ProblemChangedEvent) => void): void;
     addEventListener<T extends ManagerEventType, V>(type: T, listener: (evt: ManagerEvent<T, V>) => void): void {
         this.eventDispatcher.addEventListener(type, listener, this.signal);
     }
@@ -206,5 +214,40 @@ export class ScopedManagerApi {
     }
     getManagedActivities(): Promise<ManagedActivitySummary[]> {
         return this.managerApi.getManagedActivities(this.signal);
+    }
+
+    getProblems(filter: ProblemFilter = {}): Promise<Page<ManagedProblem>> {
+        return this.managerApi.getProblems(filter, this.signal);
+    }
+    getProblem(id: string): Promise<ManagedProblem> {
+        return this.managerApi.getProblem(id, this.signal);
+    }
+    createProblem(input: ProblemInput): Promise<ManagedProblem> {
+        return this.managerApi.createProblem(input, this.signal);
+    }
+    updateProblem(id: string, input: ProblemInput): Promise<ManagedProblem> {
+        return this.managerApi.updateProblem(id, input, this.signal);
+    }
+    duplicateProblem(id: string): Promise<ManagedProblem> {
+        return this.managerApi.duplicateProblem(id, this.signal);
+    }
+    setProblemVisibility(id: string, visibility: ProblemVisibility, sharedWith: string[]): Promise<ManagedProblem> {
+        return this.managerApi.setProblemVisibility(id, visibility, sharedWith, this.signal);
+    }
+    setProblemArchived(id: string, archived: boolean): Promise<ManagedProblem> {
+        return this.managerApi.setProblemArchived(id, archived, this.signal);
+    }
+    deleteProblem(id: string): Promise<void> {
+        return this.managerApi.deleteProblem(id, this.signal);
+    }
+
+    getProblemVersions(problemId: string): Promise<ManagedProblemVersion[]> {
+        return this.managerApi.getProblemVersions(problemId, this.signal);
+    }
+    getProblemContent(problemId: string, versionId: string): Promise<unknown> {
+        return this.managerApi.getProblemContent(problemId, versionId, this.signal);
+    }
+    createProblemVersion(problemId: string, input: ProblemVersionInput): Promise<ManagedProblemVersion> {
+        return this.managerApi.createProblemVersion(problemId, input, this.signal);
     }
 }
