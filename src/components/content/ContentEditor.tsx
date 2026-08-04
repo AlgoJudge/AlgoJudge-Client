@@ -1,8 +1,10 @@
 import { Alert, Button, Group, Menu, Stack, Text, Textarea } from "@mantine/core";
-import { IconAlertTriangle, IconCheck, IconCode, IconMath, IconPhoto, IconPlus, IconTable, IconTestPipe } from "@tabler/icons-react";
+import {
+    IconAlertTriangle, IconCheck, IconCode, IconLink, IconMath, IconPhoto, IconPlus, IconTable, IconTestPipe,
+} from "@tabler/icons-react";
 import { useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { imageReference } from "../../content/reference";
+import { imageReference, linkReference } from "../../content/reference";
 import { tryValidateContent } from "../../content/validate";
 
 /**
@@ -18,8 +20,14 @@ import { tryValidateContent } from "../../content/validate";
 export interface ContentEditorProps {
     value: string;
     onChange: (value: string) => void;
-    /** Names of the participant-scoped attachments an image may point at. */
-    attachmentNames: string[];
+    /**
+     * The participant-scoped attachments a statement may point at.
+     *
+     * The type comes with them because it decides the syntax: a `.md` or a PDF
+     * inserted as an image renders as a broken picture, and the menus below
+     * cannot offer the wrong one if they never see the wrong file.
+     */
+    attachments: { name: string; mimeType: string }[];
 }
 
 const SNIPPETS = [
@@ -29,9 +37,12 @@ const SNIPPETS = [
     { key: "code", icon: IconCode, text: "```cpp\n\n```\n" },
 ] as const;
 
-export default function ContentEditor({ value, onChange, attachmentNames }: ContentEditorProps) {
+export default function ContentEditor({ value, onChange, attachments }: ContentEditorProps) {
     const { t } = useTranslation();
     const area = useRef<HTMLTextAreaElement>(null);
+
+    const images = attachments.filter(a => a.mimeType.startsWith("image/"));
+    const others = attachments.filter(a => !a.mimeType.startsWith("image/"));
 
     // Validated on every keystroke by the validator the renderer uses, so an
     // author sees the refusal while writing rather than after publishing.
@@ -84,7 +95,7 @@ export default function ContentEditor({ value, onChange, attachmentNames }: Cont
                             variant="light"
                             size="compact-sm"
                             leftSection={<IconPhoto size={14} />}
-                            disabled={attachmentNames.length === 0}
+                            disabled={images.length === 0}
                         >
                             {t("snippet.image")}
                         </Button>
@@ -92,14 +103,42 @@ export default function ContentEditor({ value, onChange, attachmentNames }: Cont
                     <Menu.Dropdown>
                         {/* An image names one of this problem's own attachments, so
                             it is a choice rather than a free field: a statement
-                            cannot reach outside itself. */}
-                        {attachmentNames.map(name => (
+                            cannot reach outside itself. Only the files that are
+                            images are offered — a PDF or a `.md` inserted this way
+                            renders as a broken picture. */}
+                        {images.map(file => (
                             <Menu.Item
-                                key={name}
+                                key={file.name}
                                 leftSection={<IconPlus size={14} />}
-                                onClick={() => insert(`${imageReference(name)}\n`)}
+                                onClick={() => insert(`${imageReference(file.name)}\n`)}
                             >
-                                {name}
+                                {file.name}
+                            </Menu.Item>
+                        ))}
+                    </Menu.Dropdown>
+                </Menu>
+                <Menu>
+                    <Menu.Target>
+                        <Button
+                            variant="light"
+                            size="compact-sm"
+                            leftSection={<IconLink size={14} />}
+                            disabled={others.length === 0}
+                        >
+                            {t("snippet.link")}
+                        </Button>
+                    </Menu.Target>
+                    <Menu.Dropdown>
+                        {/* Everything else — a PDF, sample data, an archive — is a
+                            link, which is what the note beside the file list has
+                            always promised. */}
+                        {others.map(file => (
+                            <Menu.Item
+                                key={file.name}
+                                leftSection={<IconPlus size={14} />}
+                                onClick={() => insert(`${linkReference(file.name)}\n`)}
+                            >
+                                {file.name}
                             </Menu.Item>
                         ))}
                     </Menu.Dropdown>

@@ -336,6 +336,14 @@ export interface ProblemFilter {
     includeArchived?: boolean;
 }
 
+/**
+ * Everything a version is, published in one request.
+ *
+ * A version is not built up after the fact: the statement, the files and the
+ * package go in together, because a result has to stay attributable to what it
+ * was judged against. Files the previous version carried come along unless
+ * `removedFiles` names them, so correcting a typo does not drop every figure.
+ */
 export interface ProblemVersionInput {
     note?: string;
     /** The default statement, as a `content.md` document. */
@@ -343,6 +351,41 @@ export interface ProblemVersionInput {
     /** Translations, stored as `content-<language>.md` beside the default. */
     translations?: StatementVariant[];
     config?: unknown;
+    /** Attached in this version, beside the ones carried forward. */
+    files?: NewProblemFile[];
+    /** Carried-forward names that must not be. */
+    removedFiles?: string[];
+    /** The Runner package. Absent carries the previous version's forward. */
+    package?: NewProblemPackage;
+}
+
+/**
+ * A file being attached.
+ *
+ * `sha256` is computed by the caller and recomputed by the Server, as every
+ * upload is: a checksum that arrives with the bytes is a claim, and storing it
+ * unchecked would turn a truncated upload into a stored file whose contents are
+ * wrong. A name the version already holds is refused rather than silently
+ * replaced — a statement referring to `graf.png` must not change meaning because
+ * somebody uploaded a different `graf.png`.
+ */
+export interface NewProblemFile {
+    file: File;
+    scope: FileScope;
+    sha256: string;
+}
+
+/**
+ * The Runner package being attached.
+ *
+ * The archive is assembled in the Client, because its layout belongs to the
+ * problem type and the Server is not allowed to know one type from another. The
+ * Server stores the bytes under `FileScope.Runner` and checks the checksum the
+ * same way it checks any other upload.
+ */
+export interface NewProblemPackage {
+    archive: Blob;
+    sha256: string;
 }
 
 /** A statement in one language. `language` absent means the default `content.md`. */
@@ -850,7 +893,13 @@ export interface ManagerApi {
      * a manager comparing two languages should not wait for a round trip.
      */
     getProblemContent(problemId: string, versionId: string, signal: AbortSignal): Promise<StatementVariant[]>;
-    /** Publishes a new version. Versions are append-only; nothing is edited in place. */
+    /**
+     * Publishes a new version — the statement, the files and the package at once.
+     *
+     * The only way to change what a problem holds. Versions are append-only, and
+     * an existing one takes no new file and no new package: what a submission was
+     * judged against has to stay exactly what it was.
+     */
     createProblemVersion(problemId: string, input: ProblemVersionInput, signal: AbortSignal): Promise<ManagedProblemVersion>;
     /**
      * The package stored for a version, or undefined where there is none.
@@ -859,39 +908,4 @@ export interface ManagerApi {
      * starts from the package that is live, not from an empty form.
      */
     getProblemPackage(problemId: string, versionId: string, signal: AbortSignal): Promise<Blob | undefined>;
-
-    /**
-     * Attaches an ordinary file to a version — a figure, a PDF statement, sample
-     * data, a model solution.
-     *
-     * `sha256` is computed by the caller and recomputed by the Server, as every
-     * upload is. A name already used by the version is refused rather than
-     * silently replaced: a statement referring to `graf.png` must not change
-     * meaning because somebody uploaded a different `graf.png`.
-     */
-    uploadProblemFile(
-        problemId: string,
-        versionId: string,
-        file: File,
-        scope: FileScope,
-        sha256: string,
-        signal: AbortSignal,
-    ): Promise<ManagedProblemVersion>;
-
-    /** Removes one. The statement referring to it then says the file is missing. */
-    deleteProblemFile(problemId: string, versionId: string, name: string, signal: AbortSignal): Promise<ManagedProblemVersion>;
-
-    /**
-     * Attaches the Runner package to a version.
-     *
-     * The archive is assembled in the Client, because its layout belongs to the
-     * problem type and the Server is not allowed to know one type from another.
-     * The Server stores the bytes under `FileScope.Runner`.
-     *
-     * `sha256` is the checksum of the archive, computed by the caller. The
-     * Server recomputes it and refuses to store a mismatch, which is what turns
-     * a truncated upload into an error instead of a stored file whose contents
-     * are wrong.
-     */
-    uploadProblemPackage(problemId: string, versionId: string, archive: Blob, sha256: string, signal: AbortSignal): Promise<ManagedProblemVersion>;
 }

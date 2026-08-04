@@ -7,7 +7,6 @@ import {
     ManagedActivityFilter,
     ManagedActivitySummary,
     ManagedProblem,
-    FileScope,
     ManagedProblemVersion,
     ManagedSeries,
     AnnouncementInput,
@@ -383,8 +382,29 @@ export class ManagerApiHttp implements ManagerApi {
     }
 
     createProblemVersion(problemId: string, input: ProblemVersionInput, signal: AbortSignal): Promise<ManagedProblemVersion> {
+        // Multipart, always. A version is published whole, so the request carries
+        // bytes as often as not, and one endpoint that is sometimes JSON and
+        // sometimes multipart is two endpoints wearing one name.
+        //
+        // The transport leaves FormData alone and lets the browser set the
+        // boundary, which a serialised body would destroy.
+        const form = new FormData();
+        form.append("version", new Blob([JSON.stringify({
+            note: input.note,
+            content: input.content,
+            translations: input.translations,
+            config: input.config,
+            removedFiles: input.removedFiles,
+            // The metadata travels beside the parts rather than inside them: a
+            // scope and a checksum are not properties of a multipart part.
+            files: (input.files ?? []).map(f => ({ name: f.file.name, scope: f.scope, sha256: f.sha256 })),
+            package: input.package ? { sha256: input.package.sha256 } : undefined,
+        })], { type: "application/json" }));
+        for (const staged of input.files ?? []) form.append("files", staged.file, staged.file.name);
+        if (input.package) form.append("package", input.package.archive, "package.zip");
+
         return this.http.request<ManagedProblemVersion>(
-            `/problems/${encodeURIComponent(problemId)}/versions`, "POST", { signal, body: input });
+            `/problems/${encodeURIComponent(problemId)}/versions`, "POST", { signal, body: form });
     }
 
     async getProblemPackage(problemId: string, versionId: string, signal: AbortSignal): Promise<Blob | undefined> {
@@ -399,37 +419,4 @@ export class ManagerApiHttp implements ManagerApi {
         }
     }
 
-    async uploadProblemFile(
-        problemId: string,
-        versionId: string,
-        file: File,
-        scope: FileScope,
-        sha256: string,
-        signal: AbortSignal,
-    ): Promise<ManagedProblemVersion> {
-        const form = new FormData();
-        form.append("file", file, file.name);
-        form.append("scope", scope);
-        form.append("sha256", sha256);
-        return this.http.request<ManagedProblemVersion>(
-            `/problems/${encodeURIComponent(problemId)}/versions/${encodeURIComponent(versionId)}/files`,
-            "POST", { signal, body: form });
-    }
-
-    deleteProblemFile(problemId: string, versionId: string, name: string, signal: AbortSignal): Promise<ManagedProblemVersion> {
-        return this.http.request<ManagedProblemVersion>(
-            `/problems/${encodeURIComponent(problemId)}/versions/${encodeURIComponent(versionId)}/files/${encodeURIComponent(name)}/delete`,
-            "POST", { signal });
-    }
-
-    async uploadProblemPackage(problemId: string, versionId: string, archive: Blob, sha256: string, signal: AbortSignal): Promise<ManagedProblemVersion> {
-        // Multipart: the transport leaves FormData alone and lets the browser
-        // set the boundary, which a serialised body would destroy.
-        const form = new FormData();
-        form.append("package", archive, "package.zip");
-        form.append("sha256", sha256);
-        return this.http.request<ManagedProblemVersion>(
-            `/problems/${encodeURIComponent(problemId)}/versions/${encodeURIComponent(versionId)}/package`,
-            "POST", { signal, body: form });
-    }
 }

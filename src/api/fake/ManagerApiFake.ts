@@ -12,7 +12,6 @@ import {
     ManagedActivityFilter,
     ManagedActivitySummary,
     ManagedProblem,
-    FileScope,
     ManagedProblemVersion,
     ManagedAttempt,
     ManagedQuestion,
@@ -54,6 +53,7 @@ import {
 import { ActivityRecord, createActivityLibrary } from "./fixtures/activities";
 import { buildPackage } from "../../package/build";
 import { emptyConfig } from "../../package/types";
+import { isStatementName } from "../../content/types";
 import { createProblemLibrary, fakeSha, ME, ProblemRecord } from "./fixtures/problems";
 import { createQuestions } from "./fixtures/questions";
 import { createRunners, runnerFile } from "./fixtures/runners";
@@ -903,6 +903,38 @@ export class ManagerApiFake implements ManagerApi {
             Utils.throwError("An archived problem takes no new versions");
         }
         const previous = record.versions[0];
+
+        // Everything that can be refused is refused before anything is stored: a
+        // publication that fails halfway would leave a version holding some of
+        // what was published and none of the rest.
+        const staged = input.files ?? [];
+        const removed = new Set(input.removedFiles ?? []);
+        // The statement files and the package are rebuilt below from what was
+        // published; everything else is carried forward unless it was removed.
+        const carried = (previous?.files ?? []).filter(f =>
+            !isStatementName(f.name) && f.name !== "package.zip" && !removed.has(f.name));
+
+        for (const entry of staged) {
+            if (await sha256(entry.file) !== entry.sha256) {
+                Utils.throwError(`${entry.file.name} does not match its checksum and was not stored`);
+            }
+            if (isStatementName(entry.file.name)) {
+                // `content.md` and its translations are the statement, written in
+                // the editor. Attaching one here would put a second answer beside
+                // the one published.
+                Utils.throwError("content.* is the statement; edit it in the Statement tab");
+            }
+            if (carried.some(f => f.name === entry.file.name)
+                || staged.filter(s => s.file.name === entry.file.name).length > 1) {
+                // Refused rather than replaced: a statement referring to the name
+                // must not change meaning because somebody attached a new file.
+                Utils.throwError(`This version already has a file called ${entry.file.name}`);
+            }
+        }
+        if (input.package && await sha256(input.package.archive) !== input.package.sha256) {
+            Utils.throwError("The package does not match its checksum and was not stored");
+        }
+
         const version: ManagedProblemVersion = {
             id: newId(),
             version: (previous?.version ?? 0) + 1,
@@ -910,8 +942,8 @@ export class ManagerApiFake implements ManagerApi {
             createdByName: "Amy Horsefighter",
             note: input.note,
             config: input.config ?? previous?.config ?? {},
-            hasPackage: previous?.hasPackage ?? false,
-            files: previous?.files ?? [],
+            hasPackage: false,
+            files: [],
         };
         // Append-only: a correction publishes a new version rather than editing
         // an old one, so a finished result stays attached to what it was judged
@@ -925,6 +957,21 @@ export class ManagerApiFake implements ManagerApi {
                 ...(input.content === undefined ? [] : [{ content: input.content }]),
                 ...(input.translations ?? []).filter(v => v.language !== undefined),
             ]);
+
+        // The package: the one published, or the previous version's carried
+        // forward. A version without one is a version nothing can be judged
+        // against, and that is not what fixing a typo should produce.
+        let archive = input.package?.archive;
+        if (!archive && previous?.hasPackage && !removed.has("package.zip")) {
+            // Read the way the editor reads it: a seeded version holds no bytes
+            // until something asks for them.
+            archive = await this.getProblemPackage(problemId, previous.id, signal);
+        }
+        if (archive) {
+            this.packages.set(version.id, archive);
+            version.hasPackage = true;
+        }
+
         version.files = [
             ...(input.content === undefined ? [] : [{
                 name: "content.md", scope: "participant" as const, mimeType: "text/markdown",
@@ -936,7 +983,22 @@ export class ManagerApiFake implements ManagerApi {
                     name: `content-${v.language}.md`, scope: "participant" as const, mimeType: "text/markdown",
                     sizeBytes: 2048, sha256: fakeSha(`${version.id}/content-${v.language}.md`),
                 })),
-            ...(previous?.files ?? []).filter(f => !f.name.startsWith("content")),
+            ...carried,
+            ...staged.map(entry => ({
+                name: entry.file.name,
+                scope: entry.scope,
+                mimeType: entry.file.type || "application/octet-stream",
+                sizeBytes: entry.file.size,
+                sha256: entry.sha256,
+                // A real URL, so the preview shows the figure rather than a
+                // promise of one. It lives as long as the tab does, which is what
+                // a fake can honestly offer.
+                url: URL.createObjectURL(entry.file),
+            })),
+            ...(archive ? [{
+                name: "package.zip", scope: "runner" as const, mimeType: "application/zip",
+                sizeBytes: archive.size, sha256: input.package?.sha256 ?? await sha256(archive),
+            }] : []),
         ];
         record.problem.currentVersion = version.version;
         record.problem.versionCount = record.versions.length;
@@ -991,83 +1053,6 @@ export class ManagerApiFake implements ManagerApi {
         });
         this.packages.set(versionId, archive);
         return archive;
-    }
-
-    async uploadProblemFile(
-        problemId: string,
-        versionId: string,
-        file: File,
-        scope: FileScope,
-        checksum: string,
-        signal: AbortSignal,
-    ): Promise<ManagedProblemVersion> {
-        await this.settle(signal);
-        const record = this.find(problemId);
-        const version = record.versions.find(v => v.id === versionId) ?? notFound("Version");
-
-        if (await sha256(file) !== checksum) {
-            Utils.throwError("The file does not match its checksum and was not stored");
-        }
-        if (/^content\./i.test(file.name)) {
-            // `content.*` is the statement, written in the editor. Uploading one
-            // here would put a second answer beside the one being edited.
-            Utils.throwError("content.* is the statement; edit it in the Statement tab");
-        }
-        if (version.files.some(f => f.name === file.name)) {
-            // Refused rather than replaced: a statement referring to the name
-            // must not change meaning because somebody uploaded a new file.
-            Utils.throwError(`This version already has a file called ${file.name}`);
-        }
-
-        version.files = [...version.files, {
-            name: file.name,
-            scope,
-            mimeType: file.type || "application/octet-stream",
-            sizeBytes: file.size,
-            sha256: checksum,
-            // A real URL, so the preview shows the figure rather than a promise
-            // of one. It lives as long as the tab does, which is what a fake can
-            // honestly offer.
-            url: URL.createObjectURL(file),
-        }];
-        this.announce(record.problem);
-        return copy(version);
-    }
-
-    async deleteProblemFile(problemId: string, versionId: string, name: string, signal: AbortSignal): Promise<ManagedProblemVersion> {
-        await this.settle(signal);
-        const record = this.find(problemId);
-        const version = record.versions.find(v => v.id === versionId) ?? notFound("Version");
-        const file = version.files.find(f => f.name === name) ?? notFound("File");
-        if (file.url) URL.revokeObjectURL(file.url);
-        version.files = version.files.filter(f => f.name !== name);
-        this.announce(record.problem);
-        return copy(version);
-    }
-
-    async uploadProblemPackage(problemId: string, versionId: string, archive: Blob, checksum: string, signal: AbortSignal): Promise<ManagedProblemVersion> {
-        await this.settle(signal);
-        const record = this.find(problemId);
-        const version = record.versions.find(v => v.id === versionId) ?? notFound("Version");
-
-        // The Server recomputes rather than records: a checksum the caller sends
-        // is a claim, and storing it unchecked would make a truncated upload a
-        // stored file whose contents are wrong.
-        if (await sha256(archive) !== checksum) {
-            Utils.throwError("The package does not match its checksum and was not stored");
-        }
-
-        version.hasPackage = true;
-        this.packages.set(versionId, archive);
-        version.files = [
-            ...version.files.filter(f => f.name !== "package.zip"),
-            {
-                name: "package.zip", scope: "runner", mimeType: "application/zip",
-                sizeBytes: archive.size, sha256: checksum,
-            },
-        ];
-        this.announce(record.problem);
-        return copy(version);
     }
 
     private findRunner(id: string): ManagedRunner {

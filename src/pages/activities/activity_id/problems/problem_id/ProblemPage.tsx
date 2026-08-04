@@ -9,6 +9,7 @@ import { useApiEffect } from "../../../../../provider/ApiProvider";
 import LoadState from "../../../../../components/LoadState";
 import { statementRenderers } from "../../../../../renderers";
 import { languageName, pickLanguage } from "../../../../../components/content/languageName";
+import { isStatementName } from "../../../../../content/types";
 
 /**
  * The value standing for `content.md`, which has no language of its own. `*`
@@ -17,8 +18,11 @@ import { languageName, pickLanguage } from "../../../../../components/content/la
  */
 const DEFAULT = "*";
 
-/** `content.md` and `content.pdf` are the statement, not material beside it. */
-const isStatementFile = (name: string) => /^content\.[^.]+$/i.test(name);
+/**
+ * The statement, not material beside it: `content.md`, its translations, and a
+ * `content.pdf` where a problem ships one.
+ */
+const isStatementFile = (name: string) => isStatementName(name) || /^content\.[^.]+$/i.test(name);
 
 export default function ProblemPage() {
     const { t, i18n } = useTranslation();

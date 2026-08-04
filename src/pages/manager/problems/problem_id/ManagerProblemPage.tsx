@@ -3,20 +3,20 @@ import {
     IconAlertTriangle, IconArrowLeft, IconCheck, IconCopy, IconDeviceFloppy, IconDownload, IconInfoCircle,
     IconTrash, IconUpload,
 } from "@tabler/icons-react";
-import { Suspense, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
-    FileScope, ManagedProblem, ManagedProblemVersion, ManagedUserSummary, ProblemVisibility,
+    FileScope, ManagedProblem, ManagedProblemVersion, ManagedUserSummary, ProblemFile, ProblemVisibility,
 } from "../../../../api/ManagerApi";
 import { Attachment } from "../../../../api/ParticipantApi";
 import LanguageTabs, { DEFAULT_LANGUAGE } from "../../../../components/content/LanguageTabs";
 import ContentEditor from "../../../../components/content/ContentEditor";
-import PackageBuilder from "../../../../components/package/PackageBuilder";
+import PackageBuilder, { PackageDraft } from "../../../../components/package/PackageBuilder";
 import LoadState from "../../../../components/LoadState";
 import { CopyButton } from "../../../../components/buttons";
 import ActivityTime from "../../../../components/time/ActivityTime";
-import { emptyDocument, statementFileName } from "../../../../content/types";
+import { emptyDocument, isStatementName, statementFileName } from "../../../../content/types";
 import { tryValidateContent } from "../../../../content/validate";
 import { useApiCall, useApiEffect } from "../../../../provider/ApiProvider";
 import { sha256 } from "../../../../utils/sha256";
@@ -48,9 +48,19 @@ export default function ManagerProblemPage() {
     const [error, setError] = useState<string | undefined>(undefined);
     const [busy, setBusy] = useState(false);
     const [reload, setReload] = useState(0);
+    // The draft. A version is published whole — statement, files and package in
+    // one request — so a file waits here rather than being written into a
+    // version that already exists and that a submission may already point at.
+    const [staged, setStaged] = useState<{ file: File; scope: FileScope }[]>([]);
+    const [removed, setRemoved] = useState<string[]>([]);
+    const [packageDraft, setPackageDraft] = useState<PackageDraft | undefined>(undefined);
 
     const loadError = useApiEffect(async (api) => {
         if (!problemId) return;
+        // A draft belongs to the version it was written against. Reloading — or
+        // looking at an older version — starts a new one.
+        setStaged([]);
+        setRemoved([]);
         const loaded = await api.managerApi.getProblem(problemId);
         setProblem(loaded);
         setUsers(await api.managerApi.searchUsers(""));
@@ -92,6 +102,17 @@ export default function ManagerProblemPage() {
     const source = sources[language] ?? emptyDocument();
     const setSource = (value: string) => setSources({ ...sources, [language]: value });
 
+    // A staged file has no URL until it is stored, and the preview has to show
+    // the figure that is about to be published rather than a gap. Revoked when
+    // the set changes, so a long editing session does not leak them.
+    const stagedUrls = useMemo(
+        () => new Map(staged.map(entry => [entry.file.name, URL.createObjectURL(entry.file)])),
+        [staged]);
+    useEffect(() => () => { for (const url of stagedUrls.values()) URL.revokeObjectURL(url); }, [stagedUrls]);
+
+    // Stable, so reporting the draft does not re-run the builder's effect.
+    const handleDraft = useCallback((draft: PackageDraft | undefined) => setPackageDraft(draft), []);
+
     const publish = () => run(async () => {
         if (!problemId) return;
         // Every language is validated, not only the one on screen: publishing a
@@ -104,12 +125,24 @@ export default function ManagerProblemPage() {
                     : `${statementFileName(tag)}: ${parsed.error.message}`);
             }
         }
+        // Checksums are computed here, where the bytes are, and recomputed by
+        // the Server before anything is stored.
+        const files = await Promise.all(staged.map(async entry => ({
+            file: entry.file,
+            scope: entry.scope,
+            sha256: await sha256(entry.file),
+        })));
+        const archive = await packageDraft?.build();
+        const built = archive ? { archive, sha256: await sha256(archive) } : undefined;
         await call(api => api.managerApi.createProblemVersion(problemId, {
             note: note.trim() || undefined,
             content: sources[DEFAULT_LANGUAGE],
             translations: Object.entries(sources)
                 .filter(([tag]) => tag !== DEFAULT_LANGUAGE)
                 .map(([tag, content]) => ({ language: tag, content })),
+            files,
+            removedFiles: removed,
+            package: built,
         }));
         setNote("");
     });
@@ -148,9 +181,31 @@ export default function ManagerProblemPage() {
     // that would change it is disabled.
     const isNewest = selected?.id === newest?.id;
     const locked = !!problem.archivedAt || !isNewest;
-    const files = selected?.files ?? [];
-    const participantFiles = files.filter(f => f.scope === "participant" && !/^content\./i.test(f.name));
-    const attachmentNames = participantFiles.map(f => f.name);
+
+    // What the next version would hold: what this one holds, less what the draft
+    // removes, plus what it adds. Every screen below reads this rather than the
+    // stored list, so the preview shows the statement as it will be published.
+    type DraftFile = ProblemFile & { state: "kept" | "removed" | "added" };
+    const files: DraftFile[] = [
+        ...(selected?.files ?? []).map((f): DraftFile => ({
+            ...f,
+            state: removed.includes(f.name) ? "removed" : "kept",
+        })),
+        ...staged.map((entry): DraftFile => ({
+            name: entry.file.name,
+            scope: entry.scope,
+            mimeType: entry.file.type || "application/octet-stream",
+            sizeBytes: entry.file.size,
+            sha256: "",
+            url: stagedUrls.get(entry.file.name),
+            state: "added",
+        })),
+    ];
+    // A translation is a statement, not an attachment: `content-en.md` is written
+    // in the editor beside `content.md`, and offering either as something to
+    // point at from the statement would be pointing a document at itself.
+    const participantFiles = files.filter(f =>
+        f.state !== "removed" && f.scope === "participant" && !isStatementName(f.name));
 
     // The preview gets the real files, so a figure appears in it exactly as it
     // will on the participant's screen — including the notice when the name
@@ -163,13 +218,26 @@ export default function ManagerProblemPage() {
         sha256: f.sha256,
     }));
 
-    const uploadAttachment = async (file: File) => {
-        if (!selected) return;
-        await run(async () => {
-            const checksum = await sha256(file);
-            await call(api => api.managerApi.uploadProblemFile(problem.id, selected.id, file, uploadScope, checksum));
-        });
+    const stageAttachment = (file: File) => {
+        setError(undefined);
+        if (isStatementName(file.name)) {
+            // The statement is written in the editor. Attaching one here would
+            // put a second answer beside the one being published.
+            setError(t("content.* is the statement; edit it in the Statement tab"));
+            return;
+        }
+        if (files.some(f => f.state !== "removed" && f.name === file.name)) {
+            // Refused rather than replaced, as the Server refuses it: a statement
+            // referring to the name must not change meaning because somebody
+            // attached a different file.
+            setError(`${t("This version already has a file called")} ${file.name}`);
+            return;
+        }
+        setStaged(current => [...current, { file, scope: uploadScope }]);
     };
+
+    const unstage = (name: string) => setStaged(current => current.filter(entry => entry.file.name !== name));
+    const publishes = staged.length > 0 || removed.length > 0 || packageDraft !== undefined;
 
     return (
         <Stack gap="md">
@@ -280,34 +348,7 @@ export default function ManagerProblemPage() {
                                     />
                                 </Group>
 
-                                <ContentEditor value={source} onChange={setSource} attachmentNames={attachmentNames} />
-
-                                <Card withBorder radius="sm">
-                                    {/* Publishing writes a new version rather than
-                                        editing the current one, so a result stays
-                                        attached to what it was judged against. */}
-                                    <Stack gap="xs">
-                                        <TextInput
-                                            label={t("What changed")}
-                                            placeholder={t("Shown in the version history")}
-                                            value={note}
-                                            onChange={e => setNote(e.currentTarget.value)}
-                                        />
-                                        <Group justify="space-between">
-                                            <Text size="sm" c="dimmed">
-                                                {t("Publishing creates version")} {(versions[0]?.version ?? 0) + 1}
-                                            </Text>
-                                            <Button
-                                                leftSection={<IconDeviceFloppy size={16} />}
-                                                loading={busy}
-                                                disabled={locked}
-                                                onClick={publish}
-                                            >
-                                                {t("Publish a new version")}
-                                            </Button>
-                                        </Group>
-                                    </Stack>
-                                </Card>
+                                <ContentEditor value={source} onChange={setSource} attachments={participantFiles} />
                             </Stack>
                         </Grid.Col>
 
@@ -329,7 +370,7 @@ export default function ManagerProblemPage() {
                         <Stack gap="md">
                             <Group justify="space-between" wrap="wrap">
                                 <Text size="sm" c="dimmed" maw={620}>
-                                    {t("Files of the newest version. A participant receives the participant-scoped ones; the statement points at them by name.")}
+                                    {t("Files of the version shown. A participant receives the participant-scoped ones; the statement points at them by name. Additions and removals are published with the next version.")}
                                 </Text>
                                 <Group gap="xs">
                                     <Select
@@ -356,7 +397,7 @@ export default function ManagerProblemPage() {
                                         style={{ display: "none" }}
                                         onChange={e => {
                                             const file = e.currentTarget.files?.[0];
-                                            if (file) uploadAttachment(file);
+                                            if (file) stageAttachment(file);
                                             e.currentTarget.value = "";
                                         }}
                                     />
@@ -376,9 +417,23 @@ export default function ManagerProblemPage() {
                                 </Table.Thead>
                                 <Table.Tbody>
                                     {files.map(file => (
-                                        <Table.Tr key={file.name}>
+                                        <Table.Tr key={file.name} opacity={file.state === "removed" ? 0.5 : 1}>
                                             <Table.Td>
-                                                <Text size="sm" ff="monospace">{file.name}</Text>
+                                                <Group gap="xs" wrap="nowrap">
+                                                    <Text
+                                                        size="sm"
+                                                        ff="monospace"
+                                                        td={file.state === "removed" ? "line-through" : undefined}
+                                                    >
+                                                        {file.name}
+                                                    </Text>
+                                                    {file.state === "added" && (
+                                                        <Badge size="sm" variant="light" color="teal">{t("new")}</Badge>
+                                                    )}
+                                                    {file.state === "removed" && (
+                                                        <Badge size="sm" variant="light" color="red">{t("removed")}</Badge>
+                                                    )}
+                                                </Group>
                                             </Table.Td>
                                             <Table.Td>
                                                 <Badge variant="light" size="sm">{t(`scope.${file.scope}`)}</Badge>
@@ -388,7 +443,12 @@ export default function ManagerProblemPage() {
                                                 <Text size="sm">{Math.max(1, Math.ceil(file.sizeBytes / 1024))} kB</Text>
                                             </Table.Td>
                                             <Table.Td>
-                                                <Text size="xs" c="dimmed" ff="monospace">{file.sha256.slice(0, 12)}…</Text>
+                                                {/* A staged file has no checksum yet: it
+                                                    is computed when it is published, from
+                                                    the bytes that are sent. */}
+                                                <Text size="xs" c="dimmed" ff="monospace">
+                                                    {file.sha256 ? `${file.sha256.slice(0, 12)}…` : "—"}
+                                                </Text>
                                             </Table.Td>
                                             <Table.Td>
                                                 <Group gap="xs" justify="flex-end" wrap="nowrap">
@@ -396,7 +456,7 @@ export default function ManagerProblemPage() {
                                                         with a space needs the angle
                                                         bracket form, and nobody should
                                                         have to know that. */}
-                                                    {file.scope === "participant" && !/^content\./i.test(file.name) && (
+                                                    {file.scope === "participant" && !isStatementName(file.name) && (
                                                         <CopyButton
                                                             value={file.mimeType.startsWith("image/")
                                                                 ? imageReference(file.name)
@@ -423,21 +483,32 @@ export default function ManagerProblemPage() {
                                                     {/* The statement is written in the
                                                         editor, so it is not deleted from
                                                         a file list. */}
-                                                    <Tooltip label={/^content\./i.test(file.name)
-                                                        ? t("The statement is edited in the Statement tab")
-                                                        : t("Delete")}>
+                                                    {file.state === "removed" ? (
                                                         <Button
                                                             variant="subtle"
-                                                            color="red"
                                                             size="compact-sm"
-                                                            disabled={locked || /^content\./i.test(file.name)}
-                                                            loading={busy}
-                                                            onClick={() => run(() => call(api =>
-                                                                api.managerApi.deleteProblemFile(problem.id, selected.id, file.name)))}
+                                                            onClick={() => setRemoved(current =>
+                                                                current.filter(name => name !== file.name))}
                                                         >
-                                                            <IconTrash size={14} />
+                                                            {t("Restore")}
                                                         </Button>
-                                                    </Tooltip>
+                                                    ) : (
+                                                        <Tooltip label={isStatementName(file.name)
+                                                            ? t("The statement is edited in the Statement tab")
+                                                            : t("Delete")}>
+                                                            <Button
+                                                                variant="subtle"
+                                                                color="red"
+                                                                size="compact-sm"
+                                                                disabled={locked || isStatementName(file.name)}
+                                                                onClick={() => file.state === "added"
+                                                                    ? unstage(file.name)
+                                                                    : setRemoved(current => [...current, file.name])}
+                                                            >
+                                                                <IconTrash size={14} />
+                                                            </Button>
+                                                        </Tooltip>
+                                                    )}
                                                 </Group>
                                             </Table.Td>
                                         </Table.Tr>
@@ -447,8 +518,13 @@ export default function ManagerProblemPage() {
 
                             {files.length === 0 && <Text size="sm" c="dimmed">{t("No files yet")}</Text>}
 
+                            {/* Both forms, because they are two different pieces of
+                                syntax: the sentence used to promise a link for a PDF
+                                while showing only the image form. The angle brackets
+                                are what a name with a space needs — the copy button
+                                beside each file writes the right one either way. */}
                             <Alert color="blue">
-                                {t("A figure is referenced from the statement as ![description](name.png), and a PDF as a link. Only participant-scoped files can be pointed at.")}
+                                {t("A figure goes into the statement as ![description](<name.png>), and a PDF or any other file as a link: [description](<name.pdf>). The angle brackets are needed when the name contains a space; the copy button beside a file writes the whole reference. Only participant-scoped files can be pointed at.")}
                             </Alert>
                         </Stack>
                     ) : (
@@ -460,16 +536,14 @@ export default function ManagerProblemPage() {
 
                 <Tabs.Panel value="package" pt="md">
                     {selected ? (
+                        // Keyed by version: switching to another one, or publishing,
+                        // starts the builder again and opens what that version holds.
                         <PackageBuilder
+                            key={selected.id}
                             disabled={locked}
-                            stored={files.find(f => f.name === "package.zip")}
+                            stored={selected.files.find(f => f.name === "package.zip")}
                             onOpenStored={() => call(api => api.managerApi.getProblemPackage(problem.id, selected.id))}
-                            onUpload={async archive => {
-                                // Computed here, where the bytes were assembled.
-                                const checksum = await sha256(archive);
-                                await call(api => api.managerApi.uploadProblemPackage(problem.id, selected.id, archive, checksum));
-                                setReload(n => n + 1);
-                            }}
+                            onDraftChange={handleDraft}
                         />
                     ) : (
                         <Alert color="yellow">
@@ -565,6 +639,66 @@ export default function ManagerProblemPage() {
                     </Stack>
                 </Tabs.Panel>
             </Tabs>
+
+            {/* One publish control for the whole editor, outside the tabs.
+                A version is published whole — statement, attachments and package
+                together — so there is nothing to save per tab, and a change made
+                in one tab cannot be forgotten while publishing from another. */}
+            <Card withBorder radius="sm">
+                <Stack gap="xs">
+                    <TextInput
+                        label={t("What changed")}
+                        placeholder={t("Shown in the version history")}
+                        value={note}
+                        onChange={e => setNote(e.currentTarget.value)}
+                        disabled={locked}
+                    />
+                    <Group justify="space-between" wrap="wrap">
+                        <Group gap="xs">
+                            <Text size="sm" c="dimmed">
+                                {t("Publishing creates version")} {(versions[0]?.version ?? 0) + 1}:
+                            </Text>
+                            <Tooltip label={Object.keys(sources)
+                                .map(tag => tag === DEFAULT_LANGUAGE ? t("Default statement") : tag).join(", ")}>
+                                <Badge variant="light" size="sm">
+                                    {t("statement")} · {Object.keys(sources).length}
+                                </Badge>
+                            </Tooltip>
+                            {staged.length > 0 && (
+                                <Tooltip label={staged.map(entry => entry.file.name).join(", ")}>
+                                    <Badge variant="light" size="sm" color="teal">+{staged.length}</Badge>
+                                </Tooltip>
+                            )}
+                            {removed.length > 0 && (
+                                <Tooltip label={removed.join(", ")}>
+                                    <Badge variant="light" size="sm" color="red">−{removed.length}</Badge>
+                                </Tooltip>
+                            )}
+                            <Badge variant="light" size="sm" color={packageDraft ? "teal" : "gray"}>
+                                {packageDraft ? t("new package") : t("package unchanged")}
+                            </Badge>
+                        </Group>
+                        <Group gap="xs">
+                            {packageDraft?.blocked && (
+                                <Text size="sm" c="red">{t("The package has errors")}</Text>
+                            )}
+                            <Button
+                                leftSection={<IconDeviceFloppy size={16} />}
+                                loading={busy}
+                                disabled={locked || packageDraft?.blocked}
+                                onClick={publish}
+                            >
+                                {t("Publish a new version")}
+                            </Button>
+                        </Group>
+                    </Group>
+                    {publishes && !locked && (
+                        <Text size="xs" c="dimmed">
+                            {t("Unpublished changes are kept only in this browser tab.")}
+                        </Text>
+                    )}
+                </Stack>
+            </Card>
         </Stack>
     );
 }

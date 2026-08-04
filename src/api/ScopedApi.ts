@@ -24,7 +24,6 @@ import {
     ManagedActivityFilter,
     ManagedActivitySummary,
     ManagedProblem,
-    FileScope,
     ManagedProblemVersion,
     ManagedSeries,
     ManagedUserSummary,
@@ -450,15 +449,5 @@ export class ScopedManagerApi {
 
     getProblemPackage(problemId: string, versionId: string): Promise<Blob | undefined> {
         return this.managerApi.getProblemPackage(problemId, versionId, this.signal);
-    }
-    uploadProblemFile(problemId: string, versionId: string, file: File, scope: FileScope, sha256: string): Promise<ManagedProblemVersion> {
-        return this.managerApi.uploadProblemFile(problemId, versionId, file, scope, sha256, this.signal);
-    }
-    deleteProblemFile(problemId: string, versionId: string, name: string): Promise<ManagedProblemVersion> {
-        return this.managerApi.deleteProblemFile(problemId, versionId, name, this.signal);
-    }
-
-    uploadProblemPackage(problemId: string, versionId: string, archive: Blob, sha256: string): Promise<ManagedProblemVersion> {
-        return this.managerApi.uploadProblemPackage(problemId, versionId, archive, sha256, this.signal);
     }
 }
