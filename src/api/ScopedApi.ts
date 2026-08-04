@@ -28,18 +28,27 @@ import {
     PermissionTemplateInput,
     AnnouncementInput,
     AnswerInput,
+    BulkUserInput,
+    CreatedCredential,
     ManagedQuestion,
     ManagedQuestionFilter,
     ManagedSubmission,
     ManagedSubmissionDetail,
     ManagedSubmissionFilter,
+    ManagedRunner,
+    ManagedRunnerFilter,
+    ManagedUser,
+    ManagedUserFilter,
     ProblemChangedEvent,
     QuestionChangedEvent,
     SeriesChangedEvent,
     StatementVariant,
     SubmissionChangedEvent,
+    RunnerChangedEvent,
     SeriesInput,
     SeriesProblemInput,
+    UserChangedEvent,
+    UserInput,
 } from "./ManagerApi";
 import {
     Activity,
@@ -190,6 +199,8 @@ export class ScopedManagerEventDispatcher {
     addEventListener(type: "seriesChanged", listener: (evt: SeriesChangedEvent) => void): void;
     addEventListener(type: "submissionChanged", listener: (evt: SubmissionChangedEvent) => void): void;
     addEventListener(type: "questionChanged", listener: (evt: QuestionChangedEvent) => void): void;
+    addEventListener(type: "userChanged", listener: (evt: UserChangedEvent) => void): void;
+    addEventListener(type: "runnerChanged", listener: (evt: RunnerChangedEvent) => void): void;
     addEventListener<T extends ManagerEventType, V>(type: T, listener: (evt: ManagerEvent<T, V>) => void): void {
         this.eventDispatcher.addEventListener(type, listener, this.signal);
     }
@@ -233,6 +244,41 @@ export class ScopedManagerApi {
 
     searchUsers(query: string): Promise<ManagedUserSummary[]> {
         return this.managerApi.searchUsers(query, this.signal);
+    }
+
+    getRunners(filter: ManagedRunnerFilter = {}): Promise<Page<ManagedRunner>> {
+        return this.managerApi.getRunners(filter, this.signal);
+    }
+    approveRunner(id: string): Promise<ManagedRunner> {
+        return this.managerApi.approveRunner(id, this.signal);
+    }
+    revokeRunner(id: string, reason?: string): Promise<ManagedRunner> {
+        return this.managerApi.revokeRunner(id, reason, this.signal);
+    }
+    setRunnerTags(id: string, tags: string[]): Promise<ManagedRunner> {
+        return this.managerApi.setRunnerTags(id, tags, this.signal);
+    }
+    forgetRunner(id: string): Promise<void> {
+        return this.managerApi.forgetRunner(id, this.signal);
+    }
+
+    getUsers(filter: ManagedUserFilter = {}): Promise<Page<ManagedUser>> {
+        return this.managerApi.getUsers(filter, this.signal);
+    }
+    createUser(input: UserInput): Promise<CreatedCredential> {
+        return this.managerApi.createUser(input, this.signal);
+    }
+    createTemporaryUsers(input: BulkUserInput): Promise<CreatedCredential[]> {
+        return this.managerApi.createTemporaryUsers(input, this.signal);
+    }
+    setUserBlocked(id: string, blocked: boolean, reason?: string): Promise<ManagedUser> {
+        return this.managerApi.setUserBlocked(id, blocked, reason, this.signal);
+    }
+    resetUserPassword(id: string): Promise<CreatedCredential> {
+        return this.managerApi.resetUserPassword(id, this.signal);
+    }
+    setUserTags(id: string, tags: string[]): Promise<ManagedUser> {
+        return this.managerApi.setUserTags(id, tags, this.signal);
     }
     getManagedActivities(): Promise<ManagedActivitySummary[]> {
         return this.managerApi.getManagedActivities(this.signal);

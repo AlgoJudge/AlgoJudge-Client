@@ -3,6 +3,8 @@ import {
     ActivityInput,
     AnnouncementInput,
     AnswerInput,
+    BulkUserInput,
+    CreatedCredential,
     Grant,
     GrantFilter,
     GrantInput,
@@ -14,11 +16,15 @@ import {
     ManagedAttempt,
     ManagedQuestion,
     ManagedQuestionFilter,
+    ManagedRunner,
+    ManagedRunnerFilter,
     ManagedSeries,
     ManagedSeriesProblem,
     ManagedSubmission,
     ManagedSubmissionDetail,
     ManagedSubmissionFilter,
+    ManagedUser,
+    ManagedUserFilter,
     ManagedUserSummary,
     ManagerApi,
     ProblemFilter,
@@ -31,6 +37,7 @@ import {
     SeriesInput,
     StatementVariant,
     SeriesProblemInput,
+    UserInput,
 } from "../ManagerApi";
 import { Page } from "../ParticipantApi";
 import {
@@ -44,6 +51,8 @@ import {
 import { ActivityRecord, createActivityLibrary } from "./fixtures/activities";
 import { createProblemLibrary, fakeSha, ME, ProblemRecord } from "./fixtures/problems";
 import { createQuestions } from "./fixtures/questions";
+import { createRunners } from "./fixtures/runners";
+import { createUsers } from "./fixtures/users";
 import { createSubmissions, submissionSource } from "./fixtures/submissions";
 import { sha256 } from "../../utils/sha256";
 import { Utils } from "./Utils";
@@ -70,6 +79,20 @@ const summary = (detail: ManagedSubmissionDetail): ManagedSubmission => {
     return rest;
 };
 
+/**
+ * A password a person has to read off paper and type at a workstation: no
+ * lookalike characters, four groups of four.
+ */
+const password = (): string => {
+    const alphabet = "abcdefghjkmnpqrstuvwxyz23456789";
+    let out = "";
+    for (let i = 0; i < 16; i++) {
+        if (i > 0 && i % 4 === 0) out += "-";
+        out += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    return out;
+};
+
 const newId = () => `018f2c00-0000-7000-8000-${Math.random().toString(16).slice(2, 14).padEnd(12, "0")}`;
 
 export class ManagerApiFake implements ManagerApi {
@@ -81,6 +104,8 @@ export class ManagerApiFake implements ManagerApi {
     private activities: ActivityRecord[] = createActivityLibrary();
     private submissions: ManagedSubmissionDetail[] = createSubmissions();
     private questions: ManagedQuestion[] = createQuestions();
+    private users: ManagedUser[] = createUsers();
+    private runners: ManagedRunner[] = createRunners();
 
     constructor(private sleepMs: number = 300) {}
 
@@ -393,6 +418,168 @@ export class ManagerApiFake implements ManagerApi {
         series.problems = sortByGiven(series.problems, orderedIds).map((p, i) => ({ ...p, order: i + 1 }));
         this.announceSeries(record, series);
         return copy(series);
+    }
+
+    async getRunners(filter: ManagedRunnerFilter, signal: AbortSignal): Promise<Page<ManagedRunner>> {
+        await this.settle(signal);
+        const needle = filter.search?.trim().toLowerCase();
+        const matched = this.runners
+            .filter(r => !filter.state || r.state === filter.state)
+            .filter(r => !needle
+                || r.name.toLowerCase().includes(needle)
+                || r.address.toLowerCase().includes(needle)
+                || r.fingerprint.toLowerCase().includes(needle)
+                || r.tags.some(tag => tag.toLowerCase().includes(needle)));
+        return copy(paginate(matched, filter.page, filter.pageSize));
+    }
+
+    async approveRunner(id: string, signal: AbortSignal): Promise<ManagedRunner> {
+        await this.settle(signal);
+        const runner = this.findRunner(id);
+        if (runner.state === "revoked") {
+            // A revoked key stays revoked. The Runner comes back as a new
+            // identity, which is the point of never rotating a key.
+            Utils.throwError("A revoked Runner cannot be approved; it must register again");
+        }
+        runner.state = "approved";
+        runner.approvedAt = new Date().toISOString();
+        this.announceRunner(runner);
+        return copy(runner);
+    }
+
+    async revokeRunner(id: string, reason: string | undefined, signal: AbortSignal): Promise<ManagedRunner> {
+        await this.settle(signal);
+        const runner = this.findRunner(id);
+        runner.state = "revoked";
+        runner.revokedAt = new Date().toISOString();
+        runner.revokedReason = reason;
+        runner.currentSubmissionId = undefined;
+        this.announceRunner(runner);
+        return copy(runner);
+    }
+
+    async setRunnerTags(id: string, tags: string[], signal: AbortSignal): Promise<ManagedRunner> {
+        await this.settle(signal);
+        const runner = this.findRunner(id);
+        runner.tags = [...tags];
+        this.announceRunner(runner);
+        return copy(runner);
+    }
+
+    async forgetRunner(id: string, signal: AbortSignal): Promise<void> {
+        await this.settle(signal);
+        const runner = this.findRunner(id);
+        if (runner.state !== "revoked") {
+            Utils.throwError("Revoke it before forgetting it");
+        }
+        this.runners = this.runners.filter(r => r.id !== id);
+        this.eventDispatcher.dispatchEvent({ type: "runnerChanged", data: { runner: copy(runner) } });
+    }
+
+    async getUsers(filter: ManagedUserFilter, signal: AbortSignal): Promise<Page<ManagedUser>> {
+        await this.settle(signal);
+        const needle = filter.search?.trim().toLowerCase();
+        const matched = this.users
+            .filter(u => filter.includeBlocked || u.blockedAt === undefined)
+            .filter(u => !filter.temporaryOnly || u.isTemporary)
+            .filter(u => !needle
+                || u.name.toLowerCase().includes(needle)
+                || u.username.toLowerCase().includes(needle)
+                || (u.email ?? "").toLowerCase().includes(needle)
+                || u.tags.some(tag => tag.toLowerCase().includes(needle)))
+            .map(user => this.withGrantCount(user));
+        return copy(paginate(matched, filter.page, filter.pageSize));
+    }
+
+    async createUser(input: UserInput, signal: AbortSignal): Promise<CreatedCredential> {
+        await this.settle(signal);
+        this.assertUsernameFree(input.username);
+        const user: ManagedUser = {
+            id: newId(),
+            username: input.username.trim(),
+            name: input.name.trim(),
+            email: input.email?.trim() || undefined,
+            tags: [],
+            isTemporary: false,
+            createdAt: new Date().toISOString(),
+            grantCount: 0,
+        };
+        this.users = [user, ...this.users];
+        this.announceUser(user);
+        return { userId: user.id, username: user.username, password: password() };
+    }
+
+    async createTemporaryUsers(input: BulkUserInput, signal: AbortSignal): Promise<CreatedCredential[]> {
+        await this.settle(signal);
+        if (input.count < 1 || input.count > 500) {
+            Utils.throwError("Create between 1 and 500 accounts at a time");
+        }
+        const prefix = input.prefix.trim();
+        if (!/^[a-z0-9][a-z0-9-]*$/i.test(prefix)) {
+            // The prefix becomes a username, and a username someone has to type
+            // in a hurry at a workstation cannot hold spaces or punctuation.
+            Utils.throwError("The prefix may hold letters, digits and dashes only");
+        }
+
+        const created: CreatedCredential[] = [];
+        // Numbering continues past whatever the prefix already produced, so
+        // running it twice does not collide.
+        const taken = this.users.filter(u => u.username.startsWith(`${prefix}-`)).length;
+        for (let i = 1; i <= input.count; i++) {
+            const username = `${prefix}-${String(taken + i).padStart(3, "0")}`;
+            const user: ManagedUser = {
+                id: newId(),
+                username,
+                name: `${prefix} ${taken + i}`,
+                tags: [...(input.tags ?? []), "temporary"],
+                isTemporary: true,
+                expiresAt: input.expiresAt,
+                createdAt: new Date().toISOString(),
+                grantCount: input.activityId ? 1 : 0,
+            };
+            this.users = [...this.users, user];
+            if (input.activityId) {
+                // Enrolled as they are created: a hundred accounts nobody is in
+                // an activity with are a hundred accounts that cannot submit.
+                this.grants = [...this.grants, {
+                    id: newId(),
+                    userId: user.id,
+                    userName: user.name,
+                    activityId: input.activityId,
+                    activityName: MANAGED_ACTIVITIES.find(a => a.id === input.activityId)?.name,
+                    permissions: [...(input.permissions ?? [])],
+                    state: "active",
+                    createdAt: user.createdAt,
+                }];
+            }
+            created.push({ userId: user.id, username, password: password() });
+        }
+        this.eventDispatcher.dispatchEvent({ type: "grantChanged", data: {} });
+        return created;
+    }
+
+    async setUserBlocked(id: string, blocked: boolean, reason: string | undefined, signal: AbortSignal): Promise<ManagedUser> {
+        await this.settle(signal);
+        const user = this.findUser(id);
+        user.blockedAt = blocked ? new Date().toISOString() : undefined;
+        user.blockedReason = blocked ? reason : undefined;
+        this.announceUser(user);
+        return copy(this.withGrantCount(user));
+    }
+
+    async resetUserPassword(id: string, signal: AbortSignal): Promise<CreatedCredential> {
+        await this.settle(signal);
+        const user = this.findUser(id);
+        // Returned once and never readable again: the Server keeps a hash.
+        return { userId: user.id, username: user.username, password: password() };
+    }
+
+    async setUserTags(id: string, tags: string[], signal: AbortSignal): Promise<ManagedUser> {
+        await this.settle(signal);
+        const user = this.findUser(id);
+        user.tags = [...tags];
+        this.announceUser(user);
+        return copy(this.withGrantCount(user));
     }
 
     async getQuestions(filter: ManagedQuestionFilter, signal: AbortSignal): Promise<Page<ManagedQuestion>> {
@@ -738,6 +925,36 @@ export class ManagerApiFake implements ManagerApi {
         ];
         this.announce(record.problem);
         return copy(version);
+    }
+
+    private findRunner(id: string): ManagedRunner {
+        return this.runners.find(r => r.id === id) ?? notFound("Runner");
+    }
+
+    private announceRunner(runner: ManagedRunner): void {
+        this.eventDispatcher.dispatchEvent({ type: "runnerChanged", data: { runner: copy(runner) } });
+    }
+
+    private findUser(id: string): ManagedUser {
+        return this.users.find(u => u.id === id) ?? notFound("User");
+    }
+
+    /** Read from the grants rather than stored, for the same reason as elsewhere. */
+    private withGrantCount(user: ManagedUser): ManagedUser {
+        return { ...user, grantCount: this.grants.filter(g => g.userId === user.id).length };
+    }
+
+    private announceUser(user: ManagedUser): void {
+        this.eventDispatcher.dispatchEvent({
+            type: "userChanged",
+            data: { user: copy(this.withGrantCount(user)) },
+        });
+    }
+
+    private assertUsernameFree(username: string): void {
+        if (this.users.some(u => u.username.toLowerCase() === username.trim().toLowerCase())) {
+            Utils.throwError("That username is taken");
+        }
     }
 
     private findQuestion(id: string): ManagedQuestion {

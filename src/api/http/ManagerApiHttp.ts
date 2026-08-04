@@ -11,11 +11,17 @@ import {
     ManagedSeries,
     AnnouncementInput,
     AnswerInput,
+    BulkUserInput,
+    CreatedCredential,
     ManagedQuestion,
     ManagedQuestionFilter,
     ManagedSubmission,
     ManagedSubmissionDetail,
     ManagedSubmissionFilter,
+    ManagedRunner,
+    ManagedRunnerFilter,
+    ManagedUser,
+    ManagedUserFilter,
     ManagedUserSummary,
     ManagerApi,
     ProblemFilter,
@@ -28,6 +34,7 @@ import {
     SeriesInput,
     SeriesProblemInput,
     StatementVariant,
+    UserInput,
 } from "../ManagerApi";
 import { Page } from "../ParticipantApi";
 import { ManagerEventDispatcherImpl } from "../impl/ManagerEventDispatcher";
@@ -96,6 +103,67 @@ export class ManagerApiHttp implements ManagerApi {
 
     searchUsers(query: string, signal: AbortSignal): Promise<ManagedUserSummary[]> {
         return this.http.request<ManagedUserSummary[]>("/users", "GET", { signal, query: { q: query } });
+    }
+
+    getRunners(filter: ManagedRunnerFilter, signal: AbortSignal): Promise<Page<ManagedRunner>> {
+        const query: Record<string, string | number> = {};
+        if (filter.page !== undefined) query.page = filter.page;
+        if (filter.pageSize !== undefined) query.pageSize = filter.pageSize;
+        if (filter.state) query.state = filter.state;
+        if (filter.search) query.search = filter.search;
+        return this.http.request<Page<ManagedRunner>>("/runners", "GET", { signal, query });
+    }
+
+    approveRunner(id: string, signal: AbortSignal): Promise<ManagedRunner> {
+        return this.http.request<ManagedRunner>(`/runners/${encodeURIComponent(id)}/approve`, "POST", { signal });
+    }
+
+    revokeRunner(id: string, reason: string | undefined, signal: AbortSignal): Promise<ManagedRunner> {
+        return this.http.request<ManagedRunner>(`/runners/${encodeURIComponent(id)}/revoke`, "POST", {
+            signal, body: { reason },
+        });
+    }
+
+    setRunnerTags(id: string, tags: string[], signal: AbortSignal): Promise<ManagedRunner> {
+        return this.http.request<ManagedRunner>(`/runners/${encodeURIComponent(id)}/tags`, "POST", {
+            signal, body: { tags },
+        });
+    }
+
+    async forgetRunner(id: string, signal: AbortSignal): Promise<void> {
+        await this.http.request<void>(`/runners/${encodeURIComponent(id)}/delete`, "POST", { signal });
+    }
+
+    getUsers(filter: ManagedUserFilter, signal: AbortSignal): Promise<Page<ManagedUser>> {
+        const query: Record<string, string | number | boolean> = {};
+        if (filter.page !== undefined) query.page = filter.page;
+        if (filter.pageSize !== undefined) query.pageSize = filter.pageSize;
+        if (filter.search) query.search = filter.search;
+        if (filter.includeBlocked) query.includeBlocked = true;
+        if (filter.temporaryOnly) query.temporaryOnly = true;
+        return this.http.request<Page<ManagedUser>>("/users/managed", "GET", { signal, query });
+    }
+
+    createUser(input: UserInput, signal: AbortSignal): Promise<CreatedCredential> {
+        return this.http.request<CreatedCredential>("/users", "POST", { signal, body: input });
+    }
+
+    createTemporaryUsers(input: BulkUserInput, signal: AbortSignal): Promise<CreatedCredential[]> {
+        return this.http.request<CreatedCredential[]>("/users/temporary", "POST", { signal, body: input });
+    }
+
+    setUserBlocked(id: string, blocked: boolean, reason: string | undefined, signal: AbortSignal): Promise<ManagedUser> {
+        return this.http.request<ManagedUser>(`/users/${encodeURIComponent(id)}/blocked`, "POST", {
+            signal, body: { blocked, reason },
+        });
+    }
+
+    resetUserPassword(id: string, signal: AbortSignal): Promise<CreatedCredential> {
+        return this.http.request<CreatedCredential>(`/users/${encodeURIComponent(id)}/password`, "POST", { signal });
+    }
+
+    setUserTags(id: string, tags: string[], signal: AbortSignal): Promise<ManagedUser> {
+        return this.http.request<ManagedUser>(`/users/${encodeURIComponent(id)}/tags`, "POST", { signal, body: { tags } });
     }
 
     getManagedActivities(signal: AbortSignal): Promise<ManagedActivitySummary[]> {

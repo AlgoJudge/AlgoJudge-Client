@@ -1,285 +1,321 @@
-import { Anchor, Badge, Button, Code, Modal, Table, Tabs, Title } from '@mantine/core';
-import { useState } from 'react';
+import {
+    Alert, Badge, Button, Card, Group, Modal, Pagination, Select, Stack, Table, TagsInput, Text,
+    TextInput, Title, Tooltip,
+} from "@mantine/core";
+import { IconCheck, IconSearch, IconTrash, IconX } from "@tabler/icons-react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { ManagedRunner, RunnerState } from "../../../api/ManagerApi";
+import LoadState from "../../../components/LoadState";
+import ActivityTime from "../../../components/time/ActivityTime";
+import { useApiCall, useApiEffect } from "../../../provider/ApiProvider";
+
+const PAGE_SIZE = 20;
+
+const STATE_COLOUR: Record<RunnerState, string> = {
+    pendingApproval: "orange",
+    approved: "teal",
+    revoked: "gray",
+};
+
+const STATES: RunnerState[] = ["pendingApproval", "approved", "revoked"];
 
 /**
- * Shape of a connected Runner instance as the manager needs to see it.
+ * The Runners an installation has, and what each one said about itself.
  *
- * This mirrors what the Server-Runner API proposal has the Runner report on
- * startup (product name, version, supported problem types, `lscpu` and `free`
- * output) plus the identity and moderation fields the Server would hold. The
- * Server implements none of this yet, so the page renders fixtures.
+ * Everything but the tags is reported by the Runner: product, version, the
+ * problem types it accepts, its address, its key fingerprint and its machine.
+ * The screen displays the report and never fills a gap in it — a Runner that has
+ * not connected has no machine, and saying so is the honest answer.
+ *
+ * Approval and connection are shown separately. An approved Runner that is
+ * offline is an outage; a connected Runner that is not approved evaluates
+ * nothing. Collapsing the two into one "status" hides both.
  */
-export interface RunnerInstance {
-    id: string;
-    name: string;
-    product: string;
-    version: string;
-    problemTypes: string[];
-    tags: string[];
-    ip: string;
-    status: "confirmed" | "pending" | "rejected";
-    blocked?: string;
-    connection: "online" | "offline";
-    fingerprint: string;
-    note?: string;
-}
+export default function RunnersPage() {
+    const { t } = useTranslation();
+    const call = useApiCall();
 
-const runners: RunnerInstance[] = [
-    {
-        id: "e55fd089-61d2-4b44-83ef-466d35117975",
-        name: "Main runner",
-        product: "AlgoJudge-Runner",
-        version: "0.0.1",
-        problemTypes: ["std", "c++"],
-        tags: ["all", "contest1", "lab1"],
-        ip: "192.168.1.1",
-        status: "confirmed",
-        connection: "online",
-        fingerprint: "43:51:43:a1:b5:fc:8b:b7:0a:3a:a9:b1:0f:66:73:a8",
-    },
-    {
-        id: "7a1c0f52-9d84-4e37-b0aa-1c2f5d6e8b41",
-        name: "Lab runner",
-        product: "AlgoJudge-Runner",
-        version: "0.0.1",
-        problemTypes: ["std"],
-        tags: ["lab1"],
-        ip: "192.168.1.24",
-        status: "confirmed",
-        connection: "online",
-        fingerprint: "b2:0d:77:3e:41:9a:c5:18:6f:2b:84:d0:53:aa:1e:97",
-    },
-    {
-        id: "c93b47ae-2f60-4d15-9e88-73a0b5c1def2",
-        name: "Judge0 adapter",
-        product: "AlgoJudge-Runner-Judge0",
-        version: "0.2.0",
-        problemTypes: ["std", "python"],
-        tags: ["all", "judge0"],
-        ip: "10.0.4.7",
-        status: "confirmed",
-        connection: "offline",
-        fingerprint: "1f:88:d3:06:b7:4c:2a:95:e1:70:39:cb:6d:12:5f:a4",
-        note: "Last seen 3 days ago",
-    },
-    {
-        id: "5d2e8b19-0a73-42cf-8146-9be3c7f0a852",
-        name: "Contest runner",
-        product: "AlgoJudge-Runner",
-        version: "0.0.2",
-        problemTypes: ["std", "c++", "interactive"],
-        tags: ["contest1"],
-        ip: "10.0.4.19",
-        status: "pending",
-        connection: "online",
-        fingerprint: "6c:31:f9:ad:52:8e:04:b6:77:19:e2:3d:90:c8:4b:15",
-        note: "Awaiting administrator approval",
-    },
-    {
-        id: "0b6f3d74-8c15-4a92-a3e0-2d47915bc608",
-        name: "Retired runner",
-        product: "AlgoJudge-Runner",
-        version: "0.0.1",
-        problemTypes: ["std"],
-        tags: [],
-        ip: "10.0.4.31",
-        status: "rejected",
-        blocked: "Key revoked",
-        connection: "offline",
-        fingerprint: "9e:47:2b:c0:15:6d:83:f1:a9:34:5e:78:20:bb:d6:3c",
-    },
-]
+    const [items, setItems] = useState<ManagedRunner[] | undefined>(undefined);
+    const [total, setTotal] = useState(0);
+    const [page, setPage] = useState(1);
+    const [search, setSearch] = useState("");
+    const [state, setState] = useState<RunnerState | undefined>(undefined);
+    const [selected, setSelected] = useState<ManagedRunner | undefined>(undefined);
+    const [tags, setTags] = useState<string[]>([]);
+    const [error, setError] = useState<string | undefined>(undefined);
+    const [busy, setBusy] = useState(false);
+    const [reload, setReload] = useState(0);
 
-const lscpuOutput =
-`Architecture:        x86_64
-CPU op-mode(s):      32-bit, 64-bit
-Byte Order:          Little Endian
-CPU(s):              4
-On-line CPU(s) list: 0-3
-Thread(s) per core:  2
-Core(s) per socket:  2
-Socket(s):           1
-NUMA node(s):        1
-Vendor ID:           GenuineIntel
-CPU family:          6
-Model:               61
-Model name:          Intel(R) Core(TM) i5-5200U CPU @ 2.20GHz
-Stepping:            4
-CPU MHz:             971.253
-CPU max MHz:         2700,0000
-CPU min MHz:         500,0000
-BogoMIPS:            4389.76
-Virtualization:      VT-x
-L1d cache:           32K
-L1i cache:           32K
-L2 cache:            256K
-L3 cache:            3072K
-NUMA node0 CPU(s):   0-3
-Flags:               fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe
-syscall nx pdpe1gb rdtscp lm constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf pni pclmulqdq dtes64 monitor
-ds_cpl vmx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm
-3dnowprefetch cpuid_fault epb invpcid_single pti ssbd ibrs ibpb stibp tpr_shadow vnmi flexpriority ept vpid ept_ad fsgsbase tsc_adjust bmi1 avx2
-smep bmi2 erms invpcid rdseed adx smap intel_pt xsaveopt dtherm ida arat pln pts md_clear flush_l1d             
-`
+    const loadError = useApiEffect(async (api) => {
+        setItems(undefined);
+        const result = await api.managerApi.getRunners({
+            page, pageSize: PAGE_SIZE,
+            state,
+            search: search || undefined,
+        });
+        setItems(result.items);
+        setTotal(result.total);
 
-const freeOutput = 
-`total    used      free   shared   buff/cache  available
-                        
-Mem:    8029356  794336   6297928   183384       937092    6816804
-Swap:         0       0         0
-`
+        api.managerApi.eventDispatcher.addEventListener("runnerChanged", () => setReload(n => n + 1));
+    }, [page, search, state, reload]);
 
-const RunnerModal = (props: { runner: RunnerInstance | undefined, onClose: () => void }) => {
-    if (!props.runner) return;
+    const run = async (operation: () => Promise<unknown>) => {
+        setError(undefined);
+        setBusy(true);
+        try {
+            await operation();
+            setReload(n => n + 1);
+        } catch (e) {
+            setError(e instanceof Error ? e.message : String(e));
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    if (!items) return <LoadState error={loadError} loading={!loadError} />;
+
+    const waiting = items.filter(r => r.state === "pendingApproval").length;
+
     return (
-        <Modal opened={!!props.runner} onClose={props.onClose} title="Runner details" size="70%">
-            <Tabs defaultValue="general">
-                <Tabs.List>
-                    <Tabs.Tab value="general">
-                        General
-                    </Tabs.Tab>
-                    <Tabs.Tab value="proc">
-                        Processor
-                    </Tabs.Tab>
-                    <Tabs.Tab value="mem">
-                        Memory
-                    </Tabs.Tab>
-                    <Tabs.Tab value="logs">
-                        Logs
-                    </Tabs.Tab>
-                </Tabs.List>
+        <Stack gap="md">
+            <Stack gap={2}>
+                <Title>{t("Runners")}</Title>
+                <Text size="sm" c="dimmed">
+                    {t("A Runner registers its own key and evaluates nothing until an administrator approves it.")}
+                </Text>
+            </Stack>
 
-                <Tabs.Panel value="general">
-                    <Table variant="vertical" layout="fixed" withTableBorder>
-                        <Table.Tbody>
-                            <Table.Tr>
-                                <Table.Th>Id</Table.Th>
-                                <Table.Td>{props.runner.id}</Table.Td>
-                            </Table.Tr>
-                            <Table.Tr>
-                                <Table.Th>Name</Table.Th>
-                                <Table.Td>{props.runner.name}</Table.Td>
-                            </Table.Tr>
-                            <Table.Tr>
-                                <Table.Th>Product</Table.Th>
-                                <Table.Td>{props.runner.product}</Table.Td>
-                            </Table.Tr>
-                            <Table.Tr>
-                                <Table.Th>Version</Table.Th>
-                                <Table.Td>{props.runner.version}</Table.Td>
-                            </Table.Tr>
-                            <Table.Tr>
-                                <Table.Th>Supported problem types</Table.Th>
-                                <Table.Td>{props.runner.problemTypes.join(", ")}</Table.Td>
-                            </Table.Tr>
-                            <Table.Tr>
-                                <Table.Th>Tags</Table.Th>
-                                <Table.Td>{props.runner.tags.map((tag: string) => <Badge variant="light" color="blue" size="md">{tag}</Badge>)}</Table.Td>
-                            </Table.Tr>
-                            <Table.Tr>
-                                <Table.Th>IP</Table.Th>
-                                <Table.Td>{props.runner.ip}</Table.Td>
-                            </Table.Tr>
-                            <Table.Tr>
-                                <Table.Th>Connection</Table.Th>
-                                <Table.Td>{props.runner.connection}</Table.Td>
-                            </Table.Tr>
-                            <Table.Tr>
-                                <Table.Th>Public key fingerprint</Table.Th>
-                                <Table.Td><Code>{props.runner.fingerprint}</Code></Table.Td>
-                            </Table.Tr>
-                            <Table.Tr>
-                                <Table.Th>Public key</Table.Th>
-                                <Table.Td><Code>AAAAC3NzaC1lZDI1NTE5AAAAIAmzA7ZZl6oCe3yrEHL24w0O/sUwD7p6m7P57jKU3Pxm</Code></Table.Td>
-                            </Table.Tr>
-                            <Table.Tr>
-                                <Table.Th>Status</Table.Th>
-                                <Table.Td>{props.runner.status}</Table.Td>
-                            </Table.Tr>
-                            <Table.Tr>
-                                <Table.Th>Blocked</Table.Th>
-                                <Table.Td>{props.runner.blocked}</Table.Td>
-                            </Table.Tr>
-                            <Table.Tr>
-                                <Table.Th>Note</Table.Th>
-                                <Table.Td>{props.runner.note}</Table.Td>
-                            </Table.Tr>
-                        </Table.Tbody>
-                    </Table>
-                    <Button>Block</Button>
-                </Tabs.Panel>
+            {error && <Alert color="red" withCloseButton onClose={() => setError(undefined)}>{error}</Alert>}
 
-                <Tabs.Panel value="proc">
-                    <Code block>{lscpuOutput}</Code>
-                </Tabs.Panel>
+            {waiting > 0 && (
+                <Alert color="orange">
+                    {/* Counted after the label rather than before it: a number in
+                        front of a noun needs grammatical agreement, and the
+                        translation files do not carry plural forms. */}
+                    {t("Waiting for approval")}: {waiting}
+                </Alert>
+            )}
 
-                <Tabs.Panel value="mem">
-                    <Code block>{freeOutput}</Code>
-                </Tabs.Panel>
-            </Tabs>
-        </Modal>
+            <Group gap="md" wrap="wrap">
+                <TextInput
+                    placeholder={t("Search by name, address, fingerprint or tag")}
+                    leftSection={<IconSearch size={16} />}
+                    value={search}
+                    onChange={e => { setSearch(e.currentTarget.value); setPage(1); }}
+                    w={320}
+                />
+                <Select
+                    placeholder={t("Every state")}
+                    data={STATES.map(s => ({ value: s, label: t(`runnerState.${s}`) }))}
+                    value={state ?? null}
+                    onChange={v => { setState((v ?? undefined) as RunnerState | undefined); setPage(1); }}
+                    clearable
+                    w={220}
+                />
+            </Group>
+
+            <Table.ScrollContainer minWidth={1000}>
+                <Table striped highlightOnHover>
+                    <Table.Thead>
+                        <Table.Tr>
+                            <Table.Th>{t("Runner")}</Table.Th>
+                            <Table.Th>{t("Version")}</Table.Th>
+                            <Table.Th>{t("Problem types")}</Table.Th>
+                            <Table.Th>{t("Machine")}</Table.Th>
+                            <Table.Th>{t("State")}</Table.Th>
+                            <Table.Th>{t("Last seen")}</Table.Th>
+                            <Table.Th />
+                        </Table.Tr>
+                    </Table.Thead>
+                    <Table.Tbody>
+                        {items.map(runner => (
+                            <Table.Tr key={runner.id} opacity={runner.state === "revoked" ? 0.55 : 1}>
+                                <Table.Td>
+                                    <Stack gap={0}>
+                                        <Group gap="xs">
+                                            <Text
+                                                fw={500}
+                                                style={{ cursor: "pointer" }}
+                                                onClick={() => { setSelected(runner); setTags(runner.tags); }}
+                                            >
+                                                {runner.name}
+                                            </Text>
+                                            {/* Connection and approval are different
+                                                facts and are shown as different things. */}
+                                            <Badge
+                                                size="sm"
+                                                variant="dot"
+                                                color={runner.isConnected ? "teal" : "gray"}
+                                            >
+                                                {t(runner.isConnected ? "online" : "offline")}
+                                            </Badge>
+                                        </Group>
+                                        <Text size="xs" c="dimmed" ff="monospace">{runner.address}</Text>
+                                    </Stack>
+                                </Table.Td>
+                                <Table.Td>
+                                    <Stack gap={0}>
+                                        <Text size="sm">{runner.version}</Text>
+                                        <Text size="xs" c="dimmed">{runner.product}</Text>
+                                    </Stack>
+                                </Table.Td>
+                                <Table.Td>
+                                    <Group gap={4}>
+                                        {runner.problemTypes.map(type => (
+                                            <Badge key={type} size="sm" variant="light" ff="monospace">{type}</Badge>
+                                        ))}
+                                    </Group>
+                                </Table.Td>
+                                <Table.Td>
+                                    {runner.machine
+                                        ? (
+                                            <Text size="xs" c="dimmed">
+                                                {runner.machine.cores} × {runner.machine.cpu}
+                                                <br />
+                                                {Math.round((runner.machine.memoryMb ?? 0) / 1024)} GB · {runner.machine.os}
+                                            </Text>
+                                        )
+                                        : <Text size="xs" c="dimmed">{t("never connected")}</Text>}
+                                </Table.Td>
+                                <Table.Td>
+                                    <Tooltip label={runner.revokedReason ?? ""} disabled={!runner.revokedReason}>
+                                        <Badge variant="light" color={STATE_COLOUR[runner.state]}>
+                                            {t(`runnerState.${runner.state}`)}
+                                        </Badge>
+                                    </Tooltip>
+                                </Table.Td>
+                                <Table.Td>
+                                    {runner.lastSeenAt
+                                        ? <ActivityTime value={runner.lastSeenAt} timeZone="Europe/Warsaw" hideZone />
+                                        : <Text size="sm" c="dimmed">—</Text>}
+                                </Table.Td>
+                                <Table.Td>
+                                    <Group gap="xs" justify="flex-end" wrap="nowrap">
+                                        {runner.state === "pendingApproval" && (
+                                            <Button
+                                                variant="light"
+                                                size="compact-sm"
+                                                leftSection={<IconCheck size={14} />}
+                                                loading={busy}
+                                                onClick={() => run(() => call(api => api.managerApi.approveRunner(runner.id)))}
+                                            >
+                                                {t("Approve")}
+                                            </Button>
+                                        )}
+                                        {runner.state === "approved" && (
+                                            <Tooltip label={t("Revoke the key — the Runner must register again")}>
+                                                <Button
+                                                    variant="subtle"
+                                                    color="red"
+                                                    size="compact-sm"
+                                                    loading={busy}
+                                                    onClick={() => run(() => call(api =>
+                                                        api.managerApi.revokeRunner(runner.id, undefined)))}
+                                                >
+                                                    <IconX size={14} />
+                                                </Button>
+                                            </Tooltip>
+                                        )}
+                                        {runner.state === "revoked" && (
+                                            <Tooltip label={t("Forget it")}>
+                                                <Button
+                                                    variant="subtle"
+                                                    color="red"
+                                                    size="compact-sm"
+                                                    loading={busy}
+                                                    onClick={() => run(() => call(api => api.managerApi.forgetRunner(runner.id)))}
+                                                >
+                                                    <IconTrash size={14} />
+                                                </Button>
+                                            </Tooltip>
+                                        )}
+                                    </Group>
+                                </Table.Td>
+                            </Table.Tr>
+                        ))}
+                    </Table.Tbody>
+                </Table>
+            </Table.ScrollContainer>
+
+            {items.length === 0 && <Text c="dimmed">{t("Nothing matches the filters")}</Text>}
+
+            <Group justify="center">
+                <Pagination total={Math.ceil(total / PAGE_SIZE)} value={page} onChange={setPage} />
+            </Group>
+
+            <Modal
+                opened={selected !== undefined}
+                onClose={() => setSelected(undefined)}
+                title={<Title order={4}>{selected?.name}</Title>}
+                size="lg"
+                centered
+            >
+                {selected && (
+                    <Stack gap="sm">
+                        <Card withBorder radius="sm">
+                            <Table variant="vertical" layout="fixed">
+                                <Table.Tbody>
+                                    <Table.Tr>
+                                        <Table.Th w={200}>{t("Product")}</Table.Th>
+                                        <Table.Td>{selected.product} {selected.version}</Table.Td>
+                                    </Table.Tr>
+                                    <Table.Tr>
+                                        <Table.Th>{t("Address")}</Table.Th>
+                                        <Table.Td ff="monospace">{selected.address}</Table.Td>
+                                    </Table.Tr>
+                                    <Table.Tr>
+                                        <Table.Th>{t("Key fingerprint")}</Table.Th>
+                                        <Table.Td ff="monospace" fz="xs">{selected.fingerprint}</Table.Td>
+                                    </Table.Tr>
+                                    <Table.Tr>
+                                        <Table.Th>{t("Registered")}</Table.Th>
+                                        <Table.Td>
+                                            <ActivityTime value={selected.registeredAt} timeZone="Europe/Warsaw" />
+                                        </Table.Td>
+                                    </Table.Tr>
+                                    <Table.Tr>
+                                        <Table.Th>{t("Completed jobs")}</Table.Th>
+                                        <Table.Td>{selected.completedJobs}</Table.Td>
+                                    </Table.Tr>
+                                    {selected.machine && (
+                                        <Table.Tr>
+                                            <Table.Th>{t("Machine")}</Table.Th>
+                                            <Table.Td>
+                                                {selected.machine.cpu} · {selected.machine.cores} {t("cores")} ·{" "}
+                                                {Math.round((selected.machine.memoryMb ?? 0) / 1024)} GB · {selected.machine.os}
+                                            </Table.Td>
+                                        </Table.Tr>
+                                    )}
+                                </Table.Tbody>
+                            </Table>
+                        </Card>
+
+                        <Alert color="blue">
+                            {t("Everything above is what the Runner reported about itself. Only the tags are set here.")}
+                        </Alert>
+
+                        <TagsInput
+                            label={t("Tags")}
+                            description={t("Used to steer work at particular machines")}
+                            value={tags}
+                            onChange={setTags}
+                        />
+                        <Group justify="space-between">
+                            <Button variant="default" onClick={() => setSelected(undefined)}>{t("Back")}</Button>
+                            <Button
+                                loading={busy}
+                                onClick={() => run(async () => {
+                                    await call(api => api.managerApi.setRunnerTags(selected.id, tags));
+                                    setSelected(undefined);
+                                })}
+                            >
+                                {t("Save")}
+                            </Button>
+                        </Group>
+                    </Stack>
+                )}
+            </Modal>
+        </Stack>
     );
 }
-
-const RunnersTable = (props: { setRunner: (runner: RunnerInstance) => void }) => {
-    return (
-        <Table highlightOnHover>
-            <Table.Thead>
-                <Table.Tr>
-                    <Table.Th>Id</Table.Th>
-                    <Table.Th>Name</Table.Th>
-                    <Table.Th>Product</Table.Th>
-                    <Table.Th>Version</Table.Th>
-                    <Table.Th>Supported problem types</Table.Th>
-                    <Table.Th>Tags</Table.Th>
-                    <Table.Th>IP</Table.Th>
-                    <Table.Th>Connection</Table.Th>
-                    <Table.Th>Public key fingerprint</Table.Th>
-                    <Table.Th>Status</Table.Th>
-                    <Table.Th>Blocked</Table.Th>
-                    <Table.Th>Note</Table.Th>
-                    <Table.Th>Actions</Table.Th>
-                </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-                {runners.map((element) =>
-                    <Table.Tr key={element.id}>
-                        <Table.Td><Anchor onClick={() => props.setRunner(element)}>{element.id}</Anchor></Table.Td>
-                        <Table.Td>{element.name}</Table.Td>
-                        <Table.Td>{element.product}</Table.Td>
-                        <Table.Td>{element.version}</Table.Td>
-                        <Table.Td>{element.problemTypes.join(", ")}</Table.Td>
-                        <Table.Td>{element.tags.map((tag: string) => <Badge key={tag} variant="light" color="blue" size="sm">{tag}</Badge>)}</Table.Td>
-                        <Table.Td>{element.ip}</Table.Td>
-                        <Table.Td>{element.connection}</Table.Td>
-                        <Table.Td><Code>{element.fingerprint}</Code></Table.Td>
-                        <Table.Td>{element.status}</Table.Td>
-                        <Table.Td>{element.blocked}</Table.Td>
-                        <Table.Td>{element.note}</Table.Td>
-                        <Table.Td>
-                            <Button size="xs" onClick={() => props.setRunner(element)}>Details</Button>
-                        </Table.Td>
-                    </Table.Tr>)
-                }
-            </Table.Tbody>
-        </Table>
-    );
-}
-
-function RunnersPage() {
-    const [runner, setRunner] = useState<RunnerInstance | undefined>();
-    return (
-        <>
-            <Title>Runners</Title>
-            <Title order={2}>Requests</Title>
-            <RunnersTable setRunner={setRunner} />
-            <Title order={2}>Active</Title>
-            <RunnersTable setRunner={setRunner} />
-            <Title order={2}>Inactive</Title>
-            <RunnersTable setRunner={setRunner} />
-            <RunnerModal runner={runner} onClose={() => setRunner(undefined)} />
-        </>
-    )
-}
-
-export default RunnersPage;
