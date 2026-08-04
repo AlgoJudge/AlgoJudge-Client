@@ -71,13 +71,22 @@ const record = (
         config: v.config,
         hasPackage: v.hasPackage,
         files: [
-            ...(v.content ? [{ name: "content.md", scope: "participant" as const, sizeBytes: 2048, sha256: fakeSha(`${v.id}/content.md`) }] : []),
+            ...(v.content ? [{
+                name: "content.md", scope: "participant" as const, mimeType: "text/markdown",
+                sizeBytes: 2048, sha256: fakeSha(`${v.id}/content.md`),
+            }] : []),
             ...Object.keys(v.translations ?? {}).map(language => ({
-                name: `content-${language}.md`, scope: "participant" as const, sizeBytes: 2048,
-                sha256: fakeSha(`${v.id}/content-${language}.md`),
+                name: `content-${language}.md`, scope: "participant" as const, mimeType: "text/markdown",
+                sizeBytes: 2048, sha256: fakeSha(`${v.id}/content-${language}.md`),
             })),
-            ...(v.hasPackage ? [{ name: "package.zip", scope: "runner" as const, sizeBytes: 1_450_000, sha256: fakeSha(`${v.id}/package.zip`) }] : []),
-            ...(v.hasPackage ? [{ name: "model.cpp", scope: "manager" as const, sizeBytes: 1200, sha256: fakeSha(`${v.id}/model.cpp`) }] : []),
+            ...(v.hasPackage ? [{
+                name: "package.zip", scope: "runner" as const, mimeType: "application/zip",
+                sizeBytes: 1_450_000, sha256: fakeSha(`${v.id}/package.zip`),
+            }] : []),
+            ...(v.hasPackage ? [{
+                name: "model.cpp", scope: "manager" as const, mimeType: "text/x-c++src",
+                sizeBytes: 1200, sha256: fakeSha(`${v.id}/model.cpp`),
+            }] : []),
         ],
     })).sort((a, b) => b.version - a.version),
     content: new Map(versions.filter(v => v.content).map(v => [v.id, [

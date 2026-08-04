@@ -299,8 +299,27 @@ export interface ManagedProblemVersion {
     config: unknown;
     /** Whether a Runner package has been uploaded for this version. */
     hasPackage: boolean;
-    files: { name: string; scope: "participant" | "manager" | "runner"; sizeBytes: number; sha256: string }[];
+    files: ProblemFile[];
 }
+
+/**
+ * A file attached to one problem version.
+ *
+ * The scope decides who ever receives it, and the Server enforces it without
+ * looking inside: a participant sees `participant`, a Runner receives the
+ * package, and `manager` — a model solution, a note — reaches neither.
+ */
+export interface ProblemFile {
+    name: string;
+    scope: FileScope;
+    mimeType: string;
+    sizeBytes: number;
+    sha256: string;
+    /** Where to fetch it. Absent until the Server has stored it. */
+    url?: string;
+}
+
+export type FileScope = "participant" | "manager" | "runner";
 
 export interface ProblemInput {
     slug: string;
@@ -833,6 +852,27 @@ export interface ManagerApi {
     getProblemContent(problemId: string, versionId: string, signal: AbortSignal): Promise<StatementVariant[]>;
     /** Publishes a new version. Versions are append-only; nothing is edited in place. */
     createProblemVersion(problemId: string, input: ProblemVersionInput, signal: AbortSignal): Promise<ManagedProblemVersion>;
+    /**
+     * Attaches an ordinary file to a version — a figure, a PDF statement, sample
+     * data, a model solution.
+     *
+     * `sha256` is computed by the caller and recomputed by the Server, as every
+     * upload is. A name already used by the version is refused rather than
+     * silently replaced: a statement referring to `graf.png` must not change
+     * meaning because somebody uploaded a different `graf.png`.
+     */
+    uploadProblemFile(
+        problemId: string,
+        versionId: string,
+        file: File,
+        scope: FileScope,
+        sha256: string,
+        signal: AbortSignal,
+    ): Promise<ManagedProblemVersion>;
+
+    /** Removes one. The statement referring to it then says the file is missing. */
+    deleteProblemFile(problemId: string, versionId: string, name: string, signal: AbortSignal): Promise<ManagedProblemVersion>;
+
     /**
      * Attaches the Runner package to a version.
      *

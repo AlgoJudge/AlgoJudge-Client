@@ -7,6 +7,7 @@ import {
     ManagedActivityFilter,
     ManagedActivitySummary,
     ManagedProblem,
+    FileScope,
     ManagedProblemVersion,
     ManagedSeries,
     AnnouncementInput,
@@ -384,6 +385,29 @@ export class ManagerApiHttp implements ManagerApi {
     createProblemVersion(problemId: string, input: ProblemVersionInput, signal: AbortSignal): Promise<ManagedProblemVersion> {
         return this.http.request<ManagedProblemVersion>(
             `/problems/${encodeURIComponent(problemId)}/versions`, "POST", { signal, body: input });
+    }
+
+    async uploadProblemFile(
+        problemId: string,
+        versionId: string,
+        file: File,
+        scope: FileScope,
+        sha256: string,
+        signal: AbortSignal,
+    ): Promise<ManagedProblemVersion> {
+        const form = new FormData();
+        form.append("file", file, file.name);
+        form.append("scope", scope);
+        form.append("sha256", sha256);
+        return this.http.request<ManagedProblemVersion>(
+            `/problems/${encodeURIComponent(problemId)}/versions/${encodeURIComponent(versionId)}/files`,
+            "POST", { signal, body: form });
+    }
+
+    deleteProblemFile(problemId: string, versionId: string, name: string, signal: AbortSignal): Promise<ManagedProblemVersion> {
+        return this.http.request<ManagedProblemVersion>(
+            `/problems/${encodeURIComponent(problemId)}/versions/${encodeURIComponent(versionId)}/files/${encodeURIComponent(name)}/delete`,
+            "POST", { signal });
     }
 
     async uploadProblemPackage(problemId: string, versionId: string, archive: Blob, sha256: string, signal: AbortSignal): Promise<ManagedProblemVersion> {

@@ -12,6 +12,7 @@ import {
     ManagedActivityFilter,
     ManagedActivitySummary,
     ManagedProblem,
+    FileScope,
     ManagedProblemVersion,
     ManagedAttempt,
     ManagedQuestion,
@@ -922,19 +923,71 @@ export class ManagerApiFake implements ManagerApi {
             ]);
         version.files = [
             ...(input.content === undefined ? [] : [{
-                name: "content.md", scope: "participant" as const, sizeBytes: 2048,
-                sha256: fakeSha(`${version.id}/content.md`),
+                name: "content.md", scope: "participant" as const, mimeType: "text/markdown",
+                sizeBytes: 2048, sha256: fakeSha(`${version.id}/content.md`),
             }]),
             ...(input.translations ?? [])
                 .filter(v => v.language !== undefined)
                 .map(v => ({
-                    name: `content-${v.language}.md`, scope: "participant" as const, sizeBytes: 2048,
-                    sha256: fakeSha(`${version.id}/content-${v.language}.md`),
+                    name: `content-${v.language}.md`, scope: "participant" as const, mimeType: "text/markdown",
+                    sizeBytes: 2048, sha256: fakeSha(`${version.id}/content-${v.language}.md`),
                 })),
             ...(previous?.files ?? []).filter(f => !f.name.startsWith("content")),
         ];
         record.problem.currentVersion = version.version;
         record.problem.versionCount = record.versions.length;
+        this.announce(record.problem);
+        return copy(version);
+    }
+
+    async uploadProblemFile(
+        problemId: string,
+        versionId: string,
+        file: File,
+        scope: FileScope,
+        checksum: string,
+        signal: AbortSignal,
+    ): Promise<ManagedProblemVersion> {
+        await this.settle(signal);
+        const record = this.find(problemId);
+        const version = record.versions.find(v => v.id === versionId) ?? notFound("Version");
+
+        if (await sha256(file) !== checksum) {
+            Utils.throwError("The file does not match its checksum and was not stored");
+        }
+        if (/^content\./i.test(file.name)) {
+            // `content.*` is the statement, written in the editor. Uploading one
+            // here would put a second answer beside the one being edited.
+            Utils.throwError("content.* is the statement; edit it in the Statement tab");
+        }
+        if (version.files.some(f => f.name === file.name)) {
+            // Refused rather than replaced: a statement referring to the name
+            // must not change meaning because somebody uploaded a new file.
+            Utils.throwError(`This version already has a file called ${file.name}`);
+        }
+
+        version.files = [...version.files, {
+            name: file.name,
+            scope,
+            mimeType: file.type || "application/octet-stream",
+            sizeBytes: file.size,
+            sha256: checksum,
+            // A real URL, so the preview shows the figure rather than a promise
+            // of one. It lives as long as the tab does, which is what a fake can
+            // honestly offer.
+            url: URL.createObjectURL(file),
+        }];
+        this.announce(record.problem);
+        return copy(version);
+    }
+
+    async deleteProblemFile(problemId: string, versionId: string, name: string, signal: AbortSignal): Promise<ManagedProblemVersion> {
+        await this.settle(signal);
+        const record = this.find(problemId);
+        const version = record.versions.find(v => v.id === versionId) ?? notFound("Version");
+        const file = version.files.find(f => f.name === name) ?? notFound("File");
+        if (file.url) URL.revokeObjectURL(file.url);
+        version.files = version.files.filter(f => f.name !== name);
         this.announce(record.problem);
         return copy(version);
     }
@@ -954,7 +1007,10 @@ export class ManagerApiFake implements ManagerApi {
         version.hasPackage = true;
         version.files = [
             ...version.files.filter(f => f.name !== "package.zip"),
-            { name: "package.zip", scope: "runner", sizeBytes: archive.size, sha256: checksum },
+            {
+                name: "package.zip", scope: "runner", mimeType: "application/zip",
+                sizeBytes: archive.size, sha256: checksum,
+            },
         ];
         this.announce(record.problem);
         return copy(version);

@@ -580,5 +580,15 @@
   "legal.accessibility": "Accessibility statement",
   "This instance publishes no such document. Ask whoever runs it.": "This instance publishes no such document. Ask whoever runs it.",
   "This is the template that ships with the software. The operator of this instance has not replaced it yet, so it is not binding.": "This is the template that ships with the software. The operator of this instance has not replaced it yet, so it is not binding.",
-  "Updated": "Updated"
+  "Updated": "Updated",
+  "Add a file": "Add a file",
+  "Size": "Size",
+  "scope.participant": "participant",
+  "scope.manager": "manager",
+  "scope.runner": "runner",
+  "No files yet": "No files yet",
+  "Files of the newest version. A participant receives the participant-scoped ones; the statement points at them by name.": "Files of the newest version. A participant receives the participant-scoped ones; the statement points at them by name.",
+  "A figure is referenced from the statement as ![description](name.png), and a PDF as a link. Only participant-scoped files can be pointed at.": "A figure is referenced from the statement as ![description](name.png), and a PDF as a link. Only participant-scoped files can be pointed at.",
+  "Publish a version first: a file is attached to one.": "Publish a version first: a file is attached to one.",
+  "The statement is edited in the Statement tab": "The statement is edited in the Statement tab"
 }

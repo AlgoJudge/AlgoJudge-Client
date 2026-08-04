@@ -1,9 +1,12 @@
-import { Alert, Badge, Button, Card, Center, Grid, Group, Loader, MultiSelect, Select, Stack, Table, Text, TextInput, Title, Tabs } from "@mantine/core";
-import { IconAlertTriangle, IconArrowLeft, IconDeviceFloppy, IconDownload, IconUpload } from "@tabler/icons-react";
+import { Alert, Badge, Button, Card, Center, Grid, Group, Loader, MultiSelect, Select, Stack, Table, Tabs, Text, TextInput, Title, Tooltip } from "@mantine/core";
+import { IconAlertTriangle, IconArrowLeft, IconDeviceFloppy, IconDownload, IconTrash, IconUpload } from "@tabler/icons-react";
 import { Suspense, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
-import { ManagedProblem, ManagedProblemVersion, ManagedUserSummary, ProblemVisibility } from "../../../../api/ManagerApi";
+import {
+    FileScope, ManagedProblem, ManagedProblemVersion, ManagedUserSummary, ProblemVisibility,
+} from "../../../../api/ManagerApi";
+import { Attachment } from "../../../../api/ParticipantApi";
 import LanguageTabs, { DEFAULT_LANGUAGE } from "../../../../components/content/LanguageTabs";
 import ContentEditor from "../../../../components/content/ContentEditor";
 import PackageBuilder from "../../../../components/package/PackageBuilder";
@@ -21,6 +24,7 @@ export default function ManagerProblemPage() {
     const call = useApiCall();
     const { problemId } = useParams();
     const fileInput = useRef<HTMLInputElement>(null);
+    const attachmentInput = useRef<HTMLInputElement>(null);
 
     const [problem, setProblem] = useState<ManagedProblem | undefined>(undefined);
     const [versions, setVersions] = useState<ManagedProblemVersion[]>([]);
@@ -31,6 +35,7 @@ export default function ManagerProblemPage() {
     const [sources, setSources] = useState<Record<string, string>>({ [DEFAULT_LANGUAGE]: emptyDocument() });
     const [language, setLanguage] = useState<string>(DEFAULT_LANGUAGE);
     const [note, setNote] = useState("");
+    const [uploadScope, setUploadScope] = useState<FileScope>("participant");
     const [error, setError] = useState<string | undefined>(undefined);
     const [busy, setBusy] = useState(false);
     const [reload, setReload] = useState(0);
@@ -127,9 +132,29 @@ export default function ManagerProblemPage() {
     if (!problem) return <LoadState error={loadError} loading={!loadError} />;
 
     const Statement = statementRenderers.resolve(problem.type).value;
-    const attachmentNames = (versions[0]?.files ?? [])
-        .filter(f => f.scope === "participant" && !/^content\./i.test(f.name))
-        .map(f => f.name);
+    const newest = versions[0];
+    const files = newest?.files ?? [];
+    const participantFiles = files.filter(f => f.scope === "participant" && !/^content\./i.test(f.name));
+    const attachmentNames = participantFiles.map(f => f.name);
+
+    // The preview gets the real files, so a figure appears in it exactly as it
+    // will on the participant's screen — including the notice when the name
+    // points at nothing.
+    const previewAttachments: Attachment[] = participantFiles.map(f => ({
+        name: f.name,
+        mimeType: f.mimeType,
+        sizeBytes: f.sizeBytes,
+        url: f.url ?? "#",
+        sha256: f.sha256,
+    }));
+
+    const uploadAttachment = async (file: File) => {
+        if (!newest) return;
+        await run(async () => {
+            const checksum = await sha256(file);
+            await call(api => api.managerApi.uploadProblemFile(problem.id, newest.id, file, uploadScope, checksum));
+        });
+    };
 
     return (
         <Stack gap="md">
@@ -157,6 +182,7 @@ export default function ManagerProblemPage() {
             <Tabs defaultValue="content">
                 <Tabs.List>
                     <Tabs.Tab value="content">{t("Statement")}</Tabs.Tab>
+                    <Tabs.Tab value="files">{t("Attachments")} ({files.length})</Tabs.Tab>
                     <Tabs.Tab value="package">{t("Package")}</Tabs.Tab>
                     <Tabs.Tab value="versions">{t("Versions")} ({versions.length})</Tabs.Tab>
                     <Tabs.Tab value="sharing">{t("Sharing")}</Tabs.Tab>
@@ -249,11 +275,128 @@ export default function ManagerProblemPage() {
                                 {/* The same renderer the participant gets, so the
                                     preview cannot drift from the real screen. */}
                                 <Suspense fallback={<Center my="xl"><Loader /></Center>}>
-                                    <Statement content={source} attachments={[]} />
+                                    <Statement content={source} attachments={previewAttachments} />
                                 </Suspense>
                             </Card>
                         </Grid.Col>
                     </Grid>
+                </Tabs.Panel>
+
+                <Tabs.Panel value="files" pt="md">
+                    {newest ? (
+                        <Stack gap="md">
+                            <Group justify="space-between" wrap="wrap">
+                                <Text size="sm" c="dimmed" maw={620}>
+                                    {t("Files of the newest version. A participant receives the participant-scoped ones; the statement points at them by name.")}
+                                </Text>
+                                <Group gap="xs">
+                                    <Select
+                                        size="sm"
+                                        w={200}
+                                        data={[
+                                            { value: "participant", label: t("scope.participant") },
+                                            { value: "manager", label: t("scope.manager") },
+                                        ]}
+                                        value={uploadScope}
+                                        onChange={v => v && setUploadScope(v as FileScope)}
+                                    />
+                                    <Button
+                                        leftSection={<IconUpload size={16} />}
+                                        disabled={!!problem.archivedAt}
+                                        loading={busy}
+                                        onClick={() => attachmentInput.current?.click()}
+                                    >
+                                        {t("Add a file")}
+                                    </Button>
+                                    <input
+                                        ref={attachmentInput}
+                                        type="file"
+                                        style={{ display: "none" }}
+                                        onChange={e => {
+                                            const file = e.currentTarget.files?.[0];
+                                            if (file) uploadAttachment(file);
+                                            e.currentTarget.value = "";
+                                        }}
+                                    />
+                                </Group>
+                            </Group>
+
+                            <Table striped>
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        <Table.Th>{t("Name")}</Table.Th>
+                                        <Table.Th>{t("Scope")}</Table.Th>
+                                        <Table.Th>{t("Type")}</Table.Th>
+                                        <Table.Th>{t("Size")}</Table.Th>
+                                        <Table.Th>sha256</Table.Th>
+                                        <Table.Th />
+                                    </Table.Tr>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    {files.map(file => (
+                                        <Table.Tr key={file.name}>
+                                            <Table.Td>
+                                                <Text size="sm" ff="monospace">{file.name}</Text>
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <Badge variant="light" size="sm">{t(`scope.${file.scope}`)}</Badge>
+                                            </Table.Td>
+                                            <Table.Td><Text size="xs" c="dimmed">{file.mimeType}</Text></Table.Td>
+                                            <Table.Td>
+                                                <Text size="sm">{Math.max(1, Math.ceil(file.sizeBytes / 1024))} kB</Text>
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <Text size="xs" c="dimmed" ff="monospace">{file.sha256.slice(0, 12)}…</Text>
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <Group gap="xs" justify="flex-end" wrap="nowrap">
+                                                    {file.url && (
+                                                        <Button
+                                                            variant="subtle"
+                                                            size="compact-sm"
+                                                            component="a"
+                                                            href={file.url}
+                                                            download={file.name}
+                                                        >
+                                                            <IconDownload size={14} />
+                                                        </Button>
+                                                    )}
+                                                    {/* The statement is written in the
+                                                        editor, so it is not deleted from
+                                                        a file list. */}
+                                                    <Tooltip label={/^content\./i.test(file.name)
+                                                        ? t("The statement is edited in the Statement tab")
+                                                        : t("Delete")}>
+                                                        <Button
+                                                            variant="subtle"
+                                                            color="red"
+                                                            size="compact-sm"
+                                                            disabled={!!problem.archivedAt || /^content\./i.test(file.name)}
+                                                            loading={busy}
+                                                            onClick={() => run(() => call(api =>
+                                                                api.managerApi.deleteProblemFile(problem.id, newest.id, file.name)))}
+                                                        >
+                                                            <IconTrash size={14} />
+                                                        </Button>
+                                                    </Tooltip>
+                                                </Group>
+                                            </Table.Td>
+                                        </Table.Tr>
+                                    ))}
+                                </Table.Tbody>
+                            </Table>
+
+                            {files.length === 0 && <Text size="sm" c="dimmed">{t("No files yet")}</Text>}
+
+                            <Alert color="blue">
+                                {t("A figure is referenced from the statement as ![description](name.png), and a PDF as a link. Only participant-scoped files can be pointed at.")}
+                            </Alert>
+                        </Stack>
+                    ) : (
+                        <Alert color="yellow">
+                            {t("Publish a version first: a file is attached to one.")}
+                        </Alert>
+                    )}
                 </Tabs.Panel>
 
                 <Tabs.Panel value="package" pt="md">
