@@ -2,6 +2,8 @@ import {
     Grant,
     GrantFilter,
     GrantInput,
+    ManagedActivitySummary,
+    ManagedUserSummary,
     ManagerApi,
     PermissionDefinition,
     PermissionTemplate,
@@ -70,5 +72,13 @@ export class ManagerApiHttp implements ManagerApi {
 
     async revokeGrant(id: string, signal: AbortSignal): Promise<void> {
         await this.http.request<void>(`/grants/${encodeURIComponent(id)}/revoke`, "POST", { signal });
+    }
+
+    searchUsers(query: string, signal: AbortSignal): Promise<ManagedUserSummary[]> {
+        return this.http.request<ManagedUserSummary[]>("/users", "GET", { signal, query: { q: query } });
+    }
+
+    getManagedActivities(signal: AbortSignal): Promise<ManagedActivitySummary[]> {
+        return this.http.request<ManagedActivitySummary[]>("/manager/activities", "GET", { signal });
     }
 }

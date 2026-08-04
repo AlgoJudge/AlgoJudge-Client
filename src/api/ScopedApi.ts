@@ -5,6 +5,8 @@ import {
     GrantChangedEvent,
     GrantFilter,
     GrantInput,
+    ManagedActivitySummary,
+    ManagedUserSummary,
     ManagerApi,
     ManagerEvent,
     ManagerEventDispatcher,
@@ -197,5 +199,12 @@ export class ScopedManagerApi {
     }
     revokeGrant(id: string): Promise<void> {
         return this.managerApi.revokeGrant(id, this.signal);
+    }
+
+    searchUsers(query: string): Promise<ManagedUserSummary[]> {
+        return this.managerApi.searchUsers(query, this.signal);
+    }
+    getManagedActivities(): Promise<ManagedActivitySummary[]> {
+        return this.managerApi.getManagedActivities(this.signal);
     }
 }

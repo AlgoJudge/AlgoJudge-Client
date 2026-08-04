@@ -3,6 +3,8 @@ import {
     Grant,
     GrantFilter,
     GrantInput,
+    ManagedActivitySummary,
+    ManagedUserSummary,
     ManagerApi,
     PermissionDefinition,
     PermissionTemplate,
@@ -12,6 +14,8 @@ import { Page } from "../ParticipantApi";
 import {
     createGrants,
     createTemplates,
+    MANAGED_ACTIVITIES,
+    MANAGED_USERS,
     MY_SYSTEM_PERMISSIONS,
     PERMISSION_CATALOGUE,
 } from "./fixtures/permissions";
@@ -116,8 +120,8 @@ export class ManagerApiFake implements ManagerApi {
             ? { ...existing, ...input, permissions: [...input.permissions] }
             : {
                 id: newId(),
-                userName: input.userId,
-                activityName: input.activityId,
+                userName: MANAGED_USERS.find(u => u.id === input.userId)?.name ?? input.userId,
+                activityName: MANAGED_ACTIVITIES.find(a => a.id === input.activityId)?.name,
                 state: "active",
                 createdAt: new Date().toISOString(),
                 ...input,
@@ -134,6 +138,23 @@ export class ManagerApiFake implements ManagerApi {
         await this.settle(signal);
         this.grants = this.grants.filter(g => g.id !== id);
         this.eventDispatcher.dispatchEvent({ type: "grantChanged", data: { deletedId: id } });
+    }
+
+    async searchUsers(query: string, signal: AbortSignal): Promise<ManagedUserSummary[]> {
+        await this.settle(signal);
+        const needle = query.trim().toLowerCase();
+        const matched = needle.length === 0
+            ? MANAGED_USERS
+            : MANAGED_USERS.filter(u =>
+                u.name.toLowerCase().includes(needle) ||
+                u.username.toLowerCase().includes(needle) ||
+                (u.email ?? "").toLowerCase().includes(needle));
+        return copy(matched);
+    }
+
+    async getManagedActivities(signal: AbortSignal): Promise<ManagedActivitySummary[]> {
+        await this.settle(signal);
+        return copy(MANAGED_ACTIVITIES);
     }
 
     private assertNameFree(name: string, exceptId?: string): void {

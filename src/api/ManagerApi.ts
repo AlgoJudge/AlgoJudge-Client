@@ -81,6 +81,26 @@ export interface GrantFilter {
     scope?: "global" | "activity";
 }
 
+/**
+ * Just enough of an account to grant to.
+ *
+ * The account screens come later and will need much more; this is the lookup a
+ * grant editor cannot do without, and is deliberately not the full user model.
+ */
+export interface ManagedUserSummary {
+    id: string;
+    username: string;
+    name: string;
+    email?: string;
+}
+
+/** An activity, as something to scope a grant to. */
+export interface ManagedActivitySummary {
+    id: string;
+    slug: string;
+    name: string;
+}
+
 export type ManagerEventType = "permissionTemplateChanged" | "grantChanged";
 export type ManagerEvent<T extends ManagerEventType, V> = Event<T, V>;
 
@@ -123,4 +143,7 @@ export interface ManagerApi {
     getGrants(filter: GrantFilter, signal: AbortSignal): Promise<Page<Grant>>;
     setGrant(input: GrantInput, signal: AbortSignal): Promise<Grant>;
     revokeGrant(id: string, signal: AbortSignal): Promise<void>;
+
+    searchUsers(query: string, signal: AbortSignal): Promise<ManagedUserSummary[]>;
+    getManagedActivities(signal: AbortSignal): Promise<ManagedActivitySummary[]>;
 }

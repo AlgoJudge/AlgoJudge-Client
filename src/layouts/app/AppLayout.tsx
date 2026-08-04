@@ -3,7 +3,7 @@ import { useDisclosure } from "@mantine/hooks";
 import { NavLink, Outlet, useMatch, useParams } from "react-router-dom";
 import Logo from "../../components/logo/Logo";
 import classes from "./AppLayout.module.css";
-import { Icon, IconAlignBoxCenterTop, IconBox, IconChartBarPopular, IconChevronDown, IconChevronsLeft, IconChevronsRight, IconClock, IconDevicesPc, IconIdBadge2, IconListDetails, IconLogout, IconMessageQuestion, IconMoon, IconNotes, IconPackageExport, IconPrinter, IconProps, IconSectionSign, IconServer, IconSun, IconUserCheck, IconUsers, IconWorldWww } from "@tabler/icons-react";
+import { Icon, IconAlignBoxCenterTop, IconBox, IconChartBarPopular, IconChevronDown, IconChevronsLeft, IconChevronsRight, IconClock, IconDevicesPc, IconIdBadge2, IconKey, IconListDetails, IconLogout, IconMessageQuestion, IconMoon, IconNotes, IconPackageExport, IconPrinter, IconProps, IconSectionSign, IconServer, IconSun, IconUserCheck, IconUsers, IconWorldWww } from "@tabler/icons-react";
 import { ComponentPropsWithoutRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useApiEffect } from "../../provider/ApiProvider";
@@ -59,6 +59,7 @@ const ManagerNavbar = (props: { collapsed: boolean }) => {
     // product is legible, and dead so nobody follows one into a blank page.
     const links = [
         { to: `/manager/users`, label: t("Users"), icon: IconUsers },
+        { to: `/manager/grants`, label: t("Grants"), icon: IconKey },
         { to: `/manager/permission-templates`, label: t("Permission templates"), icon: IconUserCheck },
         { to: `/manager/problems`, label: t("Problems"), icon: IconNotes },
         { to: `/manager/activities`, label: t("Activities"), icon: IconListDetails },

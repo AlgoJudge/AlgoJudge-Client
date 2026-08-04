@@ -1,4 +1,4 @@
-import { Grant, PermissionDefinition, PermissionTemplate } from "../../ManagerApi";
+import { Grant, ManagedActivitySummary, ManagedUserSummary, PermissionDefinition, PermissionTemplate } from "../../ManagerApi";
 
 /**
  * The permission catalogue and the shipped templates.
@@ -211,4 +211,20 @@ export const MY_SYSTEM_PERMISSIONS = [
     "result:read:all", "result:log:read:all",
     "ranking:read:unfrozen", "ranking:unfreeze",
     "runner:read", "runner:approve", "runner:revoke", "runner:update",
+];
+
+export const MANAGED_USERS: ManagedUserSummary[] = [
+    { id: "user-admin", username: "john", name: "John Smith", email: "john.smith@algojudge.pl" },
+    { id: "user-kowalski", username: "jkowalski", name: "Jan Kowalski", email: "j.kowalski@example.edu.pl" },
+    { id: "user-wisniewski", username: "twisniewski", name: "Tomasz Wiśniewski", email: "t.wisniewski@example.edu.pl" },
+    { id: "user-nowak", username: "anowak", name: "Anna Nowak", email: "a.nowak@example.edu.pl" },
+    { id: "user-me", username: "amy", name: "Amy Horsefighter", email: "amy@example.edu.pl" },
+    { id: "user-lis", username: "alis", name: "Agnieszka Lis", email: "a.lis@example.edu.pl" },
+];
+
+export const MANAGED_ACTIVITIES: ManagedActivitySummary[] = [
+    { id: "018f2c00-0000-7000-8000-000000000001", slug: "AMMPZ-2019", name: "Akademickie Mistrzostwa Polski 2019" },
+    { id: "018f2c00-0000-7000-8000-000000000002", slug: "PROG-1-LA", name: "Programowanie 1 — grupa LA" },
+    { id: "018f2c00-0000-7000-8000-000000000004", slug: "TRENING-OTWARTY", name: "Trening otwarty" },
+    { id: "018f2c00-0000-7000-8000-000000000005", slug: "WARSZTAT-9", name: "Warsztat interaktywny" },
 ];
