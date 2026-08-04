@@ -142,7 +142,7 @@ export interface ProblemDetail {
     type: string,
     seriesId: string,
     /**
-     * The parsed `content.json` document, or a reference to `content.pdf` when
+     * The `content.md` source, or a reference to `content.pdf` when
      * that is all the problem has. Opaque here; the content renderer validates
      * and draws it.
      */

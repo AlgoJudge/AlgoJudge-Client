@@ -30,7 +30,7 @@ const standardIoConfig = (timeMs: number, memoryMb: number, groups: number[]) =>
 export interface ProblemRecord {
     problem: ManagedProblem;
     versions: ManagedProblemVersion[];
-    /** The `content.json` of each version, keyed by version id. */
+    /** The `content.md` of each version, keyed by version id. */
     content: Map<string, unknown>;
 }
 
@@ -48,7 +48,7 @@ const record = (
         config: v.config,
         hasPackage: v.hasPackage,
         files: [
-            ...(v.content ? [{ name: "content.json", scope: "participant" as const, sizeBytes: 2048 }] : []),
+            ...(v.content ? [{ name: "content.md", scope: "participant" as const, sizeBytes: 2048 }] : []),
             ...(v.hasPackage ? [{ name: "package.zip", scope: "runner" as const, sizeBytes: 1_450_000 }] : []),
             ...(v.hasPackage ? [{ name: "model.cpp", scope: "manager" as const, sizeBytes: 1200 }] : []),
         ],

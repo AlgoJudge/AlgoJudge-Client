@@ -1,116 +1,153 @@
 /**
  * Statement documents for the fake data.
  *
- * These are `content.json` documents — the project's own block format, stored as
- * a well-known attachment name and rendered by the Client. They are untyped here
- * on purpose: `ProblemDetail.content` is `unknown` in the contract, and the
- * types, the validator and the renderers arrive with the format specification.
+ * These are `content.md` documents — Markdown with the project's own additions:
+ * front matter carrying the format version, `$…$` and `$$…$$` for mathematics,
+ * and adjacent ```in / ```out fences for a sample. They are untyped here on
+ * purpose: `ProblemDetail.content` is `unknown` in the contract, and it is the
+ * validator, not the type system, that decides whether a document is renderable.
  */
 
-export const graphConnectivityStatement = {
-    version: 1,
-    blocks: [
-        {
-            type: "paragraph",
-            text: "Dany jest graf nieskierowany o $n$ wierzchołkach i $m$ krawędziach. Sprawdź, czy graf jest spójny.",
-        },
-        { type: "heading", level: 2, text: "Wejście" },
-        {
-            type: "paragraph",
-            text: "W pierwszym wierszu dwie liczby $n$ i $m$. W kolejnych $m$ wierszach po dwie liczby $a_i$ i $b_i$ oznaczające krawędź.",
-        },
-        {
-            type: "latex",
-            text: "1 \\le n \\le 10^5, \\quad 0 \\le m \\le 2 \\cdot 10^5",
-        },
-        { type: "heading", level: 2, text: "Wyjście" },
-        {
-            type: "paragraph",
-            text: "Jedno słowo: TAK, jeśli graf jest spójny, albo NIE w przeciwnym przypadku.",
-        },
-        {
-            type: "sample",
-            input: "4 3\n1 2\n2 3\n3 4",
-            output: "TAK",
-            explanation: "Wszystkie wierzchołki leżą na jednej ścieżce.",
-        },
-        {
-            type: "sample",
-            input: "4 2\n1 2\n3 4",
-            output: "NIE",
-        },
-    ],
-};
+export const graphConnectivityStatement = `---
+version: 1
+---
 
-export const shortestPathStatement = {
-    version: 1,
-    blocks: [
-        {
-            type: "paragraph",
-            text: "Znajdź najkrótszą ścieżkę z wierzchołka $s$ do wierzchołka $t$ w grafie ważonym o nieujemnych wagach.",
-        },
-        { type: "embed", attachment: "graf-przyklad.png", caption: "Przykładowy graf wejściowy" },
-        { type: "heading", level: 2, text: "Ograniczenia" },
-        { type: "latex", text: "1 \\le n \\le 2 \\cdot 10^5, \\quad 1 \\le w_i \\le 10^9" },
-        {
-            type: "sample",
-            input: "3 3 1 3\n1 2 5\n2 3 5\n1 3 11",
-            output: "10",
-        },
-        { type: "heading", level: 2, text: "Uwagi" },
-        {
-            type: "codeblock",
-            language: "cpp",
-            text: "// suma wag może przekroczyć zakres int\nlong long dist[MAXN];",
-        },
-    ],
-};
+Dany jest graf nieskierowany o $n$ wierzchołkach i $m$ krawędziach. Sprawdź, czy
+graf jest **spójny**.
 
-export const topologicalSortStatement = {
-    version: 1,
-    blocks: [
-        {
-            type: "paragraph",
-            text: "Posortuj topologicznie dany graf skierowany. Jeśli graf zawiera cykl, wypisz CYKL.",
-        },
-        {
-            type: "sample",
-            input: "3 2\n1 2\n2 3",
-            output: "1 2 3",
-        },
-    ],
-};
+## Wejście
 
-export const loopsStatement = {
-    version: 1,
-    blocks: [
-        { type: "heading", level: 2, text: "Zadanie na zajęcia" },
-        {
-            type: "paragraph",
-            text: "Napisz program, który wczytuje liczbę $n$ i wypisuje sumę liczb od $1$ do $n$.",
-        },
-        {
-            type: "sample",
-            input: "5",
-            output: "15",
-        },
-    ],
-};
+W pierwszym wierszu dwie liczby $n$ i $m$. W kolejnych $m$ wierszach po dwie
+liczby $a_i$ i $b_i$ oznaczające krawędź.
 
-export const arraysStatement = {
-    version: 1,
-    blocks: [
-        {
-            type: "paragraph",
-            text: "Wczytaj tablicę $n$ liczb i wypisz ją w odwrotnej kolejności.",
-        },
-        {
-            type: "sample",
-            input: "4\n1 2 3 4",
-            output: "4 3 2 1",
-        },
-    ],
-};
+$$
+1 \\le n \\le 10^5, \\quad 0 \\le m \\le 2 \\cdot 10^5
+$$
+
+## Wyjście
+
+Jedno słowo: \`TAK\`, jeśli graf jest spójny, albo \`NIE\` w przeciwnym przypadku.
+
+## Przykłady
+
+\`\`\`in
+4 3
+1 2
+2 3
+3 4
+\`\`\`
+
+\`\`\`out
+TAK
+\`\`\`
+
+Wszystkie wierzchołki leżą na jednej ścieżce.
+
+\`\`\`in
+4 2
+1 2
+3 4
+\`\`\`
+
+\`\`\`out
+NIE
+\`\`\`
+
+## Ocenianie
+
+| Grupa | Ograniczenie | Punkty |
+|---|---|---|
+| 1 | $n \\le 100$ | 30 |
+| 2 | $n \\le 10^4$ | 30 |
+| 3 | bez dodatkowych ograniczeń | 40 |
+`;
+
+export const shortestPathStatement = `---
+version: 1
+---
+
+Znajdź najkrótszą ścieżkę z wierzchołka $s$ do wierzchołka $t$ w grafie ważonym
+o nieujemnych wagach[^wagi].
+
+[^wagi]: Ujemne wagi zmieniłyby zadanie w wariant Bellmana-Forda i są tu wykluczone.
+
+![Przykładowy graf wejściowy](graf-przyklad.png)
+
+## Ograniczenia
+
+$$
+1 \\le n \\le 2 \\cdot 10^5, \\quad 1 \\le w_i \\le 10^9
+$$
+
+\`\`\`in
+3 3 1 3
+1 2 5
+2 3 5
+1 3 11
+\`\`\`
+
+\`\`\`out
+10
+\`\`\`
+
+## Uwagi
+
+\`\`\`cpp
+// suma wag może przekroczyć zakres int
+long long dist[MAXN];
+\`\`\`
+`;
+
+export const topologicalSortStatement = `---
+version: 1
+---
+
+Posortuj topologicznie dany graf skierowany. Jeśli graf zawiera cykl, wypisz
+\`CYKL\`.
+
+\`\`\`in
+3 2
+1 2
+2 3
+\`\`\`
+
+\`\`\`out
+1 2 3
+\`\`\`
+`;
+
+export const loopsStatement = `---
+version: 1
+---
+
+## Zadanie na zajęcia
+
+Napisz program, który wczytuje liczbę $n$ i wypisuje sumę liczb od $1$ do $n$.
+
+\`\`\`in
+5
+\`\`\`
+
+\`\`\`out
+15
+\`\`\`
+`;
+
+export const arraysStatement = `---
+version: 1
+---
+
+Wczytaj tablicę $n$ liczb i wypisz ją w odwrotnej kolejności.
+
+\`\`\`in
+4
+1 2 3 4
+\`\`\`
+
+\`\`\`out
+4 3 2 1
+\`\`\`
+`;
 
 /**
  * A statement whose type the Client does not know. Used to prove the controlled
@@ -125,33 +162,28 @@ export const unknownTypeStatement = {
     prompt: "Zgadnij liczbę, zadając pytania o przedziały.",
 };
 
-export const contestRules = {
-    version: 1,
-    blocks: [
-        { type: "heading", level: 1, text: "Regulamin zawodów" },
-        {
-            type: "paragraph",
-            text: "Zawody trwają pięć godzin. Każdy zespół pracuje przy jednym stanowisku.",
-        },
-        { type: "heading", level: 2, text: "Punktacja" },
-        {
-            type: "paragraph",
-            text: "O miejscu decyduje liczba rozwiązanych zadań, a przy równej liczbie — sumaryczny czas z karą $20$ minut za każde wcześniejsze błędne zgłoszenie.",
-        },
-        {
-            type: "paragraph",
-            text: "Ranking jest zamrażany na ostatnią godzinę i odmrażany po zakończeniu zawodów.",
-        },
-    ],
-};
+export const contestRules = `---
+version: 1
+---
 
-export const courseRules = {
-    version: 1,
-    blocks: [
-        { type: "heading", level: 1, text: "Zasady zaliczenia" },
-        {
-            type: "paragraph",
-            text: "Zadania z każdych zajęć należy oddać przed terminem podanym przy sekcji. Zgłoszenia po terminie nie są przyjmowane.",
-        },
-    ],
-};
+# Regulamin zawodów
+
+Zawody trwają pięć godzin. Każdy zespół pracuje przy jednym stanowisku.
+
+## Punktacja
+
+O miejscu decyduje liczba rozwiązanych zadań, a przy równej liczbie —
+sumaryczny czas z karą $20$ minut za każde wcześniejsze błędne zgłoszenie.
+
+Ranking jest zamrażany na ostatnią godzinę i odmrażany po zakończeniu zawodów.
+`;
+
+export const courseRules = `---
+version: 1
+---
+
+# Zasady zaliczenia
+
+Zadania z każdych zajęć należy oddać przed terminem podanym przy sekcji.
+Zgłoszenia po terminie nie są przyjmowane.
+`;

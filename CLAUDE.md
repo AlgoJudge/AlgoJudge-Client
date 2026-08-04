@@ -27,12 +27,15 @@ verified as outdated and removed there.
 | `npm run lint` | ESLint 9, flat config in `eslint.config.mjs` |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run build` | `tsc && vite build` |
+| `npm run check:package` | round-trips a Runner package through the real builder |
+| `npm run check:content` | parses and validates every `content.md` fixture |
 
-There are no tests, so lint, typecheck and build are the whole gate. All three
-must exit 0 before anything is merged. Lint reports ten warnings that do not gate
-the build — five `react-hooks/exhaustive-deps` and five
-`react-refresh/only-export-components`, all in `provider/`, `components/header/`
-and `problems/`. Treat that as the baseline: it may shrink, not grow.
+There is no test runner. Lint, typecheck and build are the gate and all three
+must exit 0 before anything is merged; the two `check:` scripts cover the two
+formats the Client owns and are run when either changes. Lint reports nine
+warnings that do not gate the build — four `react-hooks/exhaustive-deps` and five
+`react-refresh/only-export-components`, in `provider/` and `components/header/`.
+Treat that as the baseline: it may shrink, not grow.
 
 ## Rules
 

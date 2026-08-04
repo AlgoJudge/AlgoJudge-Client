@@ -166,7 +166,7 @@ export interface ProblemFilter {
 
 export interface ProblemVersionInput {
     note?: string;
-    /** The statement, as a `content.json` document. */
+    /** The statement, as a `content.md` document. */
     content?: unknown;
     config?: unknown;
 }
@@ -235,7 +235,7 @@ export interface ManagerApi {
     deleteProblem(id: string, signal: AbortSignal): Promise<void>;
 
     getProblemVersions(problemId: string, signal: AbortSignal): Promise<ManagedProblemVersion[]>;
-    /** The stored `content.json` for one version, or undefined when it has none. */
+    /** The stored `content.md` for one version, or undefined when it has none. */
     getProblemContent(problemId: string, versionId: string, signal: AbortSignal): Promise<unknown>;
     /** Publishes a new version. Versions are append-only; nothing is edited in place. */
     createProblemVersion(problemId: string, input: ProblemVersionInput, signal: AbortSignal): Promise<ManagedProblemVersion>;

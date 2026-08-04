@@ -8,7 +8,7 @@ import ContentEditor from "../../../../components/content/ContentEditor";
 import PackageBuilder from "../../../../components/package/PackageBuilder";
 import LoadState from "../../../../components/LoadState";
 import ActivityTime from "../../../../components/time/ActivityTime";
-import { ContentBlock, CONTENT_VERSION } from "../../../../content/types";
+import { emptyDocument } from "../../../../content/types";
 import { tryValidateContent } from "../../../../content/validate";
 import { useApiCall, useApiEffect } from "../../../../provider/ApiProvider";
 import { statementRenderers } from "../../../../renderers";
@@ -23,7 +23,7 @@ export default function ManagerProblemPage() {
     const [problem, setProblem] = useState<ManagedProblem | undefined>(undefined);
     const [versions, setVersions] = useState<ManagedProblemVersion[]>([]);
     const [users, setUsers] = useState<ManagedUserSummary[]>([]);
-    const [blocks, setBlocks] = useState<ContentBlock[]>([]);
+    const [source, setSource] = useState<string>(emptyDocument());
     const [note, setNote] = useState("");
     const [error, setError] = useState<string | undefined>(undefined);
     const [busy, setBusy] = useState(false);
@@ -43,9 +43,10 @@ export default function ManagerProblemPage() {
         // a new version.
         const newest = history[0];
         if (newest) {
+            // Edited as the text it is. An unreadable document still opens, so
+            // the author can see and repair what is wrong with it.
             const content = await api.managerApi.getProblemContent(problemId, newest.id);
-            const parsed = tryValidateContent(content);
-            setBlocks("document" in parsed ? parsed.document.blocks : []);
+            setSource(typeof content === "string" ? content : emptyDocument());
         }
     }, [problemId, reload]);
 
@@ -64,19 +65,21 @@ export default function ManagerProblemPage() {
 
     const publish = () => run(async () => {
         if (!problemId) return;
+        const parsed = tryValidateContent(source);
+        if ("error" in parsed) throw parsed.error;
         await call(api => api.managerApi.createProblemVersion(problemId, {
             note: note.trim() || undefined,
-            content: { version: CONTENT_VERSION, blocks },
+            content: source,
         }));
         setNote("");
     });
 
     const download = () => {
-        const blob = new Blob([JSON.stringify({ version: CONTENT_VERSION, blocks }, null, 2)], { type: "application/json" });
+        const blob = new Blob([source], { type: "text/markdown" });
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement("a");
         anchor.href = url;
-        anchor.download = "content.json";
+        anchor.download = "content.md";
         anchor.click();
         URL.revokeObjectURL(url);
     };
@@ -84,12 +87,12 @@ export default function ManagerProblemPage() {
     const upload = async (file: File) => {
         setError(undefined);
         try {
-            const parsed = tryValidateContent(JSON.parse(await file.text()));
-            if ("error" in parsed) {
-                setError(parsed.error.message);
-                return;
-            }
-            setBlocks(parsed.document.blocks);
+            const text = await file.text();
+            // Loaded whether or not it validates: refusing to open a file is a
+            // worse answer than showing what is wrong with it.
+            const parsed = tryValidateContent(text);
+            if ("error" in parsed) setError(parsed.error.message);
+            setSource(text);
         } catch (e) {
             setError(e instanceof Error ? e.message : String(e));
         }
@@ -144,7 +147,7 @@ export default function ManagerProblemPage() {
                                         leftSection={<IconUpload size={14} />}
                                         onClick={() => fileInput.current?.click()}
                                     >
-                                        {t("Upload content.json")}
+                                        {t("Upload content.md")}
                                     </Button>
                                     <Button
                                         variant="light"
@@ -152,12 +155,12 @@ export default function ManagerProblemPage() {
                                         leftSection={<IconDownload size={14} />}
                                         onClick={download}
                                     >
-                                        {t("Download content.json")}
+                                        {t("Download content.md")}
                                     </Button>
                                     <input
                                         ref={fileInput}
                                         type="file"
-                                        accept="application/json"
+                                        accept=".md,text/markdown"
                                         style={{ display: "none" }}
                                         onChange={e => {
                                             const file = e.currentTarget.files?.[0];
@@ -167,7 +170,7 @@ export default function ManagerProblemPage() {
                                     />
                                 </Group>
 
-                                <ContentEditor blocks={blocks} onChange={setBlocks} attachmentNames={attachmentNames} />
+                                <ContentEditor value={source} onChange={setSource} attachmentNames={attachmentNames} />
 
                                 <Card withBorder radius="sm">
                                     {/* Publishing writes a new version rather than
@@ -204,7 +207,7 @@ export default function ManagerProblemPage() {
                                 {/* The same renderer the participant gets, so the
                                     preview cannot drift from the real screen. */}
                                 <Suspense fallback={<Center my="xl"><Loader /></Center>}>
-                                    <Statement content={{ version: CONTENT_VERSION, blocks }} attachments={[]} />
+                                    <Statement content={source} attachments={[]} />
                                 </Suspense>
                             </Card>
                         </Grid.Col>

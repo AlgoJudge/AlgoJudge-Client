@@ -1,56 +1,25 @@
-import { Alert, Anchor, Button, Code, Group, Image, Paper, Stack, Text, Title } from "@mantine/core";
-import { IconAlertTriangle, IconCheck, IconCopy, IconFileOff } from "@tabler/icons-react";
-import katex from "katex";
+import { Alert, Button, Code, Group, Stack, Text } from "@mantine/core";
+import { IconAlertTriangle, IconCheck, IconCopy } from "@tabler/icons-react";
 import "katex/dist/katex.min.css";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Attachment } from "../api/ParticipantApi";
-import CodeHighlight from "../components/codehighlight/CodeHighlight";
 import { CopyButton } from "../components/buttons";
-import { splitInline } from "./latex";
-import { ContentBlock, ContentError } from "./types";
+import classes from "./ContentView.module.css";
+import { createMarkdown, ContentSegment, RenderOptions, Renderer, SampleSegment, toSegments, Token } from "./markdown";
+import { ContentError } from "./types";
 import { tryValidateContent } from "./validate";
 
 /**
- * Renders a validated `content.json` document.
+ * Renders a validated `content.md` statement.
  *
- * KaTeX output is injected as HTML, which is safe here only because the document
- * has already been validated: the LaTeX subset refuses every command KaTeX gates
- * behind `trust`, and the format admits no raw HTML at all. If either of those
- * changes, this stops being safe.
+ * The HTML is injected, which is safe only because of what produced it: the
+ * parser runs with raw HTML disabled, so a tag in the source is escaped rather
+ * than passed through, and the validator has already refused any reference
+ * leaving the document. If either changes, this stops being safe.
  */
 
-const KATEX_OPTIONS = {
-    trust: false,
-    strict: "warn" as const,
-    throwOnError: false,
-};
-
-const Math = ({ text, display }: { text: string; display?: boolean }) => {
-    const html = useMemo(
-        () => katex.renderToString(text, { ...KATEX_OPTIONS, displayMode: !!display }),
-        [text, display]
-    );
-    return (
-        <span
-            style={display ? { display: "block", textAlign: "center", margin: "0.75rem 0" } : undefined}
-            dangerouslySetInnerHTML={{ __html: html }}
-        />
-    );
-};
-
-/** Paragraph text with `$…$` maths woven through it. */
-const Inline = ({ text }: { text: string }) => (
-    <>
-        {splitInline(text).map((segment, i) =>
-            segment.kind === "math"
-                ? <Math key={i} text={segment.text} />
-                : <span key={i}>{segment.text}</span>
-        )}
-    </>
-);
-
-const Sample = ({ input, output, explanation }: { input: string; output: string; explanation?: string }) => {
+const Sample = ({ sample }: { sample: SampleSegment }) => {
     const { t } = useTranslation();
     const side = (label: string, value: string) => (
         <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
@@ -73,107 +42,88 @@ const Sample = ({ input, output, explanation }: { input: string; output: string;
         </Stack>
     );
     return (
-        <Paper withBorder p="sm" radius="sm">
+        <div className={classes.sample}>
             <Group align="flex-start" gap="md" wrap="wrap">
-                {side(t("Sample input"), input)}
-                {side(t("Sample output"), output)}
+                {side(t("Sample input"), sample.input)}
+                {side(t("Sample output"), sample.output)}
             </Group>
-            {explanation && (
-                <Text size="sm" mt="xs" c="dimmed"><Inline text={explanation} /></Text>
+            {sample.explanation && (
+                <div
+                    className={classes.explanation}
+                    dangerouslySetInnerHTML={{ __html: sample.explanation }}
+                />
             )}
-        </Paper>
+        </div>
     );
 };
 
-const Embed = ({ name, caption, attachments }: { name: string; caption?: string; attachments: Attachment[] }) => {
-    const { t } = useTranslation();
-    const attachment = attachments.find(a => a.name === name);
-
-    // A missing attachment is named rather than left as a broken image: an
-    // author needs to know which file the statement is asking for.
-    if (!attachment) {
-        return (
-            <Alert color="yellow" icon={<IconFileOff size={18} />} title={t("Missing attachment")}>
-                {name}
-            </Alert>
-        );
-    }
-    if (attachment.mimeType === "application/pdf") {
-        return (
-            <Stack gap={4}>
-                <object data={attachment.url} type="application/pdf" width="100%" height="600">
-                    <Anchor href={attachment.url}>{name}</Anchor>
-                </object>
-                {caption && <Text size="sm" c="dimmed" ta="center">{caption}</Text>}
-            </Stack>
-        );
-    }
-    return (
-        <Stack gap={4}>
-            <Image src={attachment.url} alt={caption ?? name} fit="contain" mah={480} />
-            {caption && <Text size="sm" c="dimmed" ta="center">{caption}</Text>}
-        </Stack>
-    );
-};
-
-/** Mantine's Title takes 1–6; the format allows 1–4. */
-const headingOrder = (level: number): 1 | 2 | 3 | 4 =>
-    level >= 1 && level <= 4 ? (level as 1 | 2 | 3 | 4) : 3;
-
-const Block = ({ block, attachments }: { block: ContentBlock; attachments: Attachment[] }) => {
-    switch (block.type) {
-        case "heading":
-            return <Title order={headingOrder(block.level)}>{block.text}</Title>;
-        case "paragraph":
-            return <Text><Inline text={block.text} /></Text>;
-        case "latex":
-            return <Math text={block.text} display />;
-        case "codeblock":
-            return <CodeHighlight code={block.text} language={block.language} />;
-        case "embed":
-            return <Embed name={block.attachment} caption={block.caption} attachments={attachments} />;
-        case "sample":
-            return <Sample input={block.input} output={block.output} explanation={block.explanation} />;
-    }
-};
-
-const ContentFailure = ({ error }: { error: ContentError }) => {
+const Failure = ({ error }: { error: ContentError }) => {
     const { t } = useTranslation();
     return (
         <Alert color="red" icon={<IconAlertTriangle size={18} />} title={t("Statement could not be displayed")}>
             <Text size="sm">
-                {error.blockIndex === undefined
-                    ? error.message
-                    : `${t("Block")} ${error.blockIndex + 1}: ${error.message}`}
+                {error.line === undefined ? error.message : `${t("Line")} ${error.line}: ${error.message}`}
             </Text>
         </Alert>
     );
 };
 
 export interface ContentViewProps {
-    /** The raw document, straight from the API. Validated here. */
+    /** The raw Markdown, straight from the attachment. Validated here. */
     content: unknown;
     attachments?: Attachment[];
 }
 
 export default function ContentView({ content, attachments = [] }: ContentViewProps) {
-    const result = useMemo(() => tryValidateContent(content), [content]);
+    const { t } = useTranslation();
 
-    if ("error" in result) {
-        return <ContentFailure error={result.error} />;
-    }
+    const result = useMemo(() => {
+        const validated = tryValidateContent(content);
+        if ("error" in validated) return validated;
 
-    // Rendering can still fail on a formula the validator accepted, and one bad
-    // block must not take the page with it.
-    try {
-        return (
-            <Stack gap="md">
-                {result.document.blocks.map((block, i) => (
-                    <Block key={i} block={block} attachments={attachments} />
-                ))}
-            </Stack>
-        );
-    } catch (error) {
-        return <ContentFailure error={error instanceof ContentError ? error : new ContentError(String(error))} />;
-    }
+        const md = createMarkdown();
+        // An image names an attachment, so the renderer resolves it here rather
+        // than trusting whatever the source wrote. A name with no attachment is
+        // said out loud instead of leaving a broken image.
+        md.renderer.rules.image = (tokens: Token[], index: number) => {
+            const token = tokens[index];
+            const name = String(token.attrGet("src") ?? "");
+            const attachment = attachments.find(a => a.name === name);
+            const alt = md.utils.escapeHtml(token.content);
+            if (!attachment) {
+                return `<span class="${classes.missing}">${t("Missing attachment")}: ${md.utils.escapeHtml(name)}</span>`;
+            }
+            if (attachment.mimeType === "application/pdf") {
+                return `<object data="${md.utils.escapeHtml(attachment.url)}" type="application/pdf" width="100%" height="600"></object>`;
+            }
+            return `<img src="${md.utils.escapeHtml(attachment.url)}" alt="${alt}" loading="lazy" />`;
+        };
+        // A link to a PDF attachment becomes an embed; anything else the
+        // validator already restricted to this problem's own files.
+        md.renderer.rules.link_open = (tokens: Token[], index: number, options: RenderOptions, _env: unknown, self: Renderer) => {
+            const href = String(tokens[index].attrGet("href") ?? "");
+            const attachment = attachments.find(a => a.name === href);
+            if (attachment) tokens[index].attrSet("href", attachment.url);
+            tokens[index].attrSet("rel", "noopener");
+            return self.renderToken(tokens, index, options);
+        };
+
+        try {
+            return { segments: toSegments(md, validated.document.body, attachments) };
+        } catch (error) {
+            return { error: error instanceof ContentError ? error : new ContentError(String(error)) };
+        }
+    }, [content, attachments, t]);
+
+    if ("error" in result) return <Failure error={result.error} />;
+
+    return (
+        <Stack gap="md" className={classes.content}>
+            {result.segments.map((segment: ContentSegment, i) =>
+                segment.kind === "sample"
+                    ? <Sample key={i} sample={segment} />
+                    : <div key={i} dangerouslySetInnerHTML={{ __html: segment.html }} />
+            )}
+        </Stack>
+    );
 }

@@ -9,7 +9,7 @@ import { useApiEffect } from "../../../../../provider/ApiProvider";
 import LoadState from "../../../../../components/LoadState";
 import { statementRenderers } from "../../../../../renderers";
 
-/** `content.json` and `content.pdf` are the statement, not material beside it. */
+/** `content.md` and `content.pdf` are the statement, not material beside it. */
 const isStatementFile = (name: string) => /^content\.[^.]+$/i.test(name);
 
 export default function ProblemPage() {
