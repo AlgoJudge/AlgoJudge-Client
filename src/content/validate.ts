@@ -1,5 +1,6 @@
 import { assertLatexSubset } from "./latex";
 import { createMarkdown, Token } from "./markdown";
+import { referenceName } from "./reference";
 import { ContentDocument, ContentError, CONTENT_VERSION, frontMatterLines, splitFrontMatter } from "./types";
 
 /**
@@ -41,7 +42,7 @@ const validateMath = (tokens: Token[], offset: number): void => {
 const validateReferences = (tokens: Token[], offset: number): void => {
     for (const token of tokens) {
         if (token.type === "image") {
-            const src = String(token.attrGet("src") ?? "");
+            const src = referenceName(String(token.attrGet("src") ?? ""));
             if (isExternal(src)) {
                 throw new ContentError(
                     `Obrazek "${src}" musi być nazwą załącznika tego zadania, bez ścieżki i bez adresu`,
@@ -50,7 +51,7 @@ const validateReferences = (tokens: Token[], offset: number): void => {
             }
         }
         if (token.type === "link_open") {
-            const href = String(token.attrGet("href") ?? "");
+            const href = referenceName(String(token.attrGet("href") ?? ""));
             // A link out of the document tells another host who opened the
             // statement and when, and is a way to change what competitors see
             // while a contest is running.

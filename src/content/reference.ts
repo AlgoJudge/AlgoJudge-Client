@@ -14,6 +14,23 @@ const NEEDS_BRACKETS = /[\s()<>]/;
 export const referenceTarget = (name: string): string =>
     NEEDS_BRACKETS.test(name) ? `<${name}>` : name;
 
+/**
+ * The name a parsed reference points at.
+ *
+ * markdown-it normalises a link destination the way a URL is normalised, so
+ * `<moja grafika.png>` arrives as `moja%20grafika.png`. Matching that against a
+ * file called "moja grafika.png" fails, and the reader is told the attachment is
+ * missing when it is sitting right there. A malformed escape decodes to itself
+ * rather than throwing: a bad name is still a name to report.
+ */
+export const referenceName = (target: string): string => {
+    try {
+        return decodeURIComponent(target);
+    } catch {
+        return target;
+    }
+};
+
 /** A whole image reference, ready to paste into a statement. */
 export const imageReference = (name: string): string =>
     `![${name}](${referenceTarget(name)})`;

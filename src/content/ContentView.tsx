@@ -7,6 +7,7 @@ import { Attachment } from "../api/ParticipantApi";
 import { CopyButton } from "../components/buttons";
 import classes from "./ContentView.module.css";
 import { createMarkdown, ContentSegment, RenderOptions, Renderer, SampleSegment, toSegments, Token } from "./markdown";
+import { referenceName } from "./reference";
 import { ContentError } from "./types";
 import { tryValidateContent } from "./validate";
 
@@ -87,7 +88,7 @@ export default function ContentView({ content, attachments = [] }: ContentViewPr
         // said out loud instead of leaving a broken image.
         md.renderer.rules.image = (tokens: Token[], index: number) => {
             const token = tokens[index];
-            const name = String(token.attrGet("src") ?? "");
+            const name = referenceName(String(token.attrGet("src") ?? ""));
             const attachment = attachments.find(a => a.name === name);
             const alt = md.utils.escapeHtml(token.content);
             if (!attachment) {
@@ -101,7 +102,7 @@ export default function ContentView({ content, attachments = [] }: ContentViewPr
         // A link to a PDF attachment becomes an embed; anything else the
         // validator already restricted to this problem's own files.
         md.renderer.rules.link_open = (tokens: Token[], index: number, options: RenderOptions, _env: unknown, self: Renderer) => {
-            const href = String(tokens[index].attrGet("href") ?? "");
+            const href = referenceName(String(tokens[index].attrGet("href") ?? ""));
             const attachment = attachments.find(a => a.name === href);
             if (attachment) tokens[index].attrSet("href", attachment.url);
             tokens[index].attrSet("rel", "noopener");

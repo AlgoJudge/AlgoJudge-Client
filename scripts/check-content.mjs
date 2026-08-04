@@ -112,6 +112,17 @@ const bracketed = validateContent(wrap("![opis](<moja grafika.png>)"));
 if (md.render(bracketed.body).includes("<img")) ok("a bracketed name is an image");
 else fail("the angle-bracket form did not parse as an image");
 
+// 4b. A name with a space survives the round trip: the editor writes the angle
+//     bracket form, markdown-it percent-encodes it, and the renderer has to
+//     decode it back to the file it names.
+const { imageReference, referenceName } = await import(`../${OUT}/content/reference.js`);
+const spaced = "Zrzut ekranu 2026-08-03 231251.png";
+const rendered = md.render(validateContent(wrap(imageReference(spaced))).body);
+const src = /src="([^"]+)"/.exec(rendered)?.[1];
+if (!src) fail("a bracketed name did not render as an image");
+else if (referenceName(src) !== spaced) fail(`the name did not survive: ${referenceName(src)}`);
+else ok("a name with spaces round-trips");
+
 // 5. Extended syntax the format promises is actually parsed.
 const extended = wrap("| a | b |\n|---|---|\n| 1 | 2 |\n\nTekst[^n] ~~skreślony~~.\n\n[^n]: Przypis.\n");
 const extendedHtml = md.render(validateContent(extended).body);
