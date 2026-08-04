@@ -28,6 +28,7 @@ import {
     PermissionTemplateInput,
     ProblemChangedEvent,
     SeriesChangedEvent,
+    StatementVariant,
     SeriesInput,
     SeriesProblemInput,
 } from "./ManagerApi";
@@ -302,14 +303,14 @@ export class ScopedManagerApi {
     getProblemVersions(problemId: string): Promise<ManagedProblemVersion[]> {
         return this.managerApi.getProblemVersions(problemId, this.signal);
     }
-    getProblemContent(problemId: string, versionId: string): Promise<unknown> {
+    getProblemContent(problemId: string, versionId: string): Promise<StatementVariant[]> {
         return this.managerApi.getProblemContent(problemId, versionId, this.signal);
     }
     createProblemVersion(problemId: string, input: ProblemVersionInput): Promise<ManagedProblemVersion> {
         return this.managerApi.createProblemVersion(problemId, input, this.signal);
     }
 
-    uploadProblemPackage(problemId: string, versionId: string, archive: Blob): Promise<ManagedProblemVersion> {
-        return this.managerApi.uploadProblemPackage(problemId, versionId, archive, this.signal);
+    uploadProblemPackage(problemId: string, versionId: string, archive: Blob, sha256: string): Promise<ManagedProblemVersion> {
+        return this.managerApi.uploadProblemPackage(problemId, versionId, archive, sha256, this.signal);
     }
 }

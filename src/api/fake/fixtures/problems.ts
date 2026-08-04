@@ -1,7 +1,8 @@
-import { ManagedProblem, ManagedProblemVersion } from "../../ManagerApi";
+import { ManagedProblem, ManagedProblemVersion, StatementVariant } from "../../ManagerApi";
 import {
     arraysStatement,
     graphConnectivityStatement,
+    graphConnectivityStatementEn,
     loopsStatement,
     shortestPathStatement,
     topologicalSortStatement,
@@ -17,6 +18,23 @@ import {
 
 const ago = (days: number) => new Date(Date.now() - days * 86400000).toISOString();
 
+/**
+ * A stand-in checksum, derived from the name so it is stable across reloads.
+ * The real one is computed from the bytes; the fake has no bytes to hash, and a
+ * random value per render would make every list look like it had changed.
+ */
+export const fakeSha = (seed: string): string => {
+    let hash = 0x811c9dc5;
+    let hex = "";
+    for (let i = 0; hex.length < 64; i++) {
+        for (const character of `${seed}#${i}`) {
+            hash = Math.imul(hash ^ character.charCodeAt(0), 0x01000193) >>> 0;
+        }
+        hex += hash.toString(16).padStart(8, "0");
+    }
+    return hex.slice(0, 64);
+};
+
 export const ME = "user-me";
 
 /** Limits and scoring for a version. Opaque to the Server; the shape is the type's. */
@@ -30,13 +48,18 @@ const standardIoConfig = (timeMs: number, memoryMb: number, groups: number[]) =>
 export interface ProblemRecord {
     problem: ManagedProblem;
     versions: ManagedProblemVersion[];
-    /** The `content.md` of each version, keyed by version id. */
-    content: Map<string, unknown>;
+    /** Every statement of each version — the default and its translations. */
+    content: Map<string, StatementVariant[]>;
 }
 
 const record = (
     problem: ManagedProblem,
-    versions: { id: string; version: number; note?: string; days: number; config: unknown; hasPackage: boolean; content?: unknown }[],
+    versions: {
+        id: string; version: number; note?: string; days: number; config: unknown; hasPackage: boolean;
+        content?: unknown;
+        /** Keyed by language subtag, stored as `content-<language>.md`. */
+        translations?: Record<string, unknown>;
+    }[],
 ): ProblemRecord => ({
     problem,
     versions: versions.map(v => ({
@@ -48,12 +71,19 @@ const record = (
         config: v.config,
         hasPackage: v.hasPackage,
         files: [
-            ...(v.content ? [{ name: "content.md", scope: "participant" as const, sizeBytes: 2048 }] : []),
-            ...(v.hasPackage ? [{ name: "package.zip", scope: "runner" as const, sizeBytes: 1_450_000 }] : []),
-            ...(v.hasPackage ? [{ name: "model.cpp", scope: "manager" as const, sizeBytes: 1200 }] : []),
+            ...(v.content ? [{ name: "content.md", scope: "participant" as const, sizeBytes: 2048, sha256: fakeSha(`${v.id}/content.md`) }] : []),
+            ...Object.keys(v.translations ?? {}).map(language => ({
+                name: `content-${language}.md`, scope: "participant" as const, sizeBytes: 2048,
+                sha256: fakeSha(`${v.id}/content-${language}.md`),
+            })),
+            ...(v.hasPackage ? [{ name: "package.zip", scope: "runner" as const, sizeBytes: 1_450_000, sha256: fakeSha(`${v.id}/package.zip`) }] : []),
+            ...(v.hasPackage ? [{ name: "model.cpp", scope: "manager" as const, sizeBytes: 1200, sha256: fakeSha(`${v.id}/model.cpp`) }] : []),
         ],
     })).sort((a, b) => b.version - a.version),
-    content: new Map(versions.filter(v => v.content).map(v => [v.id, v.content])),
+    content: new Map(versions.filter(v => v.content).map(v => [v.id, [
+        { content: v.content },
+        ...Object.entries(v.translations ?? {}).map(([language, content]) => ({ language, content })),
+    ]])),
 });
 
 export const createProblemLibrary = (): ProblemRecord[] => [
@@ -69,7 +99,7 @@ export const createProblemLibrary = (): ProblemRecord[] => [
         [
             { id: "v-graf-1", version: 1, days: 120, note: "Pierwsza wersja", config: standardIoConfig(1000, 256, [30, 30, 40]), hasPackage: true, content: graphConnectivityStatement },
             { id: "v-graf-2", version: 2, days: 60, note: "Poprawiona literówka w treści", config: standardIoConfig(1000, 256, [30, 30, 40]), hasPackage: true, content: graphConnectivityStatement },
-            { id: "v-graf-3", version: 3, days: 10, note: "Dwa dodatkowe testy w grupie 3", config: standardIoConfig(1000, 256, [30, 30, 40]), hasPackage: true, content: graphConnectivityStatement },
+            { id: "v-graf-3", version: 3, days: 10, note: "Dwa dodatkowe testy w grupie 3", config: standardIoConfig(1000, 256, [30, 30, 40]), hasPackage: true, content: graphConnectivityStatement, translations: { en: graphConnectivityStatementEn } },
         ],
     ),
     record(

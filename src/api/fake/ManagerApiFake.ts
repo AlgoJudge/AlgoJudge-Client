@@ -21,6 +21,7 @@ import {
     PermissionTemplate,
     PermissionTemplateInput,
     SeriesInput,
+    StatementVariant,
     SeriesProblemInput,
 } from "../ManagerApi";
 import { Page } from "../ParticipantApi";
@@ -33,7 +34,8 @@ import {
     PERMISSION_CATALOGUE,
 } from "./fixtures/permissions";
 import { ActivityRecord, createActivityLibrary } from "./fixtures/activities";
-import { createProblemLibrary, ME, ProblemRecord } from "./fixtures/problems";
+import { createProblemLibrary, fakeSha, ME, ProblemRecord } from "./fixtures/problems";
+import { sha256 } from "../../utils/sha256";
 import { Utils } from "./Utils";
 
 const copy = <T>(value: T): T => structuredClone(value);
@@ -449,8 +451,10 @@ export class ManagerApiFake implements ManagerApi {
         const versions = newest
             ? [{ ...newest, id: versionId, version: 1, createdAt: problem.createdAt, note: undefined }]
             : [];
-        const content = new Map<string, unknown>();
-        if (newest) content.set(versionId, source.content.get(newest.id));
+        // Every language travels with the copy: a duplicate of a bilingual
+        // problem that lost its translation would be a silent deletion.
+        const content = new Map<string, StatementVariant[]>();
+        if (newest) content.set(versionId, source.content.get(newest.id) ?? []);
         this.library = [{ problem, versions, content }, ...this.library];
         this.announce(problem);
         return copy(problem);
@@ -489,9 +493,9 @@ export class ManagerApiFake implements ManagerApi {
         return copy(this.find(problemId).versions);
     }
 
-    async getProblemContent(problemId: string, versionId: string, signal: AbortSignal): Promise<unknown> {
+    async getProblemContent(problemId: string, versionId: string, signal: AbortSignal): Promise<StatementVariant[]> {
         await this.settle(signal);
-        return copy(this.find(problemId).content.get(versionId));
+        return copy(this.find(problemId).content.get(versionId) ?? []);
     }
 
     async createProblemVersion(problemId: string, input: ProblemVersionInput, signal: AbortSignal): Promise<ManagedProblemVersion> {
@@ -515,21 +519,49 @@ export class ManagerApiFake implements ManagerApi {
         // an old one, so a finished result stays attached to what it was judged
         // against.
         record.versions = [version, ...record.versions];
-        record.content.set(version.id, input.content ?? record.content.get(previous?.id ?? ""));
+        // A version carries every language it was published with. Publishing
+        // without a statement keeps the previous one, translations included.
+        record.content.set(version.id, input.content === undefined && !input.translations
+            ? (record.content.get(previous?.id ?? "") ?? [])
+            : [
+                ...(input.content === undefined ? [] : [{ content: input.content }]),
+                ...(input.translations ?? []).filter(v => v.language !== undefined),
+            ]);
+        version.files = [
+            ...(input.content === undefined ? [] : [{
+                name: "content.md", scope: "participant" as const, sizeBytes: 2048,
+                sha256: fakeSha(`${version.id}/content.md`),
+            }]),
+            ...(input.translations ?? [])
+                .filter(v => v.language !== undefined)
+                .map(v => ({
+                    name: `content-${v.language}.md`, scope: "participant" as const, sizeBytes: 2048,
+                    sha256: fakeSha(`${version.id}/content-${v.language}.md`),
+                })),
+            ...(previous?.files ?? []).filter(f => !f.name.startsWith("content")),
+        ];
         record.problem.currentVersion = version.version;
         record.problem.versionCount = record.versions.length;
         this.announce(record.problem);
         return copy(version);
     }
 
-    async uploadProblemPackage(problemId: string, versionId: string, archive: Blob, signal: AbortSignal): Promise<ManagedProblemVersion> {
+    async uploadProblemPackage(problemId: string, versionId: string, archive: Blob, checksum: string, signal: AbortSignal): Promise<ManagedProblemVersion> {
         await this.settle(signal);
         const record = this.find(problemId);
         const version = record.versions.find(v => v.id === versionId) ?? notFound("Version");
+
+        // The Server recomputes rather than records: a checksum the caller sends
+        // is a claim, and storing it unchecked would make a truncated upload a
+        // stored file whose contents are wrong.
+        if (await sha256(archive) !== checksum) {
+            Utils.throwError("The package does not match its checksum and was not stored");
+        }
+
         version.hasPackage = true;
         version.files = [
             ...version.files.filter(f => f.name !== "package.zip"),
-            { name: "package.zip", scope: "runner", sizeBytes: archive.size },
+            { name: "package.zip", scope: "runner", sizeBytes: archive.size, sha256: checksum },
         ];
         this.announce(record.problem);
         return copy(version);

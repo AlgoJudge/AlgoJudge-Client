@@ -1,5 +1,5 @@
-import { Anchor, Badge, Button, Card, Center, Group, Loader, Stack, Text, Title } from "@mantine/core";
-import { IconClock, IconDatabase, IconDownload } from "@tabler/icons-react";
+import { Anchor, Badge, Button, Card, Center, Group, Loader, SegmentedControl, Stack, Text, Title } from "@mantine/core";
+import { IconClock, IconDatabase, IconDownload, IconLanguage } from "@tabler/icons-react";
 import { Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -8,17 +8,27 @@ import ProblemStatusBadge from "../../../../../components/problem/ProblemStatusB
 import { useApiEffect } from "../../../../../provider/ApiProvider";
 import LoadState from "../../../../../components/LoadState";
 import { statementRenderers } from "../../../../../renderers";
+import { languageName, pickLanguage } from "../../../../../components/content/languageName";
+
+/**
+ * The value standing for `content.md`, which has no language of its own. `*`
+ * rather than the empty string: it can never be a language subtag, and Mantine's
+ * controls dislike an empty value.
+ */
+const DEFAULT = "*";
 
 /** `content.md` and `content.pdf` are the statement, not material beside it. */
 const isStatementFile = (name: string) => /^content\.[^.]+$/i.test(name);
 
 export default function ProblemPage() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const navigate = useNavigate();
     const { activityId, problemId } = useParams();
 
     const [activity, setActivity] = useState<Activity | undefined>(undefined);
     const [problem, setProblem] = useState<ProblemDetail | undefined>(undefined);
+    /** Set only when the reader chose; otherwise the interface language decides. */
+    const [chosenLanguage, setChosenLanguage] = useState<string | undefined>(undefined);
 
     const error = useApiEffect(async (api) => {
         if (!activityId || !problemId) return;
@@ -48,6 +58,14 @@ export default function ProblemPage() {
 
     const Statement = statementRenderers.resolve(problem.type).value;
     const downloads = problem.attachments.filter(a => !isStatementFile(a.name));
+
+    // The statement follows the interface language when it can, and the reader
+    // may override it — wanting the English statement in a Polish interface is
+    // an ordinary thing to want, so the switcher changes the statement alone.
+    const translations = problem.translations ?? [];
+    const preferred = pickLanguage(translations.map(v => v.language), i18n.language) ?? DEFAULT;
+    const language = chosenLanguage ?? preferred;
+    const statement = translations.find(v => v.language === language)?.content ?? problem.content;
 
     return (
         <Stack gap="md">
@@ -88,8 +106,26 @@ export default function ProblemPage() {
                 </Group>
             </Group>
 
+            {translations.length > 0 && (
+                <Group gap="xs">
+                    <IconLanguage size={16} />
+                    <SegmentedControl
+                        size="xs"
+                        value={language}
+                        onChange={setChosenLanguage}
+                        data={[
+                            { value: DEFAULT, label: t("Default statement") },
+                            ...translations.map(v => ({
+                                value: v.language,
+                                label: languageName(v.language, i18n.language),
+                            })),
+                        ]}
+                    />
+                </Group>
+            )}
+
             <Suspense fallback={<Center my="xl"><Loader /></Center>}>
-                <Statement content={problem.content} attachments={problem.attachments} />
+                <Statement content={statement} attachments={problem.attachments} />
             </Suspense>
 
             {problem.samples && problem.samples.length > 0 && (

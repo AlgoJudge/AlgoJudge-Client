@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { Activity, ProblemDetail, Series } from "../../../../api/ParticipantApi";
 import { useApiCall, useApiEffect } from "../../../../provider/ApiProvider";
+import { sha256 } from "../../../../utils/sha256";
 import LoadState from "../../../../components/LoadState";
 
 // Monaco is large and only this screen and the source preview need it, so it is
@@ -135,10 +136,15 @@ export default function SubmitPage() {
         setError(undefined);
         setSending(true);
         try {
+            // The checksum is computed over exactly what is being sent, here,
+            // where the bytes are. The Server recomputes it and refuses a
+            // mismatch, so a truncated upload fails instead of being judged.
+            const checksum = file ? await sha256(file) : await sha256(new TextEncoder().encode(code));
             const submission = await call(api => api.participantApi.submit(activity.id, problem.slug, {
                 language: language ?? undefined,
                 code: file ? undefined : code,
                 file: file ?? undefined,
+                sha256: checksum,
             }));
             // Straight to the detail view, so the queued state is visible rather
             // than something the participant has to go looking for.

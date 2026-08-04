@@ -62,6 +62,51 @@ NIE
 | 3 | bez dodatkowych ograniczeń | 40 |
 `;
 
+/** The same statement in English, stored as `content-en.md` beside the default. */
+export const graphConnectivityStatementEn = `---
+version: 1
+---
+
+You are given an undirected graph with $n$ vertices and $m$ edges. Decide whether
+the graph is **connected**.
+
+## Input
+
+The first line holds two integers $n$ and $m$. Each of the next $m$ lines holds
+two integers $a_i$ and $b_i$ describing an edge.
+
+$$
+1 \\le n \\le 10^5, \\quad 0 \\le m \\le 2 \\cdot 10^5
+$$
+
+## Output
+
+One word: \`TAK\` if the graph is connected, \`NIE\` otherwise.
+
+## Examples
+
+\`\`\`in
+4 3
+1 2
+2 3
+3 4
+\`\`\`
+
+\`\`\`out
+TAK
+\`\`\`
+
+Every vertex lies on a single path.
+
+## Scoring
+
+| Group | Constraint | Points |
+|---|---|---|
+| 1 | $n \\le 100$ | 30 |
+| 2 | $n \\le 10^4$ | 30 |
+| 3 | no further constraints | 40 |
+`;
+
 export const shortestPathStatement = `---
 version: 1
 ---

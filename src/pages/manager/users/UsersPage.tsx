@@ -1,5 +1,6 @@
-import { Anchor, Badge, Button, Code, Modal, Table, Tabs, Title } from '@mantine/core';
+import { Anchor, Badge, Button, Code, Modal, Table, Tabs, Text, Title } from '@mantine/core';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Shape of an account as the manager needs to see it. The Server exposes only
@@ -74,6 +75,7 @@ const users: ManagedUser[] = [
 ]
 
 const UserModal = (props: { user: ManagedUser | undefined, onClose: () => void }) => {
+    const { t } = useTranslation();
     if (!props.user) return;
     return (
         <Modal opened={!!props.user} onClose={props.onClose} title="User details" size="70%">
@@ -82,8 +84,11 @@ const UserModal = (props: { user: ManagedUser | undefined, onClose: () => void }
                     <Tabs.Tab value="general">
                         General
                     </Tabs.Tab>
-                    <Tabs.Tab value="unix">
-                        Unix
+                    {/* PAM-style login on competitor workstations is a later
+                        direction. The tab stays so the shape of the product is
+                        legible, and is dead so nobody opens an empty screen. */}
+                    <Tabs.Tab value="unix" disabled>
+                        Unix <Text component="span" size="xs" fs="italic" c="dimmed">{t("soon")}</Text>
                     </Tabs.Tab>
                     <Tabs.Tab value="sessions">
                         Sessions

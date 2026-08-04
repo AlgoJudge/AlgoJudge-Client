@@ -4,13 +4,15 @@ import { Suspense, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { ManagedProblem, ManagedProblemVersion, ManagedUserSummary, ProblemVisibility } from "../../../../api/ManagerApi";
+import LanguageTabs, { DEFAULT_LANGUAGE } from "../../../../components/content/LanguageTabs";
 import ContentEditor from "../../../../components/content/ContentEditor";
 import PackageBuilder from "../../../../components/package/PackageBuilder";
 import LoadState from "../../../../components/LoadState";
 import ActivityTime from "../../../../components/time/ActivityTime";
-import { emptyDocument } from "../../../../content/types";
+import { emptyDocument, statementFileName } from "../../../../content/types";
 import { tryValidateContent } from "../../../../content/validate";
 import { useApiCall, useApiEffect } from "../../../../provider/ApiProvider";
+import { sha256 } from "../../../../utils/sha256";
 import { statementRenderers } from "../../../../renderers";
 
 export default function ManagerProblemPage() {
@@ -23,7 +25,11 @@ export default function ManagerProblemPage() {
     const [problem, setProblem] = useState<ManagedProblem | undefined>(undefined);
     const [versions, setVersions] = useState<ManagedProblemVersion[]>([]);
     const [users, setUsers] = useState<ManagedUserSummary[]>([]);
-    const [source, setSource] = useState<string>(emptyDocument());
+    // Keyed by language subtag; the default statement is under DEFAULT_LANGUAGE.
+    // One state rather than one per tab: publishing sends them together, because
+    // a version carries every language it was published with.
+    const [sources, setSources] = useState<Record<string, string>>({ [DEFAULT_LANGUAGE]: emptyDocument() });
+    const [language, setLanguage] = useState<string>(DEFAULT_LANGUAGE);
     const [note, setNote] = useState("");
     const [error, setError] = useState<string | undefined>(undefined);
     const [busy, setBusy] = useState(false);
@@ -45,8 +51,14 @@ export default function ManagerProblemPage() {
         if (newest) {
             // Edited as the text it is. An unreadable document still opens, so
             // the author can see and repair what is wrong with it.
-            const content = await api.managerApi.getProblemContent(problemId, newest.id);
-            setSource(typeof content === "string" ? content : emptyDocument());
+            const variants = await api.managerApi.getProblemContent(problemId, newest.id);
+            const loadedSources: Record<string, string> = { [DEFAULT_LANGUAGE]: emptyDocument() };
+            for (const variant of variants) {
+                if (typeof variant.content !== "string") continue;
+                loadedSources[variant.language ?? DEFAULT_LANGUAGE] = variant.content;
+            }
+            setSources(loadedSources);
+            setLanguage(DEFAULT_LANGUAGE);
         }
     }, [problemId, reload]);
 
@@ -63,13 +75,27 @@ export default function ManagerProblemPage() {
         }
     };
 
+    const source = sources[language] ?? emptyDocument();
+    const setSource = (value: string) => setSources({ ...sources, [language]: value });
+
     const publish = () => run(async () => {
         if (!problemId) return;
-        const parsed = tryValidateContent(source);
-        if ("error" in parsed) throw parsed.error;
+        // Every language is validated, not only the one on screen: publishing a
+        // broken translation nobody looked at is exactly how it would happen.
+        for (const [tag, text] of Object.entries(sources)) {
+            const parsed = tryValidateContent(text);
+            if ("error" in parsed) {
+                throw new Error(tag === DEFAULT_LANGUAGE
+                    ? parsed.error.message
+                    : `${statementFileName(tag)}: ${parsed.error.message}`);
+            }
+        }
         await call(api => api.managerApi.createProblemVersion(problemId, {
             note: note.trim() || undefined,
-            content: source,
+            content: sources[DEFAULT_LANGUAGE],
+            translations: Object.entries(sources)
+                .filter(([tag]) => tag !== DEFAULT_LANGUAGE)
+                .map(([tag, content]) => ({ language: tag, content })),
         }));
         setNote("");
     });
@@ -79,7 +105,7 @@ export default function ManagerProblemPage() {
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement("a");
         anchor.href = url;
-        anchor.download = "content.md";
+        anchor.download = statementFileName(language === DEFAULT_LANGUAGE ? undefined : language);
         anchor.click();
         URL.revokeObjectURL(url);
     };
@@ -140,6 +166,22 @@ export default function ManagerProblemPage() {
                     <Grid>
                         <Grid.Col span={{ base: 12, lg: 6 }}>
                             <Stack gap="sm">
+                                <LanguageTabs
+                                    value={language}
+                                    languages={Object.keys(sources)}
+                                    onChange={setLanguage}
+                                    onAdd={tag => {
+                                        setSources({ ...sources, [tag]: emptyDocument() });
+                                        setLanguage(tag);
+                                    }}
+                                    onRemove={tag => {
+                                        const rest = { ...sources };
+                                        delete rest[tag];
+                                        setSources(rest);
+                                        setLanguage(DEFAULT_LANGUAGE);
+                                    }}
+                                />
+
                                 <Group gap="xs">
                                     <Button
                                         variant="light"
@@ -147,7 +189,7 @@ export default function ManagerProblemPage() {
                                         leftSection={<IconUpload size={14} />}
                                         onClick={() => fileInput.current?.click()}
                                     >
-                                        {t("Upload content.md")}
+                                        {t("Upload")} {statementFileName(language === DEFAULT_LANGUAGE ? undefined : language)}
                                     </Button>
                                     <Button
                                         variant="light"
@@ -155,7 +197,7 @@ export default function ManagerProblemPage() {
                                         leftSection={<IconDownload size={14} />}
                                         onClick={download}
                                     >
-                                        {t("Download content.md")}
+                                        {t("Download")} {statementFileName(language === DEFAULT_LANGUAGE ? undefined : language)}
                                     </Button>
                                     <input
                                         ref={fileInput}
@@ -219,7 +261,9 @@ export default function ManagerProblemPage() {
                         <PackageBuilder
                             disabled={!!problem.archivedAt}
                             onUpload={async archive => {
-                                await call(api => api.managerApi.uploadProblemPackage(problem.id, versions[0].id, archive));
+                                // Computed here, where the bytes were assembled.
+                                const checksum = await sha256(archive);
+                                await call(api => api.managerApi.uploadProblemPackage(problem.id, versions[0].id, archive, checksum));
                                 setReload(n => n + 1);
                             }}
                         />

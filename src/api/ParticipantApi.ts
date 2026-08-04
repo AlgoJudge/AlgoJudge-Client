@@ -123,6 +123,15 @@ export interface Attachment {
     mimeType: string,
     sizeBytes: number,
     url: string,
+    /** SHA-256 of the bytes. Names the file: equal checksums are the same file. */
+    sha256: string,
+}
+
+/** One statement in one language. */
+export interface StatementTranslation {
+    /** BCP-47 subtag taken from the file name, for example `en`. */
+    language: string,
+    content: unknown,
 }
 
 /** A field the submit form must render, declared by the problem type. */
@@ -147,6 +156,12 @@ export interface ProblemDetail {
      * and draws it.
      */
     content: unknown,
+    /**
+     * The same statement in other languages, from `content-<language>.md`. The
+     * Client renders the one matching the reader's interface language and falls
+     * back to `content` — a missing translation is a fallback, never an error.
+     */
+    translations?: StatementTranslation[],
     /** Everything scoped to participants. Well-known `content.*` files excluded. */
     attachments: Attachment[],
     /** Absent when the manager chose not to show them. */
@@ -235,6 +250,11 @@ export interface SubmitPayload {
     code?: string,
     /** Uploaded file, when they used the file field instead. Never both. */
     file?: File,
+    /**
+     * SHA-256 of what is being sent — the file's bytes, or the pasted source
+     * encoded as UTF-8. The Server recomputes it and refuses a mismatch.
+     */
+    sha256?: string,
 }
 
 export type QuestionKind = "question" | "announcement";

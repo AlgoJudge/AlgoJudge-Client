@@ -20,6 +20,7 @@ import {
     PermissionTemplateInput,
     SeriesInput,
     SeriesProblemInput,
+    StatementVariant,
 } from "../ManagerApi";
 import { Page } from "../ParticipantApi";
 import { ManagerEventDispatcherImpl } from "../impl/ManagerEventDispatcher";
@@ -215,8 +216,8 @@ export class ManagerApiHttp implements ManagerApi {
             `/problems/${encodeURIComponent(problemId)}/versions`, "GET", { signal });
     }
 
-    getProblemContent(problemId: string, versionId: string, signal: AbortSignal): Promise<unknown> {
-        return this.http.request<unknown>(
+    getProblemContent(problemId: string, versionId: string, signal: AbortSignal): Promise<StatementVariant[]> {
+        return this.http.request<StatementVariant[]>(
             `/problems/${encodeURIComponent(problemId)}/versions/${encodeURIComponent(versionId)}/content`,
             "GET", { signal });
     }
@@ -226,11 +227,12 @@ export class ManagerApiHttp implements ManagerApi {
             `/problems/${encodeURIComponent(problemId)}/versions`, "POST", { signal, body: input });
     }
 
-    async uploadProblemPackage(problemId: string, versionId: string, archive: Blob, signal: AbortSignal): Promise<ManagedProblemVersion> {
+    async uploadProblemPackage(problemId: string, versionId: string, archive: Blob, sha256: string, signal: AbortSignal): Promise<ManagedProblemVersion> {
         // Multipart: the transport leaves FormData alone and lets the browser
         // set the boundary, which a serialised body would destroy.
         const form = new FormData();
         form.append("package", archive, "package.zip");
+        form.append("sha256", sha256);
         return this.http.request<ManagedProblemVersion>(
             `/problems/${encodeURIComponent(problemId)}/versions/${encodeURIComponent(versionId)}/package`,
             "POST", { signal, body: form });

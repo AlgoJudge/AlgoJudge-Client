@@ -298,7 +298,7 @@ export interface ManagedProblemVersion {
     config: unknown;
     /** Whether a Runner package has been uploaded for this version. */
     hasPackage: boolean;
-    files: { name: string; scope: "participant" | "manager" | "runner"; sizeBytes: number }[];
+    files: { name: string; scope: "participant" | "manager" | "runner"; sizeBytes: number; sha256: string }[];
 }
 
 export interface ProblemInput {
@@ -318,9 +318,17 @@ export interface ProblemFilter {
 
 export interface ProblemVersionInput {
     note?: string;
-    /** The statement, as a `content.md` document. */
+    /** The default statement, as a `content.md` document. */
     content?: unknown;
+    /** Translations, stored as `content-<language>.md` beside the default. */
+    translations?: StatementVariant[];
     config?: unknown;
+}
+
+/** A statement in one language. `language` absent means the default `content.md`. */
+export interface StatementVariant {
+    language?: string;
+    content: unknown;
 }
 
 export type ManagerEventType = "permissionTemplateChanged" | "grantChanged" | "problemChanged"
@@ -429,8 +437,12 @@ export interface ManagerApi {
     deleteProblem(id: string, signal: AbortSignal): Promise<void>;
 
     getProblemVersions(problemId: string, signal: AbortSignal): Promise<ManagedProblemVersion[]>;
-    /** The stored `content.md` for one version, or undefined when it has none. */
-    getProblemContent(problemId: string, versionId: string, signal: AbortSignal): Promise<unknown>;
+    /**
+     * Every statement stored for one version — the default and each translation.
+     * One call rather than one per language: the editor shows them together, and
+     * a manager comparing two languages should not wait for a round trip.
+     */
+    getProblemContent(problemId: string, versionId: string, signal: AbortSignal): Promise<StatementVariant[]>;
     /** Publishes a new version. Versions are append-only; nothing is edited in place. */
     createProblemVersion(problemId: string, input: ProblemVersionInput, signal: AbortSignal): Promise<ManagedProblemVersion>;
     /**
@@ -439,6 +451,11 @@ export interface ManagerApi {
      * The archive is assembled in the Client, because its layout belongs to the
      * problem type and the Server is not allowed to know one type from another.
      * The Server stores the bytes under `FileScope.Runner`.
+     *
+     * `sha256` is the checksum of the archive, computed by the caller. The
+     * Server recomputes it and refuses to store a mismatch, which is what turns
+     * a truncated upload into an error instead of a stored file whose contents
+     * are wrong.
      */
-    uploadProblemPackage(problemId: string, versionId: string, archive: Blob, signal: AbortSignal): Promise<ManagedProblemVersion>;
+    uploadProblemPackage(problemId: string, versionId: string, archive: Blob, sha256: string, signal: AbortSignal): Promise<ManagedProblemVersion>;
 }

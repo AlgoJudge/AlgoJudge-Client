@@ -22,6 +22,24 @@ export class ContentError extends Error {
     }
 }
 
+/**
+ * The statement's file name carries its language: `content.md` is the default and
+ * `content-en.md` a translation. The Server stores both as ordinary attachments
+ * and never learns that one translates the other — the convention is read here,
+ * like `content.*` itself.
+ */
+const STATEMENT = /^content(?:-([A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*))?\.md$/i;
+
+/** The language of a statement file name, or undefined for the default. */
+export const statementLanguage = (name: string): string | undefined =>
+    STATEMENT.exec(name)?.[1]?.toLowerCase();
+
+export const isStatementName = (name: string): boolean => STATEMENT.test(name);
+
+/** The file name a statement in this language is stored under. */
+export const statementFileName = (language?: string): string =>
+    language ? `content-${language}.md` : "content.md";
+
 const FRONT_MATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 
 /**

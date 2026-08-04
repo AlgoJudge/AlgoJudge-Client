@@ -17,6 +17,7 @@ import {
 } from "../ParticipantApi";
 import { createDataset, Dataset, OPENING_SERIES_DELAY } from "./fixtures";
 import { Utils } from "./Utils";
+import { sha256 } from "../../utils/sha256";
 
 const DEFAULT_PAGE_SIZE = 5;
 
@@ -273,6 +274,13 @@ export class ParticipantApiFake implements ParticipantApi {
         await this.settle(signal);
         const data = this.state.dataset();
         const problem = data.problems.get(`${activityId}/${problemSlug}`) ?? notFound("Problem");
+
+        // Same rule as every other upload: the Server recomputes and refuses a
+        // mismatch rather than storing a claim about the bytes.
+        const bytes = payload.file ?? new TextEncoder().encode(payload.code ?? "");
+        if (payload.sha256 !== undefined && await sha256(bytes) !== payload.sha256) {
+            Utils.throwError("The submission does not match its checksum and was not accepted");
+        }
 
         const id = `sub-${Math.random().toString(36).slice(2, 10)}`;
         const fileName = payload.file?.name ?? `solution.${payload.language ?? "txt"}`;

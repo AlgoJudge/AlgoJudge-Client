@@ -12,11 +12,13 @@ import {
     contestRules,
     courseRules,
     graphConnectivityStatement,
+    graphConnectivityStatementEn,
     loopsStatement,
     shortestPathStatement,
     topologicalSortStatement,
     unknownTypeStatement,
 } from "./content";
+import { fakeSha } from "./problems";
 
 /**
  * The dataset the fake API serves.
@@ -247,12 +249,15 @@ export const createDataset = (): Dataset => {
     withheld.set(round2.id, r2Problems);
 
     problems.set(`${contestId}/A`, problemDetail(round1.id, r1Problems[0], "standard-io@1", graphConnectivityStatement, {
+        // Two languages, so the switcher above the statement has something to
+        // switch to and the fallback path is exercised by every other problem.
+        translations: [{ language: "en", content: graphConnectivityStatementEn }],
         samples: [
             { input: "4 3\n1 2\n2 3\n3 4", output: "TAK", explanation: "Wszystkie wierzchołki leżą na jednej ścieżce." },
             { input: "4 2\n1 2\n3 4", output: "NIE" },
         ],
         attachments: [
-            { name: "testy-przykladowe.zip", mimeType: "application/zip", sizeBytes: 2048, url: "#" },
+            { name: "testy-przykladowe.zip", mimeType: "application/zip", sizeBytes: 2048, url: "#", sha256: fakeSha("testy-przykladowe.zip") },
         ],
         submissionsLeft: 17,
     }));
@@ -260,7 +265,7 @@ export const createDataset = (): Dataset => {
         limits: { timeMs: 2000, memoryMb: 512 },
         samples: [{ input: "3 3 1 3\n1 2 5\n2 3 5\n1 3 11", output: "10" }],
         attachments: [
-            { name: "graf-przyklad.png", mimeType: "image/png", sizeBytes: 8192, url: "#" },
+            { name: "graf-przyklad.png", mimeType: "image/png", sizeBytes: 8192, url: "#", sha256: fakeSha("graf-przyklad.png") },
         ],
         submissionsLeft: 15,
     }));

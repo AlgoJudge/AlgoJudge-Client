@@ -271,8 +271,6 @@
   "Statement": "Treść",
   "Versions": "Wersje",
   "Sharing": "Udostępnianie",
-  "Upload content.md": "Wgraj content.md",
-  "Download content.md": "Pobierz content.md",
   "What changed": "Co się zmieniło",
   "Shown in the version history": "Widoczne w historii wersji",
   "Publishing creates version": "Publikacja tworzy wersję",
@@ -415,5 +413,14 @@
   "LTI platforms": "Platformy LTI",
   "Workstations": "Stanowiska",
   "Printers": "Drukarki",
-  "Logout": "Wyloguj"
+  "Logout": "Wyloguj",
+  "Default statement": "Treść domyślna",
+  "Add a language": "Dodaj język",
+  "Language code": "Kod języka",
+  "A BCP-47 subtag. The file is stored as content-<code>.md": "Podznacznik BCP-47. Plik zapisze się jako content-<kod>.md",
+  "A reader gets this statement when it matches their interface language, and the default otherwise.": "Czytelnik zobaczy tę treść, gdy zgadza się z jego językiem interfejsu; w przeciwnym razie domyślną.",
+  "Use a language code such as en or uk": "Użyj kodu języka, np. en albo uk",
+  "That language is already here": "Ten język już tu jest",
+  "Remove this translation": "Usuń to tłumaczenie",
+  "Upload": "Wgraj"
 }
