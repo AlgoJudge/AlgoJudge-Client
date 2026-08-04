@@ -41,6 +41,7 @@ import {
     UserUpdateInput,
 } from "../ManagerApi";
 import { Page } from "../ParticipantApi";
+import { displayName } from "../displayName";
 import {
     createGrants,
     createTemplates,
@@ -558,7 +559,7 @@ export class ManagerApiFake implements ManagerApi {
                 this.grants = [...this.grants, {
                     id: newId(),
                     userId: user.id,
-                    userName: user.username,
+                    userName: displayName(user),
                     activityId: input.activityId,
                     activityName: MANAGED_ACTIVITIES.find(a => a.id === input.activityId)?.name,
                     permissions: [...(input.permissions ?? [])],

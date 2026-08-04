@@ -1,5 +1,5 @@
 import { Event } from "./Event";
-import { JobState, Page, QuestionAnswer, QuestionKind } from "./ParticipantApi";
+import { DisplayName, JobState, Page, QuestionAnswer, QuestionKind } from "./ParticipantApi";
 
 /**
  * The manager-facing API.
@@ -54,7 +54,8 @@ export type GrantState = "invited" | "active";
 export interface Grant {
     id: string;
     userId: string;
-    userName: string;
+    /** {@link DisplayName}: the name if there is one, the login otherwise. */
+    userName: DisplayName;
     activityId?: string;
     activityName?: string;
     permissions: string[];
@@ -347,7 +348,7 @@ export interface ManagedSubmission {
     problemSlug: string;
     problemName: string;
     userId: string;
-    userName: string;
+    userName: DisplayName;
     submittedAt: string;
     language?: string;
     state: JobState;
@@ -413,7 +414,7 @@ export interface ManagedQuestion {
     body: string;
     /** Absent for an announcement: nobody asked it. */
     authorUserId?: string;
-    authorName?: string;
+    authorName?: DisplayName;
     createdAt: string;
     /** Set when it concerns one series rather than the whole activity. */
     seriesId?: string;

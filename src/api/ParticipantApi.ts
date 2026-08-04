@@ -23,6 +23,22 @@ export interface Page<T> {
     pageSize: number,
 }
 
+
+/**
+ * How a person is written wherever one is shown.
+ *
+ * First and last name when they were given, the **login** otherwise — computed
+ * by the Server, so every screen says the same thing about the same person. A
+ * contest account is `contest-001` everywhere; somebody who gave a name is that
+ * name everywhere, including the ranking.
+ *
+ * This is the only identity a participant sees of another participant, so an
+ * installation that wants an anonymous scoreboard issues opaque logins and
+ * leaves the name fields empty — the choice sits with whoever creates accounts,
+ * not with the model.
+ */
+export type DisplayName = string;
+
 export type ActivityState = "upcoming" | "ongoing" | "finished";
 
 /**
@@ -261,7 +277,7 @@ export type QuestionKind = "question" | "announcement";
 
 export interface QuestionAnswer {
     body: string,
-    authorName: string,
+    authorName: DisplayName,
     answeredAt: string,
 }
 
@@ -270,7 +286,7 @@ export interface Question {
     kind: QuestionKind,
     topic: string,
     body: string,
-    authorName: string,
+    authorName: DisplayName,
     createdAt: string,
     /** Set when the question concerns one series rather than the whole activity. */
     seriesId?: string,

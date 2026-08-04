@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import {
     CreatedCredential, Grant, ManagedActivitySummary, ManagedUser, PermissionTemplate,
 } from "../../../api/ManagerApi";
+import { displayName } from "../../../api/displayName";
 import LoadState from "../../../components/LoadState";
 import ActivityTime from "../../../components/time/ActivityTime";
 import ZonedDateTimeInput from "../../../components/time/ZonedDateTimeInput";
@@ -30,10 +31,6 @@ const stateOf = (user: ManagedUser): "blocked" | "expired" | "pending" | "active
 };
 
 const STATE_COLOUR = { blocked: "red", expired: "gray", pending: "orange", active: "teal" } as const;
-
-/** What to call somebody: their name if they gave one, otherwise their login. */
-const displayName = (user: ManagedUser): string =>
-    [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username;
 
 /** The handout a manager prints or pastes into a spreadsheet. */
 const credentialsCsv = (credentials: CreatedCredential[]) =>
