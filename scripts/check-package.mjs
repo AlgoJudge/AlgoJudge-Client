@@ -120,6 +120,33 @@ if (JSON.stringify(sampleEntries) !== JSON.stringify(["0a.in", "0a.out"])) {
     ok("the sample archive carries only the examples, not the hidden tests");
 }
 
+// A group may narrow — or widen — the limits for its own tests. The value has to
+// survive the archive, because it is what the Runner enforces per test.
+{
+    const withGroupLimits = {
+        ...config,
+        groups: [
+            { group: 0, points: 0, examples: true },
+            { group: 1, points: 40, limits: { timeMs: 3000 } },
+            { group: 2, points: 60, limits: { timeMs: 5000, memoryMb: 512 } },
+        ],
+    };
+    const archive = await buildPackage({ config: withGroupLimits, tests, checker });
+    const back = await readPackage(archive);
+    const second = back.config.groups.find(g => g.group === 2);
+    if (back.config.groups.find(g => g.group === 1)?.limits?.timeMs !== 3000) fail("a group time limit was lost");
+    else if (second?.limits?.memoryMb !== 512) fail("a group memory limit was lost");
+    else if (back.config.groups.find(g => g.group === 0)?.limits !== undefined) fail("a group without limits gained one");
+    else ok("per-group limits round-trip");
+
+    const bad = validatePackage(tests, {
+        ...config,
+        groups: [{ group: 1, points: 100, limits: { timeMs: 0 } }],
+    }, []);
+    if (!bad.some(i => i.message.includes("time limit of 0"))) fail("a zero group limit was accepted");
+    else ok("a zero group limit is refused");
+}
+
 // A hand-edited config.yml may drop a whole section. Reading one has to produce
 // a usable configuration rather than an object the next reader iterates and dies
 // on — which is what happened when a version's opaque configuration was handed

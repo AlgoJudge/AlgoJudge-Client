@@ -33,6 +33,17 @@ export const validatePackage = (tests: TestFile[], config: PackageConfig, fileNa
         issues.push({ level: "error", message: "config.yml has no groups section", file: "config.yml" });
     }
 
+    for (const group of config.groups ?? []) {
+        // Zero or a negative number is not "inherit" — it is a limit nothing can
+        // pass. An emptied field removes the override instead.
+        if (group.limits?.timeMs !== undefined && group.limits.timeMs <= 0) {
+            issues.push({ level: "error", message: `Group ${group.group} has a time limit of ${group.limits.timeMs} ms` });
+        }
+        if (group.limits?.memoryMb !== undefined && group.limits.memoryMb <= 0) {
+            issues.push({ level: "error", message: `Group ${group.group} has a memory limit of ${group.limits.memoryMb} MB` });
+        }
+    }
+
     for (const test of tests) {
         if (test.input.trim().length === 0) {
             issues.push({ level: "error", message: "The input is empty", file: `${test.name}.in` });

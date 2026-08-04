@@ -212,7 +212,16 @@ export default function ManagerProblemPage() {
                 </Alert>
             )}
 
-            <Tabs defaultValue="content">
+            {/* The open tab is in the URL, as it is on the activity screen:
+                "look at this problem's package" is a link somebody sends. */}
+            <Tabs
+                value={query.get("tab") ?? "content"}
+                onChange={value => setQuery(q => {
+                    if (value && value !== "content") q.set("tab", value);
+                    else q.delete("tab");
+                    return q;
+                }, { replace: true })}
+            >
                 <Tabs.List>
                     <Tabs.Tab value="content">{t("Statement")}</Tabs.Tab>
                     <Tabs.Tab value="files">{t("Attachments")} ({files.length})</Tabs.Tab>

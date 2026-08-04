@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { buildPackage, buildSampleArchive, ExtraFile, readPackage } from "../../package/build";
 import { groupsOf, intakeFiles } from "../../package/intake";
-import { emptyConfig, PackageConfig, PackageGroup, TestFile } from "../../package/types";
+import { emptyConfig, PackageConfig, PackageGroup, PackageLimits, TestFile } from "../../package/types";
 import { hasErrors, validatePackage } from "../../package/validate";
 
 /**
@@ -133,6 +133,27 @@ export default function PackageBuilder({ onUpload, stored, onOpenStored, disable
 
     const setGroup = (group: number, patch: Partial<PackageGroup>) =>
         setConfig(c => ({ ...c, groups: c.groups.map(g => g.group === group ? { ...g, ...patch } : g) }));
+
+    /**
+     * Sets or clears one of a group's own limits.
+     *
+     * An emptied field removes the override rather than storing zero: "inherit"
+     * and "no time at all" must not be the same value, and a group left with an
+     * empty `limits` object would serialise as one in `config.yml`.
+     */
+    const setGroupLimit = (group: number, key: keyof PackageLimits, value: string | number) => {
+        const parsed = typeof value === "number" ? value : Number(value);
+        setConfig(c => ({
+            ...c,
+            groups: c.groups.map(g => {
+                if (g.group !== group) return g;
+                const limits = { ...g.limits };
+                if (!Number.isFinite(parsed) || parsed <= 0) delete limits[key];
+                else limits[key] = parsed;
+                return { ...g, limits: Object.keys(limits).length > 0 ? limits : undefined };
+            }),
+        }));
+    };
 
     const exampleTests = tests.filter(t => configWithPrograms.groups.find(g => g.group === t.group)?.examples);
 
@@ -282,6 +303,8 @@ export default function PackageBuilder({ onUpload, stored, onOpenStored, disable
                                 <Table.Th>{t("Group")}</Table.Th>
                                 <Table.Th>{t("Tests")}</Table.Th>
                                 <Table.Th>{t("Points")}</Table.Th>
+                                <Table.Th>{t("Time limit (ms)")}</Table.Th>
+                                <Table.Th>{t("Memory limit (MB)")}</Table.Th>
                                 <Table.Th>{t("Examples")}</Table.Th>
                             </Table.Tr>
                         </Table.Thead>
@@ -300,6 +323,28 @@ export default function PackageBuilder({ onUpload, stored, onOpenStored, disable
                                             w={110}
                                             value={group.points}
                                             onChange={v => setGroup(group.group, { points: Number(v) || 0 })}
+                                        />
+                                    </Table.Td>
+                                    {/* Empty inherits the limits above. A group of
+                                        harder tests may need more time than the rest,
+                                        and saying so per group beats raising the limit
+                                        for every test in the problem. */}
+                                    <Table.Td>
+                                        <NumberInput
+                                            min={1}
+                                            w={130}
+                                            placeholder={`${config.limits.timeMs}`}
+                                            value={group.limits?.timeMs ?? ""}
+                                            onChange={v => setGroupLimit(group.group, "timeMs", v)}
+                                        />
+                                    </Table.Td>
+                                    <Table.Td>
+                                        <NumberInput
+                                            min={1}
+                                            w={130}
+                                            placeholder={`${config.limits.memoryMb}`}
+                                            value={group.limits?.memoryMb ?? ""}
+                                            onChange={v => setGroupLimit(group.group, "memoryMb", v)}
                                         />
                                     </Table.Td>
                                     <Table.Td>
