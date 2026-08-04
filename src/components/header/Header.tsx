@@ -3,7 +3,8 @@ import { useDisclosure } from '@mantine/hooks';
 import { IconChevronDown } from '@tabler/icons-react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { displayName } from '../../api/displayName';
 import { useAuth } from '../../provider/AuthProvider';
 import { useApiEffect } from '../../provider/ApiProvider';
 import Logo from '../logo/Logo';
@@ -13,6 +14,7 @@ import { usePreferences } from '../../provider/PreferencesProvider';
 
 function Header() {
     const [opened, { toggle }] = useDisclosure(false);
+    const navigate = useNavigate();
 
     useApiEffect(async (api) => {
         api.authApi.eventDispatcher.addEventListener('systemMessage', (evt) => {
@@ -25,7 +27,7 @@ function Header() {
     });
 
     const { t, i18n } = useTranslation();
-    const { user, logout } = useAuth();
+    const { session, signOut } = useAuth();
 
 
 
@@ -35,19 +37,20 @@ function Header() {
     useEffect(() => { if (theme) setColorScheme(theme) }, [theme])
     useEffect(() => { if (lang) i18n.changeLanguage(lang) }, [lang])
 
-    const links = user === undefined ? [] : user ?[
+    const links = session ? [
         { link: '/', label: t('Home') },
+        { link: '/activities', label: t('Activities') },
         {
-            link: '#1',
-            label: user.email,
+            link: '#account',
+            label: displayName(session),
             links: [
-                { link: '#logout', label: 'Logout', func: () => logout() },
+                { link: '/account', label: t('My account'), func: () => navigate('/account') },
+                { link: '#logout', label: t('Logout'), func: () => void signOut() },
             ],
         }
     ] : [
         { link: '/', label: t('Home') },
         { link: '/login', label: t('Login') },
-        { link: '/register', label: t('Register') }
     ];
 
     const items = links.map((link) => {

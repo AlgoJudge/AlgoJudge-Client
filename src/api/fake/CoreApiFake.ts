@@ -1,21 +1,254 @@
-import { CoreApi, User } from "../CoreApi";
+import { UnauthorizedError } from "../ApiError";
+import { CoreApi, InstanceInfo, ProfileInput, RegisterInput, Session } from "../CoreApi";
 import { CoreEventDispatcherImpl } from "../impl/CoreEventDispatcherImpl";
+import { Utils } from "./Utils";
+
+/**
+ * Signing in, without a Server.
+ *
+ * Three accounts, one password, and the rules the Server will enforce: a wrong
+ * password is refused, ten wrong ones lock the account for an hour, the current
+ * password is checked before it changes, and an account owned by an identity
+ * provider may not edit itself here.
+ *
+ * The session is kept in `sessionStorage` because a cookie is what the real
+ * transport uses: a reload has to leave somebody signed in, and a fake that
+ * forgot would teach every screen to expect a sign-out that will not happen.
+ */
+
+const PASSWORD = "Test1!";
+const SESSION_KEY = "algojudge.fake.session";
+const MAX_ATTEMPTS = 10;
+const LOCKOUT_MS = 60 * 60 * 1000;
+
+interface Account extends Session {
+    password: string;
+    failedAttempts: number;
+    lockedUntil?: number;
+    /** Set once the account has been anonymized; it signs in no more. */
+    anonymized?: boolean;
+}
+
+/** Ids and logins match `fixtures/permissions.ts`, so a session names a real person. */
+const createAccounts = (): Account[] => [
+    {
+        userId: "user-me",
+        username: "amy",
+        firstName: "Amy",
+        lastName: "Horsefighter",
+        email: "amy@example.edu.pl",
+        emailConfirmed: true,
+        isLocal: true,
+        password: PASSWORD,
+        failedAttempts: 0,
+    },
+    {
+        userId: "user-kowalski",
+        username: "jkowalski",
+        firstName: "Jan",
+        lastName: "Kowalski",
+        email: "j.kowalski@example.edu.pl",
+        emailConfirmed: true,
+        isLocal: true,
+        password: PASSWORD,
+        failedAttempts: 0,
+    },
+    {
+        // Owned by the identity provider: the profile is read-only here, the
+        // password is not ours to change, and the account cannot delete itself.
+        userId: "user-admin",
+        username: "john",
+        firstName: "John",
+        lastName: "Smith",
+        email: "john.smith@algojudge.pl",
+        emailConfirmed: true,
+        isLocal: false,
+        password: PASSWORD,
+        failedAttempts: 0,
+    },
+];
+
+const toSession = (account: Account): Session => ({
+    userId: account.userId,
+    username: account.username,
+    firstName: account.firstName,
+    lastName: account.lastName,
+    email: account.email,
+    emailConfirmed: account.emailConfirmed,
+    isLocal: account.isLocal,
+});
 
 export class CoreApiFake implements CoreApi {
     readonly eventDispatcher: CoreEventDispatcherImpl = new CoreEventDispatcherImpl();
-    login(_email: string, _password: string, signal: AbortSignal): Promise<void> {
-        signal.throwIfAborted();
-        throw new Error("Method not implemented.");
-    }
-    register(_email: string, _password: string, signal: AbortSignal): Promise<void> {
-        signal.throwIfAborted();
-        throw new Error("Method not implemented.");
-    }
-    getUser(): User | undefined {
-        return {
-            username: "john",
-            name: "John Smith",
-            email: ""
+
+    private accounts = createAccounts();
+    private signedInAs: string | undefined = CoreApiFake.restore();
+
+    constructor(private sleepMs: number = 300) { }
+
+    /**
+     * The session this browser already holds — or one named in the address.
+     *
+     * `?fakeUser=jkowalski` signs in as that account. It exists so a screenshot
+     * or a demo can start signed in as somebody specific, and it is safe because
+     * it lives in the fake: the HTTP implementation has no such thing, and the
+     * fake only runs when an installation has no Server configured or has asked
+     * for it explicitly.
+     */
+    private static restore(): string | undefined {
+        const wanted = new URLSearchParams(window.location.search).get("fakeUser");
+        if (wanted) {
+            const account = createAccounts().find(a => a.username === wanted);
+            if (account) {
+                sessionStorage.setItem(SESSION_KEY, account.userId);
+                return account.userId;
+            }
         }
+        return sessionStorage.getItem(SESSION_KEY) ?? undefined;
+    }
+
+    async getInstanceInfo(signal: AbortSignal): Promise<InstanceInfo> {
+        await this.settle(signal);
+        // The shipped default: accounts come from an organiser or from SSO.
+        return { localRegistrationEnabled: false, requireEmail: false, requireConfirmedEmail: false };
+    }
+
+    async getSession(signal: AbortSignal): Promise<Session | undefined> {
+        await this.settle(signal);
+        const account = this.accounts.find(a => a.userId === this.signedInAs && !a.anonymized);
+        return account ? { ...toSession(account) } : undefined;
+    }
+
+    async login(login: string, password: string, signal: AbortSignal): Promise<Session> {
+        await this.settle(signal);
+        const needle = login.trim().toLowerCase();
+        const account = this.accounts.find(a =>
+            !a.anonymized
+            && (a.username.toLowerCase() === needle || (a.email ?? "").toLowerCase() === needle));
+
+        // The same answer for an unknown login as for a wrong password: telling
+        // the two apart tells a stranger which accounts exist.
+        if (!account) throw new UnauthorizedError();
+
+        if (account.lockedUntil && account.lockedUntil > Date.now()) {
+            Utils.throwError("Too many attempts. The account is locked for an hour.");
+        }
+
+        if (account.password !== password) {
+            account.failedAttempts += 1;
+            if (account.failedAttempts >= MAX_ATTEMPTS) {
+                account.lockedUntil = Date.now() + LOCKOUT_MS;
+                account.failedAttempts = 0;
+                Utils.throwError("Too many attempts. The account is locked for an hour.");
+            }
+            throw new UnauthorizedError();
+        }
+
+        account.failedAttempts = 0;
+        account.lockedUntil = undefined;
+        this.signedInAs = account.userId;
+        sessionStorage.setItem(SESSION_KEY, account.userId);
+        return { ...toSession(account) };
+    }
+
+    async logout(signal: AbortSignal): Promise<void> {
+        await this.settle(signal);
+        this.signedInAs = undefined;
+        sessionStorage.removeItem(SESSION_KEY);
+    }
+
+    async register(input: RegisterInput, signal: AbortSignal): Promise<void> {
+        await this.settle(signal);
+        // Refused whatever the form sends: this instance takes no sign-ups, and
+        // a fake that accepted them would hide the setting from every screen.
+        void input;
+        Utils.throwError("This instance does not accept sign-ups");
+    }
+
+    async updateProfile(input: ProfileInput, signal: AbortSignal): Promise<Session> {
+        await this.settle(signal);
+        const account = this.requireAccount();
+        this.assertLocal(account);
+
+        if (input.username !== undefined) {
+            const username = input.username.trim();
+            if (username.length === 0) Utils.throwError("A login is required");
+            if (this.accounts.some(a => a.userId !== account.userId
+                && a.username.toLowerCase() === username.toLowerCase())) {
+                Utils.throwError("That login is taken");
+            }
+            account.username = username;
+        }
+        if (input.firstName !== undefined) account.firstName = input.firstName.trim() || undefined;
+        if (input.lastName !== undefined) account.lastName = input.lastName.trim() || undefined;
+        if (input.email !== undefined) {
+            const email = input.email.trim() || undefined;
+            // A changed address is an unconfirmed address, whatever the old one
+            // was worth.
+            if (email !== account.email) account.emailConfirmed = false;
+            account.email = email;
+        }
+        return { ...toSession(account) };
+    }
+
+    async changePassword(currentPassword: string, newPassword: string, signal: AbortSignal): Promise<void> {
+        await this.settle(signal);
+        const account = this.requireAccount();
+        this.assertLocal(account);
+        if (account.password !== currentPassword) {
+            Utils.throwError("The current password is wrong");
+        }
+        if (newPassword.length < 12) {
+            Utils.throwError("A password needs at least 12 characters");
+        }
+        account.password = newPassword;
+    }
+
+    async exportData(signal: AbortSignal): Promise<Blob> {
+        await this.settle(signal);
+        const account = this.requireAccount();
+        // The account row is the part this API holds. The Server's export also
+        // carries submissions, questions and grants; the shape is the same.
+        const document = {
+            exportedAt: new Date().toISOString(),
+            account: toSession(account),
+            note: "Fake export: the Server's version also carries submissions, questions and grants.",
+        };
+        return new Blob([JSON.stringify(document, null, 2)], { type: "application/json" });
+    }
+
+    async deleteAccount(password: string, signal: AbortSignal): Promise<void> {
+        await this.settle(signal);
+        const account = this.requireAccount();
+        this.assertLocal(account);
+        if (account.password !== password) {
+            Utils.throwError("The password is wrong");
+        }
+        // Anonymized rather than removed: results stay attached to a row that no
+        // longer names anybody.
+        account.anonymized = true;
+        account.username = `deleted-${account.userId.slice(-4)}`;
+        account.firstName = undefined;
+        account.lastName = undefined;
+        account.email = undefined;
+        this.signedInAs = undefined;
+        sessionStorage.removeItem(SESSION_KEY);
+    }
+
+    private requireAccount(): Account {
+        const account = this.accounts.find(a => a.userId === this.signedInAs);
+        if (!account) throw new UnauthorizedError();
+        return account;
+    }
+
+    private assertLocal(account: Account): void {
+        if (!account.isLocal) {
+            Utils.throwError("This account is managed by the identity provider");
+        }
+    }
+
+    private async settle(signal: AbortSignal): Promise<void> {
+        await Utils.sleep(this.sleepMs);
+        signal.throwIfAborted();
     }
 }

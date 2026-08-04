@@ -8,11 +8,15 @@ import { ParticipantApiHttp } from "./ParticipantApiHttp";
 export class HttpApiFactory {
     public static create(baseUrl: string): Api {
         const coreEventDispatcher = new CoreEventDispatcherImpl();
-        const http = new HttpClient(baseUrl, (message, type) =>
-            coreEventDispatcher.dispatchEvent({
+        const http = new HttpClient(
+            baseUrl,
+            (message, type) => coreEventDispatcher.dispatchEvent({
                 type: "systemMessage",
                 data: { message, type },
-            })
+            }),
+            // A 401 is not a message to show; it is a session that ended, and the
+            // provider has to hear about it.
+            () => coreEventDispatcher.dispatchEvent({ type: "sessionExpired", data: {} }),
         );
         return {
             authApi: new CoreApiHttp(http, coreEventDispatcher),

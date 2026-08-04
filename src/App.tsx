@@ -24,6 +24,9 @@ import SubmissionPage from './pages/activities/activity_id/submissions/submissio
 import CodePage from './pages/activities/activity_id/submissions/submission_id/code/CodePage';
 
 import { ApiProvider } from './provider/ApiProvider';
+import { AuthProvider } from './provider/AuthProvider';
+import RequireSession from './routers/Authentication';
+const AccountPage = lazy(() => import('./pages/account/AccountPage'));
 
 // The manager panel is a different application wearing the same shell, and a
 // participant never opens it. Split out so they do not download it.
@@ -63,8 +66,15 @@ function App() {
         },
         {
             path: "/",
-            element: <AppLayout />,
+            // One guard for the whole application shell: every participant and
+            // manager screen is a child of it, so there is no route that can be
+            // added later and forgotten here.
+            element: <RequireSession><AppLayout /></RequireSession>,
             children: [
+                {
+                    path: "/account",
+                    element: <AccountPage />
+                },
                 {
                     path: "/activities",
                     element: <ActivitiesPage />
@@ -160,8 +170,12 @@ function App() {
     return (
             <MantineProvider>
                 <ApiProvider>
-                    <Notifications />
-                    <RouterProvider router={router} />
+                    {/* Above the router, so the application shell sees the same
+                        session as the public one. */}
+                    <AuthProvider>
+                        <Notifications />
+                        <RouterProvider router={router} />
+                    </AuthProvider>
                 </ApiProvider>
             </MantineProvider>
     );

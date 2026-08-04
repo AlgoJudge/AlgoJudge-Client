@@ -54,7 +54,7 @@ Build-time variables, read by Vite:
 |---|---|
 | `VITE_APP_API_BASE_URL` | base URL of AlgoJudge-Server |
 | `VITE_APP_USE_FAKE_API` | `true` forces the fake API implementation |
-| `VITE_APP_DEBUG_AUTHENTICATION` | `true` bypasses the route guard — development only |
+| `VITE_APP_DEBUG_AUTHENTICATION` | `true` bypasses the route guard. **Development only and off by default**: a production build ignores it, so no deployment can be configured into having no authentication |
 
 Every `VITE_`-prefixed value is embedded in the published bundle, so none of
 them can hold a secret.

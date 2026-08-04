@@ -1,5 +1,16 @@
 import { Api } from "./Api";
-import { CoreApi, CoreEvent, CoreEventDispatcher, CoreEventType, SystemMessageEvent, User } from "./CoreApi";
+import {
+    CoreApi,
+    CoreEvent,
+    CoreEventDispatcher,
+    CoreEventType,
+    InstanceInfo,
+    ProfileInput,
+    RegisterInput,
+    Session,
+    SessionExpiredEvent,
+    SystemMessageEvent,
+} from "./CoreApi";
 import {
     ActivityChangedEvent,
     ActivityInput,
@@ -100,6 +111,7 @@ export class ScopedApi {
 export class ScopedCoreEventDispatcher {
     constructor(private eventDispatcher: CoreEventDispatcher, private signal: AbortSignal) {}
     addEventListener(type: "systemMessage", listener: (evt: SystemMessageEvent) => void): void;
+    addEventListener(type: "sessionExpired", listener: (evt: SessionExpiredEvent) => void): void;
     addEventListener<T extends CoreEventType, V>(type: T, listener: (evt: CoreEvent<T, V>) => void): void {
         return this.eventDispatcher.addEventListener(type, listener, this.signal);
     }
@@ -110,14 +122,32 @@ export class ScopedCoreApi {
     constructor(private coreApi: CoreApi, private signal: AbortSignal) {
         this.eventDispatcher = new ScopedCoreEventDispatcher(this.coreApi.eventDispatcher, this.signal);
     }
-    login(email: string, password: string): Promise<void> {
-        return this.coreApi.login(email, password, this.signal);
+    getInstanceInfo(): Promise<InstanceInfo> {
+        return this.coreApi.getInstanceInfo(this.signal);
     }
-    register(email: string, password: string): Promise<void> {
-        return this.coreApi.register(email, password, this.signal);
+    getSession(): Promise<Session | undefined> {
+        return this.coreApi.getSession(this.signal);
     }
-    getUser(): User | undefined {
-        return this.coreApi.getUser();
+    login(login: string, password: string): Promise<Session> {
+        return this.coreApi.login(login, password, this.signal);
+    }
+    logout(): Promise<void> {
+        return this.coreApi.logout(this.signal);
+    }
+    register(input: RegisterInput): Promise<void> {
+        return this.coreApi.register(input, this.signal);
+    }
+    updateProfile(input: ProfileInput): Promise<Session> {
+        return this.coreApi.updateProfile(input, this.signal);
+    }
+    changePassword(currentPassword: string, newPassword: string): Promise<void> {
+        return this.coreApi.changePassword(currentPassword, newPassword, this.signal);
+    }
+    exportData(): Promise<Blob> {
+        return this.coreApi.exportData(this.signal);
+    }
+    deleteAccount(password: string): Promise<void> {
+        return this.coreApi.deleteAccount(password, this.signal);
     }
 }
 

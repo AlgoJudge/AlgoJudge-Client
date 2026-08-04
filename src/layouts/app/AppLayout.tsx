@@ -1,9 +1,11 @@
 import { AppShell, Burger, Center, Group, Loader, UnstyledButton, Text, Divider, Tooltip, Menu, useMantineColorScheme, useComputedColorScheme, Badge } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { NavLink, Outlet, useMatch } from "react-router-dom";
+import { NavLink, Outlet, useMatch, useNavigate } from "react-router-dom";
 import Logo from "../../components/logo/Logo";
+import { displayName } from "../../api/displayName";
+import { useAuth } from "../../provider/AuthProvider";
 import classes from "./AppLayout.module.css";
-import { Icon, IconAlignBoxCenterTop, IconBox, IconChartBarPopular, IconChevronDown, IconChevronsLeft, IconChevronsRight, IconClock, IconDevicesPc, IconIdBadge2, IconKey, IconListDetails, IconLogout, IconMessageQuestion, IconMoon, IconNotes, IconPackageExport, IconPrinter, IconProps, IconSectionSign, IconServer, IconSun, IconUserCheck, IconUsers, IconWorldWww } from "@tabler/icons-react";
+import { Icon, IconAlignBoxCenterTop, IconBox, IconChartBarPopular, IconChevronDown, IconChevronsLeft, IconChevronsRight, IconClock, IconDevicesPc, IconIdBadge2, IconKey, IconListDetails, IconLogout, IconMessageQuestion, IconMoon, IconNotes, IconPackageExport, IconPrinter, IconProps, IconSectionSign, IconServer, IconSun, IconUser, IconUserCheck, IconUsers, IconWorldWww } from "@tabler/icons-react";
 import { ComponentPropsWithoutRef, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useApiEffect } from "../../provider/ApiProvider";
@@ -166,16 +168,17 @@ const LangSelector = () => {
 }
 
 const UserButton = (props: ComponentPropsWithoutRef<'button'>) => {
+    const { session } = useAuth();
     return (
         <UnstyledButton mx="xl" {...props} className={classes.user}>
             <Group>
                 <div style={{ flex: 1 }}>
                     <Text size="sm" fw={500}>
-                        John Smith
+                        {session ? displayName(session) : ""}
                     </Text>
 
                     <Text c="dimmed" size="xs">
-                        john
+                        {session?.username}
                     </Text>
                 </div>
 
@@ -187,14 +190,24 @@ const UserButton = (props: ComponentPropsWithoutRef<'button'>) => {
 
 const UserMenu = () => {
     const { t } = useTranslation();
+    const navigate = useNavigate();
+    const { signOut } = useAuth();
     return (
-        <Menu shadow="md" width={200}>
+        <Menu shadow="md" width={220}>
             <Menu.Target>
                 <UserButton />
             </Menu.Target>
 
             <Menu.Dropdown>
-                <Menu.Item leftSection={<IconLogout size={14} />}>
+                <Menu.Item leftSection={<IconUser size={14} />} onClick={() => navigate("/account")}>
+                    {t("My account")}
+                </Menu.Item>
+                {/* Ends the session on the Server, not only in this tab: the
+                    entry used to have no handler at all. */}
+                <Menu.Item
+                    leftSection={<IconLogout size={14} />}
+                    onClick={() => void signOut().then(() => navigate("/login", { replace: true }))}
+                >
                     {t("Logout")}
                 </Menu.Item>
             </Menu.Dropdown>

@@ -17,7 +17,13 @@ export interface HttpRequestOptions {
 export class HttpClient {
     constructor(
         private readonly baseUrl: string,
-        private readonly report: (message: string, type: SystemMessageType) => void
+        private readonly report: (message: string, type: SystemMessageType) => void,
+        /**
+         * Called when the Server refuses a request for want of a session. The
+         * provider drops the session and the route guard does the rest — without
+         * it a session that expires mid-visit leaves every screen spinning.
+         */
+        private readonly onUnauthorized: () => void = () => { }
     ) { }
 
     public async request<T>(
@@ -48,7 +54,7 @@ export class HttpClient {
         });
 
         if (response.status === 401) {
-            this.report("Unauthorized", "error");
+            this.onUnauthorized();
             throw new UnauthorizedError();
         }
         if (response.status === 403) {
@@ -64,5 +70,24 @@ export class HttpClient {
             return await response.json() as T;
         } catch { /* several endpoints answer with an empty body */ }
         return {} as T;
+    }
+
+    /** For endpoints answering with a file rather than a document. */
+    public async download(path: string, signal?: AbortSignal): Promise<Blob> {
+        signal?.throwIfAborted();
+        const response = await fetch(this.baseUrl + path, { credentials: "include", signal });
+        if (response.status === 401) {
+            this.onUnauthorized();
+            throw new UnauthorizedError();
+        }
+        if (response.status === 403) {
+            this.report("Forbidden", "error");
+            throw new ForbiddenError();
+        }
+        if (!response.ok) {
+            this.report(`Server responded with status ${response.status}`, "error");
+            throw new InvalidStatusError(response.status);
+        }
+        return await response.blob();
     }
 }

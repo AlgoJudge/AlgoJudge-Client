@@ -1,88 +1,118 @@
 import {
-    Alert,
-    Anchor,
-    Box,
-    Button,
-    Container,
-    LoadingOverlay,
-    Paper,
-    PasswordInput,
-    Text,
-    TextInput,
-    Title
+    Alert, Anchor, Box, Button, Container, LoadingOverlay, Paper, PasswordInput, Text, TextInput, Title,
 } from '@mantine/core';
 import { IconInfoCircle } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useTranslation } from "react-i18next";
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { UnauthorizedError } from '../../api/ApiError';
+import { InstanceInfo } from '../../api/CoreApi';
+import { useApiEffect } from '../../provider/ApiProvider';
 import { useAuth } from '../../provider/AuthProvider';
-import { useApiCall } from '../../provider/ApiProvider';
 import classes from './LoginPage.module.css';
 
-function LoginPage() {
+/**
+ * Signing in.
+ *
+ * There is no "forgot password" link, and that is deliberate: this version sends
+ * no email, so the link would lead to an administrator's inbox by a longer road.
+ * The screen says so instead of implying a self-service reset that does not
+ * exist.
+ */
+export default function LoginPage() {
     const { t } = useTranslation();
+    const location = useLocation();
+    const { status, signIn } = useAuth();
 
-    const [logged, setLogged] = useState(false);
-    const [email, setEmail] = useState('test@test.pl');
-    const [password, setPassword] = useState('Test1!');
+    const [login, setLogin] = useState('');
+    const [password, setPassword] = useState('');
     const [error, setError] = useState<string | undefined>(undefined);
-    const [isLoading, setIsLoading] = useState<boolean>(false);
-    const { login } = useAuth();
-    const apiCall = useApiCall();
-    const icon = <IconInfoCircle />;
+    const [busy, setBusy] = useState(false);
+    const [instance, setInstance] = useState<InstanceInfo | undefined>(undefined);
 
-    const makeLogin = async () => {
-        setError(undefined);
-        setIsLoading(true);
-        try {
-            await apiCall(api => api.authApi.login(email, password));
-        } catch (e) {
-            if (e instanceof UnauthorizedError) {
-                setError(t('Invalid email or password'));
-            } else {
-                setError(t('Error'));
-            }
-            setIsLoading(false);
+    useApiEffect(async (api) => {
+        setInstance(await api.authApi.getInstanceInfo());
+    }, []);
+
+    // Where the guard was going when it stopped somebody. The fallback is the
+    // participant's own screen rather than the manager panel: most people who
+    // sign in are participants.
+    const destination = (location.state as { from?: string } | null)?.from ?? '/activities';
+
+    const submit = async () => {
+        if (login.trim().length === 0 || password.length === 0) {
+            setError(t('Give a login and a password'));
             return;
         }
-        setLogged(true);
-        login({ email, password });
-    }
+        setError(undefined);
+        setBusy(true);
+        try {
+            await signIn(login.trim(), password);
+        } catch (e) {
+            // A wrong password and an unknown login answer the same way; anything
+            // else carries the Server's own message, which is usually "locked".
+            setError(e instanceof UnauthorizedError
+                ? t('Invalid login or password')
+                : e instanceof Error ? e.message : t('Error'));
+            setBusy(false);
+        }
+    };
+
+    if (status === 'authenticated') return <Navigate to={destination} replace />;
 
     return (
         <Container size={420} my={40}>
-            {logged && (<Navigate to="/manager" replace={true} />)}
-            <Title ta="center" className={classes.title}>
-                {t('Login')}
-            </Title>
-            <Text c="dimmed" size="sm" ta="center" mt={5}>
-                {t('Do not have an account yet?')}{' '}
-                <Anchor size="sm" component="button">
-                    {t('Create account')}
-                </Anchor>
-            </Text>
+            <Title ta="center" className={classes.title}>{t('Login')}</Title>
 
-            {error && (<Alert variant="filled" color="red" withCloseButton title={t('Error')} icon={icon} my="2rem">{error}</Alert>)}
+            {instance?.localRegistrationEnabled && (
+                <Text c="dimmed" size="sm" ta="center" mt={5}>
+                    {t('Do not have an account yet?')}{' '}
+                    <Anchor component={Link} to="/register" size="sm">{t('Create account')}</Anchor>
+                </Text>
+            )}
+
+            {error && (
+                <Alert
+                    variant="light"
+                    color="red"
+                    withCloseButton
+                    onClose={() => setError(undefined)}
+                    title={t('Error')}
+                    icon={<IconInfoCircle />}
+                    my="md"
+                >
+                    {error}
+                </Alert>
+            )}
 
             <Box pos="relative">
                 <Paper withBorder shadow="md" p={30} mt={30} radius="md">
-                    <LoadingOverlay visible={isLoading} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} />
-                    <TextInput label={t('Email')} placeholder={t('mail@example.com')} required onChange={(e) => setEmail(e.target.value)} />
-                    <PasswordInput label={t('Password')} placeholder={t('Your password')} required mt="md" onChange={(e) => setPassword(e.target.value)} />
-                    {/*<Group justify="space-between" mt="lg">*/}
-                    {/*    <Checkbox label="Remember me" />*/}
-                    {/*    <Anchor component="button" size="sm">*/}
-                    {/*        Forgot password?*/}
-                    {/*    </Anchor>*/}
-                    {/*</Group>*/}
-                    <Button fullWidth mt="xl" onClick={makeLogin}>
+                    <LoadingOverlay visible={busy} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} />
+                    <TextInput
+                        label={t('Login or email')}
+                        placeholder={t('your login')}
+                        value={login}
+                        onChange={e => setLogin(e.currentTarget.value)}
+                        onKeyDown={e => e.key === 'Enter' && submit()}
+                        required
+                    />
+                    <PasswordInput
+                        label={t('Password')}
+                        placeholder={t('Your password')}
+                        value={password}
+                        onChange={e => setPassword(e.currentTarget.value)}
+                        onKeyDown={e => e.key === 'Enter' && submit()}
+                        required
+                        mt="md"
+                    />
+                    <Button fullWidth mt="xl" loading={busy} onClick={submit}>
                         {t('Sign in')}
                     </Button>
+                    <Text size="xs" c="dimmed" mt="md" ta="center">
+                        {t('Forgotten your password? An administrator will issue a new one.')}
+                    </Text>
                 </Paper>
             </Box>
         </Container>
     );
 }
-
-export default LoginPage;
