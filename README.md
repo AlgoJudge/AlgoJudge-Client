@@ -56,6 +56,21 @@ Build-time variables, read by Vite:
 | `VITE_APP_USE_FAKE_API` | `true` forces the fake API implementation |
 | `VITE_APP_DEBUG_AUTHENTICATION` | `true` bypasses the route guard. **Development only and off by default**: a production build ignores it, so no deployment can be configured into having no authentication |
 
+### Working against the fake
+
+The fake API carries a few development affordances, all read from the address and
+remembered for the tab. They exist only in the fake — the HTTP implementation has
+nothing of the sort.
+
+| Parameter | Effect |
+|---|---|
+| `?fakeUser=amy` | start signed in as `amy` (manager), `jkowalski` (participant) or `john` (administrator, SSO) |
+| `?fakeRegistration=on` | let this instance accept local sign-ups |
+| `?fakeRequireEmail=on` | make the address mandatory on the registration form |
+| `?fakeConfirmEmail=on` | refuse sign-in until the address is confirmed |
+
+All three seeded accounts use the password `Test1!`.
+
 Every `VITE_`-prefixed value is embedded in the published bundle, so none of
 them can hold a secret.
 

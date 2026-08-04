@@ -18,6 +18,8 @@ import { Utils } from "./Utils";
 
 const PASSWORD = "Test1!";
 const SESSION_KEY = "algojudge.fake.session";
+const INSTANCE_KEY = "algojudge.fake.instance";
+const MIN_PASSWORD = 12;
 const MAX_ATTEMPTS = 10;
 const LOCKOUT_MS = 60 * 60 * 1000;
 
@@ -83,6 +85,7 @@ export class CoreApiFake implements CoreApi {
 
     private accounts = createAccounts();
     private signedInAs: string | undefined = CoreApiFake.restore();
+    private instance: InstanceInfo = CoreApiFake.restoreInstance();
 
     constructor(private sleepMs: number = 300) { }
 
@@ -95,6 +98,39 @@ export class CoreApiFake implements CoreApi {
      * fake only runs when an installation has no Server configured or has asked
      * for it explicitly.
      */
+    /**
+     * The instance settings, which stage 9 will make a screen.
+     *
+     * Until then the fake takes them from the address so the registration path
+     * can be seen at all: `?fakeRegistration=on` turns local sign-ups on,
+     * `&fakeRequireEmail=on` makes the address mandatory, and
+     * `&fakeConfirmEmail=on` makes an unconfirmed address unable to sign in.
+     * Each choice sticks until it is changed or the tab closes.
+     */
+    private static restoreInstance(): InstanceInfo {
+        const stored = sessionStorage.getItem(INSTANCE_KEY);
+        const instance: InstanceInfo = stored
+            ? JSON.parse(stored) as InstanceInfo
+            // The shipped default: accounts come from an organiser or from SSO.
+            : { localRegistrationEnabled: false, requireEmail: false, requireConfirmedEmail: false };
+
+        const query = new URLSearchParams(window.location.search);
+        const flag = (name: string): boolean | undefined => {
+            const value = query.get(name);
+            return value === null ? undefined : value === "on" || value === "true" || value === "1";
+        };
+
+        const registration = flag("fakeRegistration");
+        const requireEmail = flag("fakeRequireEmail");
+        const confirmEmail = flag("fakeConfirmEmail");
+        if (registration !== undefined) instance.localRegistrationEnabled = registration;
+        if (requireEmail !== undefined) instance.requireEmail = requireEmail;
+        if (confirmEmail !== undefined) instance.requireConfirmedEmail = confirmEmail;
+
+        sessionStorage.setItem(INSTANCE_KEY, JSON.stringify(instance));
+        return instance;
+    }
+
     private static restore(): string | undefined {
         const wanted = new URLSearchParams(window.location.search).get("fakeUser");
         if (wanted) {
@@ -109,8 +145,7 @@ export class CoreApiFake implements CoreApi {
 
     async getInstanceInfo(signal: AbortSignal): Promise<InstanceInfo> {
         await this.settle(signal);
-        // The shipped default: accounts come from an organiser or from SSO.
-        return { localRegistrationEnabled: false, requireEmail: false, requireConfirmedEmail: false };
+        return { ...this.instance };
     }
 
     async getSession(signal: AbortSignal): Promise<Session | undefined> {
@@ -129,6 +164,10 @@ export class CoreApiFake implements CoreApi {
         // The same answer for an unknown login as for a wrong password: telling
         // the two apart tells a stranger which accounts exist.
         if (!account) throw new UnauthorizedError();
+
+        if (this.instance.requireConfirmedEmail && !account.emailConfirmed) {
+            Utils.throwError("Confirm the address before signing in");
+        }
 
         if (account.lockedUntil && account.lockedUntil > Date.now()) {
             Utils.throwError("Too many attempts. The account is locked for an hour.");
@@ -159,10 +198,39 @@ export class CoreApiFake implements CoreApi {
 
     async register(input: RegisterInput, signal: AbortSignal): Promise<void> {
         await this.settle(signal);
-        // Refused whatever the form sends: this instance takes no sign-ups, and
-        // a fake that accepted them would hide the setting from every screen.
-        void input;
-        Utils.throwError("This instance does not accept sign-ups");
+        if (!this.instance.localRegistrationEnabled) {
+            // Refused whatever the form sends: an instance that takes no sign-ups
+            // must refuse them at the door, not only in the screen that draws it.
+            Utils.throwError("This instance does not accept sign-ups");
+        }
+
+        const username = (input.username ?? "").trim();
+        if (username.length === 0) Utils.throwError("A login is required");
+        if (this.accounts.some(a => a.username.toLowerCase() === username.toLowerCase())) {
+            Utils.throwError("That login is taken");
+        }
+        if (this.instance.requireEmail && !(input.email ?? "").trim()) {
+            Utils.throwError("This instance requires an email address");
+        }
+        if (input.password.length < MIN_PASSWORD) {
+            Utils.throwError(`A password needs at least ${MIN_PASSWORD} characters`);
+        }
+        if (!input.acceptedTerms) Utils.throwError("The terms have to be accepted");
+
+        this.accounts = [...this.accounts, {
+            userId: `user-${username}`,
+            username,
+            firstName: input.firstName?.trim() || undefined,
+            lastName: input.lastName?.trim() || undefined,
+            email: input.email?.trim() || undefined,
+            // Nothing confirms an address here, so a new one never is. With
+            // `requireConfirmedEmail` on, that is what stops the account signing
+            // in — which is the point of being able to turn the flag on at all.
+            emailConfirmed: false,
+            isLocal: true,
+            password: input.password,
+            failedAttempts: 0,
+        }];
     }
 
     async updateProfile(input: ProfileInput, signal: AbortSignal): Promise<Session> {
