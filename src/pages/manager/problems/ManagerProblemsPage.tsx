@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, Modal, Pagination, Stack, Switch, Table, Text, TextInput, Title, Tooltip } from "@mantine/core";
+import { Alert, Badge, Button, Group, Modal, Pagination, Select, Stack, Switch, Table, Text, TextInput, Title, Tooltip } from "@mantine/core";
 import { IconArchive, IconArchiveOff, IconCopy, IconLock, IconPlus, IconSearch, IconTrash, IconUsers, IconWorld } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -7,8 +7,12 @@ import { ManagedProblem, ProblemVisibility } from "../../../api/ManagerApi";
 import LoadState from "../../../components/LoadState";
 import ActivityTime from "../../../components/time/ActivityTime";
 import { useApiCall, useApiEffect } from "../../../provider/ApiProvider";
+import { problemTypes } from "../../../renderers";
 
 const PAGE_SIZE = 20;
+
+/** The first type the Client can draw. There is always at least one. */
+const DEFAULT_TYPE = problemTypes()[0]?.id ?? "standard-io@1";
 
 const VISIBILITY_ICON: Record<ProblemVisibility, typeof IconLock> = {
     private: IconLock,
@@ -37,7 +41,7 @@ export default function ManagerProblemsPage() {
     const [mineOnly, setMineOnly] = useState(false);
     const [includeArchived, setIncludeArchived] = useState(false);
     const [creating, setCreating] = useState(false);
-    const [draft, setDraft] = useState({ slug: "", name: "", type: "standard-io@1" });
+    const [draft, setDraft] = useState({ slug: "", name: "", type: DEFAULT_TYPE });
     const [error, setError] = useState<string | undefined>(undefined);
     const [busy, setBusy] = useState(false);
     const [reload, setReload] = useState(0);
@@ -75,11 +79,13 @@ export default function ManagerProblemsPage() {
             type: draft.type,
         }));
         setCreating(false);
-        setDraft({ slug: "", name: "", type: "standard-io@1" });
+        setDraft({ slug: "", name: "", type: DEFAULT_TYPE });
         navigate(`/manager/problems/${created.id}`);
     });
 
     if (!items) return <LoadState error={loadError} loading={!loadError} />;
+
+    const chosenType = problemTypes().find(type => type.id === draft.type);
 
     return (
         <Stack gap="md">
@@ -229,11 +235,20 @@ export default function ManagerProblemsPage() {
                         onChange={e => setDraft({ ...draft, slug: e.currentTarget.value })}
                         required
                     />
-                    <TextInput
+                    {/* A choice, not a free field: the type decides which renderers
+                        draw the statement and the result, and a string nothing is
+                        registered for produces a problem every screen refuses to
+                        show. */}
+                    <Select
                         label={t("Type")}
-                        description={t("Problem type discriminator, name@version")}
+                        description={chosenType ? t(chosenType.description) : undefined}
+                        data={problemTypes().map(type => ({
+                            value: type.id,
+                            label: `${t(type.label)} — ${type.id}`,
+                        }))}
                         value={draft.type}
-                        onChange={e => setDraft({ ...draft, type: e.currentTarget.value })}
+                        onChange={value => value && setDraft({ ...draft, type: value })}
+                        allowDeselect={false}
                     />
                     <Group justify="space-between">
                         <Button variant="default" onClick={() => setCreating(false)}>{t("Back")}</Button>

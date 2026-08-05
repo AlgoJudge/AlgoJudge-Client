@@ -80,5 +80,40 @@ export const rankingRenderers = new TypeRegistry<RankingRenderer>(UnsupportedRan
     .register("points", PointsRanking)
     .register("points@*", PointsRanking);
 
+/**
+ * A problem type a manager may create, as the Client knows it.
+ *
+ * The Server stores the discriminator and never reads it, so what types exist is
+ * a property of this Client — which is exactly why the list lives beside the
+ * registries that draw them. Adding a type is a Client change and nothing else.
+ */
+export interface ProblemTypeOption {
+    /** The stored discriminator, `name@version`. */
+    id: string;
+    /** English label, and the translation key the screens use. */
+    label: string;
+    description: string;
+}
+
+const PROBLEM_TYPE_CATALOGUE: ProblemTypeOption[] = [
+    {
+        id: "standard-io@1",
+        label: "Standard input and output",
+        description: "The solution reads standard input and writes standard output. "
+            + "The package carries the tests, the limits and the scoring.",
+    },
+];
+
+/**
+ * The types a manager may choose from: those this Client can actually draw.
+ *
+ * Filtered rather than listed, so a type whose statement or result renderer was
+ * never registered cannot be offered. Choosing one would produce a problem whose
+ * every screen says the type is unsupported — a state a manager can reach by
+ * importing, but should not be able to reach by picking from a list.
+ */
+export const problemTypes = (): ProblemTypeOption[] => PROBLEM_TYPE_CATALOGUE.filter(type =>
+    statementRenderers.resolve(type.id).supported && resultRenderers.resolve(type.id).supported);
+
 export { TypeRegistry, typeName } from "./TypeRegistry";
 export type { Resolved } from "./TypeRegistry";

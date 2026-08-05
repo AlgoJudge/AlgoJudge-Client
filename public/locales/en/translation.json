@@ -266,7 +266,6 @@
   "Slug": "Slug",
   "Used in URLs and copied into an assignment by default": "Used in URLs and copied into an assignment by default",
   "Type": "Type",
-  "Problem type discriminator, name@version": "Problem type discriminator, name@version",
   "Statement": "Statement",
   "Versions": "Versions",
   "Sharing": "Sharing",
@@ -662,5 +661,7 @@
   "snippet.embed": "Embed a file",
   "Files of the first version, published together with the statement and the package.": "Files of the first version, published together with the statement and the package.",
   "The package is built in the Package tab": "The package is built in the Package tab",
-  "No version yet. Prepare the statement, the files and the package, then publish them as version 1.": "No version yet. Prepare the statement, the files and the package, then publish them as version 1."
+  "No version yet. Prepare the statement, the files and the package, then publish them as version 1.": "No version yet. Prepare the statement, the files and the package, then publish them as version 1.",
+  "Standard input and output": "Standard input and output",
+  "The solution reads standard input and writes standard output. The package carries the tests, the limits and the scoring.": "The solution reads standard input and writes standard output. The package carries the tests, the limits and the scoring."
 }

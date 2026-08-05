@@ -266,7 +266,6 @@
   "Slug": "Slug",
   "Used in URLs and copied into an assignment by default": "Używany w adresach i kopiowany domyślnie do przypisania",
   "Type": "Typ",
-  "Problem type discriminator, name@version": "Dyskryminator typu zadania, nazwa@wersja",
   "Statement": "Treść",
   "Versions": "Wersje",
   "Sharing": "Udostępnianie",
@@ -662,5 +661,7 @@
   "snippet.embed": "Osadź plik",
   "Files of the first version, published together with the statement and the package.": "Pliki pierwszej wersji, publikowane razem z treścią i paczką.",
   "The package is built in the Package tab": "Paczkę buduje się w zakładce Paczka",
-  "No version yet. Prepare the statement, the files and the package, then publish them as version 1.": "Nie ma jeszcze żadnej wersji. Przygotuj treść, pliki i paczkę, a potem opublikuj je jako wersję 1."
+  "No version yet. Prepare the statement, the files and the package, then publish them as version 1.": "Nie ma jeszcze żadnej wersji. Przygotuj treść, pliki i paczkę, a potem opublikuj je jako wersję 1.",
+  "Standard input and output": "Wejście i wyjście standardowe",
+  "The solution reads standard input and writes standard output. The package carries the tests, the limits and the scoring.": "Rozwiązanie czyta wejście standardowe i pisze na wyjście standardowe. Paczka niesie testy, limity i punktację."
 }
