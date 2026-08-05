@@ -684,5 +684,18 @@
   "Needs one of": "Wymaga jednego z",
   "Manage this activity": "Zarządzaj tą aktywnością",
   "External image removed": "Usunięto obrazek spoza zadania",
-  "An external link was removed": "Odnośnik zewnętrzny został usunięty"
+  "An external link was removed": "Odnośnik zewnętrzny został usunięty",
+  "sessionState.connected": "Aktywna",
+  "sessionState.disconnected": "Bez połączenia",
+  "Refresh": "Odśwież",
+  "From": "Skąd",
+  "Signed in": "Zalogowano",
+  "Last request": "Ostatnie żądanie",
+  "Read at": "Odczytano",
+  "Open connections": "Otwarte połączenia",
+  "this one": "ta sesja",
+  "Could not read the sessions": "Nie udało się odczytać sesji",
+  "No sessions. Nobody is signed in as this account.": "Brak sesji. Nikt nie jest zalogowany na to konto.",
+  "A blocked account has no sessions: blocking ends them and stops new ones.": "Zablokowane konto nie ma sesji: blokada kończy istniejące i nie pozwala założyć nowych.",
+  "A session is active while the browser holds a connection to the Server. Signing out is not the same as closing the tab.": "Sesja jest aktywna, dopóki przeglądarka utrzymuje połączenie z Serverem. Wylogowanie to nie to samo co zamknięcie karty."
 }

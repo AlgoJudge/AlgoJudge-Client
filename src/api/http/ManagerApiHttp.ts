@@ -35,6 +35,7 @@ import {
     SeriesProblemInput,
     StatementVariant,
     UserInput,
+    UserSession,
     UserUpdateInput,
 } from "../ManagerApi";
 import { Page } from "../ParticipantApi";
@@ -179,6 +180,10 @@ export class ManagerApiHttp implements ManagerApi {
 
     approveUser(id: string, signal: AbortSignal): Promise<ManagedUser> {
         return this.http.request<ManagedUser>(`/users/${encodeURIComponent(id)}/approve`, "POST", { signal });
+    }
+
+    getUserSessions(userId: string, signal: AbortSignal): Promise<UserSession[]> {
+        return this.http.request<UserSession[]>(`/users/${encodeURIComponent(userId)}/sessions`, "GET", { signal });
     }
 
     getManagedActivities(signal: AbortSignal): Promise<ManagedActivitySummary[]> {

@@ -582,6 +582,44 @@ export interface ManagedUser {
     grantCount: number;
 }
 
+/**
+ * One sign-in, as the administrator screen shows it.
+ *
+ * A session is neither a person nor a browser tab. It is what signing in
+ * created; it outlives the tab that made it, and it may have several tabs open
+ * at once or none at all.
+ */
+export interface UserSession {
+    id: string;
+    /**
+     * How many WebSockets the Server holds for this session **at the moment it
+     * answered**. A count rather than a flag because two tabs and no tabs are
+     * different facts, and "active" is only the first of them: zero means signed
+     * in but not connected — a shut laptop, a tab the browser froze, a network
+     * that went away without saying so.
+     *
+     * This is connection state, not stored state. REST is the source of what
+     * persists; this is a snapshot, and a screen showing it says when it was
+     * taken rather than pretending to be live.
+     */
+    connections: number;
+    /** When signing in created it. */
+    startedAt: string;
+    /** When the Server last served this session anything at all. */
+    lastRequestAt?: string;
+    /**
+     * What it last asked for — an API path, not the screen somebody was looking
+     * at. The Server knows the first and cannot know the second.
+     */
+    lastRequestPath?: string;
+    /** Where from, so that a person can tell their own session from another. */
+    ipAddress?: string;
+    userAgent?: string;
+    expiresAt?: string;
+    /** The session doing the asking, when somebody is looking at their own account. */
+    isCurrent: boolean;
+}
+
 export interface ManagedUserFilter {
     page?: number;
     pageSize?: number;
@@ -842,6 +880,13 @@ export interface ManagerApi {
     updateUser(id: string, input: UserUpdateInput, signal: AbortSignal): Promise<ManagedUser>;
     /** Lets a pending account in, where approval is by hand rather than by email. */
     approveUser(id: string, signal: AbortSignal): Promise<ManagedUser>;
+    /**
+     * The sessions of one account, as the Server holds them at the moment it
+     * answers. Read under `user:read:all`, like everything else on that screen:
+     * a session carries an address and a browser, which is more than the account
+     * row says about somebody.
+     */
+    getUserSessions(userId: string, signal: AbortSignal): Promise<UserSession[]>;
     getManagedActivities(signal: AbortSignal): Promise<ManagedActivitySummary[]>;
 
     getActivities(filter: ManagedActivityFilter, signal: AbortSignal): Promise<Page<ManagedActivity>>;

@@ -684,5 +684,18 @@
   "Needs one of": "Needs one of",
   "Manage this activity": "Manage this activity",
   "External image removed": "External image removed",
-  "An external link was removed": "An external link was removed"
+  "An external link was removed": "An external link was removed",
+  "sessionState.connected": "Active",
+  "sessionState.disconnected": "Not connected",
+  "Refresh": "Refresh",
+  "From": "From",
+  "Signed in": "Signed in",
+  "Last request": "Last request",
+  "Read at": "Read at",
+  "Open connections": "Open connections",
+  "this one": "this one",
+  "Could not read the sessions": "Could not read the sessions",
+  "No sessions. Nobody is signed in as this account.": "No sessions. Nobody is signed in as this account.",
+  "A blocked account has no sessions: blocking ends them and stops new ones.": "A blocked account has no sessions: blocking ends them and stops new ones.",
+  "A session is active while the browser holds a connection to the Server. Signing out is not the same as closing the tab.": "A session is active while the browser holds a connection to the Server. Signing out is not the same as closing the tab."
 }

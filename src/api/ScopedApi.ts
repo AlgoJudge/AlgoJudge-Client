@@ -62,6 +62,7 @@ import {
     SeriesProblemInput,
     UserChangedEvent,
     UserInput,
+    UserSession,
     UserUpdateInput,
 } from "./ManagerApi";
 import {
@@ -324,6 +325,9 @@ export class ScopedManagerApi {
     }
     approveUser(id: string): Promise<ManagedUser> {
         return this.managerApi.approveUser(id, this.signal);
+    }
+    getUserSessions(userId: string): Promise<UserSession[]> {
+        return this.managerApi.getUserSessions(userId, this.signal);
     }
     getManagedActivities(): Promise<ManagedActivitySummary[]> {
         return this.managerApi.getManagedActivities(this.signal);

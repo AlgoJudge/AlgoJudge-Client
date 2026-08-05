@@ -24,6 +24,7 @@ import {
     ManagedSubmissionDetail,
     ManagedSubmissionFilter,
     ManagedUser,
+    UserSession,
     ManagedUserFilter,
     ManagedUserSummary,
     ManagerApi,
@@ -59,6 +60,7 @@ import { createProblemLibrary, fakeSha, ME, ProblemRecord } from "./fixtures/pro
 import { createQuestions } from "./fixtures/questions";
 import { createRunners, runnerFile } from "./fixtures/runners";
 import { createUsers } from "./fixtures/users";
+import { createSessions } from "./fixtures/sessions";
 import { createSubmissions, submissionSource } from "./fixtures/submissions";
 import { sha256 } from "../../utils/sha256";
 import { Utils } from "./Utils";
@@ -650,6 +652,14 @@ export class ManagerApiFake implements ManagerApi {
         user.approvedAt = new Date().toISOString();
         this.announceUser(user);
         return copy(this.withGrantCount(user));
+    }
+
+    async getUserSessions(userId: string, signal: AbortSignal): Promise<UserSession[]> {
+        await this.settle(signal);
+        // `findUser` first, so asking about somebody who does not exist is a 404
+        // here exactly as it will be on the Server, rather than an empty list.
+        const user = this.findUser(userId);
+        return copy(createSessions(user, userId === signedInUserId()));
     }
 
     async getQuestions(filter: ManagedQuestionFilter, signal: AbortSignal): Promise<Page<ManagedQuestion>> {

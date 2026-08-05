@@ -1,12 +1,12 @@
 import {
-    Alert, Badge, Button, Card, Code, Group, Modal, NumberInput, Pagination, Select, Stack, Switch,
-    Table, Tabs, TagsInput, Text, Textarea, TextInput, Title, Tooltip,
+    Alert, Badge, Button, Card, Center, Code, Group, Loader, Modal, NumberInput, Pagination, Select,
+    Stack, Switch, Table, Tabs, TagsInput, Text, Textarea, TextInput, Title, Tooltip,
 } from "@mantine/core";
 import { IconDownload, IconKey, IconLock, IconLockOpen, IconPlus, IconSearch, IconUsersPlus } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    CreatedCredential, Grant, ManagedActivitySummary, ManagedUser, PermissionTemplate,
+    CreatedCredential, Grant, ManagedActivitySummary, ManagedUser, PermissionTemplate, UserSession,
 } from "../../../api/ManagerApi";
 import { displayName } from "../../../api/displayName";
 import LoadState from "../../../components/LoadState";
@@ -52,6 +52,10 @@ export default function UsersPage() {
 
     const [selected, setSelected] = useState<ManagedUser | undefined>(undefined);
     const [grants, setGrants] = useState<Grant[]>([]);
+    const [sessions, setSessions] = useState<UserSession[] | undefined>(undefined);
+    /** When the session list was read. It is a snapshot, so it carries its time. */
+    const [takenAt, setTakenAt] = useState<string | undefined>(undefined);
+    const [sessionsError, setSessionsError] = useState<string | undefined>(undefined);
     const [edited, setEdited] = useState({ firstName: "", lastName: "", email: "", note: "" });
     const [tags, setTags] = useState<string[]>([]);
 
@@ -109,7 +113,33 @@ export default function UsersPage() {
             email: user.email ?? "",
             note: user.note ?? "",
         });
+        // Somebody else's sessions, from the account opened before this one.
+        setSessions(undefined);
+        setTakenAt(undefined);
         setGrants((await call(api => api.managerApi.getGrants({ userId: user.id, pageSize: 50 }))).items);
+    };
+
+    /**
+     * Asked for when the tab is opened, and again on demand.
+     *
+     * Not loaded with the account: how many sockets are open is true for as long
+     * as it takes to read it, so fetching it early only means showing something
+     * staler. The answer is stamped with the moment it arrived, and the screen
+     * says so rather than implying it keeps itself up to date.
+     */
+    const loadSessions = async (user: ManagedUser) => {
+        setSessions(undefined);
+        setSessionsError(undefined);
+        try {
+            setSessions(await call(api => api.managerApi.getUserSessions(user.id)));
+            setTakenAt(new Date().toISOString());
+        } catch (e) {
+            // Reported here rather than through `LoadState`, whose remedy is to
+            // reload the page: that would close the account somebody has open
+            // over one failed read of one tab. The Refresh button above is the
+            // proportionate answer.
+            setSessionsError(e instanceof Error ? e.message : String(e));
+        }
     };
 
     const download = (created: CreatedCredential[]) => {
@@ -273,23 +303,25 @@ export default function UsersPage() {
                 opened={selected !== undefined}
                 onClose={() => setSelected(undefined)}
                 title={<Title order={4}>{selected && displayName(selected)}</Title>}
-                size="lg"
+                // Wide enough for the session table, which is four columns and
+                // the widest thing this account view holds.
+                size="xl"
                 centered
             >
                 {selected && (
-                    <Tabs defaultValue="general">
+                    <Tabs
+                        defaultValue="general"
+                        onChange={value => { if (value === "sessions") void loadSessions(selected); }}
+                    >
                         <Tabs.List>
                             <Tabs.Tab value="general">{t("General")}</Tabs.Tab>
-                            {/* PAM-style login on competitor workstations, and a
-                                session list, are later directions. Both stay
-                                visible and dead rather than opening an empty
-                                screen. */}
+                            {/* PAM-style login on competitor workstations is a
+                                later direction. It stays visible and dead rather
+                                than opening an empty screen. */}
                             <Tabs.Tab value="unix" disabled>
                                 Unix <Text component="span" size="xs" fs="italic" c="dimmed">{t("soon")}</Text>
                             </Tabs.Tab>
-                            <Tabs.Tab value="sessions" disabled>
-                                {t("Sessions")} <Text component="span" size="xs" fs="italic" c="dimmed">{t("soon")}</Text>
-                            </Tabs.Tab>
+                            <Tabs.Tab value="sessions">{t("Sessions")}</Tabs.Tab>
                         </Tabs.List>
 
                         <Tabs.Panel value="general" pt="md">
@@ -397,6 +429,129 @@ export default function UsersPage() {
                                     </Button>
                                     <Button variant="default" onClick={() => setSelected(undefined)}>{t("Back")}</Button>
                                 </Group>
+                            </Stack>
+                        </Tabs.Panel>
+
+                        <Tabs.Panel value="sessions" pt="md">
+                            <Stack gap="sm">
+                                <Group justify="space-between" align="center">
+                                    <Text size="sm" c="dimmed">
+                                        {/* What the badge means, said once. "Active"
+                                            on its own reads as "not blocked", which
+                                            is a different fact about a different
+                                            thing. */}
+                                        {t("A session is active while the browser holds a connection to the Server. Signing out is not the same as closing the tab.")}
+                                    </Text>
+                                    <Button
+                                        variant="default"
+                                        size="xs"
+                                        onClick={() => void loadSessions(selected)}
+                                    >
+                                        {t("Refresh")}
+                                    </Button>
+                                </Group>
+
+                                {sessionsError !== undefined && (
+                                    <Alert color="red" title={t("Could not read the sessions")}>{sessionsError}</Alert>
+                                )}
+                                {sessions === undefined && sessionsError === undefined && (
+                                    <Center my="md"><Loader /></Center>
+                                )}
+                                <>
+                                    {sessions?.length === 0 && (
+                                        <Alert color="gray">
+                                            {selected.blockedAt
+                                                ? t("A blocked account has no sessions: blocking ends them and stops new ones.")
+                                                : t("No sessions. Nobody is signed in as this account.")}
+                                        </Alert>
+                                    )}
+                                    {sessions !== undefined && sessions.length > 0 && (
+                                        <>
+                                            <Table striped highlightOnHover tabularNums>
+                                                <Table.Thead>
+                                                    {/* Widths given rather than left to the
+                                                        content: a Mantine badge clips its own
+                                                        text, so a narrow first column turns
+                                                        "Bez połączenia" into "BEZ PO…" — the
+                                                        one word on the row that has to be
+                                                        readable. */}
+                                                    <Table.Tr>
+                                                        <Table.Th w={150}>{t("State")}</Table.Th>
+                                                        <Table.Th w={180}>{t("Last request")}</Table.Th>
+                                                        <Table.Th w={150}>{t("Signed in")}</Table.Th>
+                                                        <Table.Th>{t("From")}</Table.Th>
+                                                    </Table.Tr>
+                                                </Table.Thead>
+                                                <Table.Tbody>
+                                                    {sessions.map(session => (
+                                                        <Table.Tr key={session.id}>
+                                                            <Table.Td>
+                                                                <Group gap={6}>
+                                                                    <Badge
+                                                                        variant="light"
+                                                                        color={session.connections > 0 ? "teal" : "gray"}
+                                                                    >
+                                                                        {session.connections > 0
+                                                                            ? t("sessionState.connected")
+                                                                            : t("sessionState.disconnected")}
+                                                                    </Badge>
+                                                                    {/* Two tabs is a fact the flag cannot carry. */}
+                                                                    {session.connections > 1 && (
+                                                                        <Tooltip label={t("Open connections")}>
+                                                                            <Badge variant="outline" color="teal" size="sm">
+                                                                                ×{session.connections}
+                                                                            </Badge>
+                                                                        </Tooltip>
+                                                                    )}
+                                                                    {session.isCurrent && (
+                                                                        <Badge variant="outline" color="blue" size="sm">
+                                                                            {t("this one")}
+                                                                        </Badge>
+                                                                    )}
+                                                                </Group>
+                                                            </Table.Td>
+                                                            <Table.Td>
+                                                                {session.lastRequestAt
+                                                                    ? <ActivityTime value={session.lastRequestAt} timeZone="Europe/Warsaw" hideZone />
+                                                                    : <Text size="sm" c="dimmed">—</Text>}
+                                                                {session.lastRequestPath && (
+                                                                    <Text size="xs" c="dimmed" ff="monospace">
+                                                                        {session.lastRequestPath}
+                                                                    </Text>
+                                                                )}
+                                                            </Table.Td>
+                                                            <Table.Td>
+                                                                <ActivityTime value={session.startedAt} timeZone="Europe/Warsaw" hideZone />
+                                                                {session.expiresAt && (
+                                                                    <Text size="xs" c="dimmed">
+                                                                        {t("Expires")}: <ActivityTime value={session.expiresAt} timeZone="Europe/Warsaw" format="date" hideZone />
+                                                                    </Text>
+                                                                )}
+                                                            </Table.Td>
+                                                            <Table.Td>
+                                                                <Text size="sm" ff="monospace">{session.ipAddress ?? "—"}</Text>
+                                                                {session.userAgent && (
+                                                                    <Text size="xs" c="dimmed" lineClamp={1}>{session.userAgent}</Text>
+                                                                )}
+                                                            </Table.Td>
+                                                        </Table.Tr>
+                                                    ))}
+                                                </Table.Tbody>
+                                            </Table>
+
+                                            {/* A snapshot says when it was taken.
+                                                Without this the reader has no way
+                                                to tell a live list from one read
+                                                ten minutes ago. */}
+                                            {takenAt && (
+                                                <Text size="xs" c="dimmed">
+                                                    {t("Read at")}{" "}
+                                                    <ActivityTime value={takenAt} timeZone="Europe/Warsaw" hideZone />
+                                                </Text>
+                                            )}
+                                        </>
+                                    )}
+                                </>
                             </Stack>
                         </Tabs.Panel>
                     </Tabs>
