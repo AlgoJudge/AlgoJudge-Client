@@ -20,9 +20,9 @@ import { HttpClient, HttpRequestOptions } from "./HttpClient";
  * The participant API over REST.
  *
  * Paths follow the decided contract: resource-oriented, versioned in the path,
- * filtering by query parameter rather than by a parallel endpoint. The base URL
- * carries the `/v1` prefix, so an installation can serve either
- * `api.algojudge.app/v1` or `algojudge.app/api/v1` from one build.
+ * filtering by query parameter rather than by a parallel endpoint. The paths
+ * here are relative to `/api/v1`, which every installation serves whatever host
+ * it is on — see `apiBase.ts`.
  *
  * **These endpoints do not exist on the Server yet.** Until they do, every call
  * here answers 404 and the fake implementation is what the screens run against —

@@ -68,7 +68,7 @@ Mem:        32796160     4192764    24310112      189440     4293284    28063396
 Swap:        8388604           0     8388604
 `;
 
-const LOG = `2026-08-04 17:58:11 INFO  runner: connected to https://api.algojudge.app/v1
+const LOG = `2026-08-04 17:58:11 INFO  runner: connected to https://api.algojudge.app/api/v1
 2026-08-04 17:58:11 INFO  runner: reporting standard-io@1
 2026-08-04 17:59:02 INFO  job 018f2c00-…-msub-4: claimed, lease 60s
 2026-08-04 17:59:02 INFO  job 018f2c00-…-msub-4: package 1f8ac2… served from cache ch/ec/ks

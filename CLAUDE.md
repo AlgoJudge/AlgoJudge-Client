@@ -71,6 +71,12 @@ the fake when `VITE_APP_USE_FAKE_API` is `"true"` or when no
 through `useApi`, `useApiEffect` or `useApiCall` and never talk to `fetch`
 directly.
 
+**The API is at `/api/v1` on every installation** (2026-08-06), whatever host
+serves it, so `VITE_APP_API_BASE_URL` names an origin and `src/api/http/apiBase.ts`
+appends the path. `/` means the origin the application itself came from, which is
+the case the rule exists for: one domain serving both. Do not make the path
+configurable again.
+
 Not implemented yet: no renderer registry and no `typeId`/`typeVersion`
 selection, and no WebSocket — the event dispatchers exist and are shaped for one,
 but nothing dispatches over the network.
