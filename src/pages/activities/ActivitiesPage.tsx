@@ -56,10 +56,7 @@ export default function ActivitiesPage() {
         api.participantApi.eventDispatcher.addEventListener("activityDeleted", refetch);
         api.participantApi.eventDispatcher.addEventListener("activityUpdated", evt =>
             setItems(current => current?.map(a => a.id === evt.data.activity.id ? evt.data.activity : a)));
-        // The two filters are listed by their contents rather than by the arrays
-        // holding them: what decides whether to fetch again is which states were
-        // ticked, not which array object happens to hold them.
-    }, [page, states.join(","), types.join(","), reload]);
+    }, [page, states, types, reload]);
 
     const onFilterChange = <T,>(set: (value: T[]) => void) => (value: T[]) => {
         set(value);

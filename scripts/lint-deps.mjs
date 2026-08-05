@@ -2,12 +2,13 @@
 //
 // `useApiEffect` passes its dependency list straight through to `useEffect`, so
 // the rule gives up at the wrapper and every one of its call sites goes
-// unchecked — which is where a stale closure would actually live. This runs the
-// same rule with the wrapper declared as an effect hook.
+// unchecked — which is where a stale closure would actually live, and the list
+// each screen declares is the whole point of the helper. This runs the same rule
+// with the wrapper declared as an effect hook.
 //
-// It is not part of the gate, because that costs one false positive per call
-// site: the rule insists an effect callback be synchronous, and ours is async by
-// design. That one message is filtered out here; everything else is reported.
+// `eslint .` cannot do this itself: with the wrapper declared, it also insists
+// that an effect callback be synchronous, and every one of ours is async by
+// design. That single message is filtered out here. Anything else fails.
 import { ESLint } from "eslint";
 import base from "../eslint.config.mjs";
 
@@ -39,6 +40,7 @@ for (const result of results) {
     }
 }
 
+if (found > 0) process.exitCode = 1;
 console.log(found === 0
-    ? "no dependency findings"
-    : `${found} findings — each one is a judgement call, not a failure`);
+    ? "dependency check passed"
+    : `\nFAILED: ${found} dependency ${found === 1 ? "problem" : "problems"}`);

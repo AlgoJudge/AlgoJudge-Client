@@ -3,7 +3,7 @@ import {
     TagsInput, Text, TextInput, Title, Tooltip,
 } from "@mantine/core";
 import { IconCheck, IconSearch, IconTrash, IconX } from "@tabler/icons-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import { ManagedRunner, RunnerAttachment, RunnerState } from "../../../api/ManagerApi";
@@ -49,6 +49,12 @@ export default function RunnersPage() {
     // The open Runner is in the URL: "look at this machine's log" is a link
     // somebody sends, the same as a filtered submission list.
     const [query, setQuery] = useSearchParams();
+    // The list reads the address but must not be restarted by it: opening a
+    // Runner and switching its log tab both write there, and refetching each
+    // time would blank the table underneath the open panel. Through a ref the
+    // effect sees today's address without taking it as a reason to run again.
+    const queryRef = useRef(query);
+    queryRef.current = query;
     const [selected, setSelected] = useState<ManagedRunner | undefined>(undefined);
     const [tags, setTags] = useState<string[]>([]);
     /** Attachment bodies, keyed by file id, fetched when their tab is opened. */
@@ -68,13 +74,13 @@ export default function RunnersPage() {
         setTotal(result.total);
 
         // A link straight to one Runner opens it once the list has arrived.
-        const wanted = query.get("runner");
+        const wanted = queryRef.current.get("runner");
         if (wanted) {
             const runner = result.items.find(r => r.id === wanted);
             if (runner) {
                 setSelected(runner);
                 setTags(runner.tags);
-                const file = runner.attachments.find(a => a.id === query.get("file"));
+                const file = runner.attachments.find(a => a.id === queryRef.current.get("file"));
                 if (file) {
                     setFiles({ [file.id]: await api.managerApi.getRunnerAttachment(runner.id, file.id) });
                 }
@@ -82,11 +88,6 @@ export default function RunnersPage() {
         }
 
         api.managerApi.eventDispatcher.addEventListener("runnerChanged", () => setReload(n => n + 1));
-        // `query` is read above and deliberately not listed: opening a Runner
-        // and switching its log tab both write to the address, and refetching
-        // the whole list each time would blank the table underneath the panel.
-        // The address is read when the page arrives, which is what a shared link
-        // needs; after that the panel is driven by the clicks themselves.
     }, [page, search, state, reload]);
 
     // Closing is one action, not three: the panel and the address are the same

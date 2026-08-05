@@ -31,16 +31,16 @@ export const useApi = (): Api => {
 export const useApiEffect = (f: (api: ScopedApi) => Promise<void>, deps: DependencyList = []): unknown => {
     const api = useApi();
     const [error, setError] = useState<unknown>(undefined);
-    // Two lint warnings live on the next line and both are meant to stay.
+    // Silenced here because here is the one place nothing can go wrong. The list
+    // is a parameter rather than a literal, so the rule stops at the wrapper —
+    // and what it asks for instead would break the application: `api` is created
+    // once for its whole life, and `f` is a new arrow on every render, so
+    // listing it would run the effect on every render, and every one of these
+    // effects sets state.
     //
-    // The list is a parameter rather than a literal, so the rule cannot verify
-    // it — the price of having a wrapper at all. `npm run lint:deps` checks the
-    // call sites instead, which is where a wrong list would actually hurt.
-    //
-    // `api` and `f` are absent on purpose. `api` is created once and never
-    // changes. `f` is a new arrow on every render, so listing it would run the
-    // effect on every render — and every one of these effects sets state, which
-    // renders again. Neither is a defect to be tidied away.
+    // What the rule cannot see from here is checked where it matters, by
+    // `npm run lint:deps`: the dependency list every screen declares.
+    /* eslint-disable react-hooks/exhaustive-deps */
     useEffect(() => {
         const controller = new AbortController();
         setError(undefined);
@@ -52,6 +52,7 @@ export const useApiEffect = (f: (api: ScopedApi) => Promise<void>, deps: Depende
         });
         return () => controller.abort();
     }, deps);
+    /* eslint-enable react-hooks/exhaustive-deps */
     return error;
 }
 
