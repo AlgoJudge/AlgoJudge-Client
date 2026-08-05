@@ -102,6 +102,8 @@ refuses("LaTeX outside the subset", wrap("$\\newcommand{\\x}{1}$"));
 refuses("external image", wrap("![a](https://example.com/a.png)"));
 refuses("external link", wrap("[a](https://example.com)"));
 refuses("path traversal", wrap("![a](../secret.png)"));
+refuses("a protocol-relative link", wrap("[a](//example.com/x)"));
+refuses("an image by application path", wrap("![a](/assets/a.png)"));
 refuses("not a string", { version: 1, blocks: [] });
 // The exact failure a screenshot named "Zrzut ekranu 2026-08-03 231251.png"
 // produced: CommonMark ends a destination at the first space, so the reference
@@ -149,26 +151,76 @@ else ok("a name with spaces round-trips");
 //      the screen supplies.
 for (const kind of ["welcome", "home"]) {
     const page = instancePage(kind);
-    let document;
-    try {
-        document = validateContent(page.content);
-        ok(`the ${kind} page validates`);
-    } catch (error) {
-        fail(`the ${kind} page: ${error.message}`);
-        continue;
-    }
+    const versions = [
+        ["default", page.content],
+        ...(page.translations ?? []).map(t => [t.language, t.content]),
+    ];
+    if (versions.length < 2) fail(`the ${kind} page ships in one language only`);
 
-    const images = [];
-    const collect = (tokens) => {
-        for (const token of tokens) {
-            if (token.type === "image") images.push(String(token.attrGet("src") ?? ""));
-            if (token.children) collect(token.children);
+    for (const [language, source] of versions) {
+        let document;
+        try {
+            document = validateContent(source);
+            ok(`the ${kind} page validates (${language})`);
+        } catch (error) {
+            fail(`the ${kind} page (${language}): ${error.message}`);
+            continue;
         }
-    };
-    collect(md.parse(document.body, {}));
-    if (images.length === 0) fail(`the ${kind} page shows no logo, so it never exercises the syntax`);
-    else if (images.some(src => src !== "logo.svg")) fail(`the ${kind} page names a picture nobody supplies: ${images.join(", ")}`);
-    else ok(`the ${kind} page shows the instance logo and nothing else`);
+
+        const images = [];
+        const collect = (tokens) => {
+            for (const token of tokens) {
+                if (token.type === "image") images.push(String(token.attrGet("src") ?? ""));
+                if (token.children) collect(token.children);
+            }
+        };
+        collect(md.parse(document.body, {}));
+        if (images.length === 0) fail(`the ${kind} page (${language}) shows no logo, so it never exercises the syntax`);
+        else if (images.some(src => src !== "logo.svg")) fail(`the ${kind} page (${language}) names a picture nobody supplies: ${images.join(", ")}`);
+        else ok(`the ${kind} page shows the instance logo and nothing else (${language})`);
+    }
+}
+
+// 4e. A link may point inside the application, and at nothing else. The four
+//      permitted forms are the whole rule, and each is checked here because the
+//      shipped pages and every statement depend on all four.
+for (const [what, source] of [
+    ["an attachment", "[dane](dane.txt)"],
+    ["an application path", "[aktywności](/activities)"],
+    ["an anchor", "[punktacja](#punktacja)"],
+    ["a contact address", "[kontakt](mailto:a@example.edu.pl)"],
+]) {
+    try {
+        validateContent(wrap(source));
+        ok(`${what} is a permitted link`);
+    } catch (error) {
+        fail(`${what} was refused: ${error.message}`);
+    }
+}
+
+// 4f. Reading is not writing. An author is told about a link they may not make;
+//      a reader is handed the document with that link **censored**, because a
+//      statement must not go unreadable in the middle of a contest over one of
+//      them.
+{
+    const source = wrap("Zobacz [tutaj](https://example.com/x) i [zadania](/activities).");
+    const written = tryValidateContent(source);
+    if (!("error" in written)) fail("an external link was accepted while writing");
+    else ok("an external link is refused while writing");
+
+    const read = tryValidateContent(source, { references: "allow" });
+    if ("error" in read) fail(`a reader was refused the document: ${read.error.message}`);
+    else ok("the same document is readable");
+}
+
+// 4g. markdown-it refuses a script destination before the validator ever sees
+//      one: it is not parsed as a link at all, so it can never be rendered as
+//      one. Checked because that is a property of the parser's configuration,
+//      and a configuration can be changed by accident.
+{
+    const html = md.render(validateContent(wrap("[kliknij](javascript:alert(1))")).body);
+    if (/<a[^>]*javascript:/i.test(html)) fail(`a script link was rendered: ${html}`);
+    else ok("a script destination never becomes a link");
 }
 
 // 5. Extended syntax the format promises is actually parsed.

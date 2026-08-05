@@ -1,5 +1,7 @@
 import { FC, ReactNode, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { InstanceInfo } from "../api/CoreApi";
+import { pickTranslation } from "../components/content/languageName";
 import { useApi } from "./ApiProvider";
 import { InstanceContext } from "./instanceContext";
 import placeholderLogo from "../assets/instance-logo.svg";
@@ -27,6 +29,7 @@ const DEFAULTS: InstanceInfo = {
 
 export const InstanceProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const api = useApi();
+    const { i18n } = useTranslation();
     const [instance, setInstance] = useState<InstanceInfo>(DEFAULTS);
 
     useEffect(() => {
@@ -39,7 +42,13 @@ export const InstanceProvider: FC<{ children: ReactNode }> = ({ children }) => {
         return () => controller.abort();
     }, [api]);
 
-    const logoUrl = instance.showLogo ? instance.logo?.url ?? placeholderLogo : undefined;
+    // An institution whose wordmark differs between languages sets one per
+    // language; everyone else sets one, and an instance that set none shows the
+    // placeholder.
+    const translated = pickTranslation(instance.logoTranslations, i18n.language)?.logo;
+    const logoUrl = instance.showLogo
+        ? (translated ?? instance.logo)?.url ?? placeholderLogo
+        : undefined;
 
     return (
         <InstanceContext.Provider value={{ instance, logoUrl }}>

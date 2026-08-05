@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { InstanceDocument } from "../../api/CoreApi";
 import { Activity, Attachment } from "../../api/ParticipantApi";
 import ActivityTime from "../../components/time/ActivityTime";
+import { pickTranslation } from "../../components/content/languageName";
 import { MANAGER_PERMISSIONS } from "../manager/managerAreas";
 import { useApiEffect } from "../../provider/ApiProvider";
 import { useAuth } from "../../provider/AuthProvider";
@@ -32,7 +33,7 @@ const ContentView = lazy(() => import("../../content/ContentView"));
 const LOGO_ATTACHMENT = "logo.svg";
 
 export default function HomePage() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const { status, session } = useAuth();
     const { logoUrl } = useInstance();
     const { hasAny } = usePermissions();
@@ -55,6 +56,12 @@ export default function HomePage() {
         const page = await api.participantApi.getActivities({ page: 1, pageSize: 6 });
         setActivities(page.items);
     }, [status, signedIn]);
+
+    // The operator's text in the reader's language, or the default where they
+    // wrote none. The switch for that language is in the header and the footer,
+    // so the page needs no control of its own.
+    const shown = (document && pickTranslation(document.translations, i18n.language)?.content)
+        ?? document?.content;
 
     // The mark, as the document's only attachment. Absent when the operator
     // turned it off — a reference then reports a missing attachment, which is
@@ -84,7 +91,7 @@ export default function HomePage() {
                         )}
                         <Paper withBorder p="xl" radius="md">
                             <Suspense fallback={<Center my="xl"><Loader /></Center>}>
-                                <ContentView content={document.content} attachments={attachments} />
+                                <ContentView content={shown} attachments={attachments} />
                             </Suspense>
                         </Paper>
                     </>

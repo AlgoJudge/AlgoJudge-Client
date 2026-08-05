@@ -29,3 +29,20 @@ export const pickLanguage = (available: string[], preferred: string): string | u
     return available.find(tag => tag.toLowerCase() === wanted)
         ?? available.find(tag => tag.toLowerCase().split("-")[0] === base);
 };
+
+/**
+ * The translation a reader should see, or undefined for the default.
+ *
+ * The same rule as above, returning the entry rather than its tag, because every
+ * caller wants the thing and not the name of it: a statement, a legal document, a
+ * front page, an instance's mark. Undefined is the answer that means "use what
+ * the document ships with", which is a real answer and not a failure.
+ */
+export const pickTranslation = <T extends { language: string }>(
+    items: T[] | undefined,
+    preferred: string,
+): T | undefined => {
+    if (!items || items.length === 0) return undefined;
+    const tag = pickLanguage(items.map(item => item.language), preferred);
+    return tag === undefined ? undefined : items.find(item => item.language === tag);
+};

@@ -150,10 +150,23 @@
     }
 }
 
-/* The instance mark at the top of the navigation. Centred and bounded, because
-   an operator uploads whatever they have and a wide crest must not push the
-   navigation sideways. */
+/* The instance mark at the top of the navigation.
+
+   A light box in both colour schemes: a logo is made for paper, and the
+   navigation is a saturated blue that swallows one. Seventy per cent of the
+   width, centred, so a wide crest cannot push the navigation sideways and a
+   narrow one is still worth looking at. */
 .mark {
     display: block;
-    padding: 0 var(--mantine-spacing-xs);
+    width: 70%;
+    margin: 0 auto var(--mantine-spacing-xs);
+    padding: var(--mantine-spacing-xs);
+    border-radius: var(--mantine-radius-md);
+    background-color: var(--mantine-color-gray-0);
+    border: rem(1px) solid var(--mantine-color-gray-3);
+}
+
+.mark[data-collapsed] {
+    width: 86%;
+    padding: rem(4px);
 }

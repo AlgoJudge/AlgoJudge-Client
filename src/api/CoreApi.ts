@@ -48,6 +48,12 @@ export interface InstanceInfo {
      */
     logo?: InstanceLogo,
     /**
+     * A mark per language, for an institution whose wordmark is not the same in
+     * two of them. A language without one uses `logo`, exactly as a statement
+     * without a translation uses `content.md`.
+     */
+    logoTranslations?: LocalisedLogo[],
+    /**
      * Whether the mark appears in the application shell. False is how an
      * operator turns it off; a page that wants no picture simply does not
      * reference one, because the operator writes the page.
@@ -66,6 +72,12 @@ export interface InstanceLogo {
     mimeType: string,
     sizeBytes: number,
     sha256: string,
+}
+
+export interface LocalisedLogo {
+    /** BCP-47 subtag, as a statement translation carries. */
+    language: string,
+    logo: InstanceLogo,
 }
 
 /**
@@ -90,6 +102,13 @@ export interface InstanceDocument {
     title?: string,
     /** `content.md` source, rendered by the same renderer a statement uses. */
     content: string,
+    /**
+     * The same document in other languages, as `content-<language>.md` is to a
+     * statement. The reader is shown the one matching their interface language,
+     * and the default where there is none — the switch for that language is
+     * already in the header and the footer, so a document needs no second one.
+     */
+    translations?: InstanceDocumentTranslation[],
     updatedAt?: string,
     /**
      * True while the operator is still using what shipped with the software.
@@ -97,6 +116,13 @@ export interface InstanceDocument {
      * loud rather than let it pass for a policy.
      */
     isTemplate: boolean,
+}
+
+export interface InstanceDocumentTranslation {
+    language: string,
+    /** A translated heading, where the document has one at all. */
+    title?: string,
+    content: string,
 }
 
 /** A legal document is an instance document that must carry a title. */

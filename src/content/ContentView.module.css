@@ -77,6 +77,13 @@
     color: var(--mantine-color-dimmed);
 }
 
+.censored {
+    text-decoration: underline dotted;
+    text-underline-offset: 0.2em;
+    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+    cursor: help;
+}
+
 .missing {
     display: inline-block;
     padding: 0.2em 0.5em;

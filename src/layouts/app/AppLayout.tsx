@@ -248,8 +248,11 @@ const InstanceMark = ({ collapsed }: { collapsed: boolean }) => {
     if (!logoUrl) return null;
     return (
         <>
-            <NavLink to="/" className={classes.mark}>
-                <Image src={logoUrl} alt="" fit="contain" h={collapsed ? 28 : 48} w="100%" />
+            {/* In a light box, because a logo is drawn for paper: on the
+                navigation's own colour an operator's mark disappears. Seventy per
+                cent of the width, centred, so it reads without dominating. */}
+            <NavLink to="/" className={classes.mark} data-collapsed={collapsed || undefined}>
+                <Image src={logoUrl} alt="" fit="contain" h={collapsed ? 30 : 56} w="100%" />
             </NavLink>
             <Divider my="md" className={classes.divider} />
         </>

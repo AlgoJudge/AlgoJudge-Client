@@ -1,4 +1,4 @@
-import { Affix, Anchor, Center, Container, Group, Menu } from '@mantine/core';
+import { Anchor, Center, Container, Group, Menu } from '@mantine/core';
 import { IconChevronUp } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
@@ -92,15 +92,17 @@ function Footer() {
 
     const items3 = [...items, ...legalItems, ...items2];
 
+    // In the flow of the page rather than pinned to the viewport. Affixed, it
+    // floated over the last paragraph of every page with nothing behind it, so
+    // the text of a document and the links of the footer were drawn on top of
+    // each other and neither could be read.
     return (
-        <Affix withinPortal={false} position={{ bottom: 0, left: 0, right: 0 }}>
-            <div className={classes.footer}>
-                <Container className={classes.inner}>
-                    <Link to="/"><Logo /></Link>
-                    <Group className={classes.links}>{items3}</Group>
-                </Container>
-            </div>
-        </Affix>
+        <div className={classes.footer}>
+            <Container className={classes.inner}>
+                <Link to="/"><Logo /></Link>
+                <Group className={classes.links}>{items3}</Group>
+            </Container>
+        </div>
     );
 }
 

@@ -13,11 +13,31 @@ import { ContentDocument, ContentError, CONTENT_VERSION, frontMatterLines, split
 
 const VERSION = /^\s*version\s*:\s*(\d+)\s*$/m;
 
-/** A reference may name one of the problem's own attachments and nothing else. */
-const REFERENCE = /^[^/\\:?#]+$/;
+/**
+ * What a reference may be.
+ *
+ * A **picture** is always one of the document's own attachments: a name, no
+ * path. A **link** may additionally point inside the application — a path
+ * beginning with a single slash, or an anchor in the same document — and may
+ * carry the one scheme an operator needs, `mailto:`, for the contact address
+ * their own legal documents ask them to publish.
+ *
+ * Everything else is refused. A link out of the document tells another host who
+ * opened the statement and when, and is a way to change what competitors see
+ * while a contest is running. A path within the instance is neither of those.
+ */
+const ATTACHMENT = /^[^/\\:?#]+$/;
+const MAILTO = /^mailto:[^\s<>@]+@[^\s<>@]+$/i;
 
-const isExternal = (target: string): boolean =>
-    !REFERENCE.test(target) || target.includes("..");
+const isAttachment = (target: string): boolean => ATTACHMENT.test(target);
+
+/** `/activities/AMMPZ-2019/problems`, and not `//another.host`. */
+const isAppPath = (target: string): boolean =>
+    target.startsWith("/") && !target.startsWith("//") && !target.includes("\\");
+
+const isPermittedLink = (target: string): boolean =>
+    !target.includes("..")
+    && (isAttachment(target) || target.startsWith("#") || isAppPath(target) || MAILTO.test(target));
 
 const line = (token: Token, offset: number): number | undefined =>
     token.map ? token.map[0] + offset + 1 : undefined;
@@ -43,7 +63,7 @@ const validateReferences = (tokens: Token[], offset: number): void => {
     for (const token of tokens) {
         if (token.type === "image") {
             const src = referenceName(String(token.attrGet("src") ?? ""));
-            if (isExternal(src)) {
+            if (!isAttachment(src) || src.includes("..")) {
                 throw new ContentError(
                     `Obrazek "${src}" musi być nazwą załącznika tego zadania, bez ścieżki i bez adresu`,
                     line(token, offset)
@@ -52,12 +72,11 @@ const validateReferences = (tokens: Token[], offset: number): void => {
         }
         if (token.type === "link_open") {
             const href = referenceName(String(token.attrGet("href") ?? ""));
-            // A link out of the document tells another host who opened the
-            // statement and when, and is a way to change what competitors see
-            // while a contest is running.
-            if (isExternal(href) && !href.startsWith("#")) {
+            if (!isPermittedLink(href)) {
                 throw new ContentError(
-                    `Odnośnik "${href}" prowadzi poza zadanie; dozwolone są tylko własne załączniki`,
+                    `Odnośnik "${href}" prowadzi poza aplikację. Dozwolone są: nazwa własnego `
+                    + `załącznika, ścieżka w aplikacji zaczynająca się od "/", kotwica "#..." `
+                    + `oraz adres "mailto:"`,
                     line(token, offset)
                 );
             }
@@ -118,7 +137,23 @@ const validateSamples = (tokens: Token[], offset: number): void => {
     }
 };
 
-export const validateContent = (source: unknown): ContentDocument => {
+/**
+ * How strictly to read a document.
+ *
+ * `refuse` — the whole rule set, which is what an author needs while writing: a
+ * reference they may not make is an error they can see and fix.
+ *
+ * `allow` — the format rules only. A reader is handed the document and the
+ * renderer deals with its references itself: it resolves the ones it can and
+ * **censors** the ones it may not follow. A statement written before a rule
+ * existed, or stored by a Server that did not enforce it, must not become
+ * unreadable in the middle of a contest over one link.
+ */
+export interface ContentRules {
+    references?: "refuse" | "allow";
+}
+
+export const validateContent = (source: unknown, rules: ContentRules = {}): ContentDocument => {
     if (typeof source !== "string") {
         throw new ContentError("Treść zadania musi być tekstem Markdown");
     }
@@ -139,16 +174,21 @@ export const validateContent = (source: unknown): ContentDocument => {
     const tokens = createMarkdown().parse(body, {});
     validateSamples(tokens, offset);
     validateMath(tokens, offset);
-    validateReferences(tokens, offset);
-    validateBrokenImages(tokens, offset);
+    if (rules.references !== "allow") {
+        validateReferences(tokens, offset);
+        validateBrokenImages(tokens, offset);
+    }
 
     return { version, body };
 };
 
 /** Non-throwing form, for a view that renders the reason instead of failing. */
-export const tryValidateContent = (source: unknown): { document: ContentDocument } | { error: ContentError } => {
+export const tryValidateContent = (
+    source: unknown,
+    rules: ContentRules = {},
+): { document: ContentDocument } | { error: ContentError } => {
     try {
-        return { document: validateContent(source) };
+        return { document: validateContent(source, rules) };
     } catch (error) {
         return { error: error instanceof ContentError ? error : new ContentError(String(error)) };
     }

@@ -682,5 +682,7 @@
   "You may not open this screen": "You may not open this screen",
   "Your account does not hold the permission this screen needs. Somebody who does can grant it, or open it for you.": "Your account does not hold the permission this screen needs. Somebody who does can grant it, or open it for you.",
   "Needs one of": "Needs one of",
-  "Manage this activity": "Manage this activity"
+  "Manage this activity": "Manage this activity",
+  "External image removed": "External image removed",
+  "An external link was removed": "An external link was removed"
 }

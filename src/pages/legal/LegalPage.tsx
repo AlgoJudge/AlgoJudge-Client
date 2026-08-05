@@ -7,6 +7,7 @@ import { LegalDocument, LegalDocumentKind } from "../../api/CoreApi";
 import LoadState from "../../components/LoadState";
 import ActivityTime from "../../components/time/ActivityTime";
 import { useApiEffect } from "../../provider/ApiProvider";
+import { pickTranslation } from "../../components/content/languageName";
 
 const ContentView = lazy(() => import("../../content/ContentView"));
 
@@ -32,7 +33,7 @@ const BY_PATH: Record<string, LegalDocumentKind> = {
 };
 
 export default function LegalPage() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const location = useLocation();
     const kind = BY_PATH[location.pathname] ?? "terms";
 
@@ -65,11 +66,17 @@ export default function LegalPage() {
         );
     }
 
+    // The operator's document in the reader's language, falling back to the one
+    // they wrote first — a policy nobody translated is still the policy.
+    const translation = pickTranslation(document.translations, i18n.language);
+    const title = translation?.title ?? document.title;
+    const content = translation?.content ?? document.content;
+
     return (
         <Container size={860} my={40}>
             <Stack gap="md">
                 <Group justify="space-between" align="baseline" wrap="wrap">
-                    <Title order={2}>{document.title}</Title>
+                    <Title order={2}>{title}</Title>
                     {document.updatedAt && (
                         <Text size="sm" c="dimmed">
                             {t("Updated")}:{" "}
@@ -88,7 +95,7 @@ export default function LegalPage() {
 
                 <Paper withBorder p="xl" radius="md">
                     <Suspense fallback={<Center my="xl"><Loader /></Center>}>
-                        <ContentView content={document.content} attachments={[]} />
+                        <ContentView content={content} attachments={[]} />
                     </Suspense>
                 </Paper>
             </Stack>

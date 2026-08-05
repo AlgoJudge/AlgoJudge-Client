@@ -12,8 +12,9 @@ import { InstanceInfo } from "../api/CoreApi";
 export interface InstanceContextType {
     instance: InstanceInfo;
     /**
-     * The mark to draw: the operator's, or the placeholder that ships with the
-     * software. Absent only when the operator turned the mark off.
+     * The mark to draw, for the interface language: the operator's translated
+     * one, their default one, or the placeholder that ships with the software.
+     * Absent only when the operator turned the mark off.
      */
     logoUrl: string | undefined;
 }
