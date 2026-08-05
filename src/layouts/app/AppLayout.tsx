@@ -252,7 +252,7 @@ const InstanceMark = ({ collapsed }: { collapsed: boolean }) => {
                 navigation's own colour an operator's mark disappears. Seventy per
                 cent of the width, centred, so it reads without dominating. */}
             <NavLink to="/" className={classes.mark} data-collapsed={collapsed || undefined}>
-                <Image src={logoUrl} alt="" fit="contain" h={collapsed ? 30 : 56} w="100%" />
+                <Image src={logoUrl} alt="" fit="contain" h={collapsed ? 36 : 72} w="80%" mx="auto" />
             </NavLink>
             <Divider my="md" className={classes.divider} />
         </>

@@ -52,7 +52,7 @@ export default function LegalPage() {
 
     if (document === null) {
         return (
-            <Container size={720} my={40}>
+            <Container size={720}>
                 <Paper withBorder p="xl" radius="md">
                     <Stack gap="sm">
                         <Title order={3}>{t(`legal.${kind}`)}</Title>
@@ -73,7 +73,7 @@ export default function LegalPage() {
     const content = translation?.content ?? document.content;
 
     return (
-        <Container size={860} my={40}>
+        <Container size={860}>
             <Stack gap="md">
                 <Group justify="space-between" align="baseline" wrap="wrap">
                     <Title order={2}>{title}</Title>

@@ -71,7 +71,7 @@ export default function HomePage() {
         : [];
 
     return (
-        <Container size={900} my={40}>
+        <Container size={900}>
             <Stack gap="lg">
                 {document === undefined ? (
                     <Center my="xl"><Loader /></Center>

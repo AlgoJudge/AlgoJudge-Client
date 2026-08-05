@@ -158,15 +158,15 @@
    narrow one is still worth looking at. */
 .mark {
     display: block;
-    width: 70%;
+    width: 90%;
     margin: 0 auto var(--mantine-spacing-xs);
-    padding: var(--mantine-spacing-xs);
+    padding: var(--mantine-spacing-sm);
     border-radius: var(--mantine-radius-md);
     background-color: var(--mantine-color-gray-0);
     border: rem(1px) solid var(--mantine-color-gray-3);
 }
 
 .mark[data-collapsed] {
-    width: 86%;
-    padding: rem(4px);
+    width: 96%;
+    padding: rem(6px);
 }
