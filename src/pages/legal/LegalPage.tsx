@@ -41,7 +41,10 @@ export default function LegalPage() {
     const error = useApiEffect(async (api) => {
         // Null rather than undefined for "asked, and there is none": the two
         // states look identical to a spinner otherwise.
-        setDocument(await api.authApi.getLegalDocument(kind) ?? null);
+        const found = await api.authApi.getInstanceDocument(kind);
+        // A legal document carries a title; the front pages do not, and this
+        // screen only ever asks for the four that do.
+        setDocument(found ? { ...found, kind, title: found.title ?? "" } : null);
     }, [kind]);
 
     if (document === undefined) return <LoadState error={error} loading={!error} />;

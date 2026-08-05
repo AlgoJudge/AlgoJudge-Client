@@ -4,9 +4,9 @@ import {
     CoreEvent,
     CoreEventDispatcher,
     CoreEventType,
+    InstanceDocument,
+    InstanceDocumentKind,
     InstanceInfo,
-    LegalDocument,
-    LegalDocumentKind,
     ProfileInput,
     RegisterInput,
     Session,
@@ -127,8 +127,8 @@ export class ScopedCoreApi {
     getInstanceInfo(): Promise<InstanceInfo> {
         return this.coreApi.getInstanceInfo(this.signal);
     }
-    getLegalDocument(kind: LegalDocumentKind): Promise<LegalDocument | undefined> {
-        return this.coreApi.getLegalDocument(kind, this.signal);
+    getInstanceDocument(kind: InstanceDocumentKind): Promise<InstanceDocument | undefined> {
+        return this.coreApi.getInstanceDocument(kind, this.signal);
     }
     getSession(): Promise<Session | undefined> {
         return this.coreApi.getSession(this.signal);
@@ -253,6 +253,9 @@ export class ScopedManagerApi {
     }
     getMyPermissions(activityId?: string): Promise<string[]> {
         return this.managerApi.getMyPermissions(activityId, this.signal);
+    }
+    getMyAccess(): Promise<string[]> {
+        return this.managerApi.getMyAccess(this.signal);
     }
 
     getPermissionTemplates(): Promise<PermissionTemplate[]> {

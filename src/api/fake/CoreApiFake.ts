@@ -1,15 +1,16 @@
 import { UnauthorizedError } from "../ApiError";
 import {
     CoreApi,
+    InstanceDocument,
+    InstanceDocumentKind,
     InstanceInfo,
-    LegalDocument,
-    LegalDocumentKind,
     ProfileInput,
     RegisterInput,
     Session,
 } from "../CoreApi";
 import { CoreEventDispatcherImpl } from "../impl/CoreEventDispatcherImpl";
 import { legalDocument, legalDocumentKinds } from "./fixtures/legal";
+import { instancePage } from "./fixtures/instancePages";
 import { Utils } from "./Utils";
 
 /**
@@ -27,6 +28,17 @@ import { Utils } from "./Utils";
 
 const PASSWORD = "Test1!";
 const SESSION_KEY = "algojudge.fake.session";
+
+/**
+ * Who is signed in, for the other fakes.
+ *
+ * The real implementations learn this from the cookie the transport sends, so
+ * every one of them answers for the caller. Here the session lives in
+ * `sessionStorage`, and a fake that answered for a fixed user would make a
+ * screen that hides what somebody may not do impossible to test.
+ */
+export const signedInUserId = (): string | undefined =>
+    sessionStorage.getItem(SESSION_KEY) ?? undefined;
 const INSTANCE_KEY = "algojudge.fake.instance";
 const MIN_PASSWORD = 12;
 const MAX_ATTEMPTS = 10;
@@ -59,6 +71,20 @@ const createAccounts = (): Account[] => [
         firstName: "Jan",
         lastName: "Kowalski",
         email: "j.kowalski@example.edu.pl",
+        emailConfirmed: true,
+        isLocal: true,
+        password: PASSWORD,
+        failedAttempts: 0,
+    },
+    {
+        // Somebody with no rights at all beyond taking part. Every screen that
+        // hides what a person may not do is only worth anything if the fake can
+        // be this account, so it exists for the same reason the manager does.
+        userId: "user-nowak",
+        username: "anowak",
+        firstName: "Anna",
+        lastName: "Nowak",
+        email: "a.nowak@example.edu.pl",
         emailConfirmed: true,
         isLocal: true,
         password: PASSWORD,
@@ -123,6 +149,10 @@ export class CoreApiFake implements CoreApi {
             requireEmail: false,
             requireConfirmedEmail: false,
             legalDocuments: legalDocumentKinds(),
+            // No logo: this instance has not set one, so the Client shows the
+            // placeholder it ships with. `?fakeLogo=off` turns the mark off
+            // entirely, which is what an operator who wants none does.
+            showLogo: true,
         };
 
         // Merged over the defaults rather than trusting what was stored. A tab
@@ -149,9 +179,11 @@ export class CoreApiFake implements CoreApi {
         const registration = flag("fakeRegistration");
         const requireEmail = flag("fakeRequireEmail");
         const confirmEmail = flag("fakeConfirmEmail");
+        const logo = flag("fakeLogo");
         if (registration !== undefined) instance.localRegistrationEnabled = registration;
         if (requireEmail !== undefined) instance.requireEmail = requireEmail;
         if (confirmEmail !== undefined) instance.requireConfirmedEmail = confirmEmail;
+        if (logo !== undefined) instance.showLogo = logo;
 
         sessionStorage.setItem(INSTANCE_KEY, JSON.stringify(instance));
         return instance;
@@ -174,9 +206,11 @@ export class CoreApiFake implements CoreApi {
         return { ...this.instance };
     }
 
-    async getLegalDocument(kind: LegalDocumentKind, signal: AbortSignal): Promise<LegalDocument | undefined> {
+    async getInstanceDocument(kind: InstanceDocumentKind, signal: AbortSignal): Promise<InstanceDocument | undefined> {
         await this.settle(signal);
-        const document = legalDocument(kind);
+        // The front pages and the legal documents are one kind of thing: text
+        // the operator owns, in the format the Client renders.
+        const document = kind === "welcome" || kind === "home" ? instancePage(kind) : legalDocument(kind);
         return document ? { ...document } : undefined;
     }
 

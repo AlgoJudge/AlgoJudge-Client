@@ -41,20 +41,53 @@ export interface InstanceInfo {
     requireConfirmedEmail: boolean,
     /** Which documents this instance publishes. Empty is a legitimate answer. */
     legalDocuments: LegalDocumentKind[],
+    /**
+     * The instance's own mark. Absent means it has not set one, and the Client
+     * shows the placeholder it ships with — visibly a placeholder, so an
+     * unconfigured instance reads as unconfigured.
+     */
+    logo?: InstanceLogo,
+    /**
+     * Whether the mark appears in the application shell. False is how an
+     * operator turns it off; a page that wants no picture simply does not
+     * reference one, because the operator writes the page.
+     */
+    showLogo: boolean,
 }
 
 /**
- * The documents an instance publishes.
+ * The instance's logo, as a stored file.
+ *
+ * It carries a checksum because every stored file does — the rule has no
+ * exception for pictures.
+ */
+export interface InstanceLogo {
+    url: string,
+    mimeType: string,
+    sizeBytes: number,
+    sha256: string,
+}
+
+/**
+ * A document an instance publishes, written by its operator.
  *
  * Instance configuration rather than product content: the operator is the data
  * controller, and each installation has its own. `algojudge.pl` describes the
  * project and processes nothing, so the text does not live there.
+ *
+ * The front pages and the legal documents are one kind of thing — `content.md`
+ * an operator writes, drawn by the renderer that draws a problem statement — so
+ * they are one endpoint and, in stage 9, one screen to edit.
  */
+export type InstanceDocumentKind = LegalDocumentKind | "welcome" | "home";
+
+/** The four documents whose absence is a legal question rather than a design one. */
 export type LegalDocumentKind = "terms" | "privacy" | "cookies" | "accessibility";
 
-export interface LegalDocument {
-    kind: LegalDocumentKind,
-    title: string,
+export interface InstanceDocument {
+    kind: InstanceDocumentKind,
+    /** Absent on the front pages: their heading is inside the document. */
+    title?: string,
     /** `content.md` source, rendered by the same renderer a statement uses. */
     content: string,
     updatedAt?: string,
@@ -64,6 +97,12 @@ export interface LegalDocument {
      * loud rather than let it pass for a policy.
      */
     isTemplate: boolean,
+}
+
+/** A legal document is an instance document that must carry a title. */
+export interface LegalDocument extends InstanceDocument {
+    kind: LegalDocumentKind,
+    title: string,
 }
 
 export interface ProfileInput {
@@ -107,8 +146,11 @@ export interface CoreApi {
     /** What the installation admits to a screen nobody has signed in to. */
     getInstanceInfo(signal: AbortSignal): Promise<InstanceInfo>;
 
-    /** One published document, or undefined where the instance has none. */
-    getLegalDocument(kind: LegalDocumentKind, signal: AbortSignal): Promise<LegalDocument | undefined>;
+    /**
+     * One document the operator publishes — a front page or a legal document —
+     * or undefined where the instance has none.
+     */
+    getInstanceDocument(kind: InstanceDocumentKind, signal: AbortSignal): Promise<InstanceDocument | undefined>;
 
     /**
      * The session the browser already holds, or undefined when there is none.

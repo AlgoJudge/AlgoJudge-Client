@@ -6,9 +6,8 @@ import { useState } from 'react';
 import { useTranslation } from "react-i18next";
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { UnauthorizedError } from '../../api/ApiError';
-import { InstanceInfo } from '../../api/CoreApi';
-import { useApiEffect } from '../../provider/ApiProvider';
 import { useAuth } from '../../provider/AuthProvider';
+import { useInstance } from '../../provider/instanceContext';
 import classes from './LoginPage.module.css';
 
 /**
@@ -28,11 +27,8 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | undefined>(undefined);
     const [busy, setBusy] = useState(false);
-    const [instance, setInstance] = useState<InstanceInfo | undefined>(undefined);
-
-    useApiEffect(async (api) => {
-        setInstance(await api.authApi.getInstanceInfo());
-    }, []);
+    // Read from the shared answer rather than fetched again here.
+    const { instance } = useInstance();
 
     // Where the guard was going when it stopped somebody. The fallback is the
     // participant's own screen rather than the manager panel: most people who
@@ -64,7 +60,7 @@ export default function LoginPage() {
         <Container size={420} my={40}>
             <Title ta="center" className={classes.title}>{t('Login')}</Title>
 
-            {instance?.localRegistrationEnabled && (
+            {instance.localRegistrationEnabled && (
                 <Text c="dimmed" size="sm" ta="center" mt={5}>
                     {t('Do not have an account yet?')}{' '}
                     <Anchor component={Link} to="/register" size="sm">{t('Create account')}</Anchor>

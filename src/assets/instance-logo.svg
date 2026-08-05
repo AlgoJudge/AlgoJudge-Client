@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" role="img" aria-labelledby="title desc">
+    <title id="title">Znak zastępczy instancji</title>
+    <desc id="desc">Robot przy komputerze sprawdza paczkę z kodem. Obok trzy kontrolki: zielona, pomarańczowa i czerwona.</desc>
+
+    <!--
+        The placeholder an instance shows until its operator sets a logo.
+
+        Deliberately a drawing rather than a wordmark: an operator who sees a
+        robot where their crest belongs knows something is unset, the way a legal
+        template says it is a template.
+
+        One file for both colour schemes. Nothing here is pure white or pure
+        black, and no fill relies on the page behind it: the body is the product
+        blue, the desk and the paper are mid greys that hold their own against a
+        light or a dark background, and the three lights are saturated enough to
+        read either way.
+    -->
+
+    <defs>
+        <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#4dabf7" />
+            <stop offset="1" stop-color="#1c7ed6" />
+        </linearGradient>
+    </defs>
+
+    <!-- The desk. -->
+    <rect x="24" y="150" width="272" height="10" rx="5" fill="#868e96" />
+    <rect x="52" y="160" width="10" height="26" rx="4" fill="#868e96" />
+    <rect x="258" y="160" width="10" height="26" rx="4" fill="#868e96" />
+
+    <!-- The screen it is working at, with three lines of somebody's solution. -->
+    <rect x="188" y="72" width="96" height="66" rx="8" fill="#495057" />
+    <rect x="196" y="80" width="80" height="50" rx="4" fill="#dee2e6" />
+    <rect x="204" y="90" width="46" height="6" rx="3" fill="#868e96" />
+    <rect x="204" y="102" width="60" height="6" rx="3" fill="#adb5bd" />
+    <rect x="204" y="114" width="34" height="6" rx="3" fill="#adb5bd" />
+    <rect x="222" y="138" width="28" height="12" rx="3" fill="#495057" />
+
+    <!-- The robot: head, antenna, eyes, body, arms. -->
+    <rect x="150" y="18" width="4" height="16" rx="2" fill="#868e96" />
+    <circle cx="152" cy="14" r="7" fill="#fab005" />
+
+    <rect x="112" y="34" width="80" height="60" rx="18" fill="url(#body)" />
+    <rect x="126" y="52" width="52" height="24" rx="12" fill="#e7f5ff" />
+    <circle cx="141" cy="64" r="7" fill="#1c7ed6" />
+    <circle cx="163" cy="64" r="7" fill="#1c7ed6" />
+    <circle cx="143" cy="62" r="2.5" fill="#e7f5ff" />
+    <circle cx="165" cy="62" r="2.5" fill="#e7f5ff" />
+
+    <rect x="120" y="98" width="64" height="52" rx="14" fill="url(#body)" />
+    <rect x="134" y="112" width="36" height="24" rx="6" fill="#e7f5ff" opacity="0.55" />
+
+    <!-- The left arm holds the package it is checking. -->
+    <rect x="86" y="108" width="42" height="12" rx="6" fill="#1c7ed6" transform="rotate(-14 107 114)" />
+    <rect x="56" y="106" width="42" height="38" rx="6" fill="#f8c471" stroke="#b07d2b" stroke-width="3" />
+    <path d="M56 122h42" stroke="#b07d2b" stroke-width="3" />
+    <path d="M77 106v38" stroke="#b07d2b" stroke-width="3" />
+    <path d="M64 116l5 5-5 5" fill="none" stroke="#495057" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- The right arm reaches for the keyboard. -->
+    <rect x="176" y="112" width="42" height="12" rx="6" fill="#1c7ed6" transform="rotate(12 197 118)" />
+
+    <!-- The verdict lights: accepted, judging, failed. -->
+    <circle cx="292" cy="42" r="9" fill="#37b24d" />
+    <circle cx="292" cy="68" r="9" fill="#f59f00" />
+    <circle cx="292" cy="94" r="9" fill="#f03e3e" opacity="0.45" />
+    <rect x="279" y="28" width="26" height="80" rx="13" fill="none" stroke="#868e96" stroke-width="3" />
+</svg>

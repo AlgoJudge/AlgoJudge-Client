@@ -149,3 +149,11 @@
         display: block;
     }
 }
+
+/* The instance mark at the top of the navigation. Centred and bounded, because
+   an operator uploads whatever they have and a wide crest must not push the
+   navigation sideways. */
+.mark {
+    display: block;
+    padding: 0 var(--mantine-spacing-xs);
+}

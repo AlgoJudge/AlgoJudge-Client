@@ -5,7 +5,7 @@ import './App.css';
 import { MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import { RouterProvider, createBrowserRouter } from 'react-router-dom';
-import { lazy } from 'react';
+import { lazy, ReactNode } from 'react';
 import Layout from './Layout';
 import HomePage from './pages/home/HomePage';
 import LoginPage from './pages/login/LoginPage';
@@ -25,7 +25,11 @@ import CodePage from './pages/activities/activity_id/submissions/submission_id/c
 
 import { ApiProvider } from './provider/ApiProvider';
 import { AuthProvider } from './provider/AuthProvider';
+import { InstanceProvider } from './provider/InstanceProvider';
+import { PermissionsProvider } from './provider/PermissionsProvider';
 import RequireSession from './routers/Authentication';
+import RequirePermission from './routers/RequirePermission';
+import { areaFor, MANAGER_PERMISSIONS } from './pages/manager/managerAreas';
 const AccountPage = lazy(() => import('./pages/account/AccountPage'));
 const LegalPage = lazy(() => import('./pages/legal/LegalPage'));
 
@@ -45,6 +49,21 @@ const ManagerSubmissionPage = lazy(() => import('./pages/manager/submissions/sub
 const ManagerQuestionsPage = lazy(() => import('./pages/manager/questions/ManagerQuestionsPage'));
 
 function App() {
+
+    /**
+     * A manager route, with what the panel's own table says it needs.
+     *
+     * Read from that table rather than repeated here, so a screen cannot end up
+     * listed in the menu under one permission and guarded by another.
+     */
+    const managerRoute = (path: string, element: ReactNode) => ({
+        path,
+        element: (
+            <RequirePermission permissions={areaFor(path)?.permissions ?? MANAGER_PERMISSIONS}>
+                {element}
+            </RequirePermission>
+        ),
+    });
 
     const router = createBrowserRouter([
         {
@@ -134,54 +153,18 @@ function App() {
                     path: "/activities/:activityId/submissions/:submissionId/code",
                     element: <CodePage />
                 },
-                {
-                    path: "/manager",
-                    element: <ManagerPage />
-                },
-                {
-                    path: "/manager/activities",
-                    element: <ManagerActivitiesPage />
-                },
-                {
-                    path: "/manager/activities/:activityId",
-                    element: <ManagerActivityPage />
-                },
-                {
-                    path: "/manager/users",
-                    element: <UsersPage />
-                },
-                {
-                    path: "/manager/problems",
-                    element: <ManagerProblemsPage />
-                },
-                {
-                    path: "/manager/problems/:problemId",
-                    element: <ManagerProblemPage />
-                },
-                {
-                    path: "/manager/submissions",
-                    element: <ManagerSubmissionsPage />
-                },
-                {
-                    path: "/manager/submissions/:submissionId",
-                    element: <ManagerSubmissionPage />
-                },
-                {
-                    path: "/manager/questions",
-                    element: <ManagerQuestionsPage />
-                },
-                {
-                    path: "/manager/grants",
-                    element: <GrantsPage />
-                },
-                {
-                    path: "/manager/permission-templates",
-                    element: <PermissionTemplatesPage />
-                },
-                {
-                    path: "/manager/runners",
-                    element: <RunnersPage />
-                }
+                managerRoute("/manager", <ManagerPage />),
+                managerRoute("/manager/activities", <ManagerActivitiesPage />),
+                managerRoute("/manager/activities/:activityId", <ManagerActivityPage />),
+                managerRoute("/manager/users", <UsersPage />),
+                managerRoute("/manager/problems", <ManagerProblemsPage />),
+                managerRoute("/manager/problems/:problemId", <ManagerProblemPage />),
+                managerRoute("/manager/submissions", <ManagerSubmissionsPage />),
+                managerRoute("/manager/submissions/:submissionId", <ManagerSubmissionPage />),
+                managerRoute("/manager/questions", <ManagerQuestionsPage />),
+                managerRoute("/manager/grants", <GrantsPage />),
+                managerRoute("/manager/permission-templates", <PermissionTemplatesPage />),
+                managerRoute("/manager/runners", <RunnersPage />)
             ]
         }
     ], { basename: import.meta.env.BASE_URL });
@@ -190,10 +173,15 @@ function App() {
             <MantineProvider>
                 <ApiProvider>
                     {/* Above the router, so the application shell sees the same
-                        session as the public one. */}
+                        session as the public one. Permissions sit inside the
+                        session, because they are a property of it. */}
                     <AuthProvider>
-                        <Notifications />
-                        <RouterProvider router={router} />
+                        <InstanceProvider>
+                            <PermissionsProvider>
+                                <Notifications />
+                                <RouterProvider router={router} />
+                            </PermissionsProvider>
+                        </InstanceProvider>
                     </AuthProvider>
                 </ApiProvider>
             </MantineProvider>

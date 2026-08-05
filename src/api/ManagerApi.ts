@@ -793,6 +793,18 @@ export interface ManagerApi {
      */
     getMyPermissions(activityId: string | undefined, signal: AbortSignal): Promise<string[]>;
 
+    /**
+     * Everything the caller holds **anywhere**: the system scope unioned with
+     * every activity they have a grant in.
+     *
+     * The question a menu asks — "is there anywhere this person may do this" —
+     * and deliberately not the same call as `getMyPermissions`, which answers
+     * about one scope. Confusing the two would let somebody grant globally what
+     * they hold in a single activity, and would hide the manager panel from a
+     * person who manages one activity and nothing else.
+     */
+    getMyAccess(signal: AbortSignal): Promise<string[]>;
+
     getPermissionTemplates(signal: AbortSignal): Promise<PermissionTemplate[]>;
     createPermissionTemplate(input: PermissionTemplateInput, signal: AbortSignal): Promise<PermissionTemplate>;
     updatePermissionTemplate(id: string, input: PermissionTemplateInput, signal: AbortSignal): Promise<PermissionTemplate>;

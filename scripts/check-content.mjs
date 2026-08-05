@@ -10,7 +10,7 @@ const OUT = ".content-check";
 
 execFileSync("npx", ["tsc",
     "src/content/types.ts", "src/content/latex.ts", "src/content/markdown.ts", "src/content/validate.ts",
-    "src/api/fake/fixtures/content.ts",
+    "src/api/fake/fixtures/content.ts", "src/api/fake/fixtures/instancePages.ts",
     "--outDir", OUT, "--rootDir", "src",
     "--module", "esnext", "--target", "es2022", "--moduleResolution", "bundler", "--skipLibCheck",
 ], { stdio: "inherit", shell: process.platform === "win32" });
@@ -33,6 +33,7 @@ addExtensions(OUT);
 const { validateContent, tryValidateContent } = await import(`../${OUT}/content/validate.js`);
 const { createMarkdown, toSegments } = await import(`../${OUT}/content/markdown.js`);
 const fixtures = await import(`../${OUT}/api/fake/fixtures/content.js`);
+const { instancePage } = await import(`../${OUT}/api/fake/fixtures/instancePages.js`);
 
 const fail = (message) => { console.error("FAIL:", message); process.exitCode = 1; };
 const ok = (message) => console.log("  ok  ", message);
@@ -139,6 +140,35 @@ else ok("a name with spaces round-trips");
     } else {
         fail("canEmbed admits a file that cannot be shown");
     }
+}
+
+// 4d. The front pages an instance ships with are documents like any other, and
+//      an operator meets them before anything else. One that failed our own
+//      validator would be a poor advertisement for the format they are being
+//      asked to write in — and the only picture they may reference is the one
+//      the screen supplies.
+for (const kind of ["welcome", "home"]) {
+    const page = instancePage(kind);
+    let document;
+    try {
+        document = validateContent(page.content);
+        ok(`the ${kind} page validates`);
+    } catch (error) {
+        fail(`the ${kind} page: ${error.message}`);
+        continue;
+    }
+
+    const images = [];
+    const collect = (tokens) => {
+        for (const token of tokens) {
+            if (token.type === "image") images.push(String(token.attrGet("src") ?? ""));
+            if (token.children) collect(token.children);
+        }
+    };
+    collect(md.parse(document.body, {}));
+    if (images.length === 0) fail(`the ${kind} page shows no logo, so it never exercises the syntax`);
+    else if (images.some(src => src !== "logo.svg")) fail(`the ${kind} page names a picture nobody supplies: ${images.join(", ")}`);
+    else ok(`the ${kind} page shows the instance logo and nothing else`);
 }
 
 // 5. Extended syntax the format promises is actually parsed.

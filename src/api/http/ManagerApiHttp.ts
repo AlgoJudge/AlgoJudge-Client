@@ -64,6 +64,10 @@ export class ManagerApiHttp implements ManagerApi {
         });
     }
 
+    getMyAccess(signal: AbortSignal): Promise<string[]> {
+        return this.http.request<string[]>("/permissions/mine/anywhere", "GET", { signal });
+    }
+
     getPermissionTemplates(signal: AbortSignal): Promise<PermissionTemplate[]> {
         return this.http.request<PermissionTemplate[]>("/permission-templates", "GET", { signal });
     }

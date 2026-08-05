@@ -51,6 +51,7 @@ import {
     PERMISSION_CATALOGUE,
 } from "./fixtures/permissions";
 import { ActivityRecord, createActivityLibrary } from "./fixtures/activities";
+import { signedInUserId } from "./CoreApiFake";
 import { buildPackage } from "../../package/build";
 import { emptyConfig, isPackageFile, PACKAGE_ARCHIVE, SAMPLES_ARCHIVE } from "../../package/types";
 import { isStatementName } from "../../content/types";
@@ -121,13 +122,44 @@ export class ManagerApiFake implements ManagerApi {
         return copy(PERMISSION_CATALOGUE);
     }
 
+    /**
+     * What the signed-in user holds in one scope.
+     *
+     * Answered for whoever is signed in rather than for a fixed account: a
+     * screen that hides what somebody may not do can only be trusted if the
+     * fake can be somebody else. `amy` is the manager the fixtures are written
+     * around and holds the wide-but-not-unlimited system set; an administrator
+     * holds the catalogue by definition; everyone else holds what they were
+     * granted and nothing more.
+     */
     async getMyPermissions(activityId: string | undefined, signal: AbortSignal): Promise<string[]> {
         await this.settle(signal);
-        // The fake signs in as a manager with wide but not unlimited rights, so
-        // the editor's "you cannot grant what you do not hold" rule is visible
-        // rather than theoretical.
-        const own = this.grants.find(g => g.userId === "user-me" && g.activityId === activityId);
-        return copy([...MY_SYSTEM_PERMISSIONS, ...(own?.permissions ?? [])]);
+        const me = signedInUserId() ?? ME;
+        const own = this.grants.find(g => g.userId === me && g.activityId === activityId);
+        return copy([...(activityId === undefined ? this.systemPermissions(me) : []), ...(own?.permissions ?? [])]);
+    }
+
+    async getMyAccess(signal: AbortSignal): Promise<string[]> {
+        await this.settle(signal);
+        const me = signedInUserId() ?? ME;
+        // Everywhere, unioned: the question a menu asks. A manager of one
+        // activity and nothing else still needs the panel that activity is in.
+        const everywhere = this.grants
+            .filter(g => g.userId === me)
+            .flatMap(g => g.permissions);
+        return copy([...new Set([...this.systemPermissions(me), ...everywhere])]);
+    }
+
+    /** What a user holds at system scope, before any activity grant. */
+    private systemPermissions(userId: string): string[] {
+        if (userId === ME) return MY_SYSTEM_PERMISSIONS;
+        const global = this.grants.find(g => g.userId === userId && g.activityId === undefined);
+        if (!global) return [];
+        // An administrator holds the catalogue; there is no list to keep in step
+        // with it, which is the point of the permission being what it is.
+        return global.permissions.includes("system:administrator")
+            ? PERMISSION_CATALOGUE.map(definition => definition.key)
+            : global.permissions;
     }
 
     async getPermissionTemplates(signal: AbortSignal): Promise<PermissionTemplate[]> {

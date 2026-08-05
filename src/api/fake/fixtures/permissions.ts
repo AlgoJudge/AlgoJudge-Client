@@ -179,6 +179,21 @@ export const createGrants = (): Grant[] => [
         createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
     },
     {
+        // The same person managing one course and taking part in one contest,
+        // which is the ordinary case in a department. It is also what makes the
+        // questions screen reachable: answering is an activity-scoped
+        // permission, so nobody holds it from the system scope.
+        id: "018f2c00-0000-7000-8000-0000000000b6",
+        userId: "user-me",
+        userName: "Amy Horsefighter",
+        activityId: "018f2c00-0000-7000-8000-000000000002",
+        activityName: "Programowanie 1 — grupa LA",
+        permissions: [...MANAGER],
+        createdFromTemplate: "manager",
+        state: "active",
+        createdAt: new Date(Date.now() - 86400000 * 20).toISOString(),
+    },
+    {
         id: "018f2c00-0000-7000-8000-0000000000b5",
         userId: "user-nowak",
         userName: "Anna Nowak",

@@ -5,23 +5,18 @@ import { Link } from 'react-router-dom';
 import Logo from '../logo/Logo';
 import classes from './Footer.module.css';
 import { usePreferences } from '../../provider/PreferencesProvider';
-import { useApiEffect } from '../../provider/ApiProvider';
-import { LegalDocumentKind } from '../../api/CoreApi';
-import { useState } from 'react';
+import { useInstance } from '../../provider/instanceContext';
 
 function Footer() {
     const { t } = useTranslation();
     const { setTheme, setLang } = usePreferences();
 
-    // Read from the instance: which documents exist is its decision, and an
-    // instance that publishes none must not show four dead links.
-    const [documents, setDocuments] = useState<LegalDocumentKind[]>([]);
-    useApiEffect(async (api) => {
-        // Defaulted, because the Server does not implement `/instance` yet and a
-        // field it omits must not become a crash in the shell that frames every
-        // page.
-        setDocuments((await api.authApi.getInstanceInfo()).legalDocuments ?? []);
-    }, []);
+    // Which documents exist is the instance's decision, and one that publishes
+    // none must not show four dead links. Read from the shared answer rather
+    // than fetched again: the shell, the front page and the two account screens
+    // all need it, and they should not each ask.
+    const { instance } = useInstance();
+    const documents = instance.legalDocuments;
 
     const links = [
         { link: 'https://algojudge.pl', label: t('About'), prev: false },

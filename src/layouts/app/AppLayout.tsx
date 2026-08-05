@@ -1,11 +1,14 @@
-import { AppShell, Burger, Center, Group, Loader, UnstyledButton, Text, Divider, Tooltip, Menu, useMantineColorScheme, useComputedColorScheme, Badge } from "@mantine/core";
+import { AppShell, Burger, Center, Group, Image, Loader, UnstyledButton, Text, Divider, Tooltip, Menu, useMantineColorScheme, useComputedColorScheme, Badge } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { NavLink, Outlet, useMatch, useNavigate } from "react-router-dom";
 import Logo from "../../components/logo/Logo";
 import { displayName } from "../../api/displayName";
 import { useAuth } from "../../provider/AuthProvider";
+import { useInstance } from "../../provider/instanceContext";
+import { usePermissions } from "../../provider/permissionsContext";
+import { MANAGER_AREAS, MANAGER_PERMISSIONS } from "../../pages/manager/managerAreas";
 import classes from "./AppLayout.module.css";
-import { Icon, IconAlignBoxCenterTop, IconBox, IconChartBarPopular, IconChevronDown, IconChevronsLeft, IconChevronsRight, IconClock, IconDevicesPc, IconIdBadge2, IconKey, IconListDetails, IconLogout, IconMessageQuestion, IconMoon, IconNotes, IconPackageExport, IconPrinter, IconProps, IconSectionSign, IconServer, IconSun, IconUser, IconUserCheck, IconUsers, IconWorldWww } from "@tabler/icons-react";
+import { Icon, IconBox, IconChartBarPopular, IconChevronDown, IconChevronsLeft, IconChevronsRight, IconClock, IconHome, IconListDetails, IconLogout, IconMessageQuestion, IconMoon, IconNotes, IconPackageExport, IconProps, IconSectionSign, IconSettings, IconSun, IconUser } from "@tabler/icons-react";
 import { ComponentPropsWithoutRef, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useApiEffect } from "../../provider/ApiProvider";
@@ -52,37 +55,49 @@ const NavbarLink = (props: {
     );
 }
 
+/**
+ * The manager panel's own navigation.
+ *
+ * Built from `MANAGER_AREAS`, the one table the landing screen and the route
+ * guard also read, and filtered by what this person holds anywhere: a menu that
+ * offers a screen answering 403 is worse than a shorter menu. `soon` entries
+ * carry no permission — they lead nowhere and disclose nothing, and hiding them
+ * would make the product look smaller than the plan it is being built to.
+ */
 const ManagerNavbar = (props: { collapsed: boolean }) => {
     const { t } = useTranslation();
-    const match = useMatch({path: "/manager", end: false});
+    const { hasAny } = usePermissions();
+    const match = useMatch({ path: "/manager", end: false });
     if (!match) return;
-    // `soon` marks a direction rather than a feature: integrations, workstations
-    // and printers are later stages. They stay visible so the shape of the
-    // product is legible, and dead so nobody follows one into a blank page.
-    const links = [
-        { to: `/manager/users`, label: t("Users"), icon: IconUsers },
-        { to: `/manager/grants`, label: t("Grants"), icon: IconKey },
-        { to: `/manager/permission-templates`, label: t("Permission templates"), icon: IconUserCheck },
-        { to: `/manager/problems`, label: t("Problems"), icon: IconNotes },
-        { to: `/manager/activities`, label: t("Activities"), icon: IconListDetails },
-        { to: `/manager/submissions`, label: t("Submissions"), icon: IconBox },
-        { to: `/manager/questions`, label: t("Questions and announcements"), icon: IconMessageQuestion },
-        { to: `/manager/runners`, label: t("Runners"), icon: IconServer },
-        { to: `/manager/oidc`, label: t("External logins"), icon: IconIdBadge2, soon: true },
-        { to: `/manager/lti`, label: t("LTI platforms"), icon: IconAlignBoxCenterTop, soon: true },
-        { to: `/manager/external-content`, label: t("External content"), icon: IconWorldWww, soon: true },
-        { to: `/manager/workstations`, label: t("Workstations"), icon: IconDevicesPc, soon: true },
-        { to: `/manager/printers`, label: t("Printers"), icon: IconPrinter, soon: true },
-    ]
+    // Somebody who may open nothing in the panel gets no panel navigation —
+    // not even the dead entries. They are there to show a manager where the
+    // product is going, and this person is being refused at the door.
+    if (!hasAny(MANAGER_PERMISSIONS)) return;
+
+    const links = MANAGER_AREAS.filter(area => area.permissions.length === 0 || hasAny(area.permissions));
     return (
         <>
-            {links.map(item => item && <NavbarLink key={item.to} to={item.to} label={item.label} icon={item.icon} collapsed={props.collapsed} soon={item.soon} />)}
+            {links.map(item => (
+                <NavbarLink
+                    key={item.to}
+                    to={item.to}
+                    label={t(item.label)}
+                    icon={item.icon}
+                    collapsed={props.collapsed}
+                    soon={item.soon}
+                />
+            ))}
             <Divider my="md" className={classes.divider} />
         </>
     );
 }
 
-const ActivityNavbar = (props: { collapsed: boolean, activity: Activity | undefined }) => {
+const ActivityNavbar = (props: {
+    collapsed: boolean,
+    activity: Activity | undefined,
+    /** What the reader holds **in this activity**, not anywhere. */
+    permissions: string[],
+}) => {
     const { t } = useTranslation();
     const activity = props.activity;
     if (!activity) return;
@@ -98,6 +113,11 @@ const ActivityNavbar = (props: { collapsed: boolean, activity: Activity | undefi
         activity.modules.ranking && { to: `${base}/ranking`, label: t("Ranking"), icon: IconChartBarPopular },
         activity.modules.questions && { to: `${base}/questions`, label: t("Questions and announcements"), icon: IconMessageQuestion },
         activity.modules.rules && { to: `${base}/rules`, label: t("Rules"), icon: IconSectionSign },
+        // The way back into administering the activity being looked at. Scoped
+        // to this one: holding `activity:update` somewhere else is not a reason
+        // to offer a screen that would refuse.
+        props.permissions.includes("activity:update")
+            && { to: `/manager/activities/${activity.id}`, label: t("Manage this activity"), icon: IconSettings },
     ]
     return (
         <>
@@ -215,8 +235,30 @@ const UserMenu = () => {
     );
 }
 
+/**
+ * The instance's mark, at the top of the navigation.
+ *
+ * The operator's logo where they have set one, and the placeholder that ships
+ * with the software where they have not — so an unconfigured instance says so
+ * instead of quietly wearing the product's own face. Absent entirely when the
+ * operator turned the mark off.
+ */
+const InstanceMark = ({ collapsed }: { collapsed: boolean }) => {
+    const { logoUrl } = useInstance();
+    if (!logoUrl) return null;
+    return (
+        <>
+            <NavLink to="/" className={classes.mark}>
+                <Image src={logoUrl} alt="" fit="contain" h={collapsed ? 28 : 48} w="100%" />
+            </NavLink>
+            <Divider my="md" className={classes.divider} />
+        </>
+    );
+};
+
 export default function AppLayout() {
     const { t } = useTranslation();
+    const { hasAny } = usePermissions();
     const [opened, { toggle }] = useDisclosure();
     const [collapsed, collapse] = useDisclosure();
     // Matched on the participant route rather than read from any parameter named
@@ -229,16 +271,22 @@ export default function AppLayout() {
     // activity does not fetch it twice.
     const [activity, setActivity] = useState<Activity | undefined>(undefined);
     const [series, setSeries] = useState<Series[]>([]);
+    const [activityPermissions, setActivityPermissions] = useState<string[]>([]);
 
     useApiEffect(async (api) => {
         if (!activityId) {
             setActivity(undefined);
             setSeries([]);
+            setActivityPermissions([]);
             return;
         }
         const loaded = await api.participantApi.getActivity(activityId);
         setActivity(loaded);
         setSeries(await api.participantApi.getSeries(loaded.id));
+        // Asked per activity, because a grant is per activity: what somebody may
+        // do in the one they are looking at is the only question the sidebar of
+        // that activity should ask.
+        setActivityPermissions(await api.managerApi.getMyPermissions(loaded.id));
         api.participantApi.eventDispatcher.addEventListener("activityUpdated", evt => {
             if (evt.data.activity.id === loaded.id) setActivity(evt.data.activity);
         });
@@ -302,9 +350,17 @@ export default function AppLayout() {
             </AppShell.Header>
 
             <AppShell.Navbar p="md" className={classes.navbar}>
-                <ActivityNavbar collapsed={collapsed} activity={activity} />
+                <InstanceMark collapsed={collapsed} />
+                <ActivityNavbar collapsed={collapsed} activity={activity} permissions={activityPermissions} />
                 <ManagerNavbar collapsed={collapsed} />
+                <NavbarLink to={`/`} label={t("Home")} icon={IconHome} collapsed={collapsed} />
                 <NavbarLink to={`/activities`} label={t("Activities")} icon={IconListDetails} collapsed={collapsed} />
+                {/* The only way into the panel from the shell — there was none
+                    at all before — and offered only where there is something in
+                    it for this person. */}
+                {hasAny(MANAGER_PERMISSIONS) && (
+                    <NavbarLink to={`/manager`} label={t("Manager")} icon={IconSettings} collapsed={collapsed} />
+                )}
                 <Divider my="md" className={classes.divider} />
                 {CollapseButton}
             </AppShell.Navbar>

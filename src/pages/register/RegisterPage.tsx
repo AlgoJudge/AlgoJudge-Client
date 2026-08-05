@@ -6,10 +6,9 @@ import { IconInfoCircle } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Navigate } from "react-router-dom";
-import { InstanceInfo } from "../../api/CoreApi";
-import LoadState from "../../components/LoadState";
-import { useApiCall, useApiEffect } from "../../provider/ApiProvider";
+import { useApiCall } from "../../provider/ApiProvider";
 import { useAuth } from "../../provider/AuthProvider";
+import { useInstance } from "../../provider/instanceContext";
 import classes from './RegisterPage.module.css';
 
 const MIN_PASSWORD = 12;
@@ -27,7 +26,9 @@ export default function RegisterPage() {
     const call = useApiCall();
     const { status } = useAuth();
 
-    const [instance, setInstance] = useState<InstanceInfo | undefined>(undefined);
+    // Read from the shared answer: the shell and the front page need it too, and
+    // whether this instance takes sign-ups is one fact, not one per screen.
+    const { instance } = useInstance();
     const [form, setForm] = useState({
         username: "", firstName: "", lastName: "", email: "", password: "", repeat: "",
     });
@@ -36,13 +37,10 @@ export default function RegisterPage() {
     const [done, setDone] = useState(false);
     const [busy, setBusy] = useState(false);
 
-    const loadError = useApiEffect(async (api) => {
-        setInstance(await api.authApi.getInstanceInfo());
-    }, []);
 
     const submit = async () => {
         if (form.username.trim().length === 0) return setError(t("A login is required"));
-        if (instance?.requireEmail && form.email.trim().length === 0) {
+        if (instance.requireEmail && form.email.trim().length === 0) {
             return setError(t("This instance requires an email address"));
         }
         if (form.password.length < MIN_PASSWORD) {
@@ -73,8 +71,6 @@ export default function RegisterPage() {
     };
 
     if (status === "authenticated") return <Navigate to="/activities" replace />;
-    if (!instance) return <LoadState error={loadError} loading={!loadError} />;
-
     if (!instance.localRegistrationEnabled) {
         return (
             <Container size={520} my={40}>
