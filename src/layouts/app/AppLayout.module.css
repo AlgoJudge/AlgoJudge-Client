@@ -170,3 +170,36 @@
     width: 96%;
     padding: rem(6px);
 }
+
+/* The operator's documents, pressed to the foot of the navigation by the auto
+   margin rather than placed after the last entry, so they sit where a footer
+   would sit and the navigation above them keeps its shape. */
+.legal {
+    margin-top: auto;
+    padding-top: var(--mantine-spacing-lg);
+    display: flex;
+    flex-direction: column;
+    gap: rem(2px);
+}
+
+/* Quieter than `.link` on purpose: no icon, ordinary weight, one size down and
+   a paler blue. Hovering and the open document brighten it to white — that is
+   the whole of its state, with no background and no shadow, because a document
+   somebody reads once should not look like a tool they work in. */
+.legalLink {
+    display: block;
+    text-decoration: none;
+    font-size: var(--mantine-font-size-xs);
+    font-weight: 400;
+    line-height: 1.5;
+    padding: rem(3px) var(--mantine-spacing-sm);
+    color: var(--mantine-color-blue-1);
+
+    @mixin hover {
+        color: var(--mantine-color-white);
+    }
+}
+
+.legalLink[aria-current="page"] {
+    color: var(--mantine-color-white);
+}

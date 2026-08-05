@@ -92,6 +92,35 @@ const ManagerNavbar = (props: { collapsed: boolean }) => {
     );
 }
 
+/**
+ * The instance's own documents, at the foot of the navigation.
+ *
+ * The application shell had no way to reach them at all: they live in the public
+ * footer, which this shell does not have, so a signed-in reader could not open
+ * the privacy policy from anywhere inside the product.
+ *
+ * Deliberately quieter than everything above — no icon, no weight, smaller and
+ * dimmed. These are read once and then never again, and they must not compete
+ * with the entries somebody uses all day.
+ */
+const LegalLinks = (props: { collapsed: boolean }) => {
+    const { t } = useTranslation();
+    const { instance } = useInstance();
+    // Which documents exist is the instance's decision, and one that publishes
+    // none must not show four dead links. Nothing when collapsed either: without
+    // an icon there is nothing left to draw at a hundred pixels wide.
+    if (props.collapsed || instance.legalDocuments.length === 0) return null;
+    return (
+        <div className={classes.legal}>
+            {instance.legalDocuments.map(kind => (
+                <NavLink key={kind} to={`/${kind}`} className={classes.legalLink}>
+                    {t(`legal.${kind}`)}
+                </NavLink>
+            ))}
+        </div>
+    );
+};
+
 const ActivityNavbar = (props: {
     collapsed: boolean,
     activity: Activity | undefined,
@@ -366,6 +395,7 @@ export default function AppLayout() {
                 )}
                 <Divider my="md" className={classes.divider} />
                 {CollapseButton}
+                <LegalLinks collapsed={collapsed} />
             </AppShell.Navbar>
 
             <AppShell.Main>

@@ -12,6 +12,7 @@ import LoginPage from './pages/login/LoginPage';
 
 import RegisterPage from './pages/register/RegisterPage';
 import AppLayout from './layouts/app/AppLayout';
+import SessionShell from './layouts/SessionShell';
 import ActivitiesPage from './pages/activities/ActivitiesPage';
 import ProblemsPage from './pages/activities/activity_id/problems/ProblemsPage';
 import SubmitPage from './pages/activities/activity_id/submit/SubmitPage';
@@ -66,14 +67,15 @@ function App() {
     });
 
     const router = createBrowserRouter([
+        // Every shell below is a layout route without a path of its own. Given
+        // one, a shell whose children do not match still matches the address by
+        // itself, and then draws its chrome around an empty page — which is what
+        // `/` did the moment a second shell was added beside the first.
         {
-            path: "/",
+            // The visitor's shell, and only the visitor's: an application shell
+            // around a sign-in form would offer navigation to nowhere.
             element: <Layout />,
             children: [
-                {
-                    path: "/",
-                    element: <HomePage />
-                },
                 {
                     path: "/login",
                     element: <LoginPage />
@@ -82,8 +84,21 @@ function App() {
                     path: "/register",
                     element: <RegisterPage />
                 },
-                // Public: somebody has to be able to read the privacy policy
-                // before deciding whether to have an account at all.
+            ]
+        },
+        {
+            // Public, but with a signed-in reading of the same page. The front
+            // page already shows the operator's other document to somebody
+            // signed in, and the legal documents must stay open to everybody —
+            // somebody has to be able to read the privacy policy before deciding
+            // whether to have an account at all. The shell follows the session
+            // so that reading one does not take the application away.
+            element: <SessionShell />,
+            children: [
+                {
+                    path: "/",
+                    element: <HomePage />
+                },
                 {
                     path: "/terms",
                     element: <LegalPage />
@@ -103,7 +118,6 @@ function App() {
             ]
         },
         {
-            path: "/",
             // One guard for the whole application shell: every participant and
             // manager screen is a child of it, so there is no route that can be
             // added later and forgotten here.
