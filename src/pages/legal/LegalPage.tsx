@@ -6,7 +6,7 @@ import { Link, useLocation } from "react-router-dom";
 import { LegalDocument, LegalDocumentKind } from "../../api/CoreApi";
 import LoadState from "../../components/LoadState";
 import ActivityTime from "../../components/time/ActivityTime";
-import { useApiEffect } from "../../provider/ApiProvider";
+import { useApiEffect } from "../../provider/apiContext";
 import { pickTranslation } from "../../components/content/languageName";
 
 const ContentView = lazy(() => import("../../content/ContentView"));

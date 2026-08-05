@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { useTranslation } from "react-i18next";
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { UnauthorizedError } from '../../api/ApiError';
-import { useAuth } from '../../provider/AuthProvider';
+import { useAuth } from '../../provider/authContext';
 import { useInstance } from '../../provider/instanceContext';
 import classes from './LoginPage.module.css';
 

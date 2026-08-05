@@ -1,6 +1,6 @@
 import { FC, ReactNode, useEffect, useState } from "react";
-import { useApi } from "./ApiProvider";
-import { useAuth } from "./AuthProvider";
+import { useApi } from "./apiContext";
+import { useAuth } from "./authContext";
 import { PermissionsContext } from "./permissionsContext";
 
 /**

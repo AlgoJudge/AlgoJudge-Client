@@ -9,7 +9,7 @@ import { useSearchParams } from "react-router-dom";
 import { ManagedRunner, RunnerAttachment, RunnerState } from "../../../api/ManagerApi";
 import LoadState from "../../../components/LoadState";
 import ActivityTime from "../../../components/time/ActivityTime";
-import { useApiCall, useApiEffect } from "../../../provider/ApiProvider";
+import { useApiCall, useApiEffect } from "../../../provider/apiContext";
 
 const PAGE_SIZE = 20;
 
@@ -82,6 +82,11 @@ export default function RunnersPage() {
         }
 
         api.managerApi.eventDispatcher.addEventListener("runnerChanged", () => setReload(n => n + 1));
+        // `query` is read above and deliberately not listed: opening a Runner
+        // and switching its log tab both write to the address, and refetching
+        // the whole list each time would blank the table underneath the panel.
+        // The address is read when the page arrives, which is what a shared link
+        // needs; after that the panel is driven by the clicks themselves.
     }, [page, search, state, reload]);
 
     const run = async (operation: () => Promise<unknown>) => {

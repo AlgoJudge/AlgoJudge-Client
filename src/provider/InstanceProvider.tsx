@@ -2,7 +2,7 @@ import { FC, ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { InstanceInfo } from "../api/CoreApi";
 import { pickTranslation } from "../components/content/languageName";
-import { useApi } from "./ApiProvider";
+import { useApi } from "./apiContext";
 import { InstanceContext } from "./instanceContext";
 import placeholderLogo from "../assets/instance-logo.svg";
 

@@ -19,7 +19,7 @@ import { CopyButton } from "../../../../components/buttons";
 import ActivityTime from "../../../../components/time/ActivityTime";
 import { emptyDocument, isStatementName, statementFileName } from "../../../../content/types";
 import { tryValidateContent } from "../../../../content/validate";
-import { useApiCall, useApiEffect } from "../../../../provider/ApiProvider";
+import { useApiCall, useApiEffect } from "../../../../provider/apiContext";
 import { sha256 } from "../../../../utils/sha256";
 import { statementRenderers } from "../../../../renderers";
 import { canEmbed, embedReference, linkReference } from "../../../../content/reference";

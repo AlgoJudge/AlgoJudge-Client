@@ -5,12 +5,12 @@ import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { displayName } from '../../api/displayName';
-import { useAuth } from '../../provider/AuthProvider';
-import { useApiEffect } from '../../provider/ApiProvider';
+import { useAuth } from '../../provider/authContext';
+import { useApiEffect } from '../../provider/apiContext';
 import Logo from '../logo/Logo';
 import classes from './Header.module.css';
 import { notifications } from '@mantine/notifications';
-import { usePreferences } from '../../provider/PreferencesProvider';
+import { usePreferences } from '../../provider/preferencesContext';
 
 function Header() {
     const [opened, { toggle }] = useDisclosure(false);
@@ -29,13 +29,19 @@ function Header() {
     const { t, i18n } = useTranslation();
     const { session, signOut } = useAuth();
 
-
-
     const { theme, lang } = usePreferences();
-    const { setColorScheme } = useMantineColorScheme();
+    const { colorScheme, setColorScheme } = useMantineColorScheme();
 
-    useEffect(() => { if (theme) setColorScheme(theme) }, [theme])
-    useEffect(() => { if (lang) i18n.changeLanguage(lang) }, [lang])
+    // Only when it actually differs. Mantine builds `setColorScheme` afresh on
+    // every render, so it belongs in the dependency list — and each call does
+    // real work whether or not anything changed: it writes localStorage and
+    // injects a `transition: none` stylesheet for ten milliseconds. Called once
+    // per render, that leaves the whole application without animation.
+    useEffect(() => {
+        if (theme && theme !== colorScheme) setColorScheme(theme);
+    }, [theme, colorScheme, setColorScheme])
+    // `i18n` is the i18next singleton, so listing it costs nothing.
+    useEffect(() => { if (lang) void i18n.changeLanguage(lang) }, [lang, i18n])
 
     const links = session ? [
         { link: '/', label: t('Home') },

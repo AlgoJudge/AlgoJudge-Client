@@ -6,8 +6,8 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import LoadState from "../../components/LoadState";
-import { useApiCall } from "../../provider/ApiProvider";
-import { useAuth } from "../../provider/AuthProvider";
+import { useApiCall } from "../../provider/apiContext";
+import { useAuth } from "../../provider/authContext";
 
 const MIN_PASSWORD = 12;
 

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { Activity, Question, QuestionKind, QuestionSort, Series } from "../../../../api/ParticipantApi";
 import ActivityTime from "../../../../components/time/ActivityTime";
-import { useApiCall, useApiEffect } from "../../../../provider/ApiProvider";
+import { useApiCall, useApiEffect } from "../../../../provider/apiContext";
 import LoadState from "../../../../components/LoadState";
 import QuestionFormModal from "./submit_question/QuestionFormModal";
 import classes from "./QuestionsPage.module.css";

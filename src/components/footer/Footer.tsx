@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import Logo from '../logo/Logo';
 import classes from './Footer.module.css';
-import { usePreferences } from '../../provider/PreferencesProvider';
+import { usePreferences } from '../../provider/preferencesContext';
 import { useInstance } from '../../provider/instanceContext';
 
 function Footer() {

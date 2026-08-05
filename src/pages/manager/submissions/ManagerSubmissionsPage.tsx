@@ -7,7 +7,7 @@ import { ManagedActivitySummary, ManagedSeries, ManagedSubmission } from "../../
 import { JobState } from "../../../api/ParticipantApi";
 import LoadState from "../../../components/LoadState";
 import ActivityTime from "../../../components/time/ActivityTime";
-import { useApiCall, useApiEffect } from "../../../provider/ApiProvider";
+import { useApiCall, useApiEffect } from "../../../provider/apiContext";
 
 const PAGE_SIZE = 20;
 

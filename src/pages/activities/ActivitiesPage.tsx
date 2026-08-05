@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Activity, ActivityState } from "../../api/ParticipantApi";
-import { useApiEffect } from "../../provider/ApiProvider";
+import { useApiEffect } from "../../provider/apiContext";
 import LoadState from "../../components/LoadState";
 import { typeName } from "../../renderers";
 import classes from "./ActivitiesPage.module.css";
@@ -56,6 +56,9 @@ export default function ActivitiesPage() {
         api.participantApi.eventDispatcher.addEventListener("activityDeleted", refetch);
         api.participantApi.eventDispatcher.addEventListener("activityUpdated", evt =>
             setItems(current => current?.map(a => a.id === evt.data.activity.id ? evt.data.activity : a)));
+        // The two filters are listed by their contents rather than by the arrays
+        // holding them: what decides whether to fetch again is which states were
+        // ticked, not which array object happens to hold them.
     }, [page, states.join(","), types.join(","), reload]);
 
     const onFilterChange = <T,>(set: (value: T[]) => void) => (value: T[]) => {

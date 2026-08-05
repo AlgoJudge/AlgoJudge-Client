@@ -7,7 +7,7 @@ import { Activity, ProblemSummary, Series } from "../../../../api/ParticipantApi
 import ProblemStatusBadge from "../../../../components/problem/ProblemStatusBadge";
 import ActivityTime from "../../../../components/time/ActivityTime";
 import Countdown from "../../../../components/time/Countdown";
-import { useApiCall, useApiEffect } from "../../../../provider/ApiProvider";
+import { useApiCall, useApiEffect } from "../../../../provider/apiContext";
 import LoadState from "../../../../components/LoadState";
 import { activityRenderers } from "../../../../renderers";
 import classes from "./ProblemsPage.module.css";

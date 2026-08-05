@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { PermissionDefinition, PermissionTemplate } from "../../../api/ManagerApi";
 import LoadState from "../../../components/LoadState";
 import PermissionSetEditor from "../../../components/permissions/PermissionSetEditor";
-import { useApiCall, useApiEffect } from "../../../provider/ApiProvider";
+import { useApiCall, useApiEffect } from "../../../provider/apiContext";
 
 interface Draft {
     id?: string;

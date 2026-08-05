@@ -1,7 +1,7 @@
 import { Center, Loader } from "@mantine/core";
 import { FC, ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "../provider/AuthProvider";
+import { useAuth } from "../provider/authContext";
 
 /**
  * Everything behind it needs a session.

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { Activity } from "../../../../api/ParticipantApi";
-import { useApiEffect } from "../../../../provider/ApiProvider";
+import { useApiEffect } from "../../../../provider/apiContext";
 import LoadState from "../../../../components/LoadState";
 import { rankingRenderers } from "../../../../renderers";
 

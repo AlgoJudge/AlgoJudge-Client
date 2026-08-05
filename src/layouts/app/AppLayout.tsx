@@ -3,7 +3,7 @@ import { useDisclosure } from "@mantine/hooks";
 import { NavLink, Outlet, useMatch, useNavigate } from "react-router-dom";
 import Logo from "../../components/logo/Logo";
 import { displayName } from "../../api/displayName";
-import { useAuth } from "../../provider/AuthProvider";
+import { useAuth } from "../../provider/authContext";
 import { useInstance } from "../../provider/instanceContext";
 import { usePermissions } from "../../provider/permissionsContext";
 import { MANAGER_AREAS, MANAGER_PERMISSIONS } from "../../pages/manager/managerAreas";
@@ -11,7 +11,7 @@ import classes from "./AppLayout.module.css";
 import { Icon, IconBox, IconChartBarPopular, IconChevronDown, IconChevronsLeft, IconChevronsRight, IconClock, IconHome, IconListDetails, IconLogout, IconMessageQuestion, IconMoon, IconNotes, IconPackageExport, IconProps, IconSectionSign, IconSettings, IconSun, IconUser } from "@tabler/icons-react";
 import { ComponentPropsWithoutRef, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useApiEffect } from "../../provider/ApiProvider";
+import { useApiEffect } from "../../provider/apiContext";
 import { Activity, Series } from "../../api/ParticipantApi";
 import Countdown from "../../components/time/Countdown";
 

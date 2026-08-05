@@ -7,7 +7,7 @@ import { ManagedActivity } from "../../../api/ManagerApi";
 import LoadState from "../../../components/LoadState";
 import ActivityTime from "../../../components/time/ActivityTime";
 import { emptyActivity } from "../../../components/activity/activityInput";
-import { useApiCall, useApiEffect } from "../../../provider/ApiProvider";
+import { useApiCall, useApiEffect } from "../../../provider/apiContext";
 
 const PAGE_SIZE = 20;
 

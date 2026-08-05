@@ -1,32 +1,13 @@
-import { createContext, FC, ReactNode, useContext, useEffect, useState } from "react";
+import { FC, ReactNode, useEffect, useState } from "react";
 import { Session } from "../api/CoreApi";
-import { useApi } from "./ApiProvider";
+import { useApi } from "./apiContext";
+import { AuthContext, AuthStatus } from "./authContext";
 
 /**
- * Who is signed in, for the whole application.
- *
  * The session comes from the API and nowhere else. This provider used to invent
  * one client-side while `CoreApi` held another, which is how a reload could sign
  * somebody out of the interface while their session was still perfectly valid.
- *
- * `status` distinguishes "not signed in" from "not known yet". Without that
- * difference the route guard would bounce every reload to the login screen
- * before the session had a chance to come back.
  */
-
-export type AuthStatus = "loading" | "authenticated" | "anonymous";
-
-export interface AuthContextType {
-    status: AuthStatus;
-    session: Session | undefined;
-    signIn: (login: string, password: string) => Promise<Session>;
-    signOut: () => Promise<void>;
-    /** Records a session the account screen has just changed. */
-    setSession: (session: Session) => void;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
 export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const api = useApi();
     const [status, setStatus] = useState<AuthStatus>("loading");
@@ -88,10 +69,4 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
             {children}
         </AuthContext.Provider>
     );
-};
-
-export const useAuth = (): AuthContextType => {
-    const context = useContext(AuthContext);
-    if (!context) throw new Error("useAuth can only be used inside an AuthProvider");
-    return context;
 };

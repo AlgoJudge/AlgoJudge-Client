@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Activity, ProblemDetail } from "../../../../../api/ParticipantApi";
 import ProblemStatusBadge from "../../../../../components/problem/ProblemStatusBadge";
-import { useApiEffect } from "../../../../../provider/ApiProvider";
+import { useApiEffect } from "../../../../../provider/apiContext";
 import LoadState from "../../../../../components/LoadState";
 import { statementRenderers } from "../../../../../renderers";
 import { languageName, pickLanguage } from "../../../../../components/content/languageName";

@@ -3,7 +3,7 @@ import { IconPlus } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Series } from "../../../../../api/ParticipantApi";
-import { useApiCall } from "../../../../../provider/ApiProvider";
+import { useApiCall } from "../../../../../provider/apiContext";
 
 export interface QuestionFormModalProps {
     activityId: string;

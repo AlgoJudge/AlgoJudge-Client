@@ -25,6 +25,7 @@ verified as outdated and removed there.
 | `npm ci` | install dependencies |
 | `npm run dev` | development server |
 | `npm run lint` | ESLint 9, flat config in `eslint.config.mjs` |
+| `npm run lint:deps` | the same rules with `useApiEffect` treated as an effect hook |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run build` | `tsc && vite build` |
 | `npm run check:package` | round-trips a Runner package through the real builder |
@@ -32,10 +33,17 @@ verified as outdated and removed there.
 
 There is no test runner. Lint, typecheck and build are the gate and all three
 must exit 0 before anything is merged; the two `check:` scripts cover the two
-formats the Client owns and are run when either changes. Lint reports nine
-warnings that do not gate the build — four `react-hooks/exhaustive-deps` and five
-`react-refresh/only-export-components`, in `provider/` and `components/header/`.
-Treat that as the baseline: it may shrink, not grow.
+formats the Client owns and are run when either changes. Lint reports two
+warnings that do not gate the build, both `react-hooks/exhaustive-deps` and both
+on the same `useEffect` in `provider/apiContext.ts`, where a comment says why
+they stay. It was nine until 2026-08-05. Treat two as the baseline: it may
+shrink, not grow.
+
+`lint:deps` is a probe, not a gate. Because `useApiEffect` hands its dependency
+list to `useEffect`, the rule stops at the wrapper and none of its call sites are
+checked; this reports them. It is noisy by construction — the rule wants a
+synchronous effect callback and ours is async — so read its findings, do not
+count them.
 
 ## Rules
 

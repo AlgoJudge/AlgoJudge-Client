@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { ManagedProblem, ProblemVisibility } from "../../../api/ManagerApi";
 import LoadState from "../../../components/LoadState";
 import ActivityTime from "../../../components/time/ActivityTime";
-import { useApiCall, useApiEffect } from "../../../provider/ApiProvider";
+import { useApiCall, useApiEffect } from "../../../provider/apiContext";
 import { problemTypes } from "../../../renderers";
 
 const PAGE_SIZE = 20;

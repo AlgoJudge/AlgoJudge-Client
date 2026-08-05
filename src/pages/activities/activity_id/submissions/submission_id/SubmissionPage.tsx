@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Activity, SubmissionDetail } from "../../../../../api/ParticipantApi";
 import ActivityTime from "../../../../../components/time/ActivityTime";
-import { useApiEffect } from "../../../../../provider/ApiProvider";
+import { useApiEffect } from "../../../../../provider/apiContext";
 import LoadState from "../../../../../components/LoadState";
 import { resultRenderers } from "../../../../../renderers";
 import StateBadge from "../../../../../components/submission/StateBadge";

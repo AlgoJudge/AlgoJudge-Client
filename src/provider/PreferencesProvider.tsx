@@ -1,15 +1,5 @@
-import { FC, ReactNode, createContext, useContext, useEffect, useState } from "react";
-
-type ThemeType = "light" | "dark" | undefined;
-
-export interface PreferencesType {
-    lang: string | undefined,
-    theme: ThemeType,
-    setLang: (lang: string) => void,
-    setTheme: (theme: ThemeType) => void;
-}
-
-const PreferencesContext = createContext<PreferencesType>({} as PreferencesType);
+import { FC, ReactNode, useEffect, useState } from "react";
+import { PreferencesContext, ThemeType } from "./preferencesContext";
 
 export const PreferencesProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const [lang, setLang2] = useState<string | undefined>(undefined);
@@ -37,10 +27,4 @@ export const PreferencesProvider: FC<{ children: ReactNode }> = ({ children }) =
     return (
         <PreferencesContext.Provider value={{ lang, theme, setLang, setTheme }}>{children}</PreferencesContext.Provider>
     )
-}
-
-export const usePreferences = () => {
-    const context = useContext(PreferencesContext);
-    if (!context) throw Error('usePreferences can only be used insde a PreferencesProvider');
-    return context;
 }

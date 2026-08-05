@@ -8,8 +8,8 @@ import { Activity, Attachment } from "../../api/ParticipantApi";
 import ActivityTime from "../../components/time/ActivityTime";
 import { pickTranslation } from "../../components/content/languageName";
 import { MANAGER_PERMISSIONS } from "../manager/managerAreas";
-import { useApiEffect } from "../../provider/ApiProvider";
-import { useAuth } from "../../provider/AuthProvider";
+import { useApiEffect } from "../../provider/apiContext";
+import { useAuth } from "../../provider/authContext";
 import { useInstance } from "../../provider/instanceContext";
 import { usePermissions } from "../../provider/permissionsContext";
 

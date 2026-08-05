@@ -4,7 +4,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { Activity, ProblemDetail, Series } from "../../../../api/ParticipantApi";
-import { useApiCall, useApiEffect } from "../../../../provider/ApiProvider";
+import { useApiCall, useApiEffect } from "../../../../provider/apiContext";
 import { sha256 } from "../../../../utils/sha256";
 import LoadState from "../../../../components/LoadState";
 

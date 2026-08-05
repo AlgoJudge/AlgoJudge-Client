@@ -12,7 +12,7 @@ import {
     SeriesInput, SeriesProblemInput,
 } from "../../../../api/ManagerApi";
 import ZonedDateTimeInput from "../../../../components/time/ZonedDateTimeInput";
-import { useApiCall } from "../../../../provider/ApiProvider";
+import { useApiCall } from "../../../../provider/apiContext";
 
 /**
  * Series and what is attached to them.

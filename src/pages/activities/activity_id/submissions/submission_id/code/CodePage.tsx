@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { Activity, SubmissionDetail } from "../../../../../../api/ParticipantApi";
 import { CopyButton, DownloadButton } from "../../../../../../components/buttons";
-import { useApiCall, useApiEffect } from "../../../../../../provider/ApiProvider";
+import { useApiCall, useApiEffect } from "../../../../../../provider/apiContext";
 import LoadState from "../../../../../../components/LoadState";
 
 const CodeEditor = lazy(() => import("../../../../../../components/editor/CodeEditor"));

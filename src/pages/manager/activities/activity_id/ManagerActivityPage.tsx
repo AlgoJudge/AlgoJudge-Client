@@ -7,7 +7,7 @@ import { ActivityInput, ManagedActivity, ManagedProblem, ManagedSeries } from ".
 import ActivityForm from "../../../../components/activity/ActivityForm";
 import { toInput } from "../../../../components/activity/activityInput";
 import LoadState from "../../../../components/LoadState";
-import { useApiCall, useApiEffect } from "../../../../provider/ApiProvider";
+import { useApiCall, useApiEffect } from "../../../../provider/apiContext";
 import ParticipantsPanel from "./ParticipantsPanel";
 import SeriesPanel from "./SeriesPanel";
 

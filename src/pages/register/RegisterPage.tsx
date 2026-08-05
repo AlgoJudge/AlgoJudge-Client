@@ -6,8 +6,8 @@ import { IconInfoCircle } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Navigate } from "react-router-dom";
-import { useApiCall } from "../../provider/ApiProvider";
-import { useAuth } from "../../provider/AuthProvider";
+import { useApiCall } from "../../provider/apiContext";
+import { useAuth } from "../../provider/authContext";
 import { useInstance } from "../../provider/instanceContext";
 import classes from './RegisterPage.module.css';
 
