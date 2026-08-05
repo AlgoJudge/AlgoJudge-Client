@@ -178,7 +178,15 @@ export default function ManagerSubmissionsPage() {
                         {items.map(submission => (
                             <Table.Tr key={submission.id}>
                                 <Table.Td>
-                                    <ActivityTime value={submission.submittedAt} timeZone="Europe/Warsaw" hideZone />
+                                    {/* The date opens the submission: it is what
+                                        names a submission, the way a title names
+                                        a problem. The button stays. */}
+                                    <span
+                                        style={{ cursor: "pointer" }}
+                                        onClick={() => navigate(`/manager/submissions/${submission.id}`)}
+                                    >
+                                        <ActivityTime value={submission.submittedAt} timeZone="Europe/Warsaw" hideZone />
+                                    </span>
                                 </Table.Td>
                                 <Table.Td><Text size="sm">{submission.userName}</Text></Table.Td>
                                 <Table.Td>

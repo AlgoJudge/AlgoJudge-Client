@@ -231,6 +231,7 @@ export class ManagerApiFake implements ManagerApi {
             : {
                 id: newId(),
                 userName: MANAGED_USERS.find(u => u.id === input.userId)?.name ?? input.userId,
+                userLogin: MANAGED_USERS.find(u => u.id === input.userId)?.username ?? input.userId,
                 activityName: MANAGED_ACTIVITIES.find(a => a.id === input.activityId)?.name,
                 state: "active",
                 createdAt: new Date().toISOString(),
@@ -599,6 +600,7 @@ export class ManagerApiFake implements ManagerApi {
                     id: newId(),
                     userId: user.id,
                     userName: displayName(user),
+                    userLogin: user.username,
                     activityId: input.activityId,
                     activityName: MANAGED_ACTIVITIES.find(a => a.id === input.activityId)?.name,
                     permissions: [...(input.permissions ?? [])],

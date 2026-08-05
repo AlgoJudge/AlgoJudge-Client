@@ -56,6 +56,15 @@ export interface Grant {
     userId: string;
     /** {@link DisplayName}: the name if there is one, the login otherwise. */
     userName: DisplayName;
+    /**
+     * The login, beside the name.
+     *
+     * Two people called Jan Kowalski are one department, not a hypothesis, and a
+     * grant list showing only names cannot be checked against anything. Sent
+     * rather than looked up from another request: what the row shows must not
+     * depend on that person happening to be in some other answer.
+     */
+    userLogin: string;
     activityId?: string;
     activityName?: string;
     permissions: string[];

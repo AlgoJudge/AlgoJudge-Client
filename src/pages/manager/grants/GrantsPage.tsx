@@ -186,7 +186,30 @@ export default function GrantsPage() {
                     <Table.Tbody>
                         {grants.map(grant => (
                             <Table.Tr key={grant.id}>
-                                <Table.Td>{grant.userName}</Table.Td>
+                                <Table.Td>
+                                    {/* The name opens the grant, as it opens the
+                                        row on the problem, activity and Runner
+                                        lists. The login is under it because a
+                                        department has two people called Jan
+                                        Kowalski and a name alone cannot be
+                                        checked against anything. */}
+                                    <Stack gap={0}>
+                                        <Text
+                                            fw={500}
+                                            style={{ cursor: "pointer" }}
+                                            onClick={() => open({
+                                                userId: grant.userId,
+                                                activityId: grant.activityId,
+                                                permissions: [...grant.permissions],
+                                                createdFromTemplate: grant.createdFromTemplate,
+                                                existing: true,
+                                            })}
+                                        >
+                                            {grant.userName}
+                                        </Text>
+                                        <Text size="xs" c="dimmed" ff="monospace">{grant.userLogin}</Text>
+                                    </Stack>
+                                </Table.Td>
                                 <Table.Td>
                                     {grant.activityId
                                         ? <Text size="sm">{grant.activityName}</Text>

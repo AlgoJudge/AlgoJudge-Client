@@ -133,77 +133,86 @@ export const createTemplates = (): PermissionTemplate[] => [
     },
 ];
 
+/**
+ * The name and the login come from the account list rather than being written
+ * here beside each grant: a fixture that spells the name a second time is a
+ * fixture that can spell it differently, and the two screens would then disagree
+ * about who somebody is.
+ */
+const named = (grant: Omit<Grant, "userName" | "userLogin">): Grant => {
+    const user = MANAGED_USERS.find(u => u.id === grant.userId);
+    return {
+        ...grant,
+        userName: user?.name ?? grant.userId,
+        userLogin: user?.username ?? grant.userId,
+    };
+};
+
 export const createGrants = (): Grant[] => [
-    {
+    named({
         id: "018f2c00-0000-7000-8000-0000000000b1",
         userId: "user-admin",
-        userName: "John Smith",
         permissions: ["system:administrator"],
         createdFromTemplate: "admin",
         state: "active",
         createdAt: new Date(Date.now() - 86400000 * 400).toISOString(),
-    },
-    {
+    }),
+    named({
         id: "018f2c00-0000-7000-8000-0000000000b2",
         userId: "user-kowalski",
-        userName: "Jan Kowalski",
         activityId: "018f2c00-0000-7000-8000-000000000002",
         activityName: "Programowanie 1 — grupa LA",
         permissions: [...MANAGER],
         createdFromTemplate: "manager",
         state: "active",
         createdAt: new Date(Date.now() - 86400000 * 30).toISOString(),
-    },
-    {
+    }),
+    named({
         // A manager with one right taken away — the case that would need a second
         // role in a model that unioned them, and is one edited set here.
         id: "018f2c00-0000-7000-8000-0000000000b3",
         userId: "user-wisniewski",
-        userName: "Tomasz Wiśniewski",
         activityId: "018f2c00-0000-7000-8000-000000000001",
         activityName: "Akademickie Mistrzostwa Polski 2019",
         permissions: MANAGER.filter(p => p !== "activity:update"),
         createdFromTemplate: "manager",
         state: "active",
         createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-    },
-    {
+    }),
+    named({
         id: "018f2c00-0000-7000-8000-0000000000b4",
         userId: "user-me",
-        userName: "Amy Horsefighter",
         activityId: "018f2c00-0000-7000-8000-000000000001",
         activityName: "Akademickie Mistrzostwa Polski 2019",
         permissions: [...PARTICIPANT],
         createdFromTemplate: "participant",
         state: "active",
         createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    },
-    {
+    }),
+    named({
         // The same person managing one course and taking part in one contest,
         // which is the ordinary case in a department. It is also what makes the
         // questions screen reachable: answering is an activity-scoped
         // permission, so nobody holds it from the system scope.
         id: "018f2c00-0000-7000-8000-0000000000b6",
         userId: "user-me",
-        userName: "Amy Horsefighter",
         activityId: "018f2c00-0000-7000-8000-000000000002",
         activityName: "Programowanie 1 — grupa LA",
         permissions: [...MANAGER],
         createdFromTemplate: "manager",
         state: "active",
         createdAt: new Date(Date.now() - 86400000 * 20).toISOString(),
-    },
-    {
+    }),
+    named({
         id: "018f2c00-0000-7000-8000-0000000000b5",
         userId: "user-nowak",
-        userName: "Anna Nowak",
         activityId: "018f2c00-0000-7000-8000-000000000005",
         activityName: "Warsztat interaktywny",
         permissions: [...PARTICIPANT],
         createdFromTemplate: "participant",
         state: "invited",
         createdAt: new Date(Date.now() - 3600000).toISOString(),
-    },
+    }),
 ];
 
 /**

@@ -218,7 +218,18 @@ export default function UsersPage() {
                                 <Table.Td>
                                     <Stack gap={0}>
                                         <Group gap="xs">
-                                            <Text fw={500}>{displayName(user)}</Text>
+                                            {/* The name opens the account, as the
+                                                name does on the problem, activity
+                                                and Runner lists. The button stays:
+                                                it is what says the row can be
+                                                opened at all. */}
+                                            <Text
+                                                fw={500}
+                                                style={{ cursor: "pointer" }}
+                                                onClick={() => void open(user)}
+                                            >
+                                                {displayName(user)}
+                                            </Text>
                                             {user.isTemporary && (
                                                 <Badge size="sm" variant="outline" color="gray">{t("temporary")}</Badge>
                                             )}

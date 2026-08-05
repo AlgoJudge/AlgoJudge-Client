@@ -108,7 +108,15 @@ export default function PermissionTemplatesPage() {
                     <Group justify="space-between" wrap="wrap">
                         <Stack gap={2}>
                             <Group gap="xs">
-                                <Text fw={600}>{template.name}</Text>
+                                {/* The name opens the editor, as the name does on
+                                    the problem, activity and Runner lists. */}
+                                <Text
+                                    fw={600}
+                                    style={{ cursor: "pointer" }}
+                                    onClick={() => setDraft(draftFrom(template))}
+                                >
+                                    {template.name}
+                                </Text>
                                 {template.isBuiltIn && (
                                     <Badge variant="light" size="sm" leftSection={<IconLock size={11} />}>
                                         {t("Built-in")}
