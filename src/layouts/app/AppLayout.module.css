@@ -171,12 +171,11 @@
     padding: rem(6px);
 }
 
-/* The operator's documents, pressed to the foot of the navigation by the auto
-   margin rather than placed after the last entry, so they sit where a footer
-   would sit and the navigation above them keeps its shape. */
-.legal {
-    margin-top: auto;
-    padding-top: var(--mantine-spacing-lg);
+/* The project and the operator's documents, at the foot of the navigation. They
+   sit in the navbar's own bottom section, so they stay where a footer would sit
+   however long the list above them grows. */
+.foot {
+    padding-top: var(--mantine-spacing-xs);
     display: flex;
     flex-direction: column;
     gap: rem(2px);
@@ -186,7 +185,7 @@
    a paler blue. Hovering and the open document brighten it to white — that is
    the whole of its state, with no background and no shadow, because a document
    somebody reads once should not look like a tool they work in. */
-.legalLink {
+.footLink {
     display: block;
     text-decoration: none;
     font-size: var(--mantine-font-size-xs);
@@ -200,6 +199,12 @@
     }
 }
 
-.legalLink[aria-current="page"] {
+.footLink[aria-current="page"] {
     color: var(--mantine-color-white);
+}
+
+/* The scrollbar of the middle section, on the navigation's own blue: the default
+   grey is drawn for a light surface and all but disappears here. */
+.navbar :global(.mantine-ScrollArea-thumb) {
+    background-color: var(--mantine-color-blue-3);
 }

@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import Logo from '../logo/Logo';
 import classes from './Footer.module.css';
 import { useInstance } from '../../provider/instanceContext';
+import { PROJECT_SITE } from '../../site';
 
 function Footer() {
     // Mantine and i18next each remember their own setting, and the application
@@ -21,7 +22,7 @@ function Footer() {
     const documents = instance.legalDocuments;
 
     const links = [
-        { link: 'https://algojudge.pl', label: t('About'), prev: false },
+        { link: PROJECT_SITE, label: t('About'), prev: false },
     ];
 
     const links2 = [

@@ -1,4 +1,4 @@
-import { AppShell, Burger, Center, Group, Image, Loader, UnstyledButton, Text, Divider, Tooltip, Menu, useMantineColorScheme, useComputedColorScheme, Badge } from "@mantine/core";
+import { AppShell, Burger, Center, Group, Image, Loader, UnstyledButton, Text, Divider, Tooltip, Menu, ScrollArea, useMantineColorScheme, useComputedColorScheme, Badge } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { NavLink, Outlet, useMatch, useNavigate } from "react-router-dom";
 import Logo from "../../components/logo/Logo";
@@ -13,6 +13,7 @@ import { ComponentPropsWithoutRef, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useApiEffect } from "../../provider/apiContext";
 import { Activity, Series } from "../../api/ParticipantApi";
+import { PROJECT_SITE } from "../../site";
 import Countdown from "../../components/time/Countdown";
 
 const NavbarLink = (props: {
@@ -93,9 +94,9 @@ const ManagerNavbar = (props: { collapsed: boolean }) => {
 }
 
 /**
- * The instance's own documents, at the foot of the navigation.
+ * The project, and the instance's own documents, at the foot of the navigation.
  *
- * The application shell had no way to reach them at all: they live in the public
+ * The application shell had no way to reach any of them: they live in the public
  * footer, which this shell does not have, so a signed-in reader could not open
  * the privacy policy from anywhere inside the product.
  *
@@ -103,17 +104,23 @@ const ManagerNavbar = (props: { collapsed: boolean }) => {
  * dimmed. These are read once and then never again, and they must not compete
  * with the entries somebody uses all day.
  */
-const LegalLinks = (props: { collapsed: boolean }) => {
+const FootLinks = (props: { collapsed: boolean }) => {
     const { t } = useTranslation();
     const { instance } = useInstance();
-    // Which documents exist is the instance's decision, and one that publishes
-    // none must not show four dead links. Nothing when collapsed either: without
-    // an icon there is nothing left to draw at a hundred pixels wide.
-    if (props.collapsed || instance.legalDocuments.length === 0) return null;
+    // Nothing when collapsed: without an icon there is nothing left to draw at a
+    // hundred pixels wide.
+    if (props.collapsed) return null;
     return (
-        <div className={classes.legal}>
+        <div className={classes.foot}>
+            {/* The only link out of the instance in the whole shell, and it is
+                the product's own site rather than anybody else's. */}
+            <a href={PROJECT_SITE} target="_blank" rel="noreferrer" className={classes.footLink}>
+                {t("About")}
+            </a>
+            {/* Which documents exist is the instance's decision, and one that
+                publishes none must not show four dead links. */}
             {instance.legalDocuments.map(kind => (
-                <NavLink key={kind} to={`/${kind}`} className={classes.legalLink}>
+                <NavLink key={kind} to={`/${kind}`} className={classes.footLink}>
                     {t(`legal.${kind}`)}
                 </NavLink>
             ))}
@@ -381,21 +388,34 @@ export default function AppLayout() {
                 </Group>
             </AppShell.Header>
 
+            {/* Three parts, because the middle one is the only part that may
+                grow without limit: the manager panel offers a dozen entries and
+                an activity its own list on top of them, and on a short window
+                they simply ran off the bottom with no way to reach them. The
+                mark and the foot links stay put; what is between them scrolls. */}
             <AppShell.Navbar p="md" className={classes.navbar}>
-                <InstanceMark collapsed={collapsed} />
-                <ActivityNavbar collapsed={collapsed} activity={activity} permissions={activityPermissions} />
-                <ManagerNavbar collapsed={collapsed} />
-                <NavbarLink to={`/`} label={t("Home")} icon={IconHome} collapsed={collapsed} />
-                <NavbarLink to={`/activities`} label={t("Activities")} icon={IconListDetails} collapsed={collapsed} />
-                {/* The only way into the panel from the shell — there was none
-                    at all before — and offered only where there is something in
-                    it for this person. */}
-                {hasAny(MANAGER_PERMISSIONS) && (
-                    <NavbarLink to={`/manager`} label={t("Manager")} icon={IconSettings} collapsed={collapsed} />
-                )}
-                <Divider my="md" className={classes.divider} />
-                {CollapseButton}
-                <LegalLinks collapsed={collapsed} />
+                <AppShell.Section>
+                    <InstanceMark collapsed={collapsed} />
+                </AppShell.Section>
+
+                <AppShell.Section grow component={ScrollArea} type="auto" scrollbarSize={6}>
+                    <ActivityNavbar collapsed={collapsed} activity={activity} permissions={activityPermissions} />
+                    <ManagerNavbar collapsed={collapsed} />
+                    <NavbarLink to={`/`} label={t("Home")} icon={IconHome} collapsed={collapsed} />
+                    <NavbarLink to={`/activities`} label={t("Activities")} icon={IconListDetails} collapsed={collapsed} />
+                    {/* The only way into the panel from the shell — there was
+                        none at all before — and offered only where there is
+                        something in it for this person. */}
+                    {hasAny(MANAGER_PERMISSIONS) && (
+                        <NavbarLink to={`/manager`} label={t("Manager")} icon={IconSettings} collapsed={collapsed} />
+                    )}
+                </AppShell.Section>
+
+                <AppShell.Section>
+                    <Divider my="md" className={classes.divider} />
+                    {CollapseButton}
+                    <FootLinks collapsed={collapsed} />
+                </AppShell.Section>
             </AppShell.Navbar>
 
             <AppShell.Main>
