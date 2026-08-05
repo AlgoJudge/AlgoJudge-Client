@@ -52,7 +52,7 @@ import {
 } from "./fixtures/permissions";
 import { ActivityRecord, createActivityLibrary } from "./fixtures/activities";
 import { buildPackage } from "../../package/build";
-import { emptyConfig } from "../../package/types";
+import { emptyConfig, isPackageFile, PACKAGE_ARCHIVE, SAMPLES_ARCHIVE } from "../../package/types";
 import { isStatementName } from "../../content/types";
 import { createProblemLibrary, fakeSha, ME, ProblemRecord } from "./fixtures/problems";
 import { createQuestions } from "./fixtures/questions";
@@ -913,7 +913,7 @@ export class ManagerApiFake implements ManagerApi {
         // published; everything else is carried forward unless it was removed.
         // `examples.zip` is derived from the package, so a new package replaces
         // it and an unchanged one leaves it alone.
-        const rebuilt = new Set(["package.zip", ...(input.package ? ["examples.zip"] : [])]);
+        const rebuilt = new Set([PACKAGE_ARCHIVE, ...(input.package ? [SAMPLES_ARCHIVE] : [])]);
         const carried = (previous?.files ?? []).filter(f =>
             !isStatementName(f.name) && !rebuilt.has(f.name) && !removed.has(f.name));
 
@@ -926,6 +926,10 @@ export class ManagerApiFake implements ManagerApi {
                 // the editor. Attaching one here would put a second answer beside
                 // the one published.
                 Utils.throwError("content.* is the statement; edit it in the Statement tab");
+            }
+            if (isPackageFile(entry.file.name)) {
+                // Both are derived from the package and written by publishing it.
+                Utils.throwError("The package is built in the Package tab");
             }
             if (carried.some(f => f.name === entry.file.name)
                 || staged.filter(s => s.file.name === entry.file.name).length > 1) {
@@ -968,7 +972,7 @@ export class ManagerApiFake implements ManagerApi {
         // forward. A version without one is a version nothing can be judged
         // against, and that is not what fixing a typo should produce.
         let archive = input.package?.archive;
-        if (!archive && previous?.hasPackage && !removed.has("package.zip")) {
+        if (!archive && previous?.hasPackage && !removed.has(PACKAGE_ARCHIVE)) {
             // Read the way the editor reads it: a seeded version holds no bytes
             // until something asks for them.
             archive = await this.getProblemPackage(problemId, previous.id, signal);
@@ -1002,13 +1006,13 @@ export class ManagerApiFake implements ManagerApi {
                 url: URL.createObjectURL(entry.file),
             })),
             ...(archive ? [{
-                name: "package.zip", scope: "runner" as const, mimeType: "application/zip",
+                name: PACKAGE_ARCHIVE, scope: "runner" as const, mimeType: "application/zip",
                 sizeBytes: archive.size, sha256: input.package?.sha256 ?? await sha256(archive),
             }] : []),
             // The examples the participant downloads. Participant scope, so the
             // Server hands them over without the Client asking twice.
             ...(input.package?.samples ? [{
-                name: "examples.zip", scope: "participant" as const, mimeType: "application/zip",
+                name: SAMPLES_ARCHIVE, scope: "participant" as const, mimeType: "application/zip",
                 sizeBytes: input.package.samples.archive.size,
                 sha256: input.package.samples.sha256,
                 url: URL.createObjectURL(input.package.samples.archive),

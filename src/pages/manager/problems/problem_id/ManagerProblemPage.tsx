@@ -13,6 +13,7 @@ import { Attachment } from "../../../../api/ParticipantApi";
 import LanguageTabs, { DEFAULT_LANGUAGE } from "../../../../components/content/LanguageTabs";
 import ContentEditor from "../../../../components/content/ContentEditor";
 import PackageBuilder, { PackageDraft } from "../../../../components/package/PackageBuilder";
+import { isPackageFile, PACKAGE_ARCHIVE } from "../../../../package/types";
 import LoadState from "../../../../components/LoadState";
 import { CopyButton } from "../../../../components/buttons";
 import ActivityTime from "../../../../components/time/ActivityTime";
@@ -236,6 +237,12 @@ export default function ManagerProblemPage() {
             setError(t("content.* is the statement; edit it in the Statement tab"));
             return;
         }
+        if (isPackageFile(file.name)) {
+            // Both are built from the package and rebuilt on publication, so an
+            // attachment of that name would be overwritten without warning.
+            setError(t("The package is built in the Package tab"));
+            return;
+        }
         if (files.some(f => f.state !== "removed" && f.name === file.name)) {
             // Refused rather than replaced, as the Server refuses it: a statement
             // referring to the name must not change meaning because somebody
@@ -375,12 +382,16 @@ export default function ManagerProblemPage() {
                     </Grid>
                 </Tabs.Panel>
 
+                {/* No version yet is an ordinary state, not a blocked one: a new
+                    problem is prepared whole — statement, files and package — and
+                    publishing creates version 1 out of all three. */}
                 <Tabs.Panel value="files" pt="md">
-                    {selected ? (
-                        <Stack gap="md">
+                    <Stack gap="md">
                             <Group justify="space-between" wrap="wrap">
                                 <Text size="sm" c="dimmed" maw={620}>
-                                    {t("Files of the version shown. A participant receives the participant-scoped ones; the statement points at them by name. Additions and removals are published with the next version.")}
+                                    {selected
+                                        ? t("Files of the version shown. A participant receives the participant-scoped ones; the statement points at them by name. Additions and removals are published with the next version.")
+                                        : t("Files of the first version, published together with the statement and the package.")}
                                 </Text>
                                 <Group gap="xs">
                                     <Select
@@ -492,9 +503,12 @@ export default function ManagerProblemPage() {
                                                             <IconDownload size={14} />
                                                         </Button>
                                                     )}
-                                                    {/* The statement is written in the
-                                                        editor, so it is not deleted from
-                                                        a file list. */}
+                                                    {/* Neither the statement nor the package
+                                                        is an attachment: both are written
+                                                        elsewhere and rebuilt on
+                                                        publication, so deleting one from
+                                                        this list would leave a problem
+                                                        nothing can judge. */}
                                                     {file.state === "removed" ? (
                                                         <Button
                                                             variant="subtle"
@@ -507,12 +521,14 @@ export default function ManagerProblemPage() {
                                                     ) : (
                                                         <Tooltip label={isStatementName(file.name)
                                                             ? t("The statement is edited in the Statement tab")
-                                                            : t("Delete")}>
+                                                            : isPackageFile(file.name)
+                                                                ? t("The package is built in the Package tab")
+                                                                : t("Delete")}>
                                                             <Button
                                                                 variant="subtle"
                                                                 color="red"
                                                                 size="compact-sm"
-                                                                disabled={locked || isStatementName(file.name)}
+                                                                disabled={locked || isStatementName(file.name) || isPackageFile(file.name)}
                                                                 onClick={() => file.state === "added"
                                                                     ? unstage(file.name)
                                                                     : setRemoved(current => [...current, file.name])}
@@ -537,30 +553,23 @@ export default function ManagerProblemPage() {
                             <Alert color="blue">
                                 {t("![description](<name>) shows the file inside the statement — a picture appears, a PDF opens in a frame. [description](<name>) is a link to it instead. The angle brackets are needed when the name contains a space; the copy button beside a file writes the whole reference. Only participant-scoped files can be pointed at.")}
                             </Alert>
-                        </Stack>
-                    ) : (
-                        <Alert color="yellow">
-                            {t("Publish a version first: a file is attached to one.")}
-                        </Alert>
-                    )}
+                    </Stack>
                 </Tabs.Panel>
 
                 <Tabs.Panel value="package" pt="md">
-                    {selected ? (
-                        // Keyed by version: switching to another one, or publishing,
-                        // starts the builder again and opens what that version holds.
-                        <PackageBuilder
-                            key={selected.id}
-                            disabled={locked}
-                            stored={selected.files.find(f => f.name === "package.zip")}
-                            onOpenStored={() => call(api => api.managerApi.getProblemPackage(problem.id, selected.id))}
-                            onDraftChange={handleDraft}
-                        />
-                    ) : (
-                        <Alert color="yellow">
-                            {t("Publish a version first: a package is attached to one.")}
-                        </Alert>
-                    )}
+                    {/* Keyed by version: switching to another one, or publishing,
+                        starts the builder again and opens what that version holds.
+                        A problem with no version yet builds its first package here
+                        and publishes it with everything else. */}
+                    <PackageBuilder
+                        key={selected?.id ?? "first"}
+                        disabled={locked}
+                        stored={selected?.files.find(f => f.name === PACKAGE_ARCHIVE)}
+                        onOpenStored={selected
+                            ? () => call(api => api.managerApi.getProblemPackage(problem.id, selected.id))
+                            : undefined}
+                        onDraftChange={handleDraft}
+                    />
                 </Tabs.Panel>
 
                 <Tabs.Panel value="versions" pt="md">
@@ -616,6 +625,11 @@ export default function ManagerProblemPage() {
                             ))}
                         </Table.Tbody>
                     </Table>
+                    {versions.length === 0 && (
+                        <Text size="sm" c="dimmed" mt="sm">
+                            {t("No version yet. Prepare the statement, the files and the package, then publish them as version 1.")}
+                        </Text>
+                    )}
                     <Text size="sm" c="dimmed" mt="sm">
                         {t("Versions are append-only: a correction publishes a new one instead of editing an old one.")}
                     </Text>

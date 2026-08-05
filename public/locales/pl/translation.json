@@ -303,7 +303,6 @@
   "Ignored files": "Pominięte pliki",
   "Download the package": "Pobierz paczkę",
   "Download the samples": "Pobierz przykłady",
-  "Publish a version first: a package is attached to one.": "Najpierw opublikuj wersję: paczka jest dołączana do wersji.",
   "snippet.sample": "Przykład",
   "snippet.math": "Wzór",
   "snippet.table": "Tabela",
@@ -582,7 +581,6 @@
   "scope.manager": "prowadzący",
   "scope.runner": "runner",
   "No files yet": "Brak plików",
-  "Publish a version first: a file is attached to one.": "Najpierw opublikuj wersję: plik jest do niej dołączany.",
   "The statement is edited in the Statement tab": "Treść edytuje się w zakładce Treść",
   "Package uploaded": "Paczka wgrana",
   "No package": "Brak paczki",
@@ -661,5 +659,8 @@
   "No group is marked as examples, so the participant receives no example tests.": "Żadna grupa nie jest oznaczona jako przykłady, więc uczestnik nie dostanie testów przykładowych.",
   "Copy the reference": "Kopiuj odwołanie",
   "![description](<name>) shows the file inside the statement — a picture appears, a PDF opens in a frame. [description](<name>) is a link to it instead. The angle brackets are needed when the name contains a space; the copy button beside a file writes the whole reference. Only participant-scoped files can be pointed at.": "![opis](<nazwa>) pokazuje plik w treści — obrazek się wyświetla, PDF otwiera się w ramce. [opis](<nazwa>) daje zamiast tego odnośnik do niego. Nawiasy ostre są potrzebne, gdy nazwa zawiera spację; przycisk kopiowania przy pliku wstawia gotowe odwołanie. Wskazać można wyłącznie pliki w zakresie „uczestnik”.",
-  "snippet.embed": "Osadź plik"
+  "snippet.embed": "Osadź plik",
+  "Files of the first version, published together with the statement and the package.": "Pliki pierwszej wersji, publikowane razem z treścią i paczką.",
+  "The package is built in the Package tab": "Paczkę buduje się w zakładce Paczka",
+  "No version yet. Prepare the statement, the files and the package, then publish them as version 1.": "Nie ma jeszcze żadnej wersji. Przygotuj treść, pliki i paczkę, a potem opublikuj je jako wersję 1."
 }

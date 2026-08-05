@@ -10,6 +10,22 @@ export const PACKAGE_FORMAT = "standard-io";
 export const PACKAGE_VERSION = 1;
 
 /**
+ * The two files a version's package owns.
+ *
+ * Both are derived from what the builder holds — the archive the Runner
+ * evaluates, and the examples the participant downloads — and both are rebuilt
+ * whenever the package is. They appear in a version's file list because that is
+ * where a version's files live, but they are not attachments: deleting one from
+ * that list would leave a problem that cannot be judged, or an example set that
+ * no longer matches the tests.
+ */
+export const PACKAGE_ARCHIVE = "package.zip";
+export const SAMPLES_ARCHIVE = "examples.zip";
+
+export const isPackageFile = (name: string): boolean =>
+    name === PACKAGE_ARCHIVE || name === SAMPLES_ARCHIVE;
+
+/**
  * Limits as `config.yml` states them.
  *
  * Memory is in **kibibytes** — 1024 bytes — which is the unit `sinolpack` uses,
