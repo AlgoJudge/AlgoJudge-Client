@@ -89,6 +89,14 @@ export default function RunnersPage() {
         // needs; after that the panel is driven by the clicks themselves.
     }, [page, search, state, reload]);
 
+    // Closing is one action, not three: the panel and the address are the same
+    // state seen twice, and a "Back" that left `?runner=` behind pointed at a
+    // panel that was no longer open.
+    const closePanel = () => {
+        setSelected(undefined);
+        setQuery({}, { replace: true });
+    };
+
     const run = async (operation: () => Promise<unknown>) => {
         setError(undefined);
         setBusy(true);
@@ -290,7 +298,7 @@ export default function RunnersPage() {
 
             <Modal
                 opened={selected !== undefined}
-                onClose={() => { setSelected(undefined); setQuery({}, { replace: true }); }}
+                onClose={closePanel}
                 title={<Title order={4}>{selected?.name}</Title>}
                 size="lg"
                 centered
@@ -383,12 +391,12 @@ export default function RunnersPage() {
                             onChange={setTags}
                         />
                         <Group justify="space-between">
-                            <Button variant="default" onClick={() => setSelected(undefined)}>{t("Back")}</Button>
+                            <Button variant="default" onClick={closePanel}>{t("Back")}</Button>
                             <Button
                                 loading={busy}
                                 onClick={() => run(async () => {
                                     await call(api => api.managerApi.setRunnerTags(selected.id, tags));
-                                    setSelected(undefined);
+                                    closePanel();
                                 })}
                             >
                                 {t("Save")}

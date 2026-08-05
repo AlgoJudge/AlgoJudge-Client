@@ -1,7 +1,6 @@
-import { Burger, Center, Container, Group, Menu, useMantineColorScheme } from '@mantine/core';
+import { Burger, Center, Container, Group, Menu } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconChevronDown } from '@tabler/icons-react';
-import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { displayName } from '../../api/displayName';
@@ -10,7 +9,6 @@ import { useApiEffect } from '../../provider/apiContext';
 import Logo from '../logo/Logo';
 import classes from './Header.module.css';
 import { notifications } from '@mantine/notifications';
-import { usePreferences } from '../../provider/preferencesContext';
 
 function Header() {
     const [opened, { toggle }] = useDisclosure(false);
@@ -26,22 +24,8 @@ function Header() {
         });
     });
 
-    const { t, i18n } = useTranslation();
+    const { t } = useTranslation();
     const { session, signOut } = useAuth();
-
-    const { theme, lang } = usePreferences();
-    const { colorScheme, setColorScheme } = useMantineColorScheme();
-
-    // Only when it actually differs. Mantine builds `setColorScheme` afresh on
-    // every render, so it belongs in the dependency list — and each call does
-    // real work whether or not anything changed: it writes localStorage and
-    // injects a `transition: none` stylesheet for ten milliseconds. Called once
-    // per render, that leaves the whole application without animation.
-    useEffect(() => {
-        if (theme && theme !== colorScheme) setColorScheme(theme);
-    }, [theme, colorScheme, setColorScheme])
-    // `i18n` is the i18next singleton, so listing it costs nothing.
-    useEffect(() => { if (lang) void i18n.changeLanguage(lang) }, [lang, i18n])
 
     const links = session ? [
         { link: '/', label: t('Home') },
