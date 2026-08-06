@@ -33,6 +33,15 @@ export interface Session {
  * takes them.
  */
 export interface InstanceInfo {
+    /**
+     * What this installation calls itself — the operator's name for it, beside
+     * the product's own.
+     *
+     * A reader has to be able to tell whose installation they are looking at:
+     * the mark says it to somebody who recognises the mark, and the name says it
+     * to everybody else. Shown beside the logo and used as the page title.
+     */
+    name: string,
     /** Shipped **off**: accounts are created by an organiser or arrive by SSO. */
     localRegistrationEnabled: boolean,
     /** Whether the registration form must collect an address. */

@@ -1,4 +1,4 @@
-import { Burger, Center, Container, Group, Menu } from '@mantine/core';
+import { Burger, Center, Container, Group, Menu, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconChevronDown } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
@@ -9,6 +9,7 @@ import { useApiEffect } from '../../provider/apiContext';
 import Logo from '../logo/Logo';
 import classes from './Header.module.css';
 import { notifications } from '@mantine/notifications';
+import { useInstance } from '../../provider/instanceContext';
 
 function Header() {
     const [opened, { toggle }] = useDisclosure(false);
@@ -26,6 +27,7 @@ function Header() {
 
     const { t } = useTranslation();
     const { session, signOut } = useAuth();
+    const { instance } = useInstance();
 
     const links = session ? [
         { link: '/', label: t('Home') },
@@ -79,7 +81,14 @@ function Header() {
         <header className={classes.header}>
             <Container size="md">
                 <div className={classes.inner}>
-                    <Link to="/"><Logo /></Link>
+                    <Group gap="sm" wrap="nowrap">
+                        <Link to="/"><Logo /></Link>
+                        {/* A visitor should be able to tell whose installation
+                            they have landed on, not only whose software. */}
+                        <Text size="sm" c="dimmed" lineClamp={1} visibleFrom="sm">
+                            {instance.name}
+                        </Text>
+                    </Group>
                     <Group gap={5} visibleFrom="sm">
                         {items}
                     </Group>

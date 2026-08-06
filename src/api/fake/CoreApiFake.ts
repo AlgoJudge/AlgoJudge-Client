@@ -145,6 +145,7 @@ export class CoreApiFake implements CoreApi {
     private static restoreInstance(): InstanceInfo {
         // The shipped default: accounts come from an organiser or from SSO.
         const defaults: InstanceInfo = {
+            name: "Wydział Informatyki",
             localRegistrationEnabled: false,
             requireEmail: false,
             requireConfirmedEmail: false,

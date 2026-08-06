@@ -297,6 +297,7 @@ const InstanceMark = ({ collapsed }: { collapsed: boolean }) => {
 
 export default function AppLayout() {
     const { t } = useTranslation();
+    const { instance } = useInstance();
     const { hasAny } = usePermissions();
     const [opened, { toggle }] = useDisclosure();
     const [collapsed, collapse] = useDisclosure();
@@ -371,7 +372,7 @@ export default function AppLayout() {
             padding="md"
         >
             <AppShell.Header className={classes.header}>
-                <Group>
+                <Group wrap="nowrap">
                     <Burger
                         opened={opened}
                         onClick={toggle}
@@ -379,6 +380,12 @@ export default function AppLayout() {
                         size="sm"
                     />
                     <NavLink to="/"><Logo h="1em" mx="xl" /></NavLink>
+                    {/* Whose installation this is, beside whose software it is.
+                        Clamped and hidden on a narrow screen: a long faculty
+                        name must not push the clock and the account menu off. */}
+                    <Text size="sm" c="dimmed" lineClamp={1} visibleFrom="sm">
+                        {instance.name}
+                    </Text>
                 </Group>
                 <Group>
                     <ActivityClock activity={activity} series={series} />

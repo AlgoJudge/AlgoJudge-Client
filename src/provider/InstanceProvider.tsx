@@ -20,6 +20,9 @@ import placeholderLogo from "../assets/instance-logo.svg";
  */
 
 const DEFAULTS: InstanceInfo = {
+    // The product's own name until the installation gives one. Better than an
+    // empty header while the answer is in flight.
+    name: "AlgoJudge",
     localRegistrationEnabled: false,
     requireEmail: false,
     requireConfirmedEmail: false,
@@ -41,6 +44,11 @@ export const InstanceProvider: FC<{ children: ReactNode }> = ({ children }) => {
             .catch(() => { /* The defaults are a usable answer. */ });
         return () => controller.abort();
     }, [api]);
+
+    // The tab says whose installation this is. Set here rather than per screen:
+    // it is the one fact every tab shares, and a per-screen title can still be
+    // built on top of it later.
+    useEffect(() => { document.title = instance.name; }, [instance.name]);
 
     // An institution whose wordmark differs between languages sets one per
     // language; everyone else sets one, and an instance that set none shows the
