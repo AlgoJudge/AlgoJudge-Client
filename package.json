@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "check:package": "node scripts/check-package.mjs",
     "check:content": "node scripts/check-content.mjs",
-    "check:events": "node scripts/check-events.mjs"
+    "check:events": "node scripts/check-events.mjs",
+    "check:api": "node scripts/check-api.mjs"
   },
   "dependencies": {
     "@mantine/code-highlight": "^7.17.3",

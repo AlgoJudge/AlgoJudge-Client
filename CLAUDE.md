@@ -31,10 +31,17 @@ verified as outdated and removed there.
 | `npm run check:package` | round-trips a Runner package through the real builder |
 | `npm run check:content` | parses and validates every `content.md` fixture |
 | `npm run check:events` | drives the event socket against a stub `WebSocket` |
+| `npm run check:api` | lists every endpoint the HTTP layer calls; checks it against an OpenAPI document when given one |
 
 There is no test runner. Lint, `lint:deps`, typecheck and build are the gate and
-all four must exit 0 before anything is merged; the two `check:` scripts cover
-the two formats the Client owns and are run when either changes.
+all four must exit 0 before anything is merged; the `check:` scripts cover what
+the Client owns and are run when it changes — the two formats
+(`check:content`, `check:package`) and the event transport (`check:events`).
+
+`check:api` is not a gate yet: it prints the endpoints the HTTP layer calls, and
+only checks them when handed an OpenAPI document —
+`npm run check:api -- openapi.json`. It becomes a gate the day the Server
+publishes one.
 
 **Lint is silent.** Not "nine known warnings", not two — nothing. It reported
 nine until 2026-08-05 and two until 2026-08-06. A warning in the output means
