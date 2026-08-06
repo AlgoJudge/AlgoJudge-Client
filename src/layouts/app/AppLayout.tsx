@@ -380,12 +380,15 @@ export default function AppLayout() {
                         size="sm"
                     />
                     <NavLink to="/"><Logo h="1em" mx="xl" /></NavLink>
-                    {/* Whose installation this is, beside whose software it is.
-                        Clamped and hidden on a narrow screen: a long faculty
-                        name must not push the clock and the account menu off. */}
-                    <Text size="sm" c="dimmed" lineClamp={1} visibleFrom="sm">
-                        {instance.name}
-                    </Text>
+                    {/* Whose installation this is, beside whose software it is —
+                        and nothing at all where nobody has said. Clamped and
+                        hidden on a narrow screen: a long faculty name must not
+                        push the clock and the account menu off. */}
+                    {instance.name && (
+                        <Text size="sm" c="dimmed" lineClamp={1} visibleFrom="sm">
+                            {instance.name}
+                        </Text>
+                    )}
                 </Group>
                 <Group>
                     <ActivityClock activity={activity} series={series} />

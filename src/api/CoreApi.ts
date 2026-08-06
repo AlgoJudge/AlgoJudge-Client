@@ -39,9 +39,15 @@ export interface InstanceInfo {
      *
      * A reader has to be able to tell whose installation they are looking at:
      * the mark says it to somebody who recognises the mark, and the name says it
-     * to everybody else. Shown beside the logo and used as the page title.
+     * to everybody else. Shown beside the logo, and in the window title as
+     * `AlgoJudge | <name>`.
+     *
+     * **Absent is a real state**, not a missing field: an installation that has
+     * not been named shows the product's name alone rather than a made-up one.
+     * That is why there is no default here — a default would make "not named"
+     * indistinguishable from "named AlgoJudge".
      */
-    name: string,
+    name?: string,
     /** Shipped **off**: accounts are created by an organiser or arrive by SSO. */
     localRegistrationEnabled: boolean,
     /** Whether the registration form must collect an address. */

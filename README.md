@@ -68,6 +68,7 @@ nothing of the sort.
 | `?fakeRegistration=on` | let this instance accept local sign-ups |
 | `?fakeRequireEmail=on` | make the address mandatory on the registration form |
 | `?fakeConfirmEmail=on` | refuse sign-in until the address is confirmed |
+| `?fakeName=off` | an installation nobody has named: no name beside the mark, and `AlgoJudge` alone in the title |
 
 All three seeded accounts use the password `Test1!`.
 

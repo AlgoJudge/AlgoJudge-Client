@@ -181,10 +181,15 @@ export class CoreApiFake implements CoreApi {
         const requireEmail = flag("fakeRequireEmail");
         const confirmEmail = flag("fakeConfirmEmail");
         const logo = flag("fakeLogo");
+        // An installation nobody has named is a state the screens have to draw,
+        // not only a field that could be absent: the title falls back to the
+        // product's name and the shells show nothing beside the mark.
+        const named = flag("fakeName");
         if (registration !== undefined) instance.localRegistrationEnabled = registration;
         if (requireEmail !== undefined) instance.requireEmail = requireEmail;
         if (confirmEmail !== undefined) instance.requireConfirmedEmail = confirmEmail;
         if (logo !== undefined) instance.showLogo = logo;
+        if (named === false) instance.name = undefined;
 
         sessionStorage.setItem(INSTANCE_KEY, JSON.stringify(instance));
         return instance;

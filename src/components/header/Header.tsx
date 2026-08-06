@@ -85,9 +85,11 @@ function Header() {
                         <Link to="/"><Logo /></Link>
                         {/* A visitor should be able to tell whose installation
                             they have landed on, not only whose software. */}
-                        <Text size="sm" c="dimmed" lineClamp={1} visibleFrom="sm">
-                            {instance.name}
-                        </Text>
+                        {instance.name && (
+                            <Text size="sm" c="dimmed" lineClamp={1} visibleFrom="sm">
+                                {instance.name}
+                            </Text>
+                        )}
                     </Group>
                     <Group gap={5} visibleFrom="sm">
                         {items}
