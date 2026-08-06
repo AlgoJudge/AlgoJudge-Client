@@ -30,6 +30,7 @@ verified as outdated and removed there.
 | `npm run build` | `tsc && vite build` |
 | `npm run check:package` | round-trips a Runner package through the real builder |
 | `npm run check:content` | parses and validates every `content.md` fixture |
+| `npm run check:events` | drives the event socket against a stub `WebSocket` |
 
 There is no test runner. Lint, `lint:deps`, typecheck and build are the gate and
 all four must exit 0 before anything is merged; the two `check:` scripts cover

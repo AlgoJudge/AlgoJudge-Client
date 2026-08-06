@@ -28,3 +28,5 @@ dist-ssr
 
 # Output of `npm run check:content`.
 .content-check/
+# Output of `npm run check:events`.
+.events-check/

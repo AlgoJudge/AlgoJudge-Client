@@ -1,4 +1,5 @@
 import { Api } from "../Api";
+import { NullEventConnection } from "../EventConnection";
 import { CoreApiFake } from "./CoreApiFake";
 import { FakeFiles, FileApiFake } from "./FileApiFake";
 import { ManagerApiFake } from "./ManagerApiFake";
@@ -15,6 +16,9 @@ export class FakeApiFactory {
             participantApi: new ParticipantApiFake(),
             managerApi: new ManagerApiFake(files),
             fileApi: new FileApiFake(files),
+            // The fake dispatches its own events as it changes things, so there
+            // is no connection to open and nothing to pretend about.
+            events: new NullEventConnection(),
         }
     }
 }

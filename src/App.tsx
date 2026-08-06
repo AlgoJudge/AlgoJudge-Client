@@ -26,6 +26,7 @@ import CodePage from './pages/activities/activity_id/submissions/submission_id/c
 
 import { ApiProvider } from './provider/ApiProvider';
 import { AuthProvider } from './provider/AuthProvider';
+import { EventsProvider } from './provider/EventsProvider';
 import { InstanceProvider } from './provider/InstanceProvider';
 import { PermissionsProvider } from './provider/PermissionsProvider';
 import RequireSession from './routers/Authentication';
@@ -192,8 +193,13 @@ function App() {
                     <AuthProvider>
                         <InstanceProvider>
                             <PermissionsProvider>
-                                <Notifications />
-                                <RouterProvider router={router} />
+                                {/* Inside the session, because the socket is
+                                    authenticated by it and lives exactly as
+                                    long. */}
+                                <EventsProvider>
+                                    <Notifications />
+                                    <RouterProvider router={router} />
+                                </EventsProvider>
                             </PermissionsProvider>
                         </InstanceProvider>
                     </AuthProvider>
