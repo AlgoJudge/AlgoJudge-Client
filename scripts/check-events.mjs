@@ -114,16 +114,42 @@ check(heard.core.length + heard.participant.length + heard.manager.length === 3,
     "an unknown type, a malformed frame and a typeless one are all ignored");
 
 // 4 — a dropped connection comes back, and a stopped one does not.
+//     Coming back is what the screens have to hear about: nothing was replayed
+//     while it was down, so whoever is showing something asks again.
+let restored = 0;
+const unsubscribe = events.onRestored(() => restored++);
+
+socket.emit("open", {});
+check(restored === 0, "a first connection is not a return, and notifies nobody");
+
 socket.emit("close", {});
 check(StubSocket.opened.length === 1, "a dropped connection is not reopened at once");
 await wait(1300);
 check(StubSocket.opened.length === 2, "it is reopened after backing off");
 
-events.stop();
-const stopped = StubSocket.opened.length;
+StubSocket.opened[1].emit("open", {});
+check(restored === 1, "coming back notifies exactly once");
+
+unsubscribe();
 StubSocket.opened[1].emit("close", {});
 await wait(1300);
-check(StubSocket.opened.length === stopped, "and a connection stopped on purpose stays shut");
+StubSocket.opened[2]?.emit("open", {});
+check(restored === 1, "and an unsubscribed listener hears nothing further");
+
+events.stop();
+const stopped = StubSocket.opened.length;
+StubSocket.opened[stopped - 1].emit("close", {});
+await wait(1300);
+check(StubSocket.opened.length === stopped, "a connection stopped on purpose stays shut");
+
+// Starting again after a deliberate stop is a first connection, not a return:
+// the screens were not left showing anything stale by a stop they asked for.
+let afterStop = 0;
+events.onRestored(() => afterStop++);
+events.start();
+StubSocket.opened[StubSocket.opened.length - 1].emit("open", {});
+check(afterStop === 0, "and starting again afterwards is a first connection, not a return");
+events.stop();
 
 console.log(failed ? `\nFAILED: ${failed}` : "\nevent check passed");
 process.exitCode = failed ? 1 : 0;
