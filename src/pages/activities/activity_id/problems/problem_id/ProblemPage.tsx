@@ -4,7 +4,8 @@ import { Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { StatementRef } from "../../../../../api/FileApi";
-import { Activity, ProblemDetail } from "../../../../../api/ParticipantApi";
+import { Activity, ProblemDetail, Series } from "../../../../../api/ParticipantApi";
+import { maySubmit, seriesState } from "../../../../../api/seriesState";
 import ProblemStatusBadge from "../../../../../components/problem/ProblemStatusBadge";
 import { useApi, useApiEffect } from "../../../../../provider/apiContext";
 import LoadState from "../../../../../components/LoadState";
@@ -61,6 +62,11 @@ export default function ProblemPage() {
 
     const [activity, setActivity] = useState<Activity | undefined>(undefined);
     const [problem, setProblem] = useState<ProblemDetail | undefined>(undefined);
+    /**
+     * The rounds, for the one holding this problem: whether anything may still
+     * be sent is the series' answer, not the problem's.
+     */
+    const [series, setSeries] = useState<Series[]>([]);
     /** Set only when the reader chose; otherwise the interface language decides. */
     const [chosenLanguage, setChosenLanguage] = useState<string | undefined>(undefined);
     /** The text of the statement on screen, fetched by id like every other file. */
@@ -72,6 +78,7 @@ export default function ProblemPage() {
         setActivity(activity);
         const detail = await api.participantApi.getProblem(activity.id, problemId);
         setProblem(detail);
+        setSeries(await api.participantApi.getSeries(activity.id));
 
         // The statement travels as a reference and is fetched like any other
         // file — the same id the manager uploaded it under, with the checksum
@@ -104,6 +111,9 @@ export default function ProblemPage() {
     const Statement = statementRenderers.resolve(problem.type).value;
     const downloads = problem.attachments.filter(a => !isStatementFile(a.name));
     const chosen = chooseStatement(problem.statements, chosenLanguage, i18n.language);
+    const holding = series.find(s => s.id === problem.seriesId);
+    const canSubmit = holding === undefined || maySubmit(holding);
+    const state = holding ? seriesState(holding) : "open";
 
     return (
         <Stack gap="md">
@@ -134,13 +144,27 @@ export default function ProblemPage() {
                                 {t("Submissions left")}: {problem.submissionsLeft}
                             </Badge>
                         )}
+                        {/* Why the button is shut, where somebody looking at it
+                            will read it. */}
+                        {!canSubmit && (
+                            <Badge variant="light" color={state === "paused" ? "orange" : "gray"}>
+                                {state === "paused" ? t("The series is paused") : t("The series has ended")}
+                            </Badge>
+                        )}
                     </Group>
                 </Stack>
                 <Group>
                     <Button variant="default" onClick={() => navigate(-1)}>{t("Back")}</Button>
-                    <Button component={Link} to={`/activities/${activity.slug}/submit/${problem.slug}`}>
-                        {t("Submit")}
-                    </Button>
+                    {/* Shut once the round stops accepting — disabled rather
+                        than absent, as on the problem list, so the way in stays
+                        where it has always been and says it is shut. */}
+                    {canSubmit ? (
+                        <Button component={Link} to={`/activities/${activity.slug}/submit/${problem.slug}`}>
+                            {t("Submit")}
+                        </Button>
+                    ) : (
+                        <Button disabled>{t("Submit")}</Button>
+                    )}
                 </Group>
             </Group>
 

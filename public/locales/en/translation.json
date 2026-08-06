@@ -790,5 +790,6 @@
   "Evaluated": "Evaluated",
   "The series is paused": "The series is paused",
   "This series has ended. The statements stay readable; nothing more is accepted.": "This series has ended. The statements stay readable; nothing more is accepted.",
-  "This series has not started yet.": "This series has not started yet."
+  "This series has not started yet.": "This series has not started yet.",
+  "The series has ended": "The series has ended"
 }
