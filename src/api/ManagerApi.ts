@@ -199,6 +199,26 @@ export interface ManagedActivity {
      */
     joinPassword?: string;
     /**
+     * Take the problems of a finished round away, rather than leaving them
+     * readable.
+     *
+     * Off by default, because a round that is over is over, not secret: a
+     * competitor goes back to what they were solving. On for a course that
+     * reuses its problems next year.
+     */
+    hideEndedSeriesProblems: boolean;
+    /**
+     * When participants may see the ranking. Absent `from` means the activity's
+     * own start; absent `to` means for ever.
+     *
+     * A window rather than a switch, because "from the start until the results
+     * are announced" is what an organiser actually says. Whoever holds
+     * `ranking:read:unfrozen` sees it outside the window, exactly as that
+     * permission already bypasses a series freeze.
+     */
+    rankingVisibleFrom?: string;
+    rankingVisibleTo?: string;
+    /**
      * The three limits the **Server** enforces, so none of them may live in the
      * opaque configuration chain. Time and memory are the Runner's and do.
      */
@@ -228,6 +248,26 @@ export interface ActivityInput {
     unlisted: boolean;
     /** Absent or empty removes it. Meaningful only under `joinPolicy: "password"`. */
     joinPassword?: string;
+    /**
+     * Take the problems of a finished round away, rather than leaving them
+     * readable.
+     *
+     * Off by default, because a round that is over is over, not secret: a
+     * competitor goes back to what they were solving. On for a course that
+     * reuses its problems next year.
+     */
+    hideEndedSeriesProblems: boolean;
+    /**
+     * When participants may see the ranking. Absent `from` means the activity's
+     * own start; absent `to` means for ever.
+     *
+     * A window rather than a switch, because "from the start until the results
+     * are announced" is what an organiser actually says. Whoever holds
+     * `ranking:read:unfrozen` sees it outside the window, exactly as that
+     * permission already bypasses a series freeze.
+     */
+    rankingVisibleFrom?: string;
+    rankingVisibleTo?: string;
     maxUploadBytes: number;
     maxAttachments: number;
     maxSubmissionsPerProblem?: number;

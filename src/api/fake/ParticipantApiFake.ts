@@ -210,6 +210,7 @@ class FakeParticipantState {
         if (!target) return;
         if (relay.startDate !== undefined) target.startDate = relay.startDate;
         if (relay.endDate !== undefined) target.endDate = relay.endDate;
+        if (relay.name !== undefined) target.name = relay.name;
         if (relay.pausedAt !== undefined) target.pausedAt = relay.pausedAt ?? undefined;
         if (relay.isOpen !== undefined) {
             target.isOpen = relay.isOpen;
@@ -345,12 +346,28 @@ export class ParticipantApiFake implements ParticipantApi {
      * here without a reload.
      */
     private dressed(activity: Activity): Activity {
+        // Whatever a manager last saved wins over what the fixtures said: the
+        // two halves keep their own activity, and a setting that never crossed
+        // is a setting that looks like it did nothing.
+        const settings = this.shared.settingsOf(activity.id);
         return {
             ...activity,
+            ...settings,
             membership: this.isMember(activity) ? "enrolled" : activity.membership,
             joinPolicy: this.shared.enrolmentOf(activity.id).policy,
             documents: this.shared.documentsOf(activity.id),
         };
+    }
+
+    /**
+     * The activity **as it leaves the fake**, with whatever a manager saved on
+     * top of it. Reading the fixture directly was the bug this exists to
+     * prevent: a setting saved in the panel had no effect on the rule that
+     * decides what a participant may read.
+     */
+    private activityOf(activityId: string): Activity | undefined {
+        const found = this.state.dataset().activities.find(a => a.id === activityId);
+        return found ? this.dressed(found) : undefined;
     }
 
     private isMember(activity: Activity): boolean {
@@ -359,7 +376,15 @@ export class ParticipantApiFake implements ParticipantApi {
 
     async getSeries(activityId: string, signal: AbortSignal): Promise<Series[]> {
         await this.settle(signal);
-        return copy(this.state.dataset().series.get(activityId) ?? []);
+        const activity = this.activityOf(activityId);
+        // The rule is applied **here**, where the Server applies it. It used to
+        // be the fixtures' business — a series was withheld by having no
+        // problems written on it — so a setting that withholds them, like an
+        // activity closing its finished rounds, had nowhere to take effect.
+        return copy((this.state.dataset().series.get(activityId) ?? []).map(series =>
+            mayReadProblems(series, activity ?? {})
+                ? series
+                : { ...series, problems: undefined }));
     }
 
     async getProblem(activityId: string, problemSlug: string, signal: AbortSignal): Promise<ProblemDetail> {
@@ -370,9 +395,10 @@ export class ParticipantApiFake implements ParticipantApi {
         // is asked here and not only where the list is drawn. A series whose
         // problems are withheld withholds them from everybody who types the
         // address too — which is the whole of what hiding them means.
+        const activity = this.activityOf(activityId);
         const series = this.state.dataset().series.get(activityId)
             ?.find(s => s.id === problem.seriesId);
-        if (series && !mayReadProblems(series)) return notFound("Problem");
+        if (series && !mayReadProblems(series, activity ?? {})) return notFound("Problem");
         return copy(problem);
     }
 
@@ -453,9 +479,13 @@ export class ParticipantApiFake implements ParticipantApi {
         return copy(summary);
     }
 
-    async getRanking(activityId: string, signal: AbortSignal): Promise<unknown> {
+    async getRanking(activityId: string, seriesId: string | undefined, signal: AbortSignal): Promise<unknown> {
         await this.settle(signal);
-        const ranking = this.state.dataset().rankings.get(activityId);
+        // A round's own standing, or the combined one. Kept apart in the dataset
+        // because the Server assembles them apart: a round's places are its own.
+        const ranking = seriesId === undefined
+            ? this.state.dataset().rankings.get(activityId)
+            : this.state.dataset().seriesRankings.get(seriesId);
         if (ranking === undefined) return notFound("Ranking");
 
         const activity = this.state.dataset().activities.find(a => a.id === activityId);

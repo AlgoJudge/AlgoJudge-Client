@@ -112,8 +112,12 @@ export class ParticipantApiHttp implements ParticipantApi {
             "POST", { signal, body: form });
     }
 
-    getRanking(activityId: string, signal: AbortSignal): Promise<unknown> {
-        return this.http.request<unknown>(`/activities/${encodeURIComponent(activityId)}/ranking`, "GET", { signal });
+    getRanking(activityId: string, seriesId: string | undefined, signal: AbortSignal): Promise<unknown> {
+        // Absent means the combined board, which is what the screen opens on.
+        return this.http.request<unknown>(`/activities/${encodeURIComponent(activityId)}/ranking`, "GET", {
+            signal,
+            query: query({ seriesId }),
+        });
     }
 
     getQuestions(activityId: string, filter: QuestionFilter, signal: AbortSignal): Promise<Page<Question>> {

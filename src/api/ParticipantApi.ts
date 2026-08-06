@@ -148,6 +148,19 @@ export interface Activity {
     startDate?: string,
     endDate?: string,
     /**
+     * Whether a finished round keeps its problems readable. Carried so the
+     * screen can say **why** a round shows none, not so it can decide: the
+     * Server withholds them.
+     */
+    hideEndedSeriesProblems: boolean,
+    /**
+     * When the ranking may be seen. Absent `from` means this activity's start;
+     * absent `to` means for ever. Outside the window the entry stays and the
+     * page says from when — a standing that opens at six is worth knowing about.
+     */
+    rankingVisibleFrom?: string,
+    rankingVisibleTo?: string,
+    /**
      * A reference to every document this activity currently publishes, one per
      * kind per language.
      *
@@ -608,8 +621,16 @@ export interface ParticipantApi {
     getSubmissionFile(activityId: string, submissionId: string, name: string, signal: AbortSignal): Promise<string>;
     submit(activityId: string, problemSlug: string, payload: SubmitPayload, signal: AbortSignal): Promise<SubmissionSummary>;
 
-    /** The ranking document, shaped by `Activity.rankingType` and rendered from it. */
-    getRanking(activityId: string, signal: AbortSignal): Promise<unknown>;
+    /**
+     * The ranking document, shaped by `Activity.rankingType` and rendered from it.
+     *
+     * Without a series it is the combined board; with one it is that round's own
+     * standing. **The Server assembles both**: a round's standing has its own
+     * ordering, and a Client filtering rows it was handed would produce places
+     * that are not places — the same reason a freeze happens where the data
+     * leaves.
+     */
+    getRanking(activityId: string, seriesId: string | undefined, signal: AbortSignal): Promise<unknown>;
 
     getQuestions(activityId: string, filter: QuestionFilter, signal: AbortSignal): Promise<Page<Question>>;
     askQuestion(activityId: string, input: AskQuestionInput, signal: AbortSignal): Promise<Question>;

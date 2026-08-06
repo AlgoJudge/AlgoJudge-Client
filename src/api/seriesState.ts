@@ -43,12 +43,22 @@ export const seriesState = (series: SeriesTiming, now = Date.now()): SeriesState
  *
  * Withheld before the start, and while a pause that took them away is in force —
  * which is `isOpen` gone false on a paused series, and the whole of what "hide
- * the statements" means. An ended series stays readable: it is over, not secret.
+ * the statements" means.
+ *
+ * An ended series stays readable by default: it is over, not secret, and a
+ * competitor goes back to what they were solving. An activity may say otherwise
+ * — a course reusing its problems next year — and then a finished round closes
+ * with them.
  */
-export const mayReadProblems = (series: SeriesTiming, now = Date.now()): boolean => {
+export const mayReadProblems = (
+    series: SeriesTiming,
+    activity: { hideEndedSeriesProblems?: boolean } = {},
+    now = Date.now(),
+): boolean => {
     const state = seriesState(series, now);
     if (state === "upcoming") return false;
     if (state === "paused" && !series.isOpen) return false;
+    if (state === "ended" && activity.hideEndedSeriesProblems === true) return false;
     return true;
 };
 

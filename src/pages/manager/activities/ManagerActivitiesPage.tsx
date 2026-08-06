@@ -82,7 +82,10 @@ export default function ManagerActivitiesPage() {
         }));
         setCreating(false);
         setDraft({ slug: "", name: "", type: DEFAULT_TYPE });
-        navigate(`/manager/activities/${created.id}`);
+        // The slug, as the participant's addresses have always read: the
+        // endpoint takes either, and a UUID in the address bar tells nobody
+        // which activity they are looking at.
+        navigate(`/manager/activities/${created.slug}`);
     });
 
     if (!items) return <LoadState error={loadError} loading={!loadError} />;
@@ -140,7 +143,7 @@ export default function ManagerActivitiesPage() {
                                         <Text
                                             fw={500}
                                             style={{ cursor: "pointer" }}
-                                            onClick={() => navigate(`/manager/activities/${activity.id}`)}
+                                            onClick={() => navigate(`/manager/activities/${activity.slug}`)}
                                         >
                                             {activity.name}
                                         </Text>
@@ -172,7 +175,7 @@ export default function ManagerActivitiesPage() {
                                         <Button
                                             variant="light"
                                             size="compact-sm"
-                                            onClick={() => navigate(`/manager/activities/${activity.id}`)}
+                                            onClick={() => navigate(`/manager/activities/${activity.slug}`)}
                                         >
                                             {t("Open")}
                                         </Button>

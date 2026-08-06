@@ -1,0 +1,39 @@
+/*
+ * Bottom right, above everything, and narrow enough to leave a statement
+ * readable behind it. The notifications took the opposite corner, so the two
+ * never argue over the same pixels.
+ */
+.panel {
+    position: fixed;
+    right: var(--mantine-spacing-md);
+    bottom: var(--mantine-spacing-md);
+    width: 320px;
+    max-width: calc(100vw - 2 * var(--mantine-spacing-md));
+    z-index: 200;
+    overflow: hidden;
+    background: var(--mantine-color-body);
+}
+
+.bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--mantine-spacing-xs);
+    width: 100%;
+    padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+}
+
+.bar:hover {
+    background: var(--mantine-color-default-hover);
+}
+
+.row {
+    display: block;
+    width: 100%;
+    padding: 6px var(--mantine-spacing-sm);
+    border-radius: var(--mantine-radius-sm);
+}
+
+.row:hover {
+    background: var(--mantine-color-default-hover);
+}

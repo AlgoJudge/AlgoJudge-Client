@@ -1,5 +1,7 @@
 import { ForbiddenError } from "../ApiError";
-import { ActivityDocumentKind, ActivityDocumentRef, JoinPolicy, SeriesChange } from "../ParticipantApi";
+import {
+    ActivityDocumentKind, ActivityDocumentRef, JoinPolicy, ScoreVisibility, SeriesChange,
+} from "../ParticipantApi";
 import { COURSE_JOIN_PASSWORD } from "./fixtures/activities";
 import { seedActivityDocuments, COURSE_ID, INVITED_COURSE_ID, OPEN_ID } from "./fixtures/activityDocuments";
 import { FakeFiles } from "./FileApiFake";
@@ -19,6 +21,14 @@ interface Enrolment {
  * fixture sets would be a larger change than this is worth. What has to cross is
  * small and named: which series, what happened, and the fields that moved.
  */
+/** The activity settings a participant sees the effect of. */
+export interface ParticipantSettings {
+    hideEndedSeriesProblems: boolean;
+    rankingVisibleFrom?: string;
+    rankingVisibleTo?: string;
+    scoreVisibility: ScoreVisibility;
+}
+
 export interface SeriesRelay {
     activityId: string;
     seriesId: string;
@@ -26,6 +36,8 @@ export interface SeriesRelay {
     startDate?: string;
     endDate?: string;
     isOpen?: boolean;
+    /** Editing a series renames it as readily as it moves it. */
+    name?: string;
     /** Null clears it, as JSON has no way to say "remove this field". */
     pausedAt?: string | null;
 }
@@ -50,6 +62,15 @@ export class FakeActivities {
     /** What the reader has joined during this visit, on top of the fixtures. */
     private readonly joined = new Set<string>();
     private readonly seriesListeners: ((relay: SeriesRelay) => void)[] = [];
+    /**
+     * What a manager changed about the activity that a participant can see.
+     *
+     * The same reason the documents and the enrolment live here: the two halves
+     * of the fake keep their own activity, and a setting saved in the panel that
+     * never reached the other half is a setting that looks like it did nothing —
+     * which is exactly how the series dates behaved before they were relayed.
+     */
+    private readonly settings = new Map<string, ParticipantSettings>();
 
     constructor(private readonly files: FakeFiles) {
         this.documents = seedActivityDocuments(files);
@@ -167,6 +188,15 @@ export class FakeActivities {
 
     hasJoined(activityId: string): boolean {
         return this.joined.has(activityId);
+    }
+
+    /** What a manager last saved, for the participant side to read over its own. */
+    settingsOf(activityId: string): ParticipantSettings | undefined {
+        return this.settings.get(activityId);
+    }
+
+    setSettings(activityId: string, settings: ParticipantSettings): void {
+        this.settings.set(activityId, { ...settings });
     }
 
     /**

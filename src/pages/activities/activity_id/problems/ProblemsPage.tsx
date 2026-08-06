@@ -62,10 +62,11 @@ const ProblemRow = ({ problem, activitySlug, canSubmit }: {
 const ClosedSeries = ({ series, timeZone, onOpen }: { series: Series; timeZone: string; onOpen: () => void }) => {
     const { t } = useTranslation();
     const count = series.problemCount;
-    // A series whose statements a manager took away is not a series that has not
-    // started, and saying "not started yet" about a round somebody was reading a
-    // minute ago is worse than saying nothing.
-    const stopped = seriesState(series) === "paused";
+    // Three ways a round shows nothing, and they are not the same sentence:
+    // it has not started, a manager took the statements away, or it is over and
+    // the activity closes finished rounds.
+    const state = seriesState(series);
+    const stopped = state === "paused" || state === "ended";
     return (
         // Without a floor the container collapses when the problem count is
         // withheld too, and the overlay lands on top of the series heading.
@@ -83,9 +84,10 @@ const ClosedSeries = ({ series, timeZone, onOpen }: { series: Series; timeZone: 
                     <Group gap="xs">
                         <IconLock size={18} />
                         <Text size="lg" fw={700}>
-                            {stopped
-                                ? t("The series is paused")
-                                : count === undefined ? t("Not started yet") : `${t("Problems")}: ${count}`}
+                            {state === "paused" ? t("The series is paused")
+                                : state === "ended" ? t("The series has ended")
+                                : count === undefined ? t("Not started yet")
+                                : `${t("Problems")}: ${count}`}
                         </Text>
                     </Group>
                     {!stopped && series.startDate && (

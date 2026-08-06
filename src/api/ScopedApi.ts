@@ -258,8 +258,8 @@ export class ScopedParticipantApi {
         return this.participantApi.submit(activityId, problemSlug, payload, this.signal);
     }
 
-    getRanking(activityId: string): Promise<unknown> {
-        return this.participantApi.getRanking(activityId, this.signal);
+    getRanking(activityId: string, seriesId?: string): Promise<unknown> {
+        return this.participantApi.getRanking(activityId, seriesId, this.signal);
     }
 
     getQuestions(activityId: string, filter: QuestionFilter = {}): Promise<Page<Question>> {

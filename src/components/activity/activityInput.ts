@@ -18,6 +18,8 @@ export const emptyActivity = (): ActivityInput => ({
     logVisibility: "managersOnly",
     joinPolicy: "closed",
     unlisted: true,
+    // A finished round stays readable unless somebody says otherwise.
+    hideEndedSeriesProblems: false,
     maxUploadBytes: 8 * MB,
     maxAttachments: 1,
 });
@@ -36,6 +38,9 @@ export const toInput = (activity: ManagedActivity): ActivityInput => ({
     joinPolicy: activity.joinPolicy,
     unlisted: activity.unlisted,
     joinPassword: activity.joinPassword,
+    hideEndedSeriesProblems: activity.hideEndedSeriesProblems,
+    rankingVisibleFrom: activity.rankingVisibleFrom,
+    rankingVisibleTo: activity.rankingVisibleTo,
     maxUploadBytes: activity.maxUploadBytes,
     maxAttachments: activity.maxAttachments,
     maxSubmissionsPerProblem: activity.maxSubmissionsPerProblem,

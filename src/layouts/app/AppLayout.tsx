@@ -18,6 +18,7 @@ import { publishedLegalKinds } from "../../api/instanceDocuments";
 import { hasDocument } from "../../api/activityDocuments";
 import Countdown from "../../components/time/Countdown";
 import ActivityNotifications from "../../components/notifications/ActivityNotifications";
+import ActivitySubmissions from "../../components/activity/ActivitySubmissions";
 
 const NavbarLink = (props: {
     label: string,
@@ -173,7 +174,7 @@ const ActivityNavbar = (props: {
         // to this one: holding `activity:update` somewhere else is not a reason
         // to offer a screen that would refuse.
         props.permissions.includes("activity:update")
-            && { to: `/manager/activities/${activity.id}`, label: t("Manage this activity"), icon: IconSettings },
+            && { to: `/manager/activities/${activity.slug}`, label: t("Manage this activity"), icon: IconSettings },
     ]
     return (
         <>
@@ -478,6 +479,12 @@ export default function AppLayout() {
                 looked at, and stays mounted while the reader moves between its
                 screens — so nothing is announced twice and nothing is missed. */}
             <ActivityNotifications activityId={activity?.id} slug={activity?.slug} />
+            {/* Beside them, in the other corner, and only inside an activity. */}
+            <ActivitySubmissions
+                activityId={activity?.id}
+                slug={activity?.slug}
+                timeZone={activity?.timeZone}
+            />
         </AppShell>
     );
 }

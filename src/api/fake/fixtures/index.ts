@@ -56,8 +56,19 @@ export interface Dataset {
     submissionFiles: Map<string, Map<string, string>>;
     /** Keyed by activity id, newest first. */
     questions: Map<string, Question[]>;
-    /** Keyed by activity id. Shape is decided by the activity's rankingType. */
+    /**
+     * The combined board, keyed by activity id. Shape is decided by the
+     * activity's rankingType.
+     */
     rankings: Map<string, unknown>;
+    /**
+     * One round's own standing, keyed by series id.
+     *
+     * Kept apart from the combined board because the Server assembles them
+     * apart: a round's places are its own, and are not a filtered view of
+     * anybody else's.
+     */
+    seriesRankings: Map<string, unknown>;
     /** Problems whose series has not opened yet, held back until it does. */
     withheld: Map<string, ProblemSummary[]>;
 }
@@ -181,6 +192,7 @@ export const createDataset = (files: FakeFiles): Dataset => {
     const submissionFiles = new Map<string, Map<string, string>>();
     const questions = new Map<string, Question[]>();
     const rankings = new Map<string, unknown>();
+    const seriesRankings = new Map<string, unknown>();
     const withheld = new Map<string, ProblemSummary[]>();
 
     /**
@@ -217,6 +229,7 @@ export const createDataset = (files: FakeFiles): Dataset => {
         // Nobody joins a national final from a link: the teams are entered.
         joinPolicy: "closed",
         scoreVisibility: "everyone",
+        hideEndedSeriesProblems: false,
         modules: { questions: true },
         // Filled in from `FakeActivities`, which is where an activity's
         // documents live: the manager screen publishes into it and this side
@@ -446,7 +459,38 @@ export const createDataset = (files: FakeFiles): Dataset => {
         })),
     ]);
 
+    // Runda 0's own standing: a second started round, so the picker has two
+    // besides the combined board.
+    seriesRankings.set(round0.id, {
+        format: "icpc",
+        frozen: false,
+        startedAt: round0.startDate,
+        me: "team-7",
+        problems: round0Problems.map(p => ({ id: p.id, slug: p.slug, name: p.name })),
+        rows: [
+            { rank: 1, id: "team-2", name: "Uniwersytet Warszawski 2", solved: 2, penalty: 74, cells: { R: { attempts: 1, acceptedAt: 12 }, S: { attempts: 2, acceptedAt: 42 } } },
+            { rank: 2, id: "team-7", name: "Politechnika Poznańska 3", solved: 2, penalty: 96, cells: { R: { attempts: 1, acceptedAt: 18 }, S: { attempts: 3, acceptedAt: 58 } } },
+            { rank: 3, id: "team-1", name: "Politechnika Poznańska 1", solved: 1, penalty: 31, cells: { R: { attempts: 2, acceptedAt: 31 }, S: { attempts: 4 } } },
+        ],
+    });
+
+    // The combined board: **totals only**. The per-problem cells belong to the
+    // round whose problems they are, and a contest of three rounds would
+    // otherwise be thirty columns wide.
     rankings.set(contestId, {
+        format: "icpc",
+        frozen: false,
+        me: "team-7",
+        rows: [
+            { rank: 1, id: "team-1", name: "Politechnika Poznańska 1", solved: 5, penalty: 343 },
+            { rank: 2, id: "team-2", name: "Uniwersytet Warszawski 2", solved: 5, penalty: 275 },
+            { rank: 3, id: "team-7", name: "Politechnika Poznańska 3", solved: 4, penalty: 250 },
+            { rank: 4, id: "team-4", name: "AGH 1", solved: 2, penalty: 178 },
+            { rank: 5, id: "team-5", name: "Uniwersytet Jagielloński 1", solved: 1, penalty: 45 },
+        ],
+    });
+
+    seriesRankings.set(round1.id, {
         format: "icpc",
         frozen: true,
         freezeAt: nowPlus(-minutes(30)),
@@ -483,6 +527,7 @@ export const createDataset = (files: FakeFiles): Dataset => {
         // A course where somebody sees their own standing and nobody else's: the
         // ranking is one row, without a place.
         scoreVisibility: "participantOnly",
+        hideEndedSeriesProblems: false,
         modules: { questions: true },
         documents: [],
         props: [
@@ -564,6 +609,30 @@ export const createDataset = (files: FakeFiles): Dataset => {
         },
     ]);
 
+    const classBoard = (
+        id: string,
+        name: string,
+        columns: ProblemSummary[],
+        rows: unknown[],
+    ) => ({
+        format: "points",
+        frozen: false,
+        me: "student-me",
+        series: [{ id, name, problems: columns.map((p: ProblemSummary) => ({ slug: p.slug, name: p.name, maxScore: 100 })) }],
+        activeSeriesId: id,
+        rows,
+    });
+    seriesRankings.set("series-w1", classBoard("series-w1", "Zajęcia 1 — podstawy", w1Problems, [
+        { rank: 1, id: "student-1", name: "Anna Nowak", solved: 2, total: 200, bySeries: { "series-w1": { total: 200, byProblem: { petle: 100, tablice: 100 } } } },
+        { rank: 2, id: "student-me", name: "Amy Horsefighter", solved: 2, total: 180, bySeries: { "series-w1": { total: 180, byProblem: { petle: 100, tablice: 80 } } } },
+        { rank: 3, id: "student-3", name: "Piotr Wiśniewski", solved: 1, total: 150, bySeries: { "series-w1": { total: 150, byProblem: { petle: 100, tablice: 50 } } } },
+    ]));
+    seriesRankings.set("series-w2", classBoard("series-w2", "Zajęcia 2 — rekurencja", w2Problems, [
+        { rank: 1, id: "student-1", name: "Anna Nowak", solved: 2, total: 180, bySeries: { "series-w2": { total: 180, byProblem: { rekurencja: 100, sortowanie: 80 } } } },
+        { rank: 2, id: "student-me", name: "Amy Horsefighter", solved: 1, total: 50, bySeries: { "series-w2": { total: 50, byProblem: { rekurencja: 50 } } } },
+        { rank: 3, id: "student-3", name: "Piotr Wiśniewski", solved: 0, total: 0, bySeries: { "series-w2": { total: 0, byProblem: {} } } },
+    ]));
+
     rankings.set(courseId, {
         format: "points",
         frozen: false,
@@ -596,6 +665,10 @@ export const createDataset = (files: FakeFiles): Dataset => {
         endDate: nowPlus(-days(400) + hours(5)),
         joinPolicy: "closed",
         scoreVisibility: "everyone",
+        hideEndedSeriesProblems: false,
+        // Its standings were published and then closed: the state a participant
+        // meets when the results have been taken down again.
+        rankingVisibleTo: nowPlus(-days(1)),
         modules: { questions: false },
         documents: [],
         finalScore: 3,
@@ -629,6 +702,10 @@ export const createDataset = (files: FakeFiles): Dataset => {
         // Anybody may join, and there is no password to type.
         joinPolicy: "open",
         scoreVisibility: "everyone",
+        hideEndedSeriesProblems: false,
+        // And these standings are not open yet, which is the other half of the
+        // window: a participant is told when rather than shown an empty table.
+        rankingVisibleFrom: nowPlus(hours(3)),
         modules: { questions: false },
         documents: [],
         props: [],
@@ -653,6 +730,7 @@ export const createDataset = (files: FakeFiles): Dataset => {
         endDate: nowPlus(hours(4)),
         joinPolicy: "closed",
         scoreVisibility: "everyone",
+        hideEndedSeriesProblems: false,
         modules: { questions: true },
         documents: [],
         props: [],
@@ -690,6 +768,7 @@ export const createDataset = (files: FakeFiles): Dataset => {
         joinPolicy: "password",
         // Nobody but a manager: no ranking entry at all.
         scoreVisibility: "managersOnly",
+        hideEndedSeriesProblems: false,
         modules: { questions: true },
         documents: [],
         startDate: nowPlus(-days(20)),
@@ -722,6 +801,7 @@ export const createDataset = (files: FakeFiles): Dataset => {
             endDate: nowPlus(-days(1000 + i * 365) + hours(5)),
             joinPolicy: "closed",
             scoreVisibility: "everyone",
+            hideEndedSeriesProblems: false,
             modules: { questions: false },
             documents: [],
             finalScore: i,
@@ -733,6 +813,6 @@ export const createDataset = (files: FakeFiles): Dataset => {
 
     return {
         activities, series, problems, submissions, submissionDetails,
-        submissionFiles, questions, rankings, withheld,
+        submissionFiles, questions, rankings, seriesRankings, withheld,
     };
 };

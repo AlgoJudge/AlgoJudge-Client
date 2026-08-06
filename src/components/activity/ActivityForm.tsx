@@ -199,6 +199,14 @@ export default function ActivityForm({ value, onChange, slugLocked, disabled }: 
                 <Text size="sm" c="dimmed">
                     {t("The ranking follows who sees scores, below.")}
                 </Text>
+                <Switch
+                    mt="sm"
+                    label={t("Hide the problems of finished series")}
+                    description={t("Off, a finished round stays readable: it is over, not secret.")}
+                    checked={value.hideEndedSeriesProblems}
+                    onChange={e => set({ hideEndedSeriesProblems: e.currentTarget.checked })}
+                    disabled={disabled}
+                />
                 {/* The rules used to be a switch here. They are a document now,
                     and whether there are any is whether one is published — one
                     answer rather than a flag that can be on over nothing. */}
@@ -268,6 +276,29 @@ export default function ActivityForm({ value, onChange, slugLocked, disabled }: 
                             checked={value.joinPolicy === "closed" || value.unlisted}
                             onChange={e => set({ unlisted: e.currentTarget.checked })}
                             disabled={disabled || value.joinPolicy === "closed"}
+                        />
+                    </Grid.Col>
+                </Grid>
+
+                <Grid mt="sm">
+                    <Grid.Col span={{ base: 12, sm: 6 }}>
+                        <ZonedDateTimeInput
+                            label={t("Ranking visible from")}
+                            description={t("Empty means from the activity's own start")}
+                            value={value.rankingVisibleFrom}
+                            timeZone={value.timeZone}
+                            onChange={rankingVisibleFrom => set({ rankingVisibleFrom })}
+                            disabled={disabled}
+                        />
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 12, sm: 6 }}>
+                        <ZonedDateTimeInput
+                            label={t("Ranking visible until")}
+                            description={t("Empty means for ever")}
+                            value={value.rankingVisibleTo}
+                            timeZone={value.timeZone}
+                            onChange={rankingVisibleTo => set({ rankingVisibleTo })}
+                            disabled={disabled}
                         />
                     </Grid.Col>
                 </Grid>

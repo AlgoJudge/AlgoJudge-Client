@@ -394,8 +394,15 @@ export class ManagerApiFake implements ManagerApi {
         this.assertActivitySlugFree(input.slug, record.activity.id);
         Object.assign(record.activity, input);
         // The enrolment settings belong to the shared store, because the
-        // participant side decides what to show from them.
+        // participant side decides what to show from them — and so does
+        // everything else about the activity a participant can see.
         this.shared.setEnrolment(record.activity.id, input.joinPolicy, input.joinPassword, input.unlisted);
+        this.shared.setSettings(record.activity.id, {
+            hideEndedSeriesProblems: input.hideEndedSeriesProblems,
+            rankingVisibleFrom: input.rankingVisibleFrom,
+            rankingVisibleTo: input.rankingVisibleTo,
+            scoreVisibility: input.scoreVisibility,
+        });
         return this.announceActivity(record.activity);
     }
 
@@ -490,6 +497,18 @@ export class ManagerApiFake implements ManagerApi {
         this.assertSeriesSlugFree(record, input.slug, series.id);
         Object.assign(series, input);
         this.announceSeries(record, series);
+        // And the participant side, which keeps its own view of the series.
+        // Editing the dates here is the ordinary way a round is moved — the
+        // shift control is the hurried one — so it has to arrive there as
+        // surely as a shift does.
+        this.shared.announceSeries({
+            activityId: record.activity.id,
+            seriesId: series.id,
+            change: "rescheduled",
+            startDate: series.startDate,
+            endDate: series.endDate,
+            name: series.name,
+        });
         return copy(series);
     }
 

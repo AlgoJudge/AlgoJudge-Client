@@ -791,5 +791,16 @@
   "The series is paused": "The series is paused",
   "This series has ended. The statements stay readable; nothing more is accepted.": "This series has ended. The statements stay readable; nothing more is accepted.",
   "This series has not started yet.": "This series has not started yet.",
-  "The series has ended": "The series has ended"
+  "The series has ended": "The series has ended",
+  "Hide the problems of finished series": "Hide the problems of finished series",
+  "Off, a finished round stays readable: it is over, not secret.": "Off, a finished round stays readable: it is over, not secret.",
+  "Ranking visible from": "Ranking visible from",
+  "Ranking visible until": "Ranking visible until",
+  "Empty means from the activity's own start": "Empty means from the activity's own start",
+  "Empty means for ever": "Empty means for ever",
+  "Combined": "Combined",
+  "The ranking opens on": "The ranking opens on",
+  "The ranking was available until": "The ranking was available until",
+  "The ranking is not available.": "The ranking is not available.",
+  "Nothing sent yet": "Nothing sent yet"
 }
