@@ -96,6 +96,9 @@ export default function SubmitPage() {
         );
     }
 
+    // The series this problem belongs to, so a stopped round is refused here
+    // rather than by the Server after somebody has written an answer.
+    const paused = series.find(s => s.id === problem.seriesId)?.pausedAt !== undefined;
     const wantsFile = problem.submitFields.some(f => f.kind === "file");
     const wantsCode = problem.submitFields.some(f => f.kind === "code");
 
@@ -215,10 +218,20 @@ export default function SubmitPage() {
                 <Alert color="red" icon={<IconAlertCircle size={18} />}>{error}</Alert>
             )}
 
+            {/* Said before anything is written rather than after it is sent:
+                the Server refuses a submission into a stopped series, and
+                letting somebody finish an answer first is the wrong order. */}
+            {paused && (
+                <Alert color="orange" icon={<IconAlertCircle size={18} />}>
+                    {t("This series is paused. Nothing is accepted until it starts again.")}
+                </Alert>
+            )}
+
             <Group justify="flex-end">
                 <Button
                     size="md"
                     loading={sending}
+                    disabled={paused}
                     onClick={send}
                     rightSection={<IconSend size={18} />}
                 >

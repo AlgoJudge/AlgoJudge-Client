@@ -32,6 +32,8 @@ import {
     PermissionDefinition,
     PermissionTemplate,
     PermissionTemplateInput,
+    PauseInput,
+    ResumeInput,
     SeriesInput,
     SeriesProblemInput,
     UserInput,
@@ -280,6 +282,23 @@ export class ManagerApiHttp implements ManagerApi {
 
     updateSeries(seriesId: string, input: SeriesInput, signal: AbortSignal): Promise<ManagedSeries> {
         return this.http.request<ManagedSeries>(`/series/${encodeURIComponent(seriesId)}`, "PUT", { signal, body: input });
+    }
+
+    shiftSeries(seriesId: string, minutes: number, signal: AbortSignal): Promise<ManagedSeries> {
+        // A delta, not two dates: two managers moving the same delayed round by
+        // ten minutes would otherwise both compute +10 from what they read.
+        return this.http.request<ManagedSeries>(
+            `/series/${encodeURIComponent(seriesId)}/shift`, "POST", { signal, body: { minutes } });
+    }
+
+    pauseSeries(seriesId: string, input: PauseInput, signal: AbortSignal): Promise<ManagedSeries> {
+        return this.http.request<ManagedSeries>(
+            `/series/${encodeURIComponent(seriesId)}/pause`, "POST", { signal, body: input });
+    }
+
+    resumeSeries(seriesId: string, input: ResumeInput, signal: AbortSignal): Promise<ManagedSeries> {
+        return this.http.request<ManagedSeries>(
+            `/series/${encodeURIComponent(seriesId)}/resume`, "POST", { signal, body: input });
     }
 
     async deleteSeries(seriesId: string, signal: AbortSignal): Promise<void> {

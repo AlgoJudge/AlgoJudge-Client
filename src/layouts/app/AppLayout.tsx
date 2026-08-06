@@ -17,6 +17,7 @@ import { PROJECT_SITE } from "../../site";
 import { publishedLegalKinds } from "../../api/instanceDocuments";
 import { hasDocument } from "../../api/activityDocuments";
 import Countdown from "../../components/time/Countdown";
+import ActivityNotifications from "../../components/notifications/ActivityNotifications";
 
 const NavbarLink = (props: {
     label: string,
@@ -198,8 +199,23 @@ const ActivityClock = ({ activity, series }: { activity: Activity | undefined, s
     const now = Date.now();
     const running = series.find(s =>
         s.isOpen && s.endDate !== undefined &&
+        // A paused series counts to nothing: its end is going to move, or the
+        // time is simply not running, and a header ticking through an
+        // interruption is worse than a header saying so.
+        s.pausedAt === undefined &&
         (s.startDate === undefined || Date.parse(s.startDate) <= now) &&
         Date.parse(s.endDate) > now);
+
+    // Stopped rather than absent: somebody watching the clock should see why it
+    // is not moving.
+    const paused = series.find(s => s.pausedAt !== undefined);
+    if (paused) {
+        return (
+            <Badge size="lg" variant="light" color="orange" leftSection={<IconClock size={14} />}>
+                {t("Paused")}
+            </Badge>
+        );
+    }
     if (!running?.endDate) return null;
 
     return (
@@ -349,7 +365,10 @@ export default function AppLayout() {
         api.participantApi.eventDispatcher.addEventListener("activityUpdated", evt => {
             if (evt.data.activity.id === loaded.id) setActivity(evt.data.activity);
         });
-        api.participantApi.eventDispatcher.addEventListener("sectionOpened", evt => {
+        // Opened, ended, stopped, started again or moved — all of it arrives as
+        // the whole series, so the sidebar and the clock redraw from what came
+        // rather than working out which fields changed.
+        api.participantApi.eventDispatcher.addEventListener("seriesChanged", evt => {
             if (evt.data.activityId !== loaded.id) return;
             setSeries(current => current.map(s => s.id === evt.data.series.id ? evt.data.series : s));
         });
@@ -454,6 +473,11 @@ export default function AppLayout() {
                     <Outlet />
                 </Suspense>
             </AppShell.Main>
+
+            {/* Mounted by the shell, which already knows which activity is being
+                looked at, and stays mounted while the reader moves between its
+                screens — so nothing is announced twice and nothing is missed. */}
+            <ActivityNotifications activityId={activity?.id} slug={activity?.slug} />
         </AppShell>
     );
 }

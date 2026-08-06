@@ -63,7 +63,26 @@ const TOPO = { id: "prob-topo", slug: "sortowanie-topologiczne", name: "Sortowan
 const LOOPS = { id: "prob-petle", slug: "petle-i-sumy", name: "Pętle i sumy", currentVersion: 1 };
 const ARRAYS = { id: "prob-tablice", slug: "tablice", name: "Tablice", currentVersion: 2 };
 
-export const createActivityLibrary = (): ActivityRecord[] => [
+/**
+ * Whether a series is running, from its dates.
+ *
+ * The **Server** owns this: a scheduler opens a series when its start passes and
+ * closes it when its end does. The fixtures state the dates and this works out
+ * what that scheduler would have done by now, rather than each series carrying a
+ * flag somebody has to keep in step with its own times.
+ */
+const running = (series: { startDate?: string, endDate?: string }): boolean => {
+    const now = Date.now();
+    return (series.startDate === undefined || Date.parse(series.startDate) <= now)
+        && (series.endDate === undefined || Date.parse(series.endDate) > now);
+};
+
+export const createActivityLibrary = (): ActivityRecord[] => LIBRARY.map(record => ({
+    ...record,
+    series: record.series.map(series => ({ ...series, isOpen: running(series) })),
+}));
+
+const LIBRARY: ActivityRecord[] = [
     {
         activity: {
             id: CONTEST_ID,
@@ -96,6 +115,7 @@ export const createActivityLibrary = (): ActivityRecord[] => [
                 order: 1,
                 startDate: hours(-1),
                 endDate: hours(4),
+                isOpen: false,
                 revealProblemCount: true,
                 // Frozen for the final hour and revealed when the round ends —
                 // the ICPC convention, and the case the screen must show.
@@ -118,6 +138,7 @@ export const createActivityLibrary = (): ActivityRecord[] => [
                 endDate: days(7),
                 // Closed and not admitting its size: a competitor learns nothing
                 // about the round before it opens.
+                isOpen: false,
                 revealProblemCount: false,
                 problems: [
                     // No package: nothing can be judged, and the screen has to
@@ -157,6 +178,7 @@ export const createActivityLibrary = (): ActivityRecord[] => [
                 order: 1,
                 startDate: days(-21),
                 endDate: days(-14),
+                isOpen: false,
                 revealProblemCount: true,
                 problems: [
                     assignment("series-w1", 1, LOOPS, { slug: "petle", submissionCount: 51 }),
@@ -173,6 +195,7 @@ export const createActivityLibrary = (): ActivityRecord[] => [
                 order: 2,
                 startDate: days(-7),
                 endDate: days(3),
+                isOpen: false,
                 revealProblemCount: true,
                 problems: [
                     assignment("series-w2", 1, LOOPS, { slug: "rekurencja", name: "Rekurencja — rozgrzewka", submissionCount: 12 }),
@@ -209,6 +232,7 @@ export const createActivityLibrary = (): ActivityRecord[] => [
                 order: 1,
                 // No dates at all: an untimed activity, which the forms must
                 // accept rather than demand a start for.
+                isOpen: false,
                 revealProblemCount: true,
                 problems: [assignment("series-t1", 1, GRAPH, { slug: "spojnosc" })],
             },

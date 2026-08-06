@@ -57,6 +57,8 @@ import {
     SeriesChangedEvent,
     SubmissionChangedEvent,
     RunnerChangedEvent,
+    PauseInput,
+    ResumeInput,
     SeriesInput,
     SeriesProblemInput,
     UserChangedEvent,
@@ -91,7 +93,9 @@ import {
     QuestionFilter,
     QuestionPublishedEvent,
     RankingChangedEvent,
-    SectionOpenedEvent,
+    // Both APIs have one, and they are different events: the manager's carries a
+    // `ManagedSeries` and the participant's carries what changed.
+    SeriesChangedEvent as ParticipantSeriesChangedEvent,
     Series,
     SubmissionDetail,
     SubmissionFilter,
@@ -206,7 +210,7 @@ export class ScopedParticipantEventDispatcher {
     addEventListener(type: "activityUpdated", listener: (evt: ActivityUpdatedEvent) => void): void;
     addEventListener(type: "activityDeleted", listener: (evt: ActivityDeletedEvent) => void): void;
     addEventListener(type: "activityTimesChanged", listener: (evt: ActivityTimesChangedEvent) => void): void;
-    addEventListener(type: "sectionOpened", listener: (evt: SectionOpenedEvent) => void): void;
+    addEventListener(type: "seriesChanged", listener: (evt: ParticipantSeriesChangedEvent) => void): void;
     addEventListener(type: "problemStatusChanged", listener: (evt: ProblemStatusChangedEvent) => void): void;
     addEventListener(type: "submissionStateChanged", listener: (evt: SubmissionStateChangedEvent) => void): void;
     addEventListener(type: "rankingChanged", listener: (evt: RankingChangedEvent) => void): void;
@@ -430,6 +434,15 @@ export class ScopedManagerApi {
     }
     deleteSeries(seriesId: string): Promise<void> {
         return this.managerApi.deleteSeries(seriesId, this.signal);
+    }
+    shiftSeries(seriesId: string, minutes: number): Promise<ManagedSeries> {
+        return this.managerApi.shiftSeries(seriesId, minutes, this.signal);
+    }
+    pauseSeries(seriesId: string, input: PauseInput): Promise<ManagedSeries> {
+        return this.managerApi.pauseSeries(seriesId, input, this.signal);
+    }
+    resumeSeries(seriesId: string, input: ResumeInput): Promise<ManagedSeries> {
+        return this.managerApi.resumeSeries(seriesId, input, this.signal);
     }
     reorderSeries(activityId: string, orderedIds: string[]): Promise<ManagedSeries[]> {
         return this.managerApi.reorderSeries(activityId, orderedIds, this.signal);

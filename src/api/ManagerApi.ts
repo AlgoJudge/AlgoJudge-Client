@@ -248,6 +248,10 @@ export interface ManagedSeries {
     order: number;
     startDate?: string;
     endDate?: string;
+    /** Whether it is running now. The **Server** sets it, from the clock. */
+    isOpen: boolean;
+    /** Since when a manager has it stopped. Absent means it is not paused. */
+    pausedAt?: string;
     /** Whether a closed series admits how many problems it holds. */
     revealProblemCount: boolean;
     /**
@@ -258,6 +262,16 @@ export interface ManagedSeries {
     rankingFreezeAt?: string;
     rankingRevealAt?: string;
     problems: ManagedSeriesProblem[];
+}
+
+export interface PauseInput {
+    /** Take the statements away as well, not only the clock. */
+    hideProblems: boolean;
+}
+
+export interface ResumeInput {
+    /** Move the end by however long the pause lasted. */
+    extendEnd: boolean;
 }
 
 export interface SeriesInput {
@@ -1093,6 +1107,38 @@ export interface ManagerApi {
     updateSeries(seriesId: string, input: SeriesInput, signal: AbortSignal): Promise<ManagedSeries>;
     /** Refused once anything has been submitted to it. */
     deleteSeries(seriesId: string, signal: AbortSignal): Promise<void>;
+
+    /**
+     * Moves every instant the series holds by `minutes` — its start, its end,
+     * and the ranking freeze and reveal with them.
+     *
+     * A delta rather than two new dates, because two managers each moving a
+     * delayed round by ten minutes from the same screen would otherwise both
+     * write **+10** and lose one of the shifts. The freeze travels because a
+     * round delayed by ten minutes whose freeze stayed at the old wall clock
+     * would freeze the wrong hour.
+     *
+     * Negative moves it earlier.
+     */
+    shiftSeries(seriesId: string, minutes: number, signal: AbortSignal): Promise<ManagedSeries>;
+
+    /**
+     * Stops a running series: nothing is accepted for it and the countdown
+     * stands still.
+     *
+     * `hideProblems` also takes the statements away — `isOpen` goes false —
+     * which is for a leak or a mistake in a statement rather than for an
+     * ordinary interruption. Taking a problem off the screen of somebody in the
+     * middle of it is violent, and they have read it already.
+     */
+    pauseSeries(seriesId: string, input: PauseInput, signal: AbortSignal): Promise<ManagedSeries>;
+
+    /**
+     * Starts it again. `extendEnd` gives the interruption back by moving the end
+     * by however long the pause lasted, which is what pausing exists for; without
+     * it every date is left alone.
+     */
+    resumeSeries(seriesId: string, input: ResumeInput, signal: AbortSignal): Promise<ManagedSeries>;
     reorderSeries(activityId: string, orderedIds: string[], signal: AbortSignal): Promise<ManagedSeries[]>;
 
     attachProblem(seriesId: string, input: SeriesProblemInput, signal: AbortSignal): Promise<ManagedSeries>;

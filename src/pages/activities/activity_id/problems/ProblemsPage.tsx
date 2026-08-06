@@ -1,4 +1,4 @@
-import { Box, Button, Card, Group, Overlay, Stack, Text, Title } from "@mantine/core";
+import { Badge, Box, Button, Card, Group, Overlay, Stack, Text, Title } from "@mantine/core";
 import { IconLock } from "@tabler/icons-react";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -105,10 +105,10 @@ export default function ProblemsPage() {
         setActivity(activity);
         setSeries(await scoped.participantApi.getSeries(activity.id));
 
-        // A series opening and a status changing both arrive as events, so the
+        // A series changing and a status changing both arrive as events, so the
         // page updates without the participant reloading at the exact second a
-        // round begins.
-        scoped.participantApi.eventDispatcher.addEventListener("sectionOpened", evt => {
+        // round begins — or is stopped.
+        scoped.participantApi.eventDispatcher.addEventListener("seriesChanged", evt => {
             if (evt.data.activityId !== activity.id) return;
             setSeries(current => current?.map(s => s.id === evt.data.series.id ? evt.data.series : s));
         });
@@ -153,7 +153,14 @@ export default function ProblemsPage() {
                 return (
                     <Card key={s.id} className={classes.round}>
                         <Group justify="space-between" wrap="wrap">
-                            <Title order={2}>{s.name}</Title>
+                            <Group gap="xs">
+                                <Title order={2}>{s.name}</Title>
+                                {/* Said where the problems are, because that is
+                                    where somebody is when it happens. */}
+                                {s.pausedAt && (
+                                    <Badge color="orange" variant="filled" size="lg">{t("Paused")}</Badge>
+                                )}
+                            </Group>
                             <Group gap="md">
                                 {renderer.showStartCountdown && s.startDate && (
                                     <Text size="sm" c="dimmed">

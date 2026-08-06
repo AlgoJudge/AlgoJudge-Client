@@ -1,5 +1,5 @@
 import { ForbiddenError } from "../ApiError";
-import { ActivityDocumentKind, ActivityDocumentRef, JoinPolicy } from "../ParticipantApi";
+import { ActivityDocumentKind, ActivityDocumentRef, JoinPolicy, SeriesChange } from "../ParticipantApi";
 import { COURSE_JOIN_PASSWORD } from "./fixtures/activities";
 import { seedActivityDocuments, COURSE_ID, INVITED_COURSE_ID, OPEN_ID } from "./fixtures/activityDocuments";
 import { FakeFiles } from "./FileApiFake";
@@ -9,6 +9,25 @@ interface Enrolment {
     policy: JoinPolicy;
     password?: string;
     unlisted: boolean;
+}
+
+/**
+ * What a manager did to a series, on its way to the participant side.
+ *
+ * The two halves of the fake keep their own series — a `ManagedSeries` with its
+ * assignments, a `Series` with what a competitor may see — and merging those two
+ * fixture sets would be a larger change than this is worth. What has to cross is
+ * small and named: which series, what happened, and the fields that moved.
+ */
+export interface SeriesRelay {
+    activityId: string;
+    seriesId: string;
+    change: SeriesChange;
+    startDate?: string;
+    endDate?: string;
+    isOpen?: boolean;
+    /** Null clears it, as JSON has no way to say "remove this field". */
+    pausedAt?: string | null;
 }
 
 /**
@@ -30,6 +49,7 @@ export class FakeActivities {
     private readonly enrolment = new Map<string, Enrolment>();
     /** What the reader has joined during this visit, on top of the fixtures. */
     private readonly joined = new Set<string>();
+    private readonly seriesListeners: ((relay: SeriesRelay) => void)[] = [];
 
     constructor(private readonly files: FakeFiles) {
         this.documents = seedActivityDocuments(files);
@@ -147,6 +167,19 @@ export class FakeActivities {
 
     hasJoined(activityId: string): boolean {
         return this.joined.has(activityId);
+    }
+
+    /**
+     * The participant side listens; the manager side tells it. The Server needs
+     * no such thing — it has one series and one socket — so this exists only so
+     * the screens can be watched doing what the Server will make them do.
+     */
+    onSeriesChanged(listener: (relay: SeriesRelay) => void): void {
+        this.seriesListeners.push(listener);
+    }
+
+    announceSeries(relay: SeriesRelay): void {
+        for (const listener of this.seriesListeners) listener(relay);
     }
 
     private remember(activityId: string, ref: ActivityDocumentRef): void {

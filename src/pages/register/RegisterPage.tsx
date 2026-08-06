@@ -9,6 +9,7 @@ import { Link, Navigate } from "react-router-dom";
 import { LegalDocumentKind } from "../../api/CoreApi";
 import { pickDocumentRef, publishedLegalKinds } from "../../api/instanceDocuments";
 import DocumentModal from "../../components/content/DocumentModal";
+import RequiredAsterisk from "../../components/RequiredAsterisk";
 import { useApiCall } from "../../provider/apiContext";
 import { useAuth } from "../../provider/authContext";
 import { useInstance } from "../../provider/instanceContext";
@@ -187,6 +188,7 @@ export default function RegisterPage() {
                             label={
                                 <Text size="sm">
                                     {t('I accept the terms and conditions')}
+                                    <RequiredAsterisk />
                                     {/* Only what this instance actually publishes.
                                         A link to a privacy policy nobody wrote
                                         leads to a page saying there is none,

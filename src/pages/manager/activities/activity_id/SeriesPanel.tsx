@@ -13,6 +13,8 @@ import {
 } from "../../../../api/ManagerApi";
 import ZonedDateTimeInput from "../../../../components/time/ZonedDateTimeInput";
 import { useApiCall } from "../../../../provider/apiContext";
+import PauseSeriesModal, { PauseIntent } from "./PauseSeriesModal";
+import ShiftSeries from "./ShiftSeries";
 
 /**
  * Series and what is attached to them.
@@ -67,6 +69,8 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
     const [attachment, setAttachment] = useState<SeriesProblemInput | undefined>(undefined);
     const [editing, setEditing] = useState<ManagedSeriesProblem | undefined>(undefined);
     const [versions, setVersions] = useState<ManagedProblemVersion[]>([]);
+    /** Which series is being stopped or started again, and which of the two it is. */
+    const [pausing, setPausing] = useState<PauseIntent | undefined>(undefined);
 
     const locked = activity.archivedAt !== undefined;
 
@@ -154,9 +158,24 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                 <Alert color="blue">{t("No series yet. An activity holds its problems in series.")}</Alert>
             )}
 
+            {series.length > 0 && (
+                <ShiftSeries
+                    series={series}
+                    timeZone={activity.timeZone}
+                    disabled={locked}
+                    busy={busy}
+                    onShift={(seriesId, minutes) =>
+                        run(() => call(api => api.managerApi.shiftSeries(seriesId, minutes)))}
+                />
+            )}
+
             <Accordion variant="separated" multiple defaultValue={series.map(s => s.id)}>
                 {series.map((s, index) => (
                     <Accordion.Item key={s.id} value={s.id}>
+                        {/* The button sits **beside** the control, not inside
+                            it: a button within a button is invalid, and giving
+                            it a div instead would take it off the keyboard. */}
+                        <Group wrap="nowrap" gap="xs" pr="md">
                         <Accordion.Control>
                             <Group justify="space-between" wrap="wrap" pr="md">
                                 <Group gap="xs">
@@ -171,9 +190,26 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                                     {!s.revealProblemCount && (
                                         <Badge variant="light" color="gray" size="sm">{t("Count hidden")}</Badge>
                                     )}
+                                    {s.pausedAt ? (
+                                        <Badge variant="filled" color="orange" size="sm">{t("Paused")}</Badge>
+                                    ) : s.isOpen ? (
+                                        <Badge variant="light" color="teal" size="sm">{t("Running")}</Badge>
+                                    ) : null}
                                 </Group>
                             </Group>
                         </Accordion.Control>
+                        {/* One click from the list: stopping a round should not
+                            need the series opened first. */}
+                        <Button
+                            variant={s.pausedAt ? "filled" : "light"}
+                            color={s.pausedAt ? "teal" : "orange"}
+                            size="compact-sm"
+                            disabled={locked}
+                            onClick={() => setPausing({ series: s, resuming: s.pausedAt !== undefined })}
+                        >
+                            {s.pausedAt ? t("Resume") : t("Pause")}
+                        </Button>
+                        </Group>
                         <Accordion.Panel>
                             <Stack gap="md">
                                 <Card withBorder radius="sm">
@@ -533,6 +569,20 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                     </Stack>
                 )}
             </Modal>
+
+            <PauseSeriesModal
+                intent={pausing}
+                busy={busy}
+                onClose={() => setPausing(undefined)}
+                onPause={(seriesId, hideProblems) => {
+                    setPausing(undefined);
+                    run(() => call(api => api.managerApi.pauseSeries(seriesId, { hideProblems })));
+                }}
+                onResume={(seriesId, extendEnd) => {
+                    setPausing(undefined);
+                    run(() => call(api => api.managerApi.resumeSeries(seriesId, { extendEnd })));
+                }}
+            />
         </Stack>
     );
 }

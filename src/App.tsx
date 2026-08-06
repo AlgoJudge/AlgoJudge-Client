@@ -207,7 +207,11 @@ function App() {
                                     authenticated by it and lives exactly as
                                     long. */}
                                 <EventsProvider>
-                                    <Notifications />
+                                    {/* Bottom right: the top is where the
+                                        activity clock and the account menu are,
+                                        and a round opening must not land on
+                                        them. */}
+                                    <Notifications position="bottom-right" />
                                     <RouterProvider router={router} />
                                 </EventsProvider>
                             </PermissionsProvider>

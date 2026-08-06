@@ -13,10 +13,11 @@ import {
     Series,
     SubmissionDetail,
     SubmissionFilter,
+    SeriesChange,
     SubmissionSummary,
     SubmitPayload,
 } from "../ParticipantApi";
-import { FakeActivities } from "./FakeActivities";
+import { FakeActivities, SeriesRelay } from "./FakeActivities";
 import { FakeFiles } from "./FileApiFake";
 import { createDataset, Dataset, OPENING_SERIES_DELAY } from "./fixtures";
 import { Utils } from "./Utils";
@@ -64,8 +65,10 @@ class FakeParticipantState {
     constructor(
         private readonly events: ParticipantEventDispatcherImpl,
         files: FakeFiles,
+        shared: FakeActivities,
     ) {
         this.data = createDataset(files);
+        shared.onSeriesChanged(relay => this.applyRelay(relay));
     }
 
     dataset(): Dataset {
@@ -190,9 +193,41 @@ class FakeParticipantState {
         target.isOpen = true;
         target.problems = this.data.withheld.get(seriesId) ?? [];
         this.data.withheld.delete(seriesId);
+        this.announce(activityId, target, "opened");
+    }
+
+    /**
+     * What a manager did to a series, arriving from the other half of the fake.
+     *
+     * The Server has one series and one socket and needs none of this; here the
+     * two halves keep their own view of a series, so what crosses is the few
+     * fields that moved.
+     */
+    applyRelay(relay: SeriesRelay): void {
+        const target = this.data.series.get(relay.activityId)?.find(s => s.id === relay.seriesId);
+        if (!target) return;
+        if (relay.startDate !== undefined) target.startDate = relay.startDate;
+        if (relay.endDate !== undefined) target.endDate = relay.endDate;
+        if (relay.pausedAt !== undefined) target.pausedAt = relay.pausedAt ?? undefined;
+        if (relay.isOpen !== undefined) {
+            target.isOpen = relay.isOpen;
+            // A closed series discloses nothing, which is what makes hiding the
+            // statements during a pause work without a field of its own.
+            if (!relay.isOpen) {
+                this.data.withheld.set(target.id, target.problems ?? []);
+                target.problems = undefined;
+            } else {
+                target.problems = this.data.withheld.get(target.id) ?? target.problems ?? [];
+                this.data.withheld.delete(target.id);
+            }
+        }
+        this.announce(relay.activityId, target, relay.change);
+    }
+
+    private announce(activityId: string, series: Series, change: SeriesChange): void {
         this.events.dispatchEvent({
-            type: "sectionOpened",
-            data: { activityId, series: { ...target } },
+            type: "seriesChanged",
+            data: { activityId, series: { ...series }, change },
         });
     }
 
@@ -253,7 +288,7 @@ export class ParticipantApiFake implements ParticipantApi {
         private readonly shared: FakeActivities,
         private sleepMs: number = 300,
     ) {
-        this.state = new FakeParticipantState(this.eventDispatcher, files);
+        this.state = new FakeParticipantState(this.eventDispatcher, files, shared);
     }
 
     async getActivities(filter: ActivityFilter, signal: AbortSignal): Promise<Page<Activity>> {

@@ -7,6 +7,7 @@ import { hasDocument, pickDocumentRef } from "../../../api/activityDocuments";
 import { Activity } from "../../../api/ParticipantApi";
 import DocumentModal from "../../../components/content/DocumentModal";
 import LoadState from "../../../components/LoadState";
+import RequiredAsterisk from "../../../components/RequiredAsterisk";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
 
 const ContentView = lazy(() => import("../../../content/ContentView"));
@@ -158,19 +159,23 @@ export default function ActivityPage() {
                                         disabled={busy}
                                         required
                                         label={
-                                            <Anchor
-                                                component="button"
-                                                type="button"
-                                                size="sm"
-                                                // Opened over the form. The
-                                                // document's own name is the
-                                                // modal's title, which is where
-                                                // it belongs — repeating it here
-                                                // said the same thing twice.
-                                                onClick={() => setReading(true)}
-                                            >
-                                                {t("I have read and accept the rules")}
-                                            </Anchor>
+                                            <Text size="sm" span>
+                                                <Anchor
+                                                    component="button"
+                                                    type="button"
+                                                    size="sm"
+                                                    // Opened over the form. The
+                                                    // document's own name is the
+                                                    // modal's title, which is
+                                                    // where it belongs —
+                                                    // repeating it here said the
+                                                    // same thing twice.
+                                                    onClick={() => setReading(true)}
+                                                >
+                                                    {t("I have read and accept the rules")}
+                                                </Anchor>
+                                                <RequiredAsterisk />
+                                            </Text>
                                         }
                                     />
                                 )}

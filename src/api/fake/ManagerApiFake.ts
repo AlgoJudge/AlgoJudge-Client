@@ -38,6 +38,8 @@ import {
     PermissionDefinition,
     PermissionTemplate,
     PermissionTemplateInput,
+    PauseInput,
+    ResumeInput,
     SeriesInput,
     SeriesProblemInput,
     UserInput,
@@ -470,6 +472,10 @@ export class ManagerApiFake implements ManagerApi {
             activityId: record.activity.id,
             order: record.series.length + 1,
             problems: [],
+            // The Server's scheduler opens it when its start passes; a series
+            // created with a start already behind it is running from the moment
+            // it exists.
+            isOpen: input.startDate === undefined || Date.parse(input.startDate) <= Date.now(),
             ...input,
         };
         record.series = [...record.series, series];
@@ -484,6 +490,77 @@ export class ManagerApiFake implements ManagerApi {
         this.assertSeriesSlugFree(record, input.slug, series.id);
         Object.assign(series, input);
         this.announceSeries(record, series);
+        return copy(series);
+    }
+
+    async shiftSeries(seriesId: string, minutes: number, signal: AbortSignal): Promise<ManagedSeries> {
+        await this.settle(signal);
+        const { record, series } = this.findSeries(seriesId);
+        this.assertNotArchived(record);
+        // Every instant the series holds, so a delayed round does not freeze its
+        // ranking at the hour it was originally going to end.
+        const moved = (at: string | undefined) => at === undefined
+            ? undefined
+            : new Date(Date.parse(at) + minutes * 60_000).toISOString();
+        series.startDate = moved(series.startDate);
+        series.endDate = moved(series.endDate);
+        series.rankingFreezeAt = moved(series.rankingFreezeAt);
+        series.rankingRevealAt = moved(series.rankingRevealAt);
+        this.announceSeries(record, series);
+        this.shared.announceSeries({
+            activityId: record.activity.id,
+            seriesId: series.id,
+            change: "rescheduled",
+            startDate: series.startDate,
+            endDate: series.endDate,
+        });
+        return copy(series);
+    }
+
+    async pauseSeries(seriesId: string, input: PauseInput, signal: AbortSignal): Promise<ManagedSeries> {
+        await this.settle(signal);
+        const { record, series } = this.findSeries(seriesId);
+        this.assertNotArchived(record);
+        if (series.pausedAt) Utils.throwError("That series is already paused");
+        series.pausedAt = new Date().toISOString();
+        // Hiding the statements is `isOpen` going false: what a participant may
+        // see is what that field has always answered.
+        if (input.hideProblems) series.isOpen = false;
+        this.announceSeries(record, series);
+        this.shared.announceSeries({
+            activityId: record.activity.id,
+            seriesId: series.id,
+            change: "paused",
+            pausedAt: series.pausedAt,
+            isOpen: series.isOpen,
+        });
+        return copy(series);
+    }
+
+    async resumeSeries(seriesId: string, input: ResumeInput, signal: AbortSignal): Promise<ManagedSeries> {
+        await this.settle(signal);
+        const { record, series } = this.findSeries(seriesId);
+        if (!series.pausedAt) Utils.throwError("That series is not paused");
+        const paused = Date.now() - Date.parse(series.pausedAt);
+        series.pausedAt = undefined;
+        // Given back only if asked for. The arithmetic is the Server's; this is
+        // it, so the screen can be seen doing the right thing.
+        if (input.extendEnd && series.endDate) {
+            series.endDate = new Date(Date.parse(series.endDate) + paused).toISOString();
+        }
+        // A series hidden by the pause comes back, unless its end has passed.
+        const ended = series.endDate !== undefined && Date.parse(series.endDate) <= Date.now();
+        const started = series.startDate === undefined || Date.parse(series.startDate) <= Date.now();
+        series.isOpen = started && !ended;
+        this.announceSeries(record, series);
+        this.shared.announceSeries({
+            activityId: record.activity.id,
+            seriesId: series.id,
+            change: "resumed",
+            pausedAt: null,
+            isOpen: series.isOpen,
+            endDate: series.endDate,
+        });
         return copy(series);
     }
 

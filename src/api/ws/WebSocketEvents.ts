@@ -23,7 +23,7 @@ const PARTICIPANT: Record<ParticipantEventType, true> = {
     activityUpdated: true,
     activityDeleted: true,
     activityTimesChanged: true,
-    sectionOpened: true,
+    seriesChanged: true,
     problemStatusChanged: true,
     submissionStateChanged: true,
     rankingChanged: true,

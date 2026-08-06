@@ -211,10 +211,25 @@ export interface Series {
     startDate?: string,
     endDate?: string,
     /**
+     * Whether it is running now.
+     *
+     * The **Server** sets it, from the clock: a scheduler opens a series when its
+     * start passes and closes it when its end does, and announces both. No
+     * screen decides this by looking at a date.
+     *
      * While `false`, `problems` is absent. It is not an empty array: a closed
      * series does not disclose what it holds.
      */
     isOpen: boolean,
+    /**
+     * Since when a manager has it stopped. Absent means it is not paused.
+     *
+     * A pause takes no submission and stops the countdown. Whether it also takes
+     * the statements away is the manager's decision at the moment of pausing,
+     * and it is expressed by `isOpen` going false — there is no third field,
+     * because "may I see it" is what `isOpen` has always answered.
+     */
+    pausedAt?: string,
     /**
      * How many problems the series holds, when the manager allows that to be
      * shown before it opens. Absent means even the count is withheld.
@@ -449,7 +464,7 @@ export type ParticipantEventType =
     | "activityUpdated"
     | "activityDeleted"
     | "activityTimesChanged"
-    | "sectionOpened"
+    | "seriesChanged"
     | "problemStatusChanged"
     | "submissionStateChanged"
     | "rankingChanged"
@@ -478,11 +493,32 @@ export type ActivityTimesChangedEvent = ParticipantEvent<"activityTimesChanged",
     endDate?: string;
 }>;
 
-/** A series reached its start. Carries the problems that were withheld until now. */
-export type SectionOpenedEvent = ParticipantEvent<"sectionOpened", {
+/**
+ * Something happened to a series: it opened, ended, was stopped, started again,
+ * or was moved.
+ *
+ * One event rather than five, because all five carry the same thing — the whole
+ * series, so a screen redraws from what arrived rather than patching it — and
+ * differ only in the sentence to say about it. `opened` carries the problems
+ * that were withheld until then, as it always did.
+ */
+export type SeriesChangedEvent = ParticipantEvent<"seriesChanged", {
     activityId: string;
     series: Series;
+    change: SeriesChange;
 }>;
+
+export type SeriesChange =
+    /** Its start passed, or a manager lifted a pause that had hidden it. */
+    | "opened"
+    /** Its end passed. */
+    | "closed"
+    /** A manager stopped it. */
+    | "paused"
+    /** A manager started it again. */
+    | "resumed"
+    /** Its times moved. */
+    | "rescheduled";
 
 export type ProblemStatusChangedEvent = ParticipantEvent<"problemStatusChanged", {
     activityId: string;
@@ -518,7 +554,7 @@ export interface ParticipantEventDispatcher {
     addEventListener(type: "activityUpdated", listener: (evt: ActivityUpdatedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "activityDeleted", listener: (evt: ActivityDeletedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "activityTimesChanged", listener: (evt: ActivityTimesChangedEvent) => void, signal: AbortSignal): void;
-    addEventListener(type: "sectionOpened", listener: (evt: SectionOpenedEvent) => void, signal: AbortSignal): void;
+    addEventListener(type: "seriesChanged", listener: (evt: SeriesChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "problemStatusChanged", listener: (evt: ProblemStatusChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "submissionStateChanged", listener: (evt: SubmissionStateChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "rankingChanged", listener: (evt: RankingChangedEvent) => void, signal: AbortSignal): void;
