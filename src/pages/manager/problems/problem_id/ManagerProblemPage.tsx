@@ -151,12 +151,20 @@ export default function ManagerProblemPage() {
                 samplesFileId: samples ? (await store(samples, SAMPLES_ARCHIVE)).id : undefined,
             }
             : undefined;
+        // The statement goes up the same way everything else does. Its name is
+        // the Server's to decide from the language, so what is uploaded is only
+        // the text and what is published is only an id.
+        const statements = await Promise.all(Object.entries(sources).map(async ([tag, text]) => {
+            const language = tag === DEFAULT_LANGUAGE ? undefined : tag;
+            const stored = await store(
+                new Blob([text], { type: "text/markdown" }),
+                statementFileName(language));
+            return { language, fileId: stored.id };
+        }));
+
         await call(api => api.managerApi.createProblemVersion(problemId, {
             note: note.trim() || undefined,
-            content: sources[DEFAULT_LANGUAGE],
-            translations: Object.entries(sources)
-                .filter(([tag]) => tag !== DEFAULT_LANGUAGE)
-                .map(([tag, content]) => ({ language: tag, content })),
+            statements,
             files,
             removedFiles: removed,
             package: built,

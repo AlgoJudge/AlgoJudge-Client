@@ -55,8 +55,8 @@ import { ActivityRecord, createActivityLibrary } from "./fixtures/activities";
 import { signedInUserId } from "./CoreApiFake";
 import { buildPackage } from "../../package/build";
 import { emptyConfig, isPackageFile, PACKAGE_ARCHIVE, SAMPLES_ARCHIVE } from "../../package/types";
-import { isStatementName } from "../../content/types";
-import { createProblemLibrary, fakeSha, ME, ProblemRecord } from "./fixtures/problems";
+import { isStatementName, statementFileName } from "../../content/types";
+import { createProblemLibrary, ME, ProblemRecord } from "./fixtures/problems";
 import { createQuestions } from "./fixtures/questions";
 import { createRunners, runnerFile } from "./fixtures/runners";
 import { createUsers } from "./fixtures/users";
@@ -1011,13 +1011,14 @@ export class ManagerApiFake implements ManagerApi {
         // against.
         record.versions = [version, ...record.versions];
         // A version carries every language it was published with. Publishing
-        // without a statement keeps the previous one, translations included.
-        record.content.set(version.id, input.content === undefined && !input.translations
+        // without statements keeps the previous ones, translations included —
+        // which is what correcting a package and nothing else should do.
+        record.content.set(version.id, input.statements === undefined
             ? (record.content.get(previous?.id ?? "") ?? [])
-            : [
-                ...(input.content === undefined ? [] : [{ content: input.content }]),
-                ...(input.translations ?? []).filter(v => v.language !== undefined),
-            ]);
+            : await Promise.all(input.statements.map(async statement => ({
+                language: statement.language,
+                content: await this.files.blob(statement.fileId).text(),
+            }))));
 
         // The package: the one published, or the previous version's carried
         // forward. A version without one is a version nothing can be judged
@@ -1034,16 +1035,23 @@ export class ManagerApiFake implements ManagerApi {
         }
 
         version.files = [
-            ...(input.content === undefined ? [] : [{
-                name: "content.md", scope: "participant" as const, mimeType: "text/markdown",
-                sizeBytes: 2048, sha256: fakeSha(`${version.id}/content.md`),
-            }]),
-            ...(input.translations ?? [])
-                .filter(v => v.language !== undefined)
-                .map(v => ({
-                    name: `content-${v.language}.md`, scope: "participant" as const, mimeType: "text/markdown",
-                    sizeBytes: 2048, sha256: fakeSha(`${version.id}/content-${v.language}.md`),
-                })),
+            // The name follows from the language rather than from what anybody
+            // typed: `content.md`, `content-en.md`.
+            ...(input.statements ?? []).map(statement => {
+                const stored = this.files.meta(statement.fileId);
+                return {
+                    name: statementFileName(statement.language),
+                    scope: "participant" as const,
+                    mimeType: "text/markdown",
+                    sizeBytes: stored.sizeBytes,
+                    sha256: stored.sha256,
+                };
+            }),
+            // Carried forward when nothing was published: the statement files of
+            // the previous version, which `carried` deliberately leaves out.
+            ...(input.statements === undefined
+                ? (previous?.files ?? []).filter(f => isStatementName(f.name) && !removed.has(f.name))
+                : []),
             ...carried,
             ...staged.map(entry => {
                 // Everything but the name comes from the stored file: the

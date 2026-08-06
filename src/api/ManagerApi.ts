@@ -353,19 +353,22 @@ export interface ProblemFilter {
  * was judged against. Files the previous version carried come along unless
  * `removedFiles` names them, so correcting a typo does not drop every figure.
  *
- * The **statement travels inline** while everything else travels as a
- * reference. The difference is where the bytes come from: a statement is
- * written in this request, in an editor, and is small; a figure or a package is
- * bytes the author already had, uploaded before the version is published. The
- * Server stores the statement as a file all the same — `content.md` is a
- * well-known name inside the version, not a column.
+ * **Everything travels as a reference**, the statement included: the bytes go up
+ * through `fileApi` first and the version names their ids. One shape for
+ * everything a version holds, and one place — the file endpoint — where bytes
+ * are accepted, sized and checksummed.
  */
 export interface ProblemVersionInput {
     note?: string;
-    /** The default statement, as a `content.md` document. */
-    content?: unknown;
-    /** Translations, stored as `content-<language>.md` beside the default. */
-    translations?: StatementVariant[];
+    /**
+     * The statement and its translations, as uploaded files.
+     *
+     * Absent carries the previous version's statements forward, which is what
+     * publishing a corrected package without touching the text should do. An
+     * empty array is a different thing and is refused: a version with no
+     * statement is a problem nobody can read.
+     */
+    statements?: NewStatement[];
     config?: unknown;
     /** Attached in this version, beside the ones carried forward. */
     files?: NewProblemFile[];
@@ -373,6 +376,22 @@ export interface ProblemVersionInput {
     removedFiles?: string[];
     /** The Runner package. Absent carries the previous version's forward. */
     package?: NewProblemPackage;
+}
+
+/**
+ * One statement, as an uploaded file.
+ *
+ * A field of its own rather than an entry in `files`, for the same reason the
+ * package has one: the Server should know what it has been handed without
+ * matching names against a list of well-known ones. The name follows from the
+ * language — `content.md`, `content-en.md` — so nobody types it and nobody can
+ * mistype it.
+ */
+export interface NewStatement {
+    /** BCP-47 subtag. Absent is the default statement, `content.md`. */
+    language?: string;
+    /** As `fileApi.upload` returned it. */
+    fileId: string;
 }
 
 /**
