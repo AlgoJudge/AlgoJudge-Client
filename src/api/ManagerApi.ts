@@ -715,11 +715,14 @@ export interface CreatedCredential {
 /**
  * A Runner, as the administrator screen shows it.
  *
- * **Everything here is reported by the Runner itself** — product and version,
- * the problem types it supports, its address, its key fingerprint and what
- * `lscpu` and `free` say about the machine. The Server records the report and
- * matches jobs against `problemTypes` by equality; it never interprets a type,
- * and the screen never invents a field the Runner did not send.
+ * **Almost everything here is reported by the Runner itself** — product and
+ * version, the problem types it supports, its key fingerprint and what `lscpu`
+ * and `free` say about the machine. The Server records the report and matches
+ * jobs against `problemTypes` by equality; it never interprets a type, and the
+ * screen never invents a field the Runner did not send.
+ *
+ * Two fields are not the Runner's: `tags`, which an operator sets to steer work
+ * at it, and `address`, which the Server reads from the connection.
  */
 export interface ManagedRunner {
     id: string;
@@ -731,6 +734,11 @@ export interface ManagedRunner {
     problemTypes: string[];
     /** Free labels used to steer work at it. Set here, not by the Runner. */
     tags: string[];
+    /**
+     * Where the Server saw the connection come from, not what the machine says
+     * about itself: a Runner sees a private interface or a container's address
+     * and not what the Server actually talked to. Decided 2026-08-06.
+     */
     address: string;
     /** The Ed25519 public key it registered with. Immutable for its lifetime. */
     publicKey: string;
