@@ -747,5 +747,9 @@
   "Enrol": "Enrol",
   "activityDocument.welcome": "Page for people not enrolled",
   "activityDocument.home": "Page for participants",
-  "activityDocument.rules": "Rules"
+  "activityDocument.rules": "Rules",
+  "Link to the activity": "Link to the activity",
+  "The share link appears once the activity has a slug.": "The share link appears once the activity has a slug.",
+  "Anybody with this link and an account can enrol themselves.": "Anybody with this link and an account can enrol themselves.",
+  "Anybody with an account can enrol themselves from this link.": "Anybody with an account can enrol themselves from this link."
 }

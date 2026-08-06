@@ -19,27 +19,43 @@ import { activityTypes } from "../../renderers";
 const ZONES = ["Europe/Warsaw", "Europe/London", "UTC"];
 
 /**
- * The address to send to a class, with the password in the fragment.
+ * The address to send to a class.
  *
- * The fragment rather than a query parameter, because a fragment is never sent
- * to a server: it does not reach an access log, a proxy or a referrer header.
- * Copying is offered rather than assumed — the link is the whole point of the
- * password, and reading it off the screen to retype is not a workflow.
+ * Offered wherever somebody may enrol themselves, which is both policies that
+ * allow it — the difference is only whether the password rides along. An open
+ * activity needs the link just as much: it may be unlisted, and then the address
+ * is the only way anybody reaches it.
+ *
+ * The password goes in the **fragment**, never a query parameter, because a
+ * fragment is not sent to a server: it reaches no access log, no proxy and no
+ * referrer header. Copying is offered rather than assumed — the link is the
+ * whole point, and reading it off the screen to retype is not a workflow.
  */
-function ShareLink({ slug, password }: { slug: string, password?: string }) {
+function ShareLink({ slug, password, withPassword }: {
+    slug: string,
+    password?: string,
+    withPassword: boolean,
+}) {
     const { t } = useTranslation();
     const clipboard = useClipboard({ timeout: 1500 });
-    if (!slug || !password) {
+
+    if (!slug || (withPassword && !password)) {
         return (
             <Text size="sm" c="dimmed" mt="xl">
-                {t("The share link appears once the activity has a slug and a password.")}
+                {withPassword
+                    ? t("The share link appears once the activity has a slug and a password.")
+                    : t("The share link appears once the activity has a slug.")}
             </Text>
         );
     }
-    const link = `${window.location.origin}/activities/${encodeURIComponent(slug)}#${encodeURIComponent(password)}`;
+
+    const link = `${window.location.origin}/activities/${encodeURIComponent(slug)}`
+        + (withPassword ? `#${encodeURIComponent(password!)}` : "");
     return (
         <Stack gap={4}>
-            <Text size="sm" fw={500}>{t("Link for self-enrolment")}</Text>
+            <Text size="sm" fw={500}>
+                {withPassword ? t("Link for self-enrolment") : t("Link to the activity")}
+            </Text>
             <Group gap="xs" wrap="nowrap">
                 <Text size="sm" ff="monospace" style={{ wordBreak: "break-all" }}>{link}</Text>
                 <Tooltip label={clipboard.copied ? t("Copied") : t("Copy")}>
@@ -48,6 +64,11 @@ function ShareLink({ slug, password }: { slug: string, password?: string }) {
                     </ActionIcon>
                 </Tooltip>
             </Group>
+            <Text size="xs" c="dimmed">
+                {withPassword
+                    ? t("Anybody with this link and an account can enrol themselves.")
+                    : t("Anybody with an account can enrol themselves from this link.")}
+            </Text>
         </Stack>
     );
 }
@@ -249,19 +270,27 @@ export default function ActivityForm({ value, onChange, slugLocked, disabled }: 
                     </Grid.Col>
                 </Grid>
 
-                {value.joinPolicy === "password" && (
+                {/* Both policies that admit self-enrolment get the link. Only
+                    `closed` has nobody to give it to. */}
+                {value.joinPolicy !== "closed" && (
                     <Grid mt="sm">
-                        <Grid.Col span={{ base: 12, sm: 5 }}>
-                            <TextInput
-                                label={t("Join password")}
-                                description={t("A join code for the activity, not anybody's password")}
-                                value={value.joinPassword ?? ""}
-                                onChange={e => set({ joinPassword: e.currentTarget.value })}
-                                disabled={disabled}
+                        {value.joinPolicy === "password" && (
+                            <Grid.Col span={{ base: 12, sm: 5 }}>
+                                <TextInput
+                                    label={t("Join password")}
+                                    description={t("A join code for the activity, not anybody's password")}
+                                    value={value.joinPassword ?? ""}
+                                    onChange={e => set({ joinPassword: e.currentTarget.value })}
+                                    disabled={disabled}
+                                />
+                            </Grid.Col>
+                        )}
+                        <Grid.Col span={{ base: 12, sm: value.joinPolicy === "password" ? 7 : 12 }}>
+                            <ShareLink
+                                slug={value.slug}
+                                password={value.joinPassword}
+                                withPassword={value.joinPolicy === "password"}
                             />
-                        </Grid.Col>
-                        <Grid.Col span={{ base: 12, sm: 7 }}>
-                            <ShareLink slug={value.slug} password={value.joinPassword} />
                         </Grid.Col>
                     </Grid>
                 )}

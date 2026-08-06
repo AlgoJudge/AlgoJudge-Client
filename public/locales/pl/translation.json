@@ -747,5 +747,9 @@
   "Enrol": "Zapisz się",
   "activityDocument.welcome": "Strona dla niezapisanych",
   "activityDocument.home": "Strona dla uczestników",
-  "activityDocument.rules": "Regulamin"
+  "activityDocument.rules": "Regulamin",
+  "Link to the activity": "Link do aktywności",
+  "The share link appears once the activity has a slug.": "Link pojawi się, gdy aktywność ma identyfikator.",
+  "Anybody with this link and an account can enrol themselves.": "Każdy, kto ma ten link i konto, zapisze się sam.",
+  "Anybody with an account can enrol themselves from this link.": "Każdy, kto ma konto, zapisze się sam z tego linku."
 }
