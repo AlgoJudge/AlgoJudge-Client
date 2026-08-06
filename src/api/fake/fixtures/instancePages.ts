@@ -1,4 +1,4 @@
-import { InstanceDocument } from "../../CoreApi";
+import type { FixtureDocument } from "./documents";
 
 /**
  * The two front pages that ship with an instance.
@@ -181,7 +181,7 @@ If it concerns one problem, ask inside that activity instead — the question
 reaches the staff and stays with the problem it is about.
 `;
 
-const PAGES: Record<"welcome" | "home", InstanceDocument> = {
+const PAGES: Record<"welcome" | "home", FixtureDocument> = {
     welcome: {
         kind: "welcome",
         content: WELCOME,
@@ -196,4 +196,4 @@ const PAGES: Record<"welcome" | "home", InstanceDocument> = {
     },
 };
 
-export const instancePage = (kind: "welcome" | "home"): InstanceDocument => PAGES[kind];
+export const instancePage = (kind: "welcome" | "home"): FixtureDocument => PAGES[kind];

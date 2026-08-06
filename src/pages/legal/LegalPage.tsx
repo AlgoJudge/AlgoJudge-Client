@@ -3,11 +3,12 @@ import { IconAlertTriangle } from "@tabler/icons-react";
 import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "react-router-dom";
-import { LegalDocument, LegalDocumentKind } from "../../api/CoreApi";
+import { LegalDocumentKind } from "../../api/CoreApi";
+import { pickDocumentRef } from "../../api/instanceDocuments";
 import LoadState from "../../components/LoadState";
 import ActivityTime from "../../components/time/ActivityTime";
 import { useApiEffect } from "../../provider/apiContext";
-import { pickTranslation } from "../../components/content/languageName";
+import { useInstance } from "../../provider/instanceContext";
 
 const ContentView = lazy(() => import("../../content/ContentView"));
 
@@ -37,20 +38,27 @@ export default function LegalPage() {
     const location = useLocation();
     const kind = BY_PATH[location.pathname] ?? "terms";
 
-    const [document, setDocument] = useState<LegalDocument | undefined | null>(undefined);
+    // The reference comes with the instance, which is fetched once at start-up;
+    // only the text of the language being shown is fetched here. An operator who
+    // publishes no such document has no reference for it, and that is the whole
+    // of "there is none" — no request is made to find out.
+    const { instance } = useInstance();
+    const ref = pickDocumentRef(instance.documents, kind, i18n.language);
+
+    const [content, setContent] = useState<string | undefined | null>(undefined);
 
     const error = useApiEffect(async (api) => {
         // Null rather than undefined for "asked, and there is none": the two
         // states look identical to a spinner otherwise.
-        const found = await api.authApi.getInstanceDocument(kind);
-        // A legal document carries a title; the front pages do not, and this
-        // screen only ever asks for the four that do.
-        setDocument(found ? { ...found, kind, title: found.title ?? "" } : null);
-    }, [kind]);
+        setContent(ref ? await api.fileApi.getText(ref.fileId) : null);
+        // The reference itself, not its id: it is an element of the instance
+        // answer, which is fetched once, so its identity changes exactly when
+        // the document behind it does.
+    }, [ref]);
 
-    if (document === undefined) return <LoadState error={error} loading={!error} />;
+    if (content === undefined) return <LoadState error={error} loading={!error} />;
 
-    if (document === null) {
+    if (content === null || !ref) {
         return (
             <Container size={720}>
                 <Paper withBorder p="xl" radius="md">
@@ -66,31 +74,27 @@ export default function LegalPage() {
         );
     }
 
-    // The operator's document in the reader's language, falling back to the one
-    // they wrote first — a policy nobody translated is still the policy.
-    const translation = pickTranslation(document.translations, i18n.language);
-    const title = translation?.title ?? document.title;
-    const content = translation?.content ?? document.content;
-
     return (
         <Container size={860}>
             <Stack gap="md">
                 <Group justify="space-between" align="baseline" wrap="wrap">
-                    <Title order={2}>{title}</Title>
+                    {/* The heading travels with the reference, so it is drawn
+                        before the text arrives rather than after it. */}
+                    <Title order={2}>{ref.title ?? t(`legal.${kind}`)}</Title>
                     {/* Not "updated": a document that has been replaced is still
                         readable at its own date, and what a reader needs to know
                         is which revision they are looking at. */}
-                    {document.validFrom && (
+                    {ref.validFrom && (
                         <Text size="sm" c="dimmed">
                             {t("In force since")}:{" "}
-                            <ActivityTime value={document.validFrom} timeZone="Europe/Warsaw" format="date" hideZone />
+                            <ActivityTime value={ref.validFrom} timeZone="Europe/Warsaw" format="date" hideZone />
                         </Text>
                     )}
                 </Group>
 
                 {/* A template names nobody real. Saying so where the document is
                     read is the only way a visitor can tell the difference. */}
-                {document.isTemplate && (
+                {ref.isTemplate && (
                     <Alert color="orange" icon={<IconAlertTriangle size={18} />}>
                         {t("This is the template that ships with the software. The operator of this instance has not replaced it yet, so it is not binding.")}
                     </Alert>

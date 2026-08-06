@@ -20,6 +20,7 @@ import placeholderLogo from "../assets/instance-logo.svg";
  */
 
 const DEFAULTS: InstanceInfo = {
+    documents: [],
     localRegistrationEnabled: false,
     requireEmail: false,
     requireConfirmedEmail: false,

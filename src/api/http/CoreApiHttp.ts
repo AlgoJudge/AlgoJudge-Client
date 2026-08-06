@@ -1,7 +1,5 @@
 import {
     CoreApi,
-    InstanceDocument,
-    InstanceDocumentKind,
     InstanceInfo,
     ProfileInput,
     RegisterInput,
@@ -26,17 +24,6 @@ export class CoreApiHttp implements CoreApi {
 
     getInstanceInfo(signal: AbortSignal): Promise<InstanceInfo> {
         return this.http.request<InstanceInfo>("/instance", "GET", { signal });
-    }
-
-    async getInstanceDocument(kind: InstanceDocumentKind, signal: AbortSignal): Promise<InstanceDocument | undefined> {
-        try {
-            return await this.http.request<InstanceDocument>(
-                `/instance/documents/${encodeURIComponent(kind)}`, "GET", { signal });
-        } catch {
-            // An instance that publishes no such document is not an error; the
-            // screen says it is missing rather than that something broke.
-            return undefined;
-        }
     }
 
     async getSession(signal: AbortSignal): Promise<Session | undefined> {

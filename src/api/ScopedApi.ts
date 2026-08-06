@@ -1,11 +1,10 @@
 import { Api } from "./Api";
+import { FileApi, UploadedFile } from "./FileApi";
 import {
     CoreApi,
     CoreEvent,
     CoreEventDispatcher,
     CoreEventType,
-    InstanceDocument,
-    InstanceDocumentKind,
     InstanceInfo,
     ProfileInput,
     RegisterInput,
@@ -126,10 +125,29 @@ export class ScopedApi {
     authApi: ScopedCoreApi;
     participantApi: ScopedParticipantApi;
     managerApi: ScopedManagerApi;
+    fileApi: ScopedFileApi;
     constructor(private api: Api, private signal: AbortSignal) {
         this.authApi = new ScopedCoreApi(this.api.authApi, this.signal);
         this.participantApi = new ScopedParticipantApi(this.api.participantApi, this.signal);
         this.managerApi = new ScopedManagerApi(this.api.managerApi, this.signal);
+        this.fileApi = new ScopedFileApi(this.api.fileApi, this.signal);
+    }
+}
+
+export class ScopedFileApi {
+    constructor(private fileApi: FileApi, private signal: AbortSignal) {}
+    upload(file: File | Blob, name: string, sha256: string): Promise<UploadedFile> {
+        return this.fileApi.upload(file, name, sha256, this.signal);
+    }
+    getText(id: string): Promise<string> {
+        return this.fileApi.getText(id, this.signal);
+    }
+    getBlob(id: string): Promise<Blob> {
+        return this.fileApi.getBlob(id, this.signal);
+    }
+    /** An address rather than a request, so the signal has nothing to bind to. */
+    url(id: string): string {
+        return this.fileApi.url(id);
     }
 }
 
@@ -149,9 +167,6 @@ export class ScopedCoreApi {
     }
     getInstanceInfo(): Promise<InstanceInfo> {
         return this.coreApi.getInstanceInfo(this.signal);
-    }
-    getInstanceDocument(kind: InstanceDocumentKind): Promise<InstanceDocument | undefined> {
-        return this.coreApi.getInstanceDocument(kind, this.signal);
     }
     getSession(): Promise<Session | undefined> {
         return this.coreApi.getSession(this.signal);
@@ -489,5 +504,6 @@ export class ScopedManagerApi {
  * which takes the signal off `addEventListener` rather than off the API.
  */
 export type EnsuresCoreApi = Ensure<ScopedCoreApi, Scoped<Omit<CoreApi, "eventDispatcher">>>;
+export type EnsuresFileApi = Ensure<ScopedFileApi, Scoped<FileApi>>;
 export type EnsuresParticipantApi = Ensure<ScopedParticipantApi, Scoped<Omit<ParticipantApi, "eventDispatcher">>>;
 export type EnsuresManagerApi = Ensure<ScopedManagerApi, Scoped<Omit<ManagerApi, "eventDispatcher">>>;

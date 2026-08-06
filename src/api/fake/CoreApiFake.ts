@@ -1,16 +1,16 @@
 import { UnauthorizedError } from "../ApiError";
 import {
     CoreApi,
-    InstanceDocument,
-    InstanceDocumentKind,
+    InstanceDocumentRef,
     InstanceInfo,
     ProfileInput,
     RegisterInput,
     Session,
 } from "../CoreApi";
 import { CoreEventDispatcherImpl } from "../impl/CoreEventDispatcherImpl";
-import { legalDocument, legalDocumentKinds } from "./fixtures/legal";
-import { instancePage } from "./fixtures/instancePages";
+import { legalDocumentKinds } from "./fixtures/legal";
+import { seedInstanceDocuments } from "./fixtures/documents";
+import { FakeFiles } from "./FileApiFake";
 import { Utils } from "./Utils";
 
 /**
@@ -120,9 +120,17 @@ export class CoreApiFake implements CoreApi {
 
     private accounts = createAccounts();
     private signedInAs: string | undefined = CoreApiFake.restore();
-    private instance: InstanceInfo = CoreApiFake.restoreInstance();
+    private readonly instance: InstanceInfo;
 
-    constructor(private sleepMs: number = 300) { }
+    /**
+     * The file store arrives from outside because the documents live in it: an
+     * operator's first publish puts them there, and this is the fake standing in
+     * for that. Seeding in the constructor rather than in a field initializer,
+     * so the store is certainly assigned before anything reads it.
+     */
+    constructor(files: FakeFiles, private sleepMs: number = 300) {
+        this.instance = CoreApiFake.restoreInstance(seedInstanceDocuments(files));
+    }
 
     /**
      * The session this browser already holds — or one named in the address.
@@ -142,7 +150,7 @@ export class CoreApiFake implements CoreApi {
      * `&fakeConfirmEmail=on` makes an unconfirmed address unable to sign in.
      * Each choice sticks until it is changed or the tab closes.
      */
-    private static restoreInstance(): InstanceInfo {
+    private static restoreInstance(documents: InstanceDocumentRef[]): InstanceInfo {
         // The shipped default: accounts come from an organiser or from SSO.
         const defaults: InstanceInfo = {
             name: "Wydział Informatyki",
@@ -150,6 +158,7 @@ export class CoreApiFake implements CoreApi {
             requireEmail: false,
             requireConfirmedEmail: false,
             legalDocuments: legalDocumentKinds(),
+            documents,
             // No logo: this instance has not set one, so the Client shows the
             // placeholder it ships with. `?fakeLogo=off` turns the mark off
             // entirely, which is what an operator who wants none does.
@@ -170,6 +179,10 @@ export class CoreApiFake implements CoreApi {
             }
         }
         if (!Array.isArray(instance.legalDocuments)) instance.legalDocuments = defaults.legalDocuments;
+        // Never from storage: the references name files in a store that is built
+        // fresh on every load, and a stored id would point at bytes this tab has
+        // never seen. Only the settings survive a reload.
+        instance.documents = documents;
 
         const query = new URLSearchParams(window.location.search);
         const flag = (name: string): boolean | undefined => {
@@ -210,14 +223,6 @@ export class CoreApiFake implements CoreApi {
     async getInstanceInfo(signal: AbortSignal): Promise<InstanceInfo> {
         await this.settle(signal);
         return { ...this.instance };
-    }
-
-    async getInstanceDocument(kind: InstanceDocumentKind, signal: AbortSignal): Promise<InstanceDocument | undefined> {
-        await this.settle(signal);
-        // The front pages and the legal documents are one kind of thing: text
-        // the operator owns, in the format the Client renders.
-        const document = kind === "welcome" || kind === "home" ? instancePage(kind) : legalDocument(kind);
-        return document ? { ...document } : undefined;
     }
 
     async getSession(signal: AbortSignal): Promise<Session | undefined> {

@@ -57,6 +57,12 @@ export interface InstanceInfo {
     /** Which documents this instance publishes. Empty is a legitimate answer. */
     legalDocuments: LegalDocumentKind[],
     /**
+     * A reference to every document currently in force, one per kind per
+     * language. The text itself is fetched from `fileApi` by whoever is about to
+     * show it — see {@link InstanceDocumentRef}.
+     */
+    documents: InstanceDocumentRef[],
+    /**
      * The instance's own mark. Absent means it has not set one, and the Client
      * shows the placeholder it ships with — visibly a placeholder, so an
      * unconfigured instance reads as unconfigured.
@@ -111,19 +117,26 @@ export type InstanceDocumentKind = LegalDocumentKind | "welcome" | "home";
 /** The four documents whose absence is a legal question rather than a design one. */
 export type LegalDocumentKind = "terms" | "privacy" | "cookies" | "accessibility";
 
-export interface InstanceDocument {
+/**
+ * Where one instance document lives, and what a screen needs before it has the
+ * text.
+ *
+ * The documents do not travel in the instance response — a privacy policy is
+ * tens of kilobytes per language and the configuration is read on every arrival
+ * — but their **references** do, because `/instance` is fetched anyway. The
+ * reader's language is picked from these and the text is fetched once, with
+ * `fileApi.getText`.
+ *
+ * There is one of these per kind **per language**, as `content-<language>.md` is
+ * to a statement. The one with no `language` is what the operator wrote first
+ * and is the fallback: a policy nobody translated is still the policy.
+ */
+export interface InstanceDocumentRef {
     kind: InstanceDocumentKind,
+    /** BCP-47 subtag. Absent on the document the operator wrote first. */
+    language?: string,
     /** Absent on the front pages: their heading is inside the document. */
     title?: string,
-    /** `content.md` source, rendered by the same renderer a statement uses. */
-    content: string,
-    /**
-     * The same document in other languages, as `content-<language>.md` is to a
-     * statement. The reader is shown the one matching their interface language,
-     * and the default where there is none — the switch for that language is
-     * already in the header and the footer, so a document needs no second one.
-     */
-    translations?: InstanceDocumentTranslation[],
     /**
      * When this revision came into force.
      *
@@ -144,19 +157,10 @@ export interface InstanceDocument {
      * loud rather than let it pass for a policy.
      */
     isTemplate: boolean,
-}
-
-export interface InstanceDocumentTranslation {
-    language: string,
-    /** A translated heading, where the document has one at all. */
-    title?: string,
-    content: string,
-}
-
-/** A legal document is an instance document that must carry a title. */
-export interface LegalDocument extends InstanceDocument {
-    kind: LegalDocumentKind,
-    title: string,
+    /** The stored text, read with `fileApi.getText`. */
+    fileId: string,
+    sha256: string,
+    sizeBytes: number,
 }
 
 export interface ProfileInput {
@@ -199,12 +203,6 @@ export interface CoreApi {
 
     /** What the installation admits to a screen nobody has signed in to. */
     getInstanceInfo(signal: AbortSignal): Promise<InstanceInfo>;
-
-    /**
-     * One document the operator publishes — a front page or a legal document —
-     * or undefined where the instance has none.
-     */
-    getInstanceDocument(kind: InstanceDocumentKind, signal: AbortSignal): Promise<InstanceDocument | undefined>;
 
     /**
      * The session the browser already holds, or undefined when there is none.

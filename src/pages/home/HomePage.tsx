@@ -3,10 +3,9 @@ import { IconAlertTriangle, IconArrowRight, IconListDetails, IconLogin, IconSett
 import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { InstanceDocument } from "../../api/CoreApi";
+import { pickDocumentRef } from "../../api/instanceDocuments";
 import { Activity, Attachment } from "../../api/ParticipantApi";
 import ActivityTime from "../../components/time/ActivityTime";
-import { pickTranslation } from "../../components/content/languageName";
 import { MANAGER_PERMISSIONS } from "../manager/managerAreas";
 import { useApiEffect } from "../../provider/apiContext";
 import { useAuth } from "../../provider/authContext";
@@ -38,15 +37,21 @@ export default function HomePage() {
     const { logoUrl } = useInstance();
     const { hasAny } = usePermissions();
 
-    const [document, setDocument] = useState<InstanceDocument | undefined | null>(undefined);
+    const [content, setContent] = useState<string | undefined | null>(undefined);
     const [activities, setActivities] = useState<Activity[]>([]);
 
     const signedIn = status === "authenticated";
 
+    // The page the operator wrote for this audience, in the reader's language.
+    // The reference is already in hand — it came with the instance — so the only
+    // request is for the text itself.
+    const { instance } = useInstance();
+    const ref = pickDocumentRef(instance.documents, signedIn ? "home" : "welcome", i18n.language);
+
     useApiEffect(async (api) => {
         if (status === "loading") return;
         // Null rather than undefined for "asked, and there is none".
-        setDocument(await api.authApi.getInstanceDocument(signedIn ? "home" : "welcome") ?? null);
+        setContent(ref ? await api.fileApi.getText(ref.fileId) : null);
         if (!signedIn) {
             setActivities([]);
             return;
@@ -55,13 +60,7 @@ export default function HomePage() {
         // front page shows the first few and points at it.
         const page = await api.participantApi.getActivities({ page: 1, pageSize: 6 });
         setActivities(page.items);
-    }, [status, signedIn]);
-
-    // The operator's text in the reader's language, or the default where they
-    // wrote none. The switch for that language is in the header and the footer,
-    // so the page needs no control of its own.
-    const shown = (document && pickTranslation(document.translations, i18n.language)?.content)
-        ?? document?.content;
+    }, [status, signedIn, ref]);
 
     // The mark, as the document's only attachment. Absent when the operator
     // turned it off — a reference then reports a missing attachment, which is
@@ -73,9 +72,9 @@ export default function HomePage() {
     return (
         <Container size={900}>
             <Stack gap="lg">
-                {document === undefined ? (
+                {content === undefined ? (
                     <Center my="xl"><Loader /></Center>
-                ) : document === null ? (
+                ) : content === null || !ref ? (
                     <Alert color="yellow" icon={<IconAlertTriangle size={18} />}>
                         {t("This instance publishes no front page yet.")}
                     </Alert>
@@ -84,14 +83,14 @@ export default function HomePage() {
                         {/* Said where an operator will see it, and only to
                             somebody who could act on it. A greeting nobody
                             replaced misleads no one; a policy would. */}
-                        {document.isTemplate && signedIn && hasAny(MANAGER_PERMISSIONS) && (
+                        {ref.isTemplate && signedIn && hasAny(MANAGER_PERMISSIONS) && (
                             <Alert color="orange" icon={<IconAlertTriangle size={18} />}>
                                 {t("This is the front page that ships with the software. Replace it in the instance settings.")}
                             </Alert>
                         )}
                         <Paper withBorder p="xl" radius="md">
                             <Suspense fallback={<Center my="xl"><Loader /></Center>}>
-                                <ContentView content={shown} attachments={attachments} />
+                                <ContentView content={content} attachments={attachments} />
                             </Suspense>
                         </Paper>
                     </>

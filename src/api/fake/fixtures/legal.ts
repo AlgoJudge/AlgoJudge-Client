@@ -1,4 +1,5 @@
-import { LegalDocument, LegalDocumentKind } from "../../CoreApi";
+import { LegalDocumentKind } from "../../CoreApi";
+import type { FixtureDocument } from "./documents";
 
 /**
  * The documents that ship with an instance, as blanks.
@@ -142,14 +143,14 @@ Każdy ma prawo wystąpić z żądaniem zapewnienia dostępności cyfrowej tej s
 lub jej elementu. Żądanie należy kierować na adres podany wyżej.
 `;
 
-const DOCUMENTS: Record<LegalDocumentKind, LegalDocument> = {
+const DOCUMENTS: Record<LegalDocumentKind, FixtureDocument> = {
     terms: { kind: "terms", title: "Regulamin", content: TERMS, isTemplate: true },
     privacy: { kind: "privacy", title: "Polityka prywatności", content: PRIVACY, isTemplate: true },
     cookies: { kind: "cookies", title: "Ciasteczka", content: COOKIES, isTemplate: true },
     accessibility: { kind: "accessibility", title: "Deklaracja dostępności", content: ACCESSIBILITY, isTemplate: true },
 };
 
-export const legalDocument = (kind: LegalDocumentKind): LegalDocument | undefined => DOCUMENTS[kind];
+export const legalDocuments = (): FixtureDocument[] => Object.values(DOCUMENTS);
 
 export const legalDocumentKinds = (): LegalDocumentKind[] =>
     Object.keys(DOCUMENTS) as LegalDocumentKind[];
