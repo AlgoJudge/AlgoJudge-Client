@@ -93,6 +93,13 @@ export class ParticipantApiHttp implements ParticipantApi {
         if (payload.language) form.append("language", payload.language);
         if (payload.code !== undefined) form.append("code", payload.code);
         if (payload.file) form.append("file", payload.file, payload.file.name);
+        // The checksum the caller computed. It was left out until 2026-08-06,
+        // which meant the Client computed it, the model declared it and nothing
+        // ever sent it — the integrity chain of `docs/specs/FILE_INTEGRITY.md`
+        // broken at the one place a participant uploads anything. The Server
+        // recomputes it and answers 422 on a mismatch, so a truncated upload
+        // fails as a corrupt file rather than being judged as a wrong answer.
+        if (payload.sha256) form.append("sha256", payload.sha256);
 
         return this.http.request<SubmissionSummary>(
             `/activities/${encodeURIComponent(activityId)}/problems/${encodeURIComponent(problemSlug)}/submissions`,

@@ -72,7 +72,7 @@ export class CoreApiHttp implements CoreApi {
     }
 
     updateProfile(input: ProfileInput, signal: AbortSignal): Promise<Session> {
-        return this.http.request<Session>("/account", "POST", { signal, body: input });
+        return this.http.request<Session>("/account", "PUT", { signal, body: input });
     }
 
     async changePassword(currentPassword: string, newPassword: string, signal: AbortSignal): Promise<void> {

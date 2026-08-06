@@ -78,15 +78,14 @@ export class ManagerApiHttp implements ManagerApi {
     }
 
     updatePermissionTemplate(id: string, input: PermissionTemplateInput, signal: AbortSignal): Promise<PermissionTemplate> {
-        // The transport speaks GET and POST only; a PUT verb would be the more
-        // usual shape and can replace this once it does.
+        // PUT rather than POST: the input is the whole template, so this
+        // replaces it. Every update below reads the same way.
         return this.http.request<PermissionTemplate>(
-            `/permission-templates/${encodeURIComponent(id)}`, "POST", { signal, body: input });
+            `/permission-templates/${encodeURIComponent(id)}`, "PUT", { signal, body: input });
     }
 
     async deletePermissionTemplate(id: string, signal: AbortSignal): Promise<void> {
-        await this.http.request<void>(
-            `/permission-templates/${encodeURIComponent(id)}/delete`, "POST", { signal });
+        await this.http.request<void>(`/permission-templates/${encodeURIComponent(id)}`, "DELETE", { signal });
     }
 
     getGrants(filter: GrantFilter, signal: AbortSignal): Promise<Page<Grant>> {
@@ -104,7 +103,9 @@ export class ManagerApiHttp implements ManagerApi {
     }
 
     async revokeGrant(id: string, signal: AbortSignal): Promise<void> {
-        await this.http.request<void>(`/grants/${encodeURIComponent(id)}/revoke`, "POST", { signal });
+        // Revoking removes the row — a grant has no revoked state, only
+        // `invited` and `active` — so it is a delete rather than an action.
+        await this.http.request<void>(`/grants/${encodeURIComponent(id)}`, "DELETE", { signal });
     }
 
     searchUsers(query: string, signal: AbortSignal): Promise<ManagedUserSummary[]> {
@@ -136,14 +137,15 @@ export class ManagerApiHttp implements ManagerApi {
         });
     }
 
-    getRunnerAttachment(runnerId: string, attachmentId: string, signal: AbortSignal): Promise<string> {
-        return this.http.request<string>(
+    async getRunnerAttachment(runnerId: string, attachmentId: string, signal: AbortSignal): Promise<string> {
+        const file = await this.http.request<{ content: string }>(
             `/runners/${encodeURIComponent(runnerId)}/files/${encodeURIComponent(attachmentId)}`,
             "GET", { signal });
+        return file.content;
     }
 
     async forgetRunner(id: string, signal: AbortSignal): Promise<void> {
-        await this.http.request<void>(`/runners/${encodeURIComponent(id)}/delete`, "POST", { signal });
+        await this.http.request<void>(`/runners/${encodeURIComponent(id)}`, "DELETE", { signal });
     }
 
     getUsers(filter: ManagedUserFilter, signal: AbortSignal): Promise<Page<ManagedUser>> {
@@ -175,7 +177,7 @@ export class ManagerApiHttp implements ManagerApi {
     }
 
     updateUser(id: string, input: UserUpdateInput, signal: AbortSignal): Promise<ManagedUser> {
-        return this.http.request<ManagedUser>(`/users/${encodeURIComponent(id)}`, "POST", { signal, body: input });
+        return this.http.request<ManagedUser>(`/users/${encodeURIComponent(id)}`, "PUT", { signal, body: input });
     }
 
     approveUser(id: string, signal: AbortSignal): Promise<ManagedUser> {
@@ -208,7 +210,7 @@ export class ManagerApiHttp implements ManagerApi {
     }
 
     updateActivity(id: string, input: ActivityInput, signal: AbortSignal): Promise<ManagedActivity> {
-        return this.http.request<ManagedActivity>(`/activities/${encodeURIComponent(id)}`, "POST", { signal, body: input });
+        return this.http.request<ManagedActivity>(`/activities/${encodeURIComponent(id)}`, "PUT", { signal, body: input });
     }
 
     setActivityArchived(id: string, archived: boolean, signal: AbortSignal): Promise<ManagedActivity> {
@@ -218,7 +220,7 @@ export class ManagerApiHttp implements ManagerApi {
     }
 
     async deleteActivity(id: string, signal: AbortSignal): Promise<void> {
-        await this.http.request<void>(`/activities/${encodeURIComponent(id)}/delete`, "POST", { signal });
+        await this.http.request<void>(`/activities/${encodeURIComponent(id)}`, "DELETE", { signal });
     }
 
     getSeries(activityId: string, signal: AbortSignal): Promise<ManagedSeries[]> {
@@ -232,11 +234,11 @@ export class ManagerApiHttp implements ManagerApi {
     }
 
     updateSeries(seriesId: string, input: SeriesInput, signal: AbortSignal): Promise<ManagedSeries> {
-        return this.http.request<ManagedSeries>(`/series/${encodeURIComponent(seriesId)}`, "POST", { signal, body: input });
+        return this.http.request<ManagedSeries>(`/series/${encodeURIComponent(seriesId)}`, "PUT", { signal, body: input });
     }
 
     async deleteSeries(seriesId: string, signal: AbortSignal): Promise<void> {
-        await this.http.request<void>(`/series/${encodeURIComponent(seriesId)}/delete`, "POST", { signal });
+        await this.http.request<void>(`/series/${encodeURIComponent(seriesId)}`, "DELETE", { signal });
     }
 
     reorderSeries(activityId: string, orderedIds: string[], signal: AbortSignal): Promise<ManagedSeries[]> {
@@ -251,12 +253,14 @@ export class ManagerApiHttp implements ManagerApi {
 
     updateSeriesProblem(seriesProblemId: string, input: SeriesProblemInput, signal: AbortSignal): Promise<ManagedSeries> {
         return this.http.request<ManagedSeries>(
-            `/series-problems/${encodeURIComponent(seriesProblemId)}`, "POST", { signal, body: input });
+            `/series-problems/${encodeURIComponent(seriesProblemId)}`, "PUT", { signal, body: input });
     }
 
     detachProblem(seriesProblemId: string, signal: AbortSignal): Promise<ManagedSeries> {
+        // Detaching removes the assignment, so it is a delete. The series comes
+        // back in the response because that is what the screen redraws.
         return this.http.request<ManagedSeries>(
-            `/series-problems/${encodeURIComponent(seriesProblemId)}/detach`, "POST", { signal });
+            `/series-problems/${encodeURIComponent(seriesProblemId)}`, "DELETE", { signal });
     }
 
     reorderSeriesProblems(seriesId: string, orderedIds: string[], signal: AbortSignal): Promise<ManagedSeries> {
@@ -292,7 +296,7 @@ export class ManagerApiHttp implements ManagerApi {
     }
 
     async deleteAnnouncement(id: string, signal: AbortSignal): Promise<void> {
-        await this.http.request<void>(`/questions/${encodeURIComponent(id)}/delete`, "POST", { signal });
+        await this.http.request<void>(`/questions/${encodeURIComponent(id)}`, "DELETE", { signal });
     }
 
     getSubmissions(filter: ManagedSubmissionFilter, signal: AbortSignal): Promise<Page<ManagedSubmission>> {
@@ -313,9 +317,13 @@ export class ManagerApiHttp implements ManagerApi {
         return this.http.request<ManagedSubmissionDetail>(`/submissions/${encodeURIComponent(id)}`, "GET", { signal });
     }
 
-    getSubmissionFile(id: string, name: string, signal: AbortSignal): Promise<string> {
-        return this.http.request<string>(
+    async getSubmissionFile(id: string, name: string, signal: AbortSignal): Promise<string> {
+        // The same wrapper the participant's own view reads. One file, one
+        // shape: this end expected a bare JSON string until 2026-08-06, so the
+        // two screens would have needed two Server endpoints for one idea.
+        const file = await this.http.request<{ content: string }>(
             `/submissions/${encodeURIComponent(id)}/files/${encodeURIComponent(name)}`, "GET", { signal });
+        return file.content;
     }
 
     rejudgeSubmission(id: string, signal: AbortSignal): Promise<ManagedSubmission> {
@@ -356,7 +364,7 @@ export class ManagerApiHttp implements ManagerApi {
     }
 
     updateProblem(id: string, input: ProblemInput, signal: AbortSignal): Promise<ManagedProblem> {
-        return this.http.request<ManagedProblem>(`/problems/${encodeURIComponent(id)}`, "POST", { signal, body: input });
+        return this.http.request<ManagedProblem>(`/problems/${encodeURIComponent(id)}`, "PUT", { signal, body: input });
     }
 
     duplicateProblem(id: string, signal: AbortSignal): Promise<ManagedProblem> {
@@ -376,7 +384,7 @@ export class ManagerApiHttp implements ManagerApi {
     }
 
     async deleteProblem(id: string, signal: AbortSignal): Promise<void> {
-        await this.http.request<void>(`/problems/${encodeURIComponent(id)}/delete`, "POST", { signal });
+        await this.http.request<void>(`/problems/${encodeURIComponent(id)}`, "DELETE", { signal });
     }
 
     getProblemVersions(problemId: string, signal: AbortSignal): Promise<ManagedProblemVersion[]> {

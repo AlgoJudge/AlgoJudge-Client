@@ -96,6 +96,28 @@ import {
 } from "./ParticipantApi";
 
 /**
+ * One method of an API, with its trailing AbortSignal taken off.
+ *
+ * `getUsers(filter, signal)` becomes `getUsers(filter)`; anything that is not a
+ * method is left as it is.
+ */
+type WithoutSignal<T> = T extends (...args: [...infer Args, AbortSignal]) => infer Result
+    ? (...args: Args) => Result
+    : T;
+
+/** Every method of an API, scoped. The dispatcher is scoped separately. */
+type Scoped<T> = { [K in keyof T]: WithoutSignal<T[K]> };
+
+/**
+ * Fails to compile when a scoped class has drifted from the API it mirrors.
+ *
+ * These classes are written by hand, so a method added to `ManagerApi` and
+ * forgotten here used to compile and simply be missing — the screens could not
+ * call it and nothing said why. Assignability says it now.
+ */
+export type Ensure<Actual extends Expected, Expected> = Actual;
+
+/**
  * Binds one AbortSignal to every call, so a view never has to pass one around.
  * Purely mechanical: each method forwards to the same method on the underlying
  * API with the signal appended, and must not drift from it.
@@ -458,3 +480,14 @@ export class ScopedManagerApi {
         return this.managerApi.getProblemPackage(problemId, versionId, this.signal);
     }
 }
+
+/**
+ * The drift checks. Each says "this scoped class covers that API", and the file
+ * stops compiling the day one of them stops being true.
+ *
+ * The dispatcher is excluded from all three: it is scoped by its own class,
+ * which takes the signal off `addEventListener` rather than off the API.
+ */
+export type EnsuresCoreApi = Ensure<ScopedCoreApi, Scoped<Omit<CoreApi, "eventDispatcher">>>;
+export type EnsuresParticipantApi = Ensure<ScopedParticipantApi, Scoped<Omit<ParticipantApi, "eventDispatcher">>>;
+export type EnsuresManagerApi = Ensure<ScopedManagerApi, Scoped<Omit<ManagerApi, "eventDispatcher">>>;
