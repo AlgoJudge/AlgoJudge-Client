@@ -13,7 +13,7 @@ import { Attachment } from "../../../../api/ParticipantApi";
 import LanguageTabs, { DEFAULT_LANGUAGE } from "../../../../components/content/LanguageTabs";
 import ContentEditor from "../../../../components/content/ContentEditor";
 import PackageBuilder, { PackageDraft } from "../../../../components/package/PackageBuilder";
-import { isPackageFile, PACKAGE_ARCHIVE } from "../../../../package/types";
+import { isPackageFile, PACKAGE_ARCHIVE, SAMPLES_ARCHIVE } from "../../../../package/types";
 import LoadState from "../../../../components/LoadState";
 import { CopyButton } from "../../../../components/buttons";
 import ActivityTime from "../../../../components/time/ActivityTime";
@@ -126,12 +126,19 @@ export default function ManagerProblemPage() {
                     : `${statementFileName(tag)}: ${parsed.error.message}`);
             }
         }
+        // The bytes go up first and the version references what came back.
         // Checksums are computed here, where the bytes are, and recomputed by
-        // the Server before anything is stored.
+        // the Server, which refuses to store a mismatch — so a truncated upload
+        // fails before it can become part of a published version.
+        const store = async (bytes: Blob, name: string) => {
+            const checksum = await sha256(bytes);
+            return await call(api => api.fileApi.upload(bytes, name, checksum));
+        };
+
         const files = await Promise.all(staged.map(async entry => ({
-            file: entry.file,
+            fileId: (await store(entry.file, entry.file.name)).id,
+            name: entry.file.name,
             scope: entry.scope,
-            sha256: await sha256(entry.file),
         })));
         const archive = await packageDraft?.build();
         // The examples go with it: they are cut from the same package, and a
@@ -140,9 +147,8 @@ export default function ManagerProblemPage() {
         const samples = archive ? await packageDraft?.buildSamples() : undefined;
         const built = archive
             ? {
-                archive,
-                sha256: await sha256(archive),
-                samples: samples ? { archive: samples, sha256: await sha256(samples) } : undefined,
+                fileId: (await store(archive, PACKAGE_ARCHIVE)).id,
+                samplesFileId: samples ? (await store(samples, SAMPLES_ARCHIVE)).id : undefined,
             }
             : undefined;
         await call(api => api.managerApi.createProblemVersion(problemId, {

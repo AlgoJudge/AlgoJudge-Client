@@ -399,32 +399,11 @@ export class ManagerApiHttp implements ManagerApi {
     }
 
     createProblemVersion(problemId: string, input: ProblemVersionInput, signal: AbortSignal): Promise<ManagedProblemVersion> {
-        // Multipart, always. A version is published whole, so the request carries
-        // bytes as often as not, and one endpoint that is sometimes JSON and
-        // sometimes multipart is two endpoints wearing one name.
-        //
-        // The transport leaves FormData alone and lets the browser set the
-        // boundary, which a serialised body would destroy.
-        const form = new FormData();
-        form.append("version", new Blob([JSON.stringify({
-            note: input.note,
-            content: input.content,
-            translations: input.translations,
-            config: input.config,
-            removedFiles: input.removedFiles,
-            // The metadata travels beside the parts rather than inside them: a
-            // scope and a checksum are not properties of a multipart part.
-            files: (input.files ?? []).map(f => ({ name: f.file.name, scope: f.scope, sha256: f.sha256 })),
-            package: input.package
-                ? { sha256: input.package.sha256, samples: input.package.samples?.sha256 }
-                : undefined,
-        })], { type: "application/json" }));
-        for (const staged of input.files ?? []) form.append("files", staged.file, staged.file.name);
-        if (input.package) form.append("package", input.package.archive, "package.zip");
-        if (input.package?.samples) form.append("samples", input.package.samples.archive, "examples.zip");
-
+        // Plain JSON. It was multipart until the files became references: the
+        // bytes are uploaded first, so what is published is a statement and a
+        // list of ids — and a version is still published whole, in one request.
         return this.http.request<ManagedProblemVersion>(
-            `/problems/${encodeURIComponent(problemId)}/versions`, "POST", { signal, body: form });
+            `/problems/${encodeURIComponent(problemId)}/versions`, "POST", { signal, body: input });
     }
 
     async getProblemPackage(problemId: string, versionId: string, signal: AbortSignal): Promise<Blob | undefined> {

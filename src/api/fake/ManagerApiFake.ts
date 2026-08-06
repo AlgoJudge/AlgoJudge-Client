@@ -61,6 +61,7 @@ import { createQuestions } from "./fixtures/questions";
 import { createRunners, runnerFile } from "./fixtures/runners";
 import { createUsers } from "./fixtures/users";
 import { createSessions } from "./fixtures/sessions";
+import { FakeFiles } from "./FileApiFake";
 import { createSubmissions, submissionSource } from "./fixtures/submissions";
 import { sha256 } from "../../utils/sha256";
 import { Utils } from "./Utils";
@@ -117,7 +118,11 @@ export class ManagerApiFake implements ManagerApi {
     private users: ManagedUser[] = createUsers();
     private runners: ManagedRunner[] = createRunners();
 
-    constructor(private sleepMs: number = 300) {}
+    /**
+     * The same store the rest of the fake reads: a version references files
+     * that were uploaded before it was published, exactly as on the Server.
+     */
+    constructor(private readonly files: FakeFiles, private sleepMs: number = 300) {}
 
     async getPermissionCatalogue(signal: AbortSignal): Promise<PermissionDefinition[]> {
         await this.settle(signal);
@@ -961,32 +966,34 @@ export class ManagerApiFake implements ManagerApi {
         const carried = (previous?.files ?? []).filter(f =>
             !isStatementName(f.name) && !rebuilt.has(f.name) && !removed.has(f.name));
 
+        // The checksums were checked where the bytes arrived, in `fileApi`. What
+        // is left to refuse here is what a *version* may not hold.
         for (const entry of staged) {
-            if (await sha256(entry.file) !== entry.sha256) {
-                Utils.throwError(`${entry.file.name} does not match its checksum and was not stored`);
+            if (!this.files.has(entry.fileId)) {
+                Utils.throwError(`No such file: ${entry.name}`);
             }
-            if (isStatementName(entry.file.name)) {
+            if (isStatementName(entry.name)) {
                 // `content.md` and its translations are the statement, written in
                 // the editor. Attaching one here would put a second answer beside
                 // the one published.
                 Utils.throwError("content.* is the statement; edit it in the Statement tab");
             }
-            if (isPackageFile(entry.file.name)) {
+            if (isPackageFile(entry.name)) {
                 // Both are derived from the package and written by publishing it.
                 Utils.throwError("The package is built in the Package tab");
             }
-            if (carried.some(f => f.name === entry.file.name)
-                || staged.filter(s => s.file.name === entry.file.name).length > 1) {
+            if (carried.some(f => f.name === entry.name)
+                || staged.filter(s => s.name === entry.name).length > 1) {
                 // Refused rather than replaced: a statement referring to the name
                 // must not change meaning because somebody attached a new file.
-                Utils.throwError(`This version already has a file called ${entry.file.name}`);
+                Utils.throwError(`This version already has a file called ${entry.name}`);
             }
         }
-        if (input.package && await sha256(input.package.archive) !== input.package.sha256) {
-            Utils.throwError("The package does not match its checksum and was not stored");
+        if (input.package && !this.files.has(input.package.fileId)) {
+            Utils.throwError("The package file is not stored");
         }
-        if (input.package?.samples && await sha256(input.package.samples.archive) !== input.package.samples.sha256) {
-            Utils.throwError("The examples do not match their checksum and were not stored");
+        if (input.package?.samplesFileId && !this.files.has(input.package.samplesFileId)) {
+            Utils.throwError("The examples file is not stored");
         }
 
         const version: ManagedProblemVersion = {
@@ -1015,7 +1022,7 @@ export class ManagerApiFake implements ManagerApi {
         // The package: the one published, or the previous version's carried
         // forward. A version without one is a version nothing can be judged
         // against, and that is not what fixing a typo should produce.
-        let archive = input.package?.archive;
+        let archive = input.package ? this.files.blob(input.package.fileId) : undefined;
         if (!archive && previous?.hasPackage && !removed.has(PACKAGE_ARCHIVE)) {
             // Read the way the editor reads it: a seeded version holds no bytes
             // until something asks for them.
@@ -1038,28 +1045,33 @@ export class ManagerApiFake implements ManagerApi {
                     sizeBytes: 2048, sha256: fakeSha(`${version.id}/content-${v.language}.md`),
                 })),
             ...carried,
-            ...staged.map(entry => ({
-                name: entry.file.name,
-                scope: entry.scope,
-                mimeType: entry.file.type || "application/octet-stream",
-                sizeBytes: entry.file.size,
-                sha256: entry.sha256,
-                // A real URL, so the preview shows the figure rather than a
-                // promise of one. It lives as long as the tab does, which is what
-                // a fake can honestly offer.
-                url: URL.createObjectURL(entry.file),
-            })),
+            ...staged.map(entry => {
+                // Everything but the name comes from the stored file: the
+                // reference says what it is called *here*, the file says what it
+                // is. The URL is the store's, so the preview shows the figure
+                // rather than a promise of one.
+                const stored = this.files.meta(entry.fileId);
+                return {
+                    name: entry.name,
+                    scope: entry.scope,
+                    mimeType: stored.mimeType,
+                    sizeBytes: stored.sizeBytes,
+                    sha256: stored.sha256,
+                    url: this.files.url(entry.fileId),
+                };
+            }),
             ...(archive ? [{
                 name: PACKAGE_ARCHIVE, scope: "runner" as const, mimeType: "application/zip",
-                sizeBytes: archive.size, sha256: input.package?.sha256 ?? await sha256(archive),
+                sizeBytes: archive.size,
+                sha256: input.package ? this.files.meta(input.package.fileId).sha256 : await sha256(archive),
             }] : []),
             // The examples the participant downloads. Participant scope, so the
             // Server hands them over without the Client asking twice.
-            ...(input.package?.samples ? [{
+            ...(input.package?.samplesFileId ? [{
                 name: SAMPLES_ARCHIVE, scope: "participant" as const, mimeType: "application/zip",
-                sizeBytes: input.package.samples.archive.size,
-                sha256: input.package.samples.sha256,
-                url: URL.createObjectURL(input.package.samples.archive),
+                sizeBytes: this.files.meta(input.package.samplesFileId).sizeBytes,
+                sha256: this.files.meta(input.package.samplesFileId).sha256,
+                url: this.files.url(input.package.samplesFileId),
             }] : []),
         ];
         record.problem.currentVersion = version.version;

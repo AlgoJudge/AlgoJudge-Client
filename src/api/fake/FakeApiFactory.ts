@@ -13,7 +13,7 @@ export class FakeApiFactory {
         return {
             authApi: new CoreApiFake(files),
             participantApi: new ParticipantApiFake(),
-            managerApi: new ManagerApiFake(),
+            managerApi: new ManagerApiFake(files),
             fileApi: new FileApiFake(files),
         }
     }

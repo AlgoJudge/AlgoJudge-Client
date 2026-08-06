@@ -352,6 +352,13 @@ export interface ProblemFilter {
  * package go in together, because a result has to stay attributable to what it
  * was judged against. Files the previous version carried come along unless
  * `removedFiles` names them, so correcting a typo does not drop every figure.
+ *
+ * The **statement travels inline** while everything else travels as a
+ * reference. The difference is where the bytes come from: a statement is
+ * written in this request, in an editor, and is small; a figure or a package is
+ * bytes the author already had, uploaded before the version is published. The
+ * Server stores the statement as a file all the same — `content.md` is a
+ * well-known name inside the version, not a column.
  */
 export interface ProblemVersionInput {
     note?: string;
@@ -369,42 +376,44 @@ export interface ProblemVersionInput {
 }
 
 /**
- * A file being attached.
+ * A file being attached, as a **reference**.
  *
- * `sha256` is computed by the caller and recomputed by the Server, as every
- * upload is: a checksum that arrives with the bytes is a claim, and storing it
- * unchecked would turn a truncated upload into a stored file whose contents are
- * wrong. A name the version already holds is refused rather than silently
- * replaced — a statement referring to `graf.png` must not change meaning because
- * somebody uploaded a different `graf.png`.
+ * The bytes went up first, through `fileApi.upload`, which is where the
+ * checksum was checked; what arrives here is the id that came back. That is
+ * also what makes carrying a figure into the next version free — the new
+ * version references the same file rather than copying it.
+ *
+ * A name the version already holds is refused rather than silently replaced: a
+ * statement referring to `graf.png` must not change meaning because somebody
+ * attached a different `graf.png`.
  */
 export interface NewProblemFile {
-    file: File;
+    /** As `fileApi.upload` returned it. */
+    fileId: string;
+    /** The name **within this version** — what a statement refers to. */
+    name: string;
     scope: FileScope;
-    sha256: string;
 }
 
 /**
- * The Runner package being attached.
+ * The Runner package being attached, as a reference.
  *
  * The archive is assembled in the Client, because its layout belongs to the
- * problem type and the Server is not allowed to know one type from another. The
- * Server stores the bytes under `FileScope.Runner` and checks the checksum the
- * same way it checks any other upload.
+ * problem type and the Server is not allowed to know one type from another. It
+ * is uploaded like any other file and referenced here under `FileScope.Runner`.
  */
 export interface NewProblemPackage {
-    archive: Blob;
-    sha256: string;
+    fileId: string;
     /**
-     * The example tests, as the participant receives them — stored beside the
-     * package as a participant-scoped `examples.zip`.
+     * The example tests, as the participant receives them — referenced beside
+     * the package as a participant-scoped `examples.zip`.
      *
      * A separate archive rather than the package itself: the package is scoped
      * to the Runner and carries every hidden test, so handing it over would
-     * disclose the whole problem. Derived from the same builder state, so it
+     * disclose the whole problem. Built from the same builder state, so it
      * travels with the package rather than as an ordinary attachment.
      */
-    samples?: { archive: Blob; sha256: string };
+    samplesFileId?: string;
 }
 
 /** A statement in one language. `language` absent means the default `content.md`. */
