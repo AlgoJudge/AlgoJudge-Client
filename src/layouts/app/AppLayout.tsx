@@ -157,7 +157,11 @@ const ActivityNavbar = (props: {
         enrolled && { to: `${base}/problems`, label: t("Problems"), icon: IconNotes },
         enrolled && { to: `${base}/submit`, label: t("Submit"), icon: IconPackageExport },
         enrolled && { to: `${base}/submissions`, label: t("My submissions"), icon: IconBox },
-        enrolled && activity.modules.ranking && { to: `${base}/ranking`, label: t("Ranking"), icon: IconChartBarPopular },
+        // From who may see scores, not from a switch beside it. Withheld only
+        // where nobody but a manager may see one: a participant who may see
+        // their own gets the screen showing exactly that.
+        enrolled && activity.scoreVisibility !== "managersOnly"
+            && { to: `${base}/ranking`, label: t("Ranking"), icon: IconChartBarPopular },
         enrolled && activity.modules.questions && { to: `${base}/questions`, label: t("Questions and announcements"), icon: IconMessageQuestion },
         // From the reference rather than a module flag: whether there are rules
         // is whether somebody published any, and a flag beside them could be on

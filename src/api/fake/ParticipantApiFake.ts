@@ -219,6 +219,30 @@ class FakeParticipantState {
     }
 }
 
+/**
+ * The ranking as somebody who may see only their own score receives it: their
+ * row alone, and no place on it.
+ *
+ * The payload is opaque to everything but the renderer, so this touches the two
+ * fields every format shares — `rows` and the `me` marker in them — and leaves
+ * the rest as it is.
+ */
+const onlyMyRow = (ranking: unknown): unknown => {
+    if (typeof ranking !== "object" || ranking === null) return ranking;
+    const document = ranking as { rows?: unknown, me?: unknown };
+    if (!Array.isArray(document.rows)) return ranking;
+    const mine = document.rows.filter(row =>
+        typeof row === "object" && row !== null && (row as { id?: unknown }).id === document.me);
+    return {
+        ...document,
+        rows: mine.map(row => {
+            const { rank, ...rest } = row as { rank?: unknown };
+            void rank;
+            return rest;
+        }),
+    };
+};
+
 export class ParticipantApiFake implements ParticipantApi {
     readonly eventDispatcher: ParticipantEventDispatcherImpl = new ParticipantEventDispatcherImpl();
     private readonly state: FakeParticipantState;
@@ -378,7 +402,18 @@ export class ParticipantApiFake implements ParticipantApi {
     async getRanking(activityId: string, signal: AbortSignal): Promise<unknown> {
         await this.settle(signal);
         const ranking = this.state.dataset().rankings.get(activityId);
-        return ranking !== undefined ? copy(ranking) : notFound("Ranking");
+        if (ranking === undefined) return notFound("Ranking");
+
+        const activity = this.state.dataset().activities.find(a => a.id === activityId);
+        // Reduced here because the Server reduces it there. Under
+        // `participantOnly` the reader gets their own row and no place: a
+        // standing among people whose scores they may not see is not a standing,
+        // and sending the whole board with the places stripped would disclose
+        // exactly what the setting withholds.
+        if (activity?.scoreVisibility === "participantOnly") {
+            return copy(onlyMyRow(ranking));
+        }
+        return copy(ranking);
     }
 
     async getQuestions(activityId: string, filter: QuestionFilter, signal: AbortSignal): Promise<Page<Question>> {

@@ -5,6 +5,7 @@ import { CreatedCredential, ManagedActivitySummary, PermissionTemplate } from ".
 import { useApiCall } from "../../provider/apiContext";
 import ZonedDateTimeInput from "../time/ZonedDateTimeInput";
 import CredentialsModal from "./CredentialsModal";
+import { Handout } from "./handout";
 
 /**
  * Accounts for one event, made from a prefix and a count, and enrolled as they
@@ -30,10 +31,12 @@ export interface TemporaryAccountsModalProps {
     busy: boolean;
     /** So the screen behind can refresh what it lists. */
     onCreated?: () => void;
+    /** Where the accounts are used, for the printed slips. */
+    handout: Handout;
 }
 
 export default function TemporaryAccountsModal({
-    opened, onClose, activities, activityId, templates, run, busy, onCreated,
+    opened, onClose, activities, activityId, templates, run, busy, onCreated, handout,
 }: TemporaryAccountsModalProps) {
     const { t } = useTranslation();
     const call = useApiCall();
@@ -124,7 +127,11 @@ export default function TemporaryAccountsModal({
                 </Stack>
             </Modal>
 
-            <CredentialsModal credentials={credentials} onClose={() => setCredentials(undefined)} />
+            <CredentialsModal
+                credentials={credentials}
+                onClose={() => setCredentials(undefined)}
+                handout={handout}
+            />
         </>
     );
 }

@@ -6,6 +6,9 @@ import { IconInfoCircle } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Navigate } from "react-router-dom";
+import { LegalDocumentKind } from "../../api/CoreApi";
+import { pickDocumentRef, publishedLegalKinds } from "../../api/instanceDocuments";
+import DocumentModal from "../../components/content/DocumentModal";
 import { useApiCall } from "../../provider/apiContext";
 import { useAuth } from "../../provider/authContext";
 import { useInstance } from "../../provider/instanceContext";
@@ -22,7 +25,7 @@ const MIN_PASSWORD = 12;
  * offering a form whose answer is always no.
  */
 export default function RegisterPage() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const call = useApiCall();
     const { status } = useAuth();
 
@@ -36,6 +39,18 @@ export default function RegisterPage() {
     const [error, setError] = useState<string | undefined>(undefined);
     const [done, setDone] = useState(false);
     const [busy, setBusy] = useState(false);
+    /** Which document is open over the form, if any. */
+    const [reading, setReading] = useState<LegalDocumentKind | undefined>(undefined);
+
+    // What the box asks somebody to accept, out of what this instance published.
+    // The box is required either way — `acceptedTerms` is required by the API,
+    // and what is accepted is the instance's terms whether or not it wrote them
+    // down — but a link is only offered to a document that exists.
+    const readable = publishedLegalKinds(instance.documents)
+        .filter(kind => kind === "terms" || kind === "privacy");
+    const readingRef = reading
+        ? pickDocumentRef(instance.documents, reading, i18n.language)
+        : undefined;
 
 
     const submit = async () => {
@@ -168,12 +183,31 @@ export default function RegisterPage() {
                         <Checkbox
                             checked={accepted}
                             onChange={e => setAccepted(e.currentTarget.checked)}
+                            required
                             label={
                                 <Text size="sm">
-                                    {t('I accept the terms and conditions')}{' '}
-                                    <Anchor component={Link} to="/terms" size="sm">{t('Terms')}</Anchor>
-                                    {' · '}
-                                    <Anchor component={Link} to="/privacy" size="sm">{t('Privacy policy')}</Anchor>
+                                    {t('I accept the terms and conditions')}
+                                    {/* Only what this instance actually publishes.
+                                        A link to a privacy policy nobody wrote
+                                        leads to a page saying there is none,
+                                        under a box demanding it be accepted. */}
+                                    {readable.map((kind, index) => (
+                                        <span key={kind}>
+                                            {index === 0 ? ' ' : ' · '}
+                                            <Anchor
+                                                component="button"
+                                                type="button"
+                                                size="sm"
+                                                // Opened over the form. Navigating
+                                                // away to read it and coming back
+                                                // to an empty form is how people
+                                                // learn to tick without reading.
+                                                onClick={() => setReading(kind)}
+                                            >
+                                                {t(`legal.${kind}`)}
+                                            </Anchor>
+                                        </span>
+                                    ))}
                                 </Text>
                             }
                         />
@@ -183,6 +217,13 @@ export default function RegisterPage() {
                     </Stack>
                 </Paper>
             </Box>
+
+            <DocumentModal
+                opened={reading !== undefined}
+                onClose={() => setReading(undefined)}
+                title={readingRef?.title ?? (reading ? t(`legal.${reading}`) : "")}
+                fileId={readingRef?.fileId}
+            />
         </Container>
     );
 }

@@ -1,10 +1,11 @@
-import { Alert, Button, Center, Checkbox, Group, Loader, Paper, PasswordInput, Stack, Text, Title } from "@mantine/core";
-import { IconAlertTriangle, IconLock, IconLogin2 } from "@tabler/icons-react";
+import { Alert, Anchor, Button, Center, Checkbox, Group, Loader, Paper, PasswordInput, Stack, Text, Title } from "@mantine/core";
+import { IconAlertTriangle, IconLock, IconLogin2, IconNotes } from "@tabler/icons-react";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Navigate, useLocation, useParams } from "react-router-dom";
 import { hasDocument, pickDocumentRef } from "../../../api/activityDocuments";
 import { Activity } from "../../../api/ParticipantApi";
+import DocumentModal from "../../../components/content/DocumentModal";
 import LoadState from "../../../components/LoadState";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
 
@@ -37,6 +38,8 @@ export default function ActivityPage() {
     const [busy, setBusy] = useState(false);
     const [refused, setRefused] = useState<string | undefined>(undefined);
     const [reload, setReload] = useState(0);
+    /** Whether the rules are open over the form. */
+    const [reading, setReading] = useState(false);
 
     /**
      * The password out of the link.
@@ -111,7 +114,20 @@ export default function ActivityPage() {
 
     return (
         <Stack gap="lg">
-            <Title>{activity.name}</Title>
+            <Group justify="space-between" align="center" wrap="wrap">
+                <Title>{activity.name}</Title>
+                {/* What somebody in the activity came for. Not offered to
+                    anybody else: there is nothing there for them yet. */}
+                {enrolled && (
+                    <Button
+                        component={Link}
+                        to={`/activities/${activity.slug}/problems`}
+                        leftSection={<IconNotes size={16} />}
+                    >
+                        {t("Go to the problems")}
+                    </Button>
+                )}
+            </Group>
 
             {/* An activity whose organiser wrote nothing shows nothing: not a
                 placeholder and not an apology. Somebody not enrolled still gets
@@ -140,14 +156,21 @@ export default function ActivityPage() {
                                         checked={accepted}
                                         onChange={e => setAccepted(e.currentTarget.checked)}
                                         disabled={busy}
+                                        required
                                         label={
-                                            <>
+                                            <Anchor
+                                                component="button"
+                                                type="button"
+                                                size="sm"
+                                                // Opened over the form. The
+                                                // document's own name is the
+                                                // modal's title, which is where
+                                                // it belongs — repeating it here
+                                                // said the same thing twice.
+                                                onClick={() => setReading(true)}
+                                            >
                                                 {t("I have read and accept the rules")}
-                                                {" — "}
-                                                <Link to={`/activities/${activity.slug}/rules`}>
-                                                    {rules.title ?? t("Rules")}
-                                                </Link>
-                                            </>
+                                            </Anchor>
                                         }
                                     />
                                 )}
@@ -185,6 +208,13 @@ export default function ActivityPage() {
                     </Stack>
                 </Paper>
             )}
+
+            <DocumentModal
+                opened={reading}
+                onClose={() => setReading(false)}
+                title={rules?.title ?? t("Rules")}
+                fileId={rules?.fileId}
+            />
         </Stack>
     );
 }

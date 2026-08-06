@@ -13,7 +13,7 @@ export const emptyActivity = (): ActivityInput => ({
     type: "contest@1",
     rankingType: "points",
     timeZone: "Europe/Warsaw",
-    modules: { ranking: true, questions: true },
+    modules: { questions: true },
     scoreVisibility: "everyone",
     logVisibility: "managersOnly",
     joinPolicy: "closed",

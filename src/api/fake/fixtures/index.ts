@@ -216,7 +216,8 @@ export const createDataset = (files: FakeFiles): Dataset => {
         endDate: nowPlus(days(3)),
         // Nobody joins a national final from a link: the teams are entered.
         joinPolicy: "closed",
-        modules: { ranking: true, questions: true },
+        scoreVisibility: "everyone",
+        modules: { questions: true },
         // Filled in from `FakeActivities`, which is where an activity's
         // documents live: the manager screen publishes into it and this side
         // serves what is there, so the two cannot come to disagree.
@@ -457,8 +458,10 @@ export const createDataset = (files: FakeFiles): Dataset => {
         // The emailed-link case: a group of students enrol themselves with the
         // password their lecturer gave them.
         joinPolicy: "password",
-        // A course legitimately has no ranking.
-        modules: { ranking: false, questions: true },
+        // A course where somebody sees their own standing and nobody else's: the
+        // ranking is one row, without a place.
+        scoreVisibility: "participantOnly",
+        modules: { questions: true },
         documents: [],
         props: [
             { key: "Prowadzący", value: "Jan Kowalski" },
@@ -570,7 +573,8 @@ export const createDataset = (files: FakeFiles): Dataset => {
         startDate: nowPlus(-days(400)),
         endDate: nowPlus(-days(400) + hours(5)),
         joinPolicy: "closed",
-        modules: { ranking: true, questions: false },
+        scoreVisibility: "everyone",
+        modules: { questions: false },
         documents: [],
         finalScore: 3,
         maxScore: 8,
@@ -602,7 +606,8 @@ export const createDataset = (files: FakeFiles): Dataset => {
         membership: "open",
         // Anybody may join, and there is no password to type.
         joinPolicy: "open",
-        modules: { ranking: true, questions: false },
+        scoreVisibility: "everyone",
+        modules: { questions: false },
         documents: [],
         props: [],
     });
@@ -625,7 +630,8 @@ export const createDataset = (files: FakeFiles): Dataset => {
         startDate: nowPlus(-hours(1)),
         endDate: nowPlus(hours(4)),
         joinPolicy: "closed",
-        modules: { ranking: true, questions: true },
+        scoreVisibility: "everyone",
+        modules: { questions: true },
         documents: [],
         props: [],
     });
@@ -660,7 +666,9 @@ export const createDataset = (files: FakeFiles): Dataset => {
         // Not in it. This is the one the enrolment form is for.
         membership: "open",
         joinPolicy: "password",
-        modules: { ranking: false, questions: true },
+        // Nobody but a manager: no ranking entry at all.
+        scoreVisibility: "managersOnly",
+        modules: { questions: true },
         documents: [],
         startDate: nowPlus(-days(20)),
         endDate: nowPlus(days(70)),
@@ -691,7 +699,8 @@ export const createDataset = (files: FakeFiles): Dataset => {
             startDate: nowPlus(-days(1000 + i * 365)),
             endDate: nowPlus(-days(1000 + i * 365) + hours(5)),
             joinPolicy: "closed",
-            modules: { ranking: false, questions: false },
+            scoreVisibility: "everyone",
+            modules: { questions: false },
             documents: [],
             finalScore: i,
             maxScore: 8,

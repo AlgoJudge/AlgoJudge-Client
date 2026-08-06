@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, Modal, Pagination, Select, Stack, Table, Text, Title } from "@mantine/core";
+import { Alert, Badge, Button, Group, Modal, Pagination, Select, Stack, Switch, Table, Text, Title } from "@mantine/core";
 import { IconPlus, IconTrash, IconUsersPlus } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -6,6 +6,7 @@ import {
     Grant, ManagedActivity, ManagedUserSummary, PermissionDefinition, PermissionTemplate,
 } from "../../../../api/ManagerApi";
 import LoadState from "../../../../components/LoadState";
+import { isStaffGrant } from "../../../../api/permissions";
 import PermissionSetEditor from "../../../../components/permissions/PermissionSetEditor";
 import TemporaryAccountsModal from "../../../../components/users/TemporaryAccountsModal";
 import ActivityTime from "../../../../components/time/ActivityTime";
@@ -27,6 +28,8 @@ interface Draft {
     userId: string;
     permissions: string[];
     createdFromTemplate?: string;
+    /** What the manager asked for. Ignored where the permissions settle it. */
+    isSystem: boolean;
     existing: boolean;
 }
 
@@ -102,6 +105,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                 userId: draft.userId,
                 activityId: activity.id,
                 permissions: draft.permissions,
+                isSystem: draft.isSystem,
                 createdFromTemplate: draft.createdFromTemplate,
             }));
             setDraft(undefined);
@@ -144,6 +148,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                             userId: "",
                             permissions: participantTemplate ? [...participantTemplate.permissions] : [],
                             createdFromTemplate: participantTemplate?.name,
+                            isSystem: false,
                             existing: false,
                         })}
                     >
@@ -167,7 +172,20 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                     <Table.Tbody>
                         {grants.map(grant => (
                             <Table.Tr key={grant.id}>
-                                <Table.Td><Text fw={500}>{grant.userName}</Text></Table.Td>
+                                <Table.Td>
+                                    <Group gap="xs" wrap="nowrap">
+                                        <Text fw={500}>{grant.userName}</Text>
+                                        {/* Said in the row, because the count
+                                            above it is a count of everybody
+                                            else and the difference has to be
+                                            visible somewhere. */}
+                                        {grant.isSystem && (
+                                            <Badge size="sm" variant="outline" color="gray">
+                                                {t("systemic")}
+                                            </Badge>
+                                        )}
+                                    </Group>
+                                </Table.Td>
                                 <Table.Td>
                                     <Text size="sm" c="dimmed">{grant.createdFromTemplate ?? "—"}</Text>
                                 </Table.Td>
@@ -189,6 +207,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                                                 userId: grant.userId,
                                                 permissions: [...grant.permissions],
                                                 createdFromTemplate: grant.createdFromTemplate,
+                                                isSystem: grant.isSystem,
                                                 existing: true,
                                             })}
                                         >
@@ -252,6 +271,20 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                             grantable={grantable}
                             scope="activity"
                         />
+                        {/* Forced on for staff: a jury member in the ranking
+                            beside the students is a bug, not a preference. Free
+                            for an ordinary membership, where a test account or
+                            the one running the reference solution is exactly
+                            what it is for. */}
+                        <Switch
+                            label={t("Systemic membership")}
+                            description={isStaffGrant(draft.permissions, catalogue)
+                                ? t("Whoever runs the activity does not compete in it, so this cannot be turned off.")
+                                : t("Submits like anybody, counts as nobody: absent from the participant count and from the ranking.")}
+                            checked={isStaffGrant(draft.permissions, catalogue) || draft.isSystem}
+                            onChange={e => setDraft({ ...draft, isSystem: e.currentTarget.checked })}
+                            disabled={isStaffGrant(draft.permissions, catalogue)}
+                        />
                         <Alert color="blue">
                             {t("Nobody may grant a permission they do not hold themselves.")}
                         </Alert>
@@ -273,6 +306,13 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                 run={run}
                 busy={busy}
                 onCreated={() => setReload(n => n + 1)}
+                // Made for this activity, so the slip points at this activity
+                // rather than at the front page somebody would have to search
+                // from.
+                handout={{
+                    url: `${window.location.origin}/activities/${activity.slug}`,
+                    title: activity.name,
+                }}
             />
         </Stack>
     );

@@ -2,6 +2,7 @@ import { Alert, Button, Code, Group, Modal, Stack, Title } from "@mantine/core";
 import { IconDownload } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { CreatedCredential } from "../../api/ManagerApi";
+import { Handout, openHandout } from "./handout";
 
 /**
  * Credentials, handed over once.
@@ -28,11 +29,17 @@ const downloadCredentials = (created: CreatedCredential[]) => {
 };
 
 export default function CredentialsModal({
-    credentials, onClose,
+    credentials, onClose, handout,
 }: {
     /** Undefined closes it: there is nothing to show and nothing to warn about. */
     credentials?: CreatedCredential[];
     onClose: () => void;
+    /**
+     * Where these credentials are used, printed on every slip. It differs by
+     * where they were made — the installation from the user list, the activity
+     * from inside one — so it is asked for rather than guessed.
+     */
+    handout: Handout;
 }) {
     const { t } = useTranslation();
     return (
@@ -60,7 +67,12 @@ export default function CredentialsModal({
                             {t("Download CSV")}
                         </Button>
                         <Group gap="xs">
-                            <Button variant="default" onClick={() => window.print()}>{t("Print")}</Button>
+                            {/* A sheet of its own, not this window: printing
+                                the screen printed a modal on top of an
+                                application, navigation and all. */}
+                            <Button variant="default" onClick={() => openHandout(credentials, handout)}>
+                                {t("Print")}
+                            </Button>
                             <Button onClick={onClose}>{t("Done")}</Button>
                         </Group>
                     </Group>

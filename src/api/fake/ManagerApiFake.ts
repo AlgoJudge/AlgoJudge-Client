@@ -56,6 +56,7 @@ import {
 import { StatementRef } from "../FileApi";
 import { ActivityDocumentKind, ActivityDocumentRef } from "../ParticipantApi";
 import { FakeActivities } from "./FakeActivities";
+import { systemicByDefault } from "../permissions";
 import { ActivityRecord, createActivityLibrary } from "./fixtures/activities";
 import { signedInUserId } from "./CoreApiFake";
 import { buildPackage } from "../../package/build";
@@ -302,9 +303,15 @@ export class ManagerApiFake implements ManagerApi {
             }
         }
 
+        // Settled here rather than taken from the caller, as the Server must
+        // settle it: a staff grant is systemic whatever the request said, and a
+        // flag only the screen maintained would be whatever the next caller
+        // felt like sending.
+        const isSystem = systemicByDefault(input.permissions, PERMISSION_CATALOGUE, input.isSystem);
+
         const existing = this.grants.find(g => g.userId === input.userId && g.activityId === input.activityId);
         const grant: Grant = existing
-            ? { ...existing, ...input, permissions: [...input.permissions] }
+            ? { ...existing, ...input, isSystem, permissions: [...input.permissions] }
             : {
                 id: newId(),
                 userName: MANAGED_USERS.find(u => u.id === input.userId)?.name ?? input.userId,
@@ -313,6 +320,7 @@ export class ManagerApiFake implements ManagerApi {
                 state: "active",
                 createdAt: new Date().toISOString(),
                 ...input,
+                isSystem,
                 permissions: [...input.permissions],
             };
         this.grants = existing
@@ -719,6 +727,10 @@ export class ManagerApiFake implements ManagerApi {
                     activityId: input.activityId,
                     activityName: MANAGED_ACTIVITIES.find(a => a.id === input.activityId)?.name,
                     permissions: [...(input.permissions ?? [])],
+                    // Settled the same way as any other grant: accounts made for
+                    // a class are participants, and one made with a staff set is
+                    // not, whoever asked for it.
+                    isSystem: systemicByDefault(input.permissions ?? [], PERMISSION_CATALOGUE, false),
                     state: "active",
                     createdAt: user.createdAt,
                 }];
@@ -1427,7 +1439,10 @@ export class ManagerApiFake implements ManagerApi {
         const enrolment = this.shared.enrolmentOf(activity.id);
         return {
             ...activity,
-            participantCount: this.grants.filter(g => g.activityId === activity.id).length,
+            // Whoever runs the activity is not competing in it, so the number
+            // beside "Participants" is the number of people actually taking part.
+            participantCount: this.grants
+                .filter(g => g.activityId === activity.id && !g.isSystem).length,
             documents: this.shared.documentsOf(activity.id),
             joinPolicy: enrolment.policy,
             unlisted: enrolment.unlisted,

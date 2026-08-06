@@ -187,12 +187,6 @@ export default function ActivityForm({ value, onChange, slugLocked, disabled }: 
                 <Title order={5} mb="sm">{t("Modules")}</Title>
                 <Group gap="lg" wrap="wrap">
                     <Switch
-                        label={t("Ranking")}
-                        checked={value.modules.ranking}
-                        onChange={e => set({ modules: { ...value.modules, ranking: e.currentTarget.checked } })}
-                        disabled={disabled}
-                    />
-                    <Switch
                         label={t("Questions and announcements")}
                         checked={value.modules.questions}
                         onChange={e => set({ modules: { ...value.modules, questions: e.currentTarget.checked } })}
@@ -201,6 +195,9 @@ export default function ActivityForm({ value, onChange, slugLocked, disabled }: 
                 </Group>
                 <Text size="sm" c="dimmed" mt="xs">
                     {t("A disabled module leaves the participant's sidebar entirely.")}
+                </Text>
+                <Text size="sm" c="dimmed">
+                    {t("The ranking follows who sees scores, below.")}
                 </Text>
                 {/* The rules used to be a switch here. They are a document now,
                     and whether there are any is whether one is published — one
@@ -214,8 +211,12 @@ export default function ActivityForm({ value, onChange, slugLocked, disabled }: 
                 <Title order={5} mb="sm">{t("Visibility and enrolment")}</Title>
                 <Grid>
                     <Grid.Col span={{ base: 12, sm: 4 }}>
+                        {/* One setting, because it is one question. A ranking
+                            switched on where nobody may see a score shows
+                            nothing, and switched off where everybody may see
+                            them withholds what is already public. */}
                         <Select
-                            label={t("Who sees scores")}
+                            label={t("Who sees scores and the ranking")}
                             data={[
                                 { value: "everyone", label: t("scoreVisibility.everyone") },
                                 { value: "participantOnly", label: t("scoreVisibility.participantOnly") },
@@ -223,6 +224,7 @@ export default function ActivityForm({ value, onChange, slugLocked, disabled }: 
                             ]}
                             value={value.scoreVisibility}
                             onChange={v => v && set({ scoreVisibility: v as ScoreVisibility })}
+                            allowDeselect={false}
                             disabled={disabled}
                         />
                     </Grid.Col>

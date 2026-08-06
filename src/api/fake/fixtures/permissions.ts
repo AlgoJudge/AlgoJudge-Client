@@ -1,4 +1,5 @@
 import { Grant, ManagedActivitySummary, ManagedUserSummary, PermissionDefinition, PermissionTemplate } from "../../ManagerApi";
+import { isStaffGrant } from "../../permissions";
 
 /**
  * The permission catalogue and the shipped templates.
@@ -8,8 +9,23 @@ import { Grant, ManagedActivitySummary, ManagedUserSummary, PermissionDefinition
  * standing in for that endpoint, and the two must not drift.
  */
 
+/**
+ * The seven an ordinary participant holds. Everything else is staff, and the
+ * catalogue says which is which — a grant carrying any staff permission is a
+ * membership that runs the activity rather than takes part in it.
+ */
+const PARTICIPANT = [
+    "activity:read",
+    "submission:read:own",
+    "submission:create",
+    "result:read:own",
+    "question:read:own",
+    "question:create",
+    "ranking:read",
+];
+
 const definition = (key: string, group: string, scope: PermissionDefinition["scope"]): PermissionDefinition =>
-    ({ key, group, scope });
+    ({ key, group, scope, participant: PARTICIPANT.includes(key) });
 
 export const PERMISSION_CATALOGUE: PermissionDefinition[] = [
     definition("activity:read", "activity", "activity"),
@@ -76,16 +92,6 @@ export const PERMISSION_CATALOGUE: PermissionDefinition[] = [
     definition("system:administrator", "system", "global"),
 ];
 
-const PARTICIPANT = [
-    "activity:read",
-    "submission:read:own",
-    "submission:create",
-    "result:read:own",
-    "question:read:own",
-    "question:create",
-    "ranking:read",
-];
-
 const MANAGER = [
     ...PARTICIPANT,
     "activity:update", "activity:archive", "activity:enroll",
@@ -145,12 +151,15 @@ export const createTemplates = (): PermissionTemplate[] => [
  * fixture that can spell it differently, and the two screens would then disagree
  * about who somebody is.
  */
-const named = (grant: Omit<Grant, "userName" | "userLogin">): Grant => {
+const named = (grant: Omit<Grant, "userName" | "userLogin" | "isSystem">): Grant => {
     const user = MANAGED_USERS.find(u => u.id === grant.userId);
     return {
         ...grant,
         userName: user?.name ?? grant.userId,
         userLogin: user?.username ?? grant.userId,
+        // Derived, never written down twice: whoever runs the activity is
+        // systemic by virtue of what they may do in it.
+        isSystem: isStaffGrant(grant.permissions, PERMISSION_CATALOGUE),
     };
 };
 

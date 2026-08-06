@@ -3,7 +3,7 @@ import { Event } from "./Event";
 import { StatementRef } from "./FileApi";
 import {
     ActivityDocumentKind, ActivityDocumentRef, DisplayName, JobState, JoinPolicy, Page,
-    QuestionAnswer, QuestionKind,
+    QuestionAnswer, QuestionKind, ScoreVisibility,
 } from "./ParticipantApi";
 
 /**
@@ -33,6 +33,16 @@ export interface PermissionDefinition {
     scope: PermissionScope;
     /** Grouping for the editor: `activity`, `problem`, `submission`, and so on. */
     group: string;
+    /**
+     * Whether an ordinary participant holds it.
+     *
+     * Everything else is staff, and a grant carrying any of it is a membership
+     * that **runs** the activity rather than takes part in it — which is what
+     * decides whether it counts among the competitors. The catalogue says so
+     * because the Server owns the catalogue: a rule the Client kept its own copy
+     * of would be a rule the Server could not enforce.
+     */
+    participant: boolean;
 }
 
 export interface PermissionTemplate {
@@ -73,6 +83,18 @@ export interface Grant {
     activityId?: string;
     activityName?: string;
     permissions: string[];
+    /**
+     * A membership that is not a participation: whoever runs the activity, a
+     * reference solution, a monitor. Submits like anybody, counts as nobody —
+     * absent from `participantCount` and from the ranking.
+     *
+     * **Forced true for a staff grant**, which is any grant carrying a
+     * permission a participant does not hold. A jury member counted among the
+     * competitors is a bug, not a setting somebody might want. On a grant that
+     * holds only a participant's permissions it is free, and off unless
+     * somebody says otherwise.
+     */
+    isSystem: boolean;
     /** Where the set started. Informational: it is not a reference. */
     createdFromTemplate?: string;
     state: GrantState;
@@ -83,6 +105,12 @@ export interface GrantInput {
     userId: string;
     activityId?: string;
     permissions: string[];
+    /**
+     * Ignored where the permissions already settle it: a staff grant is systemic
+     * whatever this says. The Server decides, as it must — a flag only the
+     * Client maintained is a flag the next caller sets to whatever it likes.
+     */
+    isSystem?: boolean;
     createdFromTemplate?: string;
     state?: GrantState;
 }
@@ -121,9 +149,8 @@ export interface ManagedActivitySummary {
  * settings rather than one policy: a manager may want a public scoreboard while
  * the compiler output stays internal.
  */
-export type ScoreVisibility = "everyone" | "participantOnly" | "managersOnly";
 export type LogVisibility = "managersOnly" | "participant";
-export type { JoinPolicy };
+export type { JoinPolicy, ScoreVisibility };
 
 /**
  * An activity as its manager sees it: everything the participant model hides,
@@ -142,7 +169,7 @@ export interface ManagedActivity {
     /** Absent when the activity spans its series instead of stating its own bounds. */
     startDate?: string;
     endDate?: string;
-    modules: { ranking: boolean; questions: boolean };
+    modules: { questions: boolean };
     /**
      * A reference to every document this activity publishes. What exists is what
      * has one; there is no flag beside them saying so.
@@ -194,7 +221,7 @@ export interface ActivityInput {
     timeZone: string;
     startDate?: string;
     endDate?: string;
-    modules: { ranking: boolean; questions: boolean };
+    modules: { questions: boolean };
     scoreVisibility: ScoreVisibility;
     logVisibility: LogVisibility;
     joinPolicy: JoinPolicy;

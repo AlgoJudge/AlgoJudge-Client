@@ -43,6 +43,21 @@ export type DisplayName = string;
 export type ActivityState = "upcoming" | "ongoing" | "finished";
 
 /**
+ * Who may see scores — and, by the same answer, who may see the ranking.
+ *
+ * One setting rather than two. There used to be a `modules.ranking` switch
+ * beside it, which is two answers to one question: a board switched on where
+ * nobody may see a score shows nothing, and a board switched off where everybody
+ * may see them withholds what is already public.
+ *
+ * - `everyone` — the whole board, with places.
+ * - `participantOnly` — the reader's own row, and **no place**: a standing among
+ *   people whose scores they may not see is not a standing.
+ * - `managersOnly` — no ranking screen at all.
+ */
+export type ScoreVisibility = "everyone" | "participantOnly" | "managersOnly";
+
+/**
  * How the signed-in user relates to the activity. The list also shows activities
  * that may be joined, so this is not always "enrolled".
  */
@@ -123,6 +138,12 @@ export interface Activity {
      * still decides, and refuses whatever the form sends if it is wrong.
      */
     joinPolicy: JoinPolicy,
+    /**
+     * Who sees scores, which is also what decides whether the ranking is
+     * offered. Carried to the participant so the navigation can be drawn without
+     * a second field that could disagree with it.
+     */
+    scoreVisibility: ScoreVisibility,
     /** Absent when the activity is not time-limited. */
     startDate?: string,
     endDate?: string,
@@ -136,9 +157,14 @@ export interface Activity {
      * answers to one question and they disagree the moment one is withdrawn.
      */
     documents: ActivityDocumentRef[],
-    /** Which sidebar modules the activity manager enabled. */
+    /**
+     * Which sidebar modules the activity manager enabled.
+     *
+     * Questions alone: the ranking left this list because `scoreVisibility`
+     * already answers it, and the rules left it because whether there are rules
+     * is whether one is published.
+     */
     modules: {
-        ranking: boolean,
         questions: boolean,
     },
     /** Present once the activity has finished. */

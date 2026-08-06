@@ -751,5 +751,12 @@
   "Link to the activity": "Link to the activity",
   "The share link appears once the activity has a slug.": "The share link appears once the activity has a slug.",
   "Anybody with this link and an account can enrol themselves.": "Anybody with this link and an account can enrol themselves.",
-  "Anybody with an account can enrol themselves from this link.": "Anybody with an account can enrol themselves from this link."
+  "Anybody with an account can enrol themselves from this link.": "Anybody with an account can enrol themselves from this link.",
+  "Who sees scores and the ranking": "Who sees scores and the ranking",
+  "The ranking follows who sees scores, below.": "The ranking follows who sees scores, below.",
+  "Go to the problems": "Go to the problems",
+  "Systemic membership": "Systemic membership",
+  "Whoever runs the activity does not compete in it, so this cannot be turned off.": "Whoever runs the activity does not compete in it, so this cannot be turned off.",
+  "Submits like anybody, counts as nobody: absent from the participant count and from the ranking.": "Submits like anybody, counts as nobody: absent from the participant count and from the ranking.",
+  "systemic": "systemic"
 }

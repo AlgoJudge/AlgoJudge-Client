@@ -11,6 +11,7 @@ import ActivityTime from "../../../components/time/ActivityTime";
 import CredentialsModal from "../../../components/users/CredentialsModal";
 import TemporaryAccountsModal from "../../../components/users/TemporaryAccountsModal";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
+import { useInstance } from "../../../provider/instanceContext";
 
 const PAGE_SIZE = 20;
 
@@ -33,6 +34,7 @@ const STATE_COLOUR = { blocked: "red", expired: "gray", pending: "orange", activ
 export default function UsersPage() {
     const { t } = useTranslation();
     const call = useApiCall();
+    const { instance } = useInstance();
 
     const [items, setItems] = useState<ManagedUser[] | undefined>(undefined);
     const [total, setTotal] = useState(0);
@@ -135,6 +137,13 @@ export default function UsersPage() {
         }
     };
 
+
+    // Accounts made here are not tied to one activity, so the slip points at the
+    // installation's front page and names the installation.
+    const handout = {
+        url: window.location.origin + "/",
+        title: instance.name ?? "AlgoJudge",
+    };
 
     if (!items) return <LoadState error={loadError} loading={!loadError} />;
 
@@ -607,7 +616,11 @@ export default function UsersPage() {
                 </Stack>
             </Modal>
 
-            <CredentialsModal credentials={credentials} onClose={() => setCredentials(undefined)} />
+            <CredentialsModal
+                credentials={credentials}
+                onClose={() => setCredentials(undefined)}
+                handout={handout}
+            />
 
             <TemporaryAccountsModal
                 opened={bulk.open}
@@ -617,6 +630,7 @@ export default function UsersPage() {
                 run={run}
                 busy={busy}
                 onCreated={() => setReload(n => n + 1)}
+                handout={handout}
             />
         </Stack>
     );

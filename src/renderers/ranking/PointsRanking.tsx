@@ -86,6 +86,12 @@ export default function PointsRanking({ ranking, timeZone }: RankingProps) {
     const document = isRecord(ranking) ? ranking : {};
     const series = asArray(document.series).map(parseSeries).filter((s): s is SeriesColumn => !!s);
     const rows = asArray(document.rows).map(parseRow).filter((r): r is Row => !!r);
+
+    // Whether anybody has a place. Under `participantOnly` the Server sends the
+    // reader's row alone and omits `rank`, because a standing among people whose
+    // scores you may not see is not a standing — and a blank column under a "#"
+    // reads as a bug rather than as a deliberate omission.
+    const placed = rows.some(row => row.rank !== undefined);
     const me = asString(document.me);
 
 
@@ -118,7 +124,7 @@ export default function PointsRanking({ ranking, timeZone }: RankingProps) {
                 <Table stickyHeader striped highlightOnHover withColumnBorders tabularNums>
                     <Table.Thead>
                         <Table.Tr>
-                            <Table.Th>{t("Place")}</Table.Th>
+                            {placed && <Table.Th>{t("Place")}</Table.Th>}
                             <Table.Th>{t("Contestant")}</Table.Th>
                             <Table.Th>{t("Solved")}</Table.Th>
                             <Table.Th>{t("Sum")}</Table.Th>
@@ -147,7 +153,7 @@ export default function PointsRanking({ ranking, timeZone }: RankingProps) {
                                 ref={row.id === me ? myRow : undefined}
                                 className={row.id === me ? classes.me : undefined}
                             >
-                                <Table.Td>{row.rank}</Table.Td>
+                                {placed && <Table.Td>{row.rank}</Table.Td>}
                                 <Table.Td>{row.name}</Table.Td>
                                 <Table.Td>{row.solved}</Table.Td>
                                 <Table.Td><Text fw={600}>{row.total}</Text></Table.Td>

@@ -105,6 +105,12 @@ export default function IcpcRanking({ ranking, timeZone }: RankingProps) {
         .map(p => isRecord(p) ? { slug: asString(p.slug) ?? "", name: asString(p.name) ?? "" } : undefined)
         .filter((p): p is { slug: string; name: string } => !!p);
     const rows = asArray(ranking.rows).map(parseRow).filter((r): r is Row => !!r);
+
+    // Whether anybody has a place. Under `participantOnly` the Server sends the
+    // reader's row alone and omits `rank`, because a standing among people whose
+    // scores you may not see is not a standing — and a blank column under a "#"
+    // reads as a bug rather than as a deliberate omission.
+    const placed = rows.some(row => row.rank !== undefined);
     const me = asString(ranking.me);
 
     // A board with nobody on it is a normal state — an activity that has not
@@ -131,7 +137,7 @@ export default function IcpcRanking({ ranking, timeZone }: RankingProps) {
                 <Table stickyHeader striped highlightOnHover withColumnBorders tabularNums>
                     <Table.Thead>
                         <Table.Tr>
-                            <Table.Th>{t("Place")}</Table.Th>
+                            {placed && <Table.Th>{t("Place")}</Table.Th>}
                             <Table.Th>{t("Contestant")}</Table.Th>
                             <Table.Th>{t("Solved")}</Table.Th>
                             <Table.Th>{t("Penalty")}</Table.Th>
@@ -149,7 +155,7 @@ export default function IcpcRanking({ ranking, timeZone }: RankingProps) {
                                 ref={row.id === me ? myRow : undefined}
                                 className={row.id === me ? classes.me : undefined}
                             >
-                                <Table.Td>{row.rank}</Table.Td>
+                                {placed && <Table.Td>{row.rank}</Table.Td>}
                                 <Table.Td>{row.name}</Table.Td>
                                 <Table.Td>{row.solved}</Table.Td>
                                 <Table.Td>{row.penalty}</Table.Td>

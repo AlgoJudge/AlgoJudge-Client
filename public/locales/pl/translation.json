@@ -751,5 +751,12 @@
   "Link to the activity": "Link do aktywności",
   "The share link appears once the activity has a slug.": "Link pojawi się, gdy aktywność ma identyfikator.",
   "Anybody with this link and an account can enrol themselves.": "Każdy, kto ma ten link i konto, zapisze się sam.",
-  "Anybody with an account can enrol themselves from this link.": "Każdy, kto ma konto, zapisze się sam z tego linku."
+  "Anybody with an account can enrol themselves from this link.": "Każdy, kto ma konto, zapisze się sam z tego linku.",
+  "Who sees scores and the ranking": "Kto widzi punkty i ranking",
+  "The ranking follows who sees scores, below.": "Ranking zależy od tego, kto widzi punkty — pole niżej.",
+  "Go to the problems": "Przejdź do zadań",
+  "Systemic membership": "Członkostwo systemowe",
+  "Whoever runs the activity does not compete in it, so this cannot be turned off.": "Kto prowadzi aktywność, ten w niej nie startuje — tego nie da się wyłączyć.",
+  "Submits like anybody, counts as nobody: absent from the participant count and from the ranking.": "Wysyła zgłoszenia jak każdy, nie liczy się jak nikt: poza licznikiem uczestników i poza rankingiem.",
+  "systemic": "systemowe"
 }
