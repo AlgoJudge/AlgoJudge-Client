@@ -3,7 +3,7 @@ import { IconAlertTriangle, IconArrowRight, IconListDetails, IconLogin, IconSett
 import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { pickDocumentRef } from "../../api/instanceDocuments";
+import { LOGO_ATTACHMENT, pickDocumentRef } from "../../api/instanceDocuments";
 import { Activity, Attachment } from "../../api/ParticipantApi";
 import ActivityTime from "../../components/time/ActivityTime";
 import { MANAGER_PERMISSIONS } from "../manager/managerAreas";
@@ -29,7 +29,6 @@ const ContentView = lazy(() => import("../../content/ContentView"));
  * the page cannot reach outside the instance.
  */
 
-const LOGO_ATTACHMENT = "logo.svg";
 
 export default function HomePage() {
     const { t, i18n } = useTranslation();

@@ -21,6 +21,22 @@ export const publishedLegalKinds = (refs: InstanceDocumentRef[]): LegalDocumentK
     LEGAL_ORDER.filter(kind => refs.some(ref => ref.kind === kind));
 
 /**
+ * Every kind an operator may publish, in the order the settings screen lists
+ * them: the pages a visitor lands on first, then the documents.
+ */
+export const DOCUMENT_KINDS: InstanceDocumentKind[] = ["welcome", "home", ...LEGAL_ORDER];
+
+/**
+ * The one attachment an instance document may point at: the instance's own
+ * mark.
+ *
+ * A document of the operator's has no attachments of its own — there is no
+ * screen to upload one — but every one of them may want to show the mark, so it
+ * is offered under a fixed name and resolved to whatever mark is configured.
+ */
+export const LOGO_ATTACHMENT = "logo.svg";
+
+/**
  * The document to show, for one kind and one interface language.
  *
  * The reader's language where the operator wrote it, and what they wrote first

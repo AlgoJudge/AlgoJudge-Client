@@ -1,7 +1,7 @@
 import {
-    Icon, IconAlignBoxCenterTop, IconBox, IconDevicesPc, IconIdBadge2, IconKey, IconListDetails,
-    IconMessageQuestion, IconNotes, IconPrinter, IconProps, IconServer, IconUserCheck, IconUsers,
-    IconWorldWww,
+    Icon, IconAlignBoxCenterTop, IconBox, IconBuildingCommunity, IconDevicesPc, IconIdBadge2, IconKey,
+    IconListDetails, IconMessageQuestion, IconNotes, IconPrinter, IconProps, IconServer, IconUserCheck,
+    IconUsers, IconWorldWww,
 } from "@tabler/icons-react";
 
 /**
@@ -85,6 +85,13 @@ export const MANAGER_AREAS: ManagerArea[] = [
         description: "The machines that evaluate: approval, tags and their reports.",
         icon: IconServer,
         permissions: ["runner:read"],
+    },
+    {
+        to: "/manager/instance",
+        label: "Instance",
+        description: "What this installation is called, the mark it shows, and the documents it publishes.",
+        icon: IconBuildingCommunity,
+        permissions: ["instance:update"],
     },
     // Directions rather than features. No permission of their own: they are dead
     // entries that lead nowhere and disclose nothing, and hiding them would make

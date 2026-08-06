@@ -67,6 +67,12 @@ export const PERMISSION_CATALOGUE: PermissionDefinition[] = [
     definition("runner:revoke", "runner", "global"),
     definition("runner:update", "runner", "global"),
 
+    // Configuring the installation: its name, its mark, the documents it
+    // publishes. Global by construction — there is one instance — and not part
+    // of the manager set, because running an activity is not running the
+    // installation it lives in.
+    definition("instance:update", "instance", "global"),
+
     definition("system:administrator", "system", "global"),
 ];
 
