@@ -697,5 +697,6 @@
   "Could not read the sessions": "Could not read the sessions",
   "No sessions. Nobody is signed in as this account.": "No sessions. Nobody is signed in as this account.",
   "A blocked account has no sessions: blocking ends them and stops new ones.": "A blocked account has no sessions: blocking ends them and stops new ones.",
-  "A session is active while the browser holds a connection to the Server. Signing out is not the same as closing the tab.": "A session is active while the browser holds a connection to the Server. Signing out is not the same as closing the tab."
+  "A session is active while the browser holds a connection to the Server. Signing out is not the same as closing the tab.": "A session is active while the browser holds a connection to the Server. Signing out is not the same as closing the tab.",
+  "In force since": "In force since"
 }

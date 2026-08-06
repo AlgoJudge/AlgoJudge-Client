@@ -77,10 +77,13 @@ export default function LegalPage() {
             <Stack gap="md">
                 <Group justify="space-between" align="baseline" wrap="wrap">
                     <Title order={2}>{title}</Title>
-                    {document.updatedAt && (
+                    {/* Not "updated": a document that has been replaced is still
+                        readable at its own date, and what a reader needs to know
+                        is which revision they are looking at. */}
+                    {document.validFrom && (
                         <Text size="sm" c="dimmed">
-                            {t("Updated")}:{" "}
-                            <ActivityTime value={document.updatedAt} timeZone="Europe/Warsaw" format="date" hideZone />
+                            {t("In force since")}:{" "}
+                            <ActivityTime value={document.validFrom} timeZone="Europe/Warsaw" format="date" hideZone />
                         </Text>
                     )}
                 </Group>

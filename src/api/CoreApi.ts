@@ -109,7 +109,20 @@ export interface InstanceDocument {
      * already in the header and the footer, so a document needs no second one.
      */
     translations?: InstanceDocumentTranslation[],
-    updatedAt?: string,
+    /**
+     * When this revision came into force.
+     *
+     * Instance documents are **versioned**: publishing a new one adds a
+     * revision rather than replacing the last, so "which policy was in force on
+     * the third of August" stays answerable — a question that gets asked about a
+     * privacy policy for real, and by somebody who is owed an answer. The reader
+     * is served the newest revision whose `validFrom` has passed, which also
+     * lets an operator publish new terms ahead of the date they take effect.
+     *
+     * Absent on a document that shipped with the software: a template names the
+     * wrong controller and is in force over nothing.
+     */
+    validFrom?: string,
     /**
      * True while the operator is still using what shipped with the software.
      * A template names the wrong controller, so the screen has to say so out
