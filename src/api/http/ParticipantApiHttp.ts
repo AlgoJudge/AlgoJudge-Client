@@ -2,6 +2,7 @@ import {
     Activity,
     ActivityFilter,
     AskQuestionInput,
+    EnrolInput,
     Page,
     ParticipantApi,
     ProblemDetail,
@@ -47,6 +48,11 @@ export class ParticipantApiHttp implements ParticipantApi {
 
     getActivity(idOrSlug: string, signal: AbortSignal): Promise<Activity> {
         return this.http.request<Activity>(`/activities/${encodeURIComponent(idOrSlug)}`, "GET", { signal });
+    }
+
+    enroll(idOrSlug: string, input: EnrolInput, signal: AbortSignal): Promise<Activity> {
+        return this.http.request<Activity>(
+            `/activities/${encodeURIComponent(idOrSlug)}/enrolment`, "POST", { body: input, signal });
     }
 
     getSeries(activityId: string, signal: AbortSignal): Promise<Series[]> {
@@ -138,9 +144,6 @@ export class ParticipantApiHttp implements ParticipantApi {
             "POST", { signal });
     }
 
-    getRules(activityId: string, signal: AbortSignal): Promise<unknown> {
-        return this.http.request<unknown>(`/activities/${encodeURIComponent(activityId)}/rules`, "GET", { signal });
-    }
 }
 
 /** Drops absent parameters so they never reach the URL as `undefined`. */

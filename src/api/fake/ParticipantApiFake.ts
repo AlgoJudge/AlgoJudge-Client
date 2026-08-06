@@ -3,6 +3,7 @@ import {
     Activity,
     ActivityFilter,
     AskQuestionInput,
+    EnrolInput,
     JobState,
     Page,
     ParticipantApi,
@@ -15,6 +16,8 @@ import {
     SubmissionSummary,
     SubmitPayload,
 } from "../ParticipantApi";
+import { FakeActivities } from "./FakeActivities";
+import { FakeFiles } from "./FileApiFake";
 import { createDataset, Dataset, OPENING_SERIES_DELAY } from "./fixtures";
 import { Utils } from "./Utils";
 import { sha256 } from "../../utils/sha256";
@@ -54,11 +57,16 @@ const notFound = (what: string): never => Utils.throwError(`${what} does not exi
  * discover a bug in it.
  */
 class FakeParticipantState {
-    private readonly data: Dataset = createDataset();
+    private readonly data: Dataset;
     private readonly timers: ReturnType<typeof setTimeout>[] = [];
     private started = false;
 
-    constructor(private readonly events: ParticipantEventDispatcherImpl) {}
+    constructor(
+        private readonly events: ParticipantEventDispatcherImpl,
+        files: FakeFiles,
+    ) {
+        this.data = createDataset(files);
+    }
 
     dataset(): Dataset {
         this.start();
@@ -213,26 +221,79 @@ class FakeParticipantState {
 
 export class ParticipantApiFake implements ParticipantApi {
     readonly eventDispatcher: ParticipantEventDispatcherImpl = new ParticipantEventDispatcherImpl();
-    private readonly state = new FakeParticipantState(this.eventDispatcher);
+    private readonly state: FakeParticipantState;
 
-    constructor(private sleepMs: number = 300) {}
+    constructor(
+        files: FakeFiles,
+        /** Shared with the manager fake: one owner for what an activity publishes. */
+        private readonly shared: FakeActivities,
+        private sleepMs: number = 300,
+    ) {
+        this.state = new FakeParticipantState(this.eventDispatcher, files);
+    }
 
     async getActivities(filter: ActivityFilter, signal: AbortSignal): Promise<Page<Activity>> {
         await this.settle(signal);
         const { activities } = this.state.dataset();
         const states = filter.states ?? [];
         const types = filter.types ?? [];
-        const matched = activities.filter(a =>
-            (states.length === 0 || states.includes(a.state)) &&
-            (types.length === 0 || types.includes(a.type.split("@")[0])));
-        return copy(paginate(matched, filter.page, filter.pageSize));
+        const matched = activities
+            // What the Server withholds, the fake withholds: an activity that is
+            // closed, or hidden from people who are not in it, is not in the
+            // answer at all. Filtering it in a screen would be a rule anybody
+            // could turn off with the developer tools.
+            .filter(a => this.shared.isListed(a.id, this.isMember(a)))
+            .filter(a =>
+                (states.length === 0 || states.includes(a.state)) &&
+                (types.length === 0 || types.includes(a.type.split("@")[0])));
+        return copy(paginate(matched.map(a => this.dressed(a)), filter.page, filter.pageSize));
     }
 
     async getActivity(idOrSlug: string, signal: AbortSignal): Promise<Activity> {
         await this.settle(signal);
         const { activities } = this.state.dataset();
         const activity = activities.find(a => a.id === idOrSlug || a.slug === idOrSlug);
-        return activity ? copy(activity) : notFound("Activity");
+        // Answered even when the reader is not in it: the activity's own page is
+        // how somebody decides whether to join, and it needs the welcome
+        // document and the policy to draw the form.
+        return activity ? copy(this.dressed(activity)) : notFound("Activity");
+    }
+
+    async enroll(idOrSlug: string, input: EnrolInput, signal: AbortSignal): Promise<Activity> {
+        await this.settle(signal);
+        const { activities } = this.state.dataset();
+        const activity = activities.find(a => a.id === idOrSlug || a.slug === idOrSlug);
+        if (!activity) return notFound("Activity");
+        // Throws exactly as the Server will, and the form tells a wrong password
+        // from a refusal by the code on the error.
+        this.shared.join(activity.id, input.password);
+        const joined = this.dressed(activity);
+        // Being in an activity changes what every screen showing it may draw —
+        // the sidebar most of all — so it is announced rather than left for the
+        // one screen that asked to notice.
+        this.eventDispatcher.dispatchEvent({
+            type: "activityUpdated",
+            data: { activity: copy(joined) },
+        });
+        return copy(joined);
+    }
+
+    /**
+     * The activity as it leaves the fake: its documents and its join policy come
+     * from the shared store, so publishing one in the manager screen shows up
+     * here without a reload.
+     */
+    private dressed(activity: Activity): Activity {
+        return {
+            ...activity,
+            membership: this.isMember(activity) ? "enrolled" : activity.membership,
+            joinPolicy: this.shared.enrolmentOf(activity.id).policy,
+            documents: this.shared.documentsOf(activity.id),
+        };
+    }
+
+    private isMember(activity: Activity): boolean {
+        return activity.membership === "enrolled" || this.shared.hasJoined(activity.id);
     }
 
     async getSeries(activityId: string, signal: AbortSignal): Promise<Series[]> {
@@ -377,12 +438,6 @@ export class ParticipantApiFake implements ParticipantApi {
         await this.settle(signal);
         const question = this.state.dataset().questions.get(activityId)?.find(q => q.id === questionId);
         if (question) question.isRead = true;
-    }
-
-    async getRules(activityId: string, signal: AbortSignal): Promise<unknown> {
-        await this.settle(signal);
-        const rules = this.state.dataset().rules.get(activityId);
-        return rules !== undefined ? copy(rules) : notFound("Rules");
     }
 
     /** Latency, then the abort check — so a cancelled view never sees a result. */

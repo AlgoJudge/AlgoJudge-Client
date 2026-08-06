@@ -14,6 +14,7 @@ import RegisterPage from './pages/register/RegisterPage';
 import AppLayout from './layouts/app/AppLayout';
 import SessionShell from './layouts/SessionShell';
 import ActivitiesPage from './pages/activities/ActivitiesPage';
+import ActivityPage from './pages/activities/activity_id/ActivityPage';
 import ProblemsPage from './pages/activities/activity_id/problems/ProblemsPage';
 import SubmitPage from './pages/activities/activity_id/submit/SubmitPage';
 import SubmissionsPage from './pages/activities/activity_id/submissions/SubmissionsPage';
@@ -132,6 +133,13 @@ function App() {
                 {
                     path: "/activities",
                     element: <ActivitiesPage />
+                },
+                {
+                    // The activity's own page: what its organiser wrote, or the
+                    // form to enrol for somebody who is not in it yet. Exact, so
+                    // it does not swallow the screens below it.
+                    path: "/activities/:activityId",
+                    element: <ActivityPage />
                 },
                 {
                     path: "/activities/:activityId/problems",

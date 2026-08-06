@@ -1,6 +1,16 @@
 import { ManagedActivity, ManagedSeries, ManagedSeriesProblem } from "../../ManagerApi";
 
 /**
+ * The course's join password.
+ *
+ * Here rather than in the participant fixtures because this is where the
+ * setting is authored: a manager types it, and the participant side only ever
+ * checks what somebody typed against it. Shared so the two halves of the fake
+ * cannot drift into disagreeing about what the link in the email says.
+ */
+export const COURSE_JOIN_PASSWORD = "PROG1-LA";
+
+/**
  * Activities as a manager sees them.
  *
  * The same four the grant editor scopes to, so the two screens agree on what
@@ -64,10 +74,12 @@ export const createActivityLibrary = (): ActivityRecord[] => [
             timeZone: "Europe/Warsaw",
             startDate: hours(-1),
             endDate: hours(4),
-            modules: { ranking: true, questions: true, rules: true },
+            modules: { ranking: true, questions: true },
+            documents: [],
             scoreVisibility: "everyone",
             logVisibility: "managersOnly",
             joinPolicy: "closed",
+            unlisted: true,
             maxUploadBytes: 8 * 1024 * 1024,
             maxAttachments: 1,
             maxSubmissionsPerProblem: 20,
@@ -123,10 +135,13 @@ export const createActivityLibrary = (): ActivityRecord[] => [
             type: "course@1",
             rankingType: "points",
             timeZone: "Europe/Warsaw",
-            modules: { ranking: true, questions: true, rules: false },
+            modules: { ranking: true, questions: true },
+            documents: [],
             scoreVisibility: "participantOnly",
             logVisibility: "participant",
-            joinPolicy: "invitation",
+            joinPolicy: "password",
+            unlisted: true,
+            joinPassword: COURSE_JOIN_PASSWORD,
             maxUploadBytes: 4 * 1024 * 1024,
             maxAttachments: 3,
             seriesCount: 2,
@@ -173,10 +188,12 @@ export const createActivityLibrary = (): ActivityRecord[] => [
             type: "practice@1",
             rankingType: "points",
             timeZone: "Europe/Warsaw",
-            modules: { ranking: false, questions: false, rules: true },
+            modules: { ranking: false, questions: false },
+            documents: [],
             scoreVisibility: "everyone",
             logVisibility: "participant",
             joinPolicy: "open",
+            unlisted: false,
             maxUploadBytes: 8 * 1024 * 1024,
             maxAttachments: 1,
             seriesCount: 1,
@@ -207,10 +224,12 @@ export const createActivityLibrary = (): ActivityRecord[] => [
             timeZone: "Europe/Warsaw",
             startDate: days(-120),
             endDate: days(-119),
-            modules: { ranking: true, questions: false, rules: false },
+            modules: { ranking: true, questions: false },
+            documents: [],
             scoreVisibility: "managersOnly",
             logVisibility: "managersOnly",
             joinPolicy: "closed",
+            unlisted: true,
             maxUploadBytes: 8 * 1024 * 1024,
             maxAttachments: 1,
             archivedAt: days(-100),

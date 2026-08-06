@@ -1,5 +1,5 @@
 import { Api } from "./Api";
-import { FileApi, UploadedFile } from "./FileApi";
+import { FileApi, StatementRef, UploadedFile } from "./FileApi";
 import { InstanceDocumentKind, InstanceDocumentRef } from "./CoreApi";
 import {
     CoreApi,
@@ -55,7 +55,6 @@ import {
     ProblemChangedEvent,
     QuestionChangedEvent,
     SeriesChangedEvent,
-    StatementVariant,
     SubmissionChangedEvent,
     RunnerChangedEvent,
     SeriesInput,
@@ -72,11 +71,14 @@ import {
     Activity,
     ActivityCreatedEvent,
     ActivityDeletedEvent,
+    ActivityDocumentKind,
+    ActivityDocumentRef,
     ActivityFilter,
     ActivityTimesChangedEvent,
     ActivityUpdatedEvent,
     AnnouncementPublishedEvent,
     AskQuestionInput,
+    EnrolInput,
     Page,
     ParticipantApi,
     ParticipantEvent,
@@ -228,6 +230,9 @@ export class ScopedParticipantApi {
     getActivity(idOrSlug: string): Promise<Activity> {
         return this.participantApi.getActivity(idOrSlug, this.signal);
     }
+    enroll(idOrSlug: string, input: EnrolInput = {}): Promise<Activity> {
+        return this.participantApi.enroll(idOrSlug, input, this.signal);
+    }
 
     getSeries(activityId: string): Promise<Series[]> {
         return this.participantApi.getSeries(activityId, this.signal);
@@ -261,10 +266,6 @@ export class ScopedParticipantApi {
     }
     markQuestionRead(activityId: string, questionId: string): Promise<void> {
         return this.participantApi.markQuestionRead(activityId, questionId, this.signal);
-    }
-
-    getRules(activityId: string): Promise<unknown> {
-        return this.participantApi.getRules(activityId, this.signal);
     }
 }
 
@@ -408,6 +409,16 @@ export class ScopedManagerApi {
         return this.managerApi.deleteActivity(id, this.signal);
     }
 
+    publishActivityDocument(activityId: string, kind: ActivityDocumentKind, statements: NewStatement[]): Promise<ManagedActivity> {
+        return this.managerApi.publishActivityDocument(activityId, kind, statements, this.signal);
+    }
+    unpublishActivityDocument(activityId: string, kind: ActivityDocumentKind): Promise<ManagedActivity> {
+        return this.managerApi.unpublishActivityDocument(activityId, kind, this.signal);
+    }
+    getActivityDocumentHistory(activityId: string, kind: ActivityDocumentKind): Promise<ActivityDocumentRef[]> {
+        return this.managerApi.getActivityDocumentHistory(activityId, kind, this.signal);
+    }
+
     getSeries(activityId: string): Promise<ManagedSeries[]> {
         return this.managerApi.getSeries(activityId, this.signal);
     }
@@ -503,7 +514,7 @@ export class ScopedManagerApi {
     getProblemVersions(problemId: string): Promise<ManagedProblemVersion[]> {
         return this.managerApi.getProblemVersions(problemId, this.signal);
     }
-    getProblemContent(problemId: string, versionId: string): Promise<StatementVariant[]> {
+    getProblemContent(problemId: string, versionId: string): Promise<StatementRef[]> {
         return this.managerApi.getProblemContent(problemId, versionId, this.signal);
     }
     createProblemVersion(problemId: string, input: ProblemVersionInput): Promise<ManagedProblemVersion> {

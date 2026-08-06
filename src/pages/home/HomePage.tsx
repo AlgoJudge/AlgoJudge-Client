@@ -3,6 +3,7 @@ import { IconAlertTriangle, IconArrowRight, IconListDetails, IconLogin, IconSett
 import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import { activityEntryPath } from "../../api/activityDocuments";
 import { LOGO_ATTACHMENT, pickDocumentRef } from "../../api/instanceDocuments";
 import { Activity, Attachment } from "../../api/ParticipantApi";
 import ActivityTime from "../../components/time/ActivityTime";
@@ -142,7 +143,7 @@ export default function HomePage() {
                                             withBorder
                                             radius="md"
                                             component={Link}
-                                            to={`/activities/${activity.slug}/problems`}
+                                            to={activityEntryPath(activity)}
                                             h="100%"
                                         >
                                             <Stack gap={6}>

@@ -1,5 +1,5 @@
 import {
-    Alert, Badge, Button, Card, Center, FileButton, Group, Image, Loader, Stack, Switch, Table, Tabs,
+    Alert, Button, Card, Center, FileButton, Group, Image, Stack, Switch, Tabs,
     Text, TextInput, Title, Tooltip,
 } from "@mantine/core";
 import { IconAlertTriangle, IconTrash, IconUpload } from "@tabler/icons-react";
@@ -8,10 +8,7 @@ import { useTranslation } from "react-i18next";
 import { InstanceDocumentKind, InstanceDocumentRef } from "../../../api/CoreApi";
 import { InstanceSettingsInput } from "../../../api/ManagerApi";
 import { DOCUMENT_KINDS, LOGO_ATTACHMENT } from "../../../api/instanceDocuments";
-import ContentEditor from "../../../components/content/ContentEditor";
-import LanguageTabs, { DEFAULT_LANGUAGE } from "../../../components/content/LanguageTabs";
-import ActivityTime from "../../../components/time/ActivityTime";
-import { tryValidateContent } from "../../../content/validate";
+import SharedDocumentsPanel from "../../../components/content/DocumentsPanel";
 import { useApiCall } from "../../../provider/apiContext";
 import { useInstance } from "../../../provider/instanceContext";
 import { sha256 } from "../../../utils/sha256";
@@ -264,189 +261,33 @@ function MarkPanel({ busy, run, store }: PanelProps) {
 }
 
 /**
- * The six documents an operator owns, each publishable or absent.
+ * The six documents an operator owns.
  *
- * The same editor a problem statement is written in, for the same reason: it is
- * the same format, validated by the same validator, drawn by the same renderer.
+ * The panel itself is shared with the activity screen, which publishes its own
+ * three the same way. What differs is here: which kinds exist, what they are
+ * called, and the calls that read and write them.
  */
 function DocumentsPanel({ busy, run, store, logoUrl }: PanelProps & { logoUrl?: string }) {
     const { t } = useTranslation();
     const call = useApiCall();
     const { instance } = useInstance();
 
-    const [kind, setKind] = useState<InstanceDocumentKind | undefined>(undefined);
-    const [sources, setSources] = useState<Record<string, string>>({});
-    const [editing, setEditing] = useState(DEFAULT_LANGUAGE);
-    const [history, setHistory] = useState<InstanceDocumentRef[] | undefined>(undefined);
-    const [loading, setLoading] = useState(false);
-
-    const published = (of: InstanceDocumentKind) => instance.documents.filter(ref => ref.kind === of);
-
-    /** Opens one for editing: its text, in every language it has. */
-    const open = (of: InstanceDocumentKind) => void run(async () => {
-        setKind(of);
-        setEditing(DEFAULT_LANGUAGE);
-        setLoading(true);
-        try {
-            const refs = published(of);
-            const texts: Record<string, string> = {};
-            for (const ref of refs) {
-                texts[ref.language ?? DEFAULT_LANGUAGE] = await call(api => api.fileApi.getText(ref.fileId));
-            }
-            // A document nobody has published starts empty rather than from the
-            // template: replacing it is the point, and a copy of the template
-            // would be published as though it were the operator's own words.
-            setSources(Object.keys(texts).length > 0 ? texts : { [DEFAULT_LANGUAGE]: "" });
-            setHistory(await call(api => api.managerApi.getInstanceDocumentHistory(of)));
-        } finally {
-            setLoading(false);
-        }
-    });
-
-    const publish = () => void run(async () => {
-        if (!kind) return;
-        // Every language, not only the one on screen: publishing a broken
-        // translation nobody looked at is exactly how it would happen.
-        for (const [tag, text] of Object.entries(sources)) {
-            const parsed = tryValidateContent(text);
-            if ("error" in parsed) {
-                throw new Error(tag === DEFAULT_LANGUAGE
-                    ? parsed.error.message
-                    : `${tag}: ${parsed.error.message}`);
-            }
-        }
-        const statements = await Promise.all(Object.entries(sources).map(async ([tag, text]) => {
-            const forLanguage = tag === DEFAULT_LANGUAGE ? undefined : tag;
-            const stored = await store(
-                new Blob([text], { type: "text/markdown" }),
-                documentFileName(kind, forLanguage));
-            return { language: forLanguage, fileId: stored.id };
-        }));
-        await call(api => api.managerApi.publishInstanceDocument(kind, statements));
-        setHistory(await call(api => api.managerApi.getInstanceDocumentHistory(kind)));
-    });
-
-    const unpublish = () => void run(async () => {
-        if (!kind) return;
-        await call(api => api.managerApi.unpublishInstanceDocument(kind));
-        setHistory(await call(api => api.managerApi.getInstanceDocumentHistory(kind)));
-    });
-
-    const attachments = logoUrl ? [{ name: LOGO_ATTACHMENT, mimeType: "image/svg+xml" }] : [];
-    const languages = Object.keys(sources);
-    const source = sources[editing] ?? "";
-
     return (
-        <Stack gap="md">
-            <Card withBorder radius="sm" p={0}>
-                <Table striped highlightOnHover>
-                    <Table.Thead>
-                        <Table.Tr>
-                            <Table.Th>{t("Document")}</Table.Th>
-                            <Table.Th>{t("State")}</Table.Th>
-                            <Table.Th>{t("Languages")}</Table.Th>
-                            <Table.Th />
-                        </Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                        {DOCUMENT_KINDS.map(of => {
-                            const refs = published(of);
-                            return (
-                                <Table.Tr key={of}>
-                                    <Table.Td>
-                                        <Text
-                                            fw={500}
-                                            style={{ cursor: "pointer" }}
-                                            onClick={() => open(of)}
-                                        >
-                                            {t(`legal.${of}`)}
-                                        </Text>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        {refs.length === 0
-                                            ? <Badge variant="light" color="gray">{t("not published")}</Badge>
-                                            : refs[0].isTemplate
-                                                ? <Badge variant="light" color="orange">{t("template")}</Badge>
-                                                : <Badge variant="light" color="teal">{t("published")}</Badge>}
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Text size="sm" c="dimmed" ff="monospace">
-                                            {refs.map(ref => ref.language ?? "*").join(" ") || "—"}
-                                        </Text>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Group justify="flex-end">
-                                            <Button variant="light" size="compact-sm" onClick={() => open(of)}>
-                                                {refs.length === 0 ? t("Write") : t("Edit")}
-                                            </Button>
-                                        </Group>
-                                    </Table.Td>
-                                </Table.Tr>
-                            );
-                        })}
-                    </Table.Tbody>
-                </Table>
-            </Card>
-
-            {kind && (
-                <Card withBorder radius="sm">
-                    <Stack gap="sm">
-                        <Group justify="space-between" wrap="wrap">
-                            <Title order={4}>{t(`legal.${kind}`)}</Title>
-                            <Group gap="xs">
-                                {published(kind).length > 0 && (
-                                    <Button variant="light" color="red" size="compact-sm" loading={busy} onClick={unpublish}>
-                                        {t("Stop publishing")}
-                                    </Button>
-                                )}
-                                <Button size="compact-sm" loading={busy} onClick={publish}>{t("Publish")}</Button>
-                            </Group>
-                        </Group>
-
-                        {loading ? <Center my="md"><Loader /></Center> : (
-                            <>
-                                <LanguageTabs
-                                    value={editing}
-                                    languages={languages}
-                                    onChange={setEditing}
-                                    onAdd={tag => { setSources({ ...sources, [tag]: "" }); setEditing(tag); }}
-                                    onRemove={tag => {
-                                        const rest = { ...sources };
-                                        delete rest[tag];
-                                        setSources(rest);
-                                        if (editing === tag) setEditing(DEFAULT_LANGUAGE);
-                                    }}
-                                />
-                                <ContentEditor
-                                    value={source}
-                                    onChange={value => setSources({ ...sources, [editing]: value })}
-                                    attachments={attachments}
-                                />
-                            </>
-                        )}
-
-                        {history && history.length > 0 && (
-                            <Stack gap={4}>
-                                <Text size="sm" fw={500}>{t("Earlier revisions")}</Text>
-                                {/* Kept rather than replaced: which policy was in
-                                    force on a given day is a question somebody is
-                                    owed an answer to. */}
-                                {history.map((ref, index) => (
-                                    <Text key={`${ref.fileId}-${index}`} size="xs" c="dimmed">
-                                        {ref.language ?? t("Default statement")}
-                                        {ref.validFrom ? <> · <ActivityTime value={ref.validFrom} timeZone="Europe/Warsaw" hideZone /></> : null}
-                                        {ref.isTemplate ? ` · ${t("template")}` : ""}
-                                    </Text>
-                                ))}
-                            </Stack>
-                        )}
-                    </Stack>
-                </Card>
-            )}
-
-            <Text size="xs" c="dimmed">
-                {t("A document is published as of now. Withdrawing one removes its links everywhere; the revisions already published stay readable.")}
-            </Text>
-        </Stack>
+        <SharedDocumentsPanel<InstanceDocumentKind, InstanceDocumentRef>
+            kinds={DOCUMENT_KINDS}
+            label={kind => t(`legal.${kind}`)}
+            published={instance.documents}
+            fileName={documentFileName}
+            // The one attachment an operator's document may point at. Absent
+            // when they turned the mark off, which is theirs to do.
+            attachments={logoUrl ? [{ name: LOGO_ATTACHMENT, mimeType: "image/svg+xml" }] : []}
+            busy={busy}
+            run={run}
+            store={store}
+            readText={fileId => call(api => api.fileApi.getText(fileId))}
+            publish={(kind, statements) => call(api => api.managerApi.publishInstanceDocument(kind, statements))}
+            unpublish={kind => call(api => api.managerApi.unpublishInstanceDocument(kind))}
+            history={kind => call(api => api.managerApi.getInstanceDocumentHistory(kind))}
+        />
     );
 }

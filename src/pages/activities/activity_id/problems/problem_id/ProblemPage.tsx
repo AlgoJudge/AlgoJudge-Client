@@ -3,9 +3,10 @@ import { IconClock, IconDatabase, IconDownload, IconLanguage } from "@tabler/ico
 import { Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { StatementRef } from "../../../../../api/FileApi";
 import { Activity, ProblemDetail } from "../../../../../api/ParticipantApi";
 import ProblemStatusBadge from "../../../../../components/problem/ProblemStatusBadge";
-import { useApiEffect } from "../../../../../provider/apiContext";
+import { useApi, useApiEffect } from "../../../../../provider/apiContext";
 import LoadState from "../../../../../components/LoadState";
 import { statementRenderers } from "../../../../../renderers";
 import { languageName, pickLanguage } from "../../../../../components/content/languageName";
@@ -24,21 +25,61 @@ const DEFAULT = "*";
  */
 const isStatementFile = (name: string) => isStatementName(name) || /^content\.[^.]+$/i.test(name);
 
+/**
+ * The statement to draw, for one reader and one choice.
+ *
+ * The reader's interface language where the author wrote it, what they wrote
+ * first otherwise, and whatever the reader picked over both — wanting the
+ * English statement in a Polish interface is an ordinary thing to want, so the
+ * switcher changes the statement alone.
+ */
+const chooseStatement = (
+    statements: StatementRef[],
+    chosen: string | undefined,
+    interfaceLanguage: string,
+): { ref?: StatementRef, language: string, translations: StatementRef[] } => {
+    const translations = statements.filter(ref => ref.language !== undefined);
+    const preferred = pickLanguage(
+        translations.map(ref => ref.language!), interfaceLanguage) ?? DEFAULT;
+    const language = chosen ?? preferred;
+    const ref = language === DEFAULT
+        ? statements.find(s => s.language === undefined)
+        : statements.find(s => s.language === language);
+    // A problem with only a translation and no default is odd but possible, and
+    // showing nothing would be worse than showing the one statement there is.
+    return { ref: ref ?? statements[0], language, translations };
+};
+
+/** Markdown is rendered; anything else — a `content.pdf` — is handed over as a file. */
+const isMarkdown = (ref: StatementRef) => /\.md$/i.test(ref.name);
+
 export default function ProblemPage() {
     const { t, i18n } = useTranslation();
     const navigate = useNavigate();
+    const api = useApi();
     const { activityId, problemId } = useParams();
 
     const [activity, setActivity] = useState<Activity | undefined>(undefined);
     const [problem, setProblem] = useState<ProblemDetail | undefined>(undefined);
     /** Set only when the reader chose; otherwise the interface language decides. */
     const [chosenLanguage, setChosenLanguage] = useState<string | undefined>(undefined);
+    /** The text of the statement on screen, fetched by id like every other file. */
+    const [statement, setStatement] = useState<string | undefined>(undefined);
 
     const error = useApiEffect(async (api) => {
         if (!activityId || !problemId) return;
         const activity = await api.participantApi.getActivity(activityId);
         setActivity(activity);
-        setProblem(await api.participantApi.getProblem(activity.id, problemId));
+        const detail = await api.participantApi.getProblem(activity.id, problemId);
+        setProblem(detail);
+
+        // The statement travels as a reference and is fetched like any other
+        // file — the same id the manager uploaded it under, with the checksum
+        // that came with it.
+        const chosen = chooseStatement(detail.statements, chosenLanguage, i18n.language);
+        setStatement(chosen.ref && isMarkdown(chosen.ref)
+            ? await api.fileApi.getText(chosen.ref.fileId)
+            : undefined);
 
         // The statement is where a participant sits while waiting for a verdict,
         // so their standing on this problem has to move here too — not only on
@@ -54,7 +95,7 @@ export default function ProblemPage() {
                 }
                 : current);
         });
-    }, [activityId, problemId]);
+    }, [activityId, problemId, chosenLanguage, i18n.language]);
 
     if (!activity || !problem) {
         return <LoadState error={error} loading={!error} />;
@@ -62,14 +103,7 @@ export default function ProblemPage() {
 
     const Statement = statementRenderers.resolve(problem.type).value;
     const downloads = problem.attachments.filter(a => !isStatementFile(a.name));
-
-    // The statement follows the interface language when it can, and the reader
-    // may override it — wanting the English statement in a Polish interface is
-    // an ordinary thing to want, so the switcher changes the statement alone.
-    const translations = problem.translations ?? [];
-    const preferred = pickLanguage(translations.map(v => v.language), i18n.language) ?? DEFAULT;
-    const language = chosenLanguage ?? preferred;
-    const statement = translations.find(v => v.language === language)?.content ?? problem.content;
+    const chosen = chooseStatement(problem.statements, chosenLanguage, i18n.language);
 
     return (
         <Stack gap="md">
@@ -110,27 +144,40 @@ export default function ProblemPage() {
                 </Group>
             </Group>
 
-            {translations.length > 0 && (
+            {chosen.translations.length > 0 && (
                 <Group gap="xs">
                     <IconLanguage size={16} />
                     <SegmentedControl
                         size="xs"
-                        value={language}
+                        value={chosen.language}
                         onChange={setChosenLanguage}
                         data={[
                             { value: DEFAULT, label: t("Default statement") },
-                            ...translations.map(v => ({
-                                value: v.language,
-                                label: languageName(v.language, i18n.language),
+                            ...chosen.translations.map(v => ({
+                                value: v.language!,
+                                label: languageName(v.language!, i18n.language),
                             })),
                         ]}
                     />
                 </Group>
             )}
 
-            <Suspense fallback={<Center my="xl"><Loader /></Center>}>
-                <Statement content={statement} attachments={problem.attachments} />
-            </Suspense>
+            {/* A statement that is not Markdown — a `content.pdf` — is handed
+                over rather than fed to a renderer that reads Markdown. */}
+            {chosen.ref && !isMarkdown(chosen.ref) ? (
+                <Group gap="xs">
+                    <IconDownload size={16} />
+                    <Anchor href={api.fileApi.url(chosen.ref.fileId)} target="_blank" rel="noreferrer">
+                        {chosen.ref.name}
+                    </Anchor>
+                </Group>
+            ) : statement === undefined ? (
+                <Center my="xl"><Loader /></Center>
+            ) : (
+                <Suspense fallback={<Center my="xl"><Loader /></Center>}>
+                    <Statement content={statement} attachments={problem.attachments} />
+                </Suspense>
+            )}
 
             {problem.samples && problem.samples.length > 0 && (
                 <Text size="sm" c="dimmed">

@@ -1,3 +1,4 @@
+import { StatementRef } from "../../FileApi";
 import {
     Activity,
     ProblemDetail,
@@ -7,10 +8,11 @@ import {
     SubmissionDetail,
     SubmissionSummary,
 } from "../../ParticipantApi";
+// Type-only, as `documents.ts` does it: the fixtures say what is stored and are
+// handed the store rather than reaching for one of their own.
+import type { FakeFiles } from "../FileApiFake";
 import {
     arraysStatement,
-    contestRules,
-    courseRules,
     graphConnectivityStatement,
     graphConnectivityStatementEn,
     loopsStatement,
@@ -56,8 +58,6 @@ export interface Dataset {
     questions: Map<string, Question[]>;
     /** Keyed by activity id. Shape is decided by the activity's rankingType. */
     rankings: Map<string, unknown>;
-    /** Keyed by activity id. */
-    rules: Map<string, unknown>;
     /** Problems whose series has not opened yet, held back until it does. */
     withheld: Map<string, ProblemSummary[]>;
 }
@@ -83,7 +83,7 @@ const problemDetail = (
     seriesId: string,
     summary: ProblemSummary,
     type: string,
-    content: unknown,
+    statements: StatementRef[],
     extras: Partial<ProblemDetail> = {},
 ): ProblemDetail => ({
     id: summary.id,
@@ -95,7 +95,7 @@ const problemDetail = (
     bestScore: summary.bestScore,
     maxScore: summary.maxScore,
     attempts: summary.attempts,
-    content,
+    statements,
     attachments: [],
     limits: { timeMs: 1000, memoryMb: 256 },
     samples: [],
@@ -172,7 +172,7 @@ const testsFor = (score: number | undefined) => {
         : { status: "ERROR", timeMs: i === 2 ? 1000 : 20, memoryMb: 12, score: 0, note: notes[i] });
 };
 
-export const createDataset = (): Dataset => {
+export const createDataset = (files: FakeFiles): Dataset => {
     const activities: Activity[] = [];
     const series = new Map<string, Series[]>();
     const problems = new Map<string, ProblemDetail>();
@@ -181,8 +181,24 @@ export const createDataset = (): Dataset => {
     const submissionFiles = new Map<string, Map<string, string>>();
     const questions = new Map<string, Question[]>();
     const rankings = new Map<string, unknown>();
-    const rules = new Map<string, unknown>();
     const withheld = new Map<string, ProblemSummary[]>();
+
+    /**
+     * Stores a statement and answers with the reference the participant gets.
+     *
+     * The fixtures used to hand the text straight to the screen. They store it
+     * now, because that is where it comes from — the same file the manager
+     * uploaded, read back by id. A fake that skipped the store could not be
+     * wrong in the way the real one can.
+     */
+    const statement = (text: string, language?: string): StatementRef => {
+        const name = language ? `content-${language}.md` : "content.md";
+        const stored = files.seedText(name, "text/markdown", text);
+        return { name, language, fileId: stored.id, sha256: stored.sha256, sizeBytes: stored.sizeBytes };
+    };
+
+    /** A statement in one language, which is what most problems have. */
+    const only = (text: string): StatementRef[] => [statement(text)];
 
     // ---------------------------------------------------------------- contest
 
@@ -198,7 +214,13 @@ export const createDataset = (): Dataset => {
         membership: "enrolled",
         startDate: nowPlus(-hours(2)),
         endDate: nowPlus(days(3)),
-        modules: { ranking: true, questions: true, rules: true },
+        // Nobody joins a national final from a link: the teams are entered.
+        joinPolicy: "closed",
+        modules: { ranking: true, questions: true },
+        // Filled in from `FakeActivities`, which is where an activity's
+        // documents live: the manager screen publishes into it and this side
+        // serves what is there, so the two cannot come to disagree.
+        documents: [],
         props: [{ key: "Organizator", value: "Politechnika Poznańska" }],
     });
 
@@ -248,10 +270,12 @@ export const createDataset = (): Dataset => {
     series.set(contestId, [round1, round2, round3]);
     withheld.set(round2.id, r2Problems);
 
-    problems.set(`${contestId}/A`, problemDetail(round1.id, r1Problems[0], "standard-io@1", graphConnectivityStatement, {
+    problems.set(`${contestId}/A`, problemDetail(round1.id, r1Problems[0], "standard-io@1", [
         // Two languages, so the switcher above the statement has something to
         // switch to and the fallback path is exercised by every other problem.
-        translations: [{ language: "en", content: graphConnectivityStatementEn }],
+        statement(graphConnectivityStatement),
+        statement(graphConnectivityStatementEn, "en"),
+    ], {
         samples: [
             { input: "4 3\n1 2\n2 3\n3 4", output: "TAK", explanation: "Wszystkie wierzchołki leżą na jednej ścieżce." },
             { input: "4 2\n1 2\n3 4", output: "NIE" },
@@ -261,7 +285,7 @@ export const createDataset = (): Dataset => {
         ],
         submissionsLeft: 17,
     }));
-    problems.set(`${contestId}/B`, problemDetail(round1.id, r1Problems[1], "standard-io@1", shortestPathStatement, {
+    problems.set(`${contestId}/B`, problemDetail(round1.id, r1Problems[1], "standard-io@1", only(shortestPathStatement), {
         limits: { timeMs: 2000, memoryMb: 512 },
         samples: [{ input: "3 3 1 3\n1 2 5\n2 3 5\n1 3 11", output: "10" }],
         attachments: [
@@ -269,11 +293,11 @@ export const createDataset = (): Dataset => {
         ],
         submissionsLeft: 15,
     }));
-    problems.set(`${contestId}/C`, problemDetail(round1.id, r1Problems[2], "standard-io@1", topologicalSortStatement, {
+    problems.set(`${contestId}/C`, problemDetail(round1.id, r1Problems[2], "standard-io@1", only(topologicalSortStatement), {
         samples: [{ input: "3 2\n1 2\n2 3", output: "1 2 3" }],
         submissionsLeft: 18,
     }));
-    problems.set(`${contestId}/D`, problemDetail(round1.id, r1Problems[3], "standard-io@1", topologicalSortStatement, {
+    problems.set(`${contestId}/D`, problemDetail(round1.id, r1Problems[3], "standard-io@1", only(topologicalSortStatement), {
         // The manager turned limits off for this one, so the screen must cope
         // with them being absent rather than rendering "undefined".
         limits: undefined,
@@ -416,8 +440,6 @@ export const createDataset = (): Dataset => {
         ],
     });
 
-    rules.set(contestId, contestRules);
-
     // ----------------------------------------------------------------- course
 
     const courseId = "018f2c00-0000-7000-8000-000000000002";
@@ -432,8 +454,12 @@ export const createDataset = (): Dataset => {
         membership: "enrolled",
         startDate: nowPlus(-days(30)),
         endDate: nowPlus(days(60)),
+        // The emailed-link case: a group of students enrol themselves with the
+        // password their lecturer gave them.
+        joinPolicy: "password",
         // A course legitimately has no ranking.
-        modules: { ranking: false, questions: true, rules: true },
+        modules: { ranking: false, questions: true },
+        documents: [],
         props: [
             { key: "Prowadzący", value: "Jan Kowalski" },
             { key: "Grupa", value: "LA" },
@@ -467,14 +493,14 @@ export const createDataset = (): Dataset => {
         },
     ]);
 
-    problems.set(`${courseId}/petle`, problemDetail("series-w1", w1Problems[0], "standard-io@1", loopsStatement, {
+    problems.set(`${courseId}/petle`, problemDetail("series-w1", w1Problems[0], "standard-io@1", only(loopsStatement), {
         samples: [{ input: "5", output: "15" }],
     }));
-    problems.set(`${courseId}/tablice`, problemDetail("series-w1", w1Problems[1], "standard-io@1", arraysStatement, {
+    problems.set(`${courseId}/tablice`, problemDetail("series-w1", w1Problems[1], "standard-io@1", only(arraysStatement), {
         samples: [{ input: "4\n1 2 3 4", output: "4 3 2 1" }],
     }));
-    problems.set(`${courseId}/rekurencja`, problemDetail("series-w2", w2Problems[0], "standard-io@1", loopsStatement));
-    problems.set(`${courseId}/sortowanie`, problemDetail("series-w2", w2Problems[1], "standard-io@1", arraysStatement));
+    problems.set(`${courseId}/rekurencja`, problemDetail("series-w2", w2Problems[0], "standard-io@1", only(loopsStatement)));
+    problems.set(`${courseId}/sortowanie`, problemDetail("series-w2", w2Problems[1], "standard-io@1", only(arraysStatement)));
 
     submissions.set(courseId, [
         {
@@ -529,8 +555,6 @@ export const createDataset = (): Dataset => {
         ],
     });
 
-    rules.set(courseId, courseRules);
-
     // ------------------------------------------------ finished, open, unknown
 
     const finishedId = "018f2c00-0000-7000-8000-000000000003";
@@ -545,13 +569,14 @@ export const createDataset = (): Dataset => {
         membership: "enrolled",
         startDate: nowPlus(-days(400)),
         endDate: nowPlus(-days(400) + hours(5)),
-        modules: { ranking: true, questions: false, rules: true },
+        joinPolicy: "closed",
+        modules: { ranking: true, questions: false },
+        documents: [],
         finalScore: 3,
         maxScore: 8,
         props: [{ key: "Miejsce", value: "12 / 64" }],
     });
     series.set(finishedId, []);
-    rules.set(finishedId, contestRules);
     // A finished contest still has a board. An activity whose module is switched
     // on must have something to serve, or the screen asks for a document that
     // does not exist.
@@ -575,7 +600,10 @@ export const createDataset = (): Dataset => {
         state: "ongoing",
         // Joinable, not joined. The list is also how a participant finds this.
         membership: "open",
-        modules: { ranking: true, questions: false, rules: false },
+        // Anybody may join, and there is no password to type.
+        joinPolicy: "open",
+        modules: { ranking: true, questions: false },
+        documents: [],
         props: [],
     });
     series.set(openId, []);
@@ -596,7 +624,9 @@ export const createDataset = (): Dataset => {
         membership: "invited",
         startDate: nowPlus(-hours(1)),
         endDate: nowPlus(hours(4)),
-        modules: { ranking: true, questions: true, rules: false },
+        joinPolicy: "closed",
+        modules: { ranking: true, questions: true },
+        documents: [],
         props: [],
     });
     const unknownProblem = problemSummary("guess", "Zgadywanka", "untouched", undefined, 0);
@@ -605,13 +635,46 @@ export const createDataset = (): Dataset => {
         startDate: nowPlus(-hours(1)), endDate: nowPlus(hours(4)),
         isOpen: true, problemCount: 1, problems: [unknownProblem],
     }]);
-    problems.set(`${unknownId}/guess`, problemDetail("series-u1", unknownProblem, "interactive@9", unknownTypeStatement, {
+    problems.set(`${unknownId}/guess`, problemDetail("series-u1", unknownProblem, "interactive@9", [statement(JSON.stringify(unknownTypeStatement, null, 2))], {
         samples: undefined,
         submitFields: [],
     }));
     submissions.set(unknownId, []);
     questions.set(unknownId, []);
     rankings.set(unknownId, { format: "elimination", rows: [] });
+
+    // ------------------------------------------- reached from a link, not a list
+
+    // Unlisted and password-protected: it is in nobody's list until they are in
+    // it, and the only way there is the address somebody was sent. The state the
+    // share link exists for, and the one the enrolment form has to draw.
+    const invitedId = "018f2c00-0000-7000-8000-000000000006";
+    activities.push({
+        id: invitedId,
+        slug: "PROG-1-LB",
+        name: "Programowanie 1 — grupa LB",
+        type: "course@1",
+        rankingType: "points",
+        timeZone: "Europe/Warsaw",
+        state: "ongoing",
+        // Not in it. This is the one the enrolment form is for.
+        membership: "open",
+        joinPolicy: "password",
+        modules: { ranking: false, questions: true },
+        documents: [],
+        startDate: nowPlus(-days(20)),
+        endDate: nowPlus(days(70)),
+        props: [{ key: "Prowadzący", value: "Jan Kowalski" }],
+    });
+    const lbProblems = [problemSummary("petle", "Pętle i sumy", "untouched", undefined, 0)];
+    series.set(invitedId, [{
+        id: "series-lb1", slug: "zajecia-1", name: "Zajęcia 1 — podstawy",
+        startDate: nowPlus(-days(14)), endDate: nowPlus(days(7)),
+        isOpen: true, problemCount: 1, problems: lbProblems,
+    }]);
+    problems.set(`${invitedId}/petle`, problemDetail("series-lb1", lbProblems[0], "standard-io@1", only(loopsStatement)));
+    submissions.set(invitedId, []);
+    questions.set(invitedId, []);
 
     // Filler, so pagination is exercised rather than assumed.
     for (let i = 0; i < 6; i++) {
@@ -627,7 +690,9 @@ export const createDataset = (): Dataset => {
             membership: "enrolled",
             startDate: nowPlus(-days(1000 + i * 365)),
             endDate: nowPlus(-days(1000 + i * 365) + hours(5)),
-            modules: { ranking: false, questions: false, rules: false },
+            joinPolicy: "closed",
+            modules: { ranking: false, questions: false },
+            documents: [],
             finalScore: i,
             maxScore: 8,
             props: [],
@@ -637,6 +702,6 @@ export const createDataset = (): Dataset => {
 
     return {
         activities, series, problems, submissions, submissionDetails,
-        submissionFiles, questions, rankings, rules, withheld,
+        submissionFiles, questions, rankings, withheld,
     };
 };

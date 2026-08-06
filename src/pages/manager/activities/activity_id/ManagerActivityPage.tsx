@@ -3,11 +3,15 @@ import { IconArchive, IconArchiveOff, IconArrowLeft, IconDeviceFloppy, IconExter
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { ACTIVITY_DOCUMENT_KINDS, activityEntryPath } from "../../../../api/activityDocuments";
 import { ActivityInput, ManagedActivity, ManagedProblem, ManagedSeries } from "../../../../api/ManagerApi";
+import { ActivityDocumentKind, ActivityDocumentRef } from "../../../../api/ParticipantApi";
 import ActivityForm from "../../../../components/activity/ActivityForm";
 import { toInput } from "../../../../components/activity/activityInput";
+import DocumentsPanel from "../../../../components/content/DocumentsPanel";
 import LoadState from "../../../../components/LoadState";
 import { useApiCall, useApiEffect } from "../../../../provider/apiContext";
+import { sha256 } from "../../../../utils/sha256";
 import ParticipantsPanel from "./ParticipantsPanel";
 import SeriesPanel from "./SeriesPanel";
 
@@ -62,6 +66,12 @@ export default function ManagerActivityPage() {
         }
     };
 
+    /** Uploads bytes and answers with the id the activity will reference. */
+    const store = async (bytes: Blob, name: string) => {
+        const checksum = await sha256(bytes);
+        return await call(api => api.fileApi.upload(bytes, name, checksum));
+    };
+
     if (!activity || !draft) return <LoadState error={loadError} loading={!loadError} />;
 
     return (
@@ -81,7 +91,7 @@ export default function ManagerActivityPage() {
                         variant="default"
                         leftSection={<IconExternalLink size={16} />}
                         component={Link}
-                        to={`/activities/${activity.slug}/problems`}
+                        to={activityEntryPath(activity)}
                     >
                         {t("Open as a participant")}
                     </Button>
@@ -112,6 +122,7 @@ export default function ManagerActivityPage() {
                 <Tabs.List>
                     <Tabs.Tab value="series">{t("Series and problems")} ({activity.problemCount})</Tabs.Tab>
                     <Tabs.Tab value="settings">{t("Settings")}</Tabs.Tab>
+                    <Tabs.Tab value="documents">{t("Documents")}</Tabs.Tab>
                     <Tabs.Tab value="participants">{t("Participants")} ({activity.participantCount})</Tabs.Tab>
                 </Tabs.List>
 
@@ -144,6 +155,28 @@ export default function ManagerActivityPage() {
                             </Button>
                         </Group>
                     </Stack>
+                </Tabs.Panel>
+
+                <Tabs.Panel value="documents" pt="md">
+                    {/* The same editor the instance publishes its documents in.
+                        An activity is simply a second owner of the same kind of
+                        thing, so it gets the same screen rather than a copy. */}
+                    <DocumentsPanel<ActivityDocumentKind, ActivityDocumentRef>
+                        kinds={ACTIVITY_DOCUMENT_KINDS}
+                        label={kind => t(`activityDocument.${kind}`)}
+                        published={activity.documents}
+                        fileName={(kind, language) => language ? `${kind}-${language}.md` : `${kind}.md`}
+                        busy={busy}
+                        run={run}
+                        store={store}
+                        readText={fileId => call(api => api.fileApi.getText(fileId))}
+                        publish={(kind, statements) =>
+                            call(api => api.managerApi.publishActivityDocument(activity.id, kind, statements))}
+                        unpublish={kind =>
+                            call(api => api.managerApi.unpublishActivityDocument(activity.id, kind))}
+                        history={kind =>
+                            call(api => api.managerApi.getActivityDocumentHistory(activity.id, kind))}
+                    />
                 </Tabs.Panel>
 
                 <Tabs.Panel value="participants" pt="md">

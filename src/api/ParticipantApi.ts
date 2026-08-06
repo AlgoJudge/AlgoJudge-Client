@@ -1,4 +1,5 @@
 import { Event } from "./Event";
+import { StatementRef } from "./FileApi";
 
 /**
  * Models for the participant-facing part of the product.
@@ -47,6 +48,62 @@ export type ActivityState = "upcoming" | "ongoing" | "finished";
  */
 export type ActivityMembership = "enrolled" | "invited" | "open";
 
+/**
+ * How somebody gets in without a manager doing it for them.
+ *
+ * A manager may always enrol somebody by hand — that is what a grant is — so
+ * these are the three answers to *self*-enrolment and nothing else.
+ */
+export type JoinPolicy =
+    /** No self-enrolment, and not listed to anybody who is not already in it. */
+    | "closed"
+    /** Self-enrolment on giving the activity's join password. */
+    | "password"
+    /** Self-enrolment, no password. */
+    | "open";
+
+/**
+ * A document an activity publishes, written by whoever runs it.
+ *
+ * The same arrangement the instance's documents got, for the same reason: text
+ * an author owns, in the `content.md` format the Client already renders, stored
+ * as a file and referred to by id. An activity is simply a second owner.
+ */
+export type ActivityDocumentKind =
+    /** What somebody **not enrolled** reads on the activity's page. */
+    | "welcome"
+    /** What a participant reads there instead — their landing page. */
+    | "home"
+    /** The regulations, and what the enrolment form asks acceptance of. */
+    | "rules";
+
+/**
+ * Where one activity document lives, and what a screen needs before it has the
+ * text.
+ *
+ * There is one per kind **per language**, as `content-<language>.md` is to a
+ * statement, and the one with no `language` is the fallback. The references ride
+ * on the activity because the activity is loaded once for the whole shell
+ * anyway — the same bargain `InstanceInfo` makes, and for the same reason: a
+ * reference is small and read on every arrival, a document is neither.
+ *
+ * There is no `isTemplate` here. An activity ships nothing: what it publishes,
+ * somebody wrote.
+ */
+export interface ActivityDocumentRef {
+    kind: ActivityDocumentKind,
+    /** BCP-47 subtag. Absent on the one written first. */
+    language?: string,
+    /** Absent on the front pages: their heading is inside the document. */
+    title?: string,
+    /** When this revision came into force. Publishing adds one; it replaces none. */
+    validFrom?: string,
+    /** The stored text, read with `fileApi.getText`. */
+    fileId: string,
+    sha256: string,
+    sizeBytes: number,
+}
+
 export interface Activity {
     id: string,
     /** Alias used in URLs, for example `AMMPZ-2019`. */
@@ -60,20 +117,50 @@ export interface Activity {
     timeZone: string,
     state: ActivityState,
     membership: ActivityMembership,
+    /**
+     * How somebody not enrolled may get in. Carried to the participant because
+     * the activity's own page draws the enrolment form from it — the Server
+     * still decides, and refuses whatever the form sends if it is wrong.
+     */
+    joinPolicy: JoinPolicy,
     /** Absent when the activity is not time-limited. */
     startDate?: string,
     endDate?: string,
+    /**
+     * A reference to every document this activity currently publishes, one per
+     * kind per language.
+     *
+     * **Every one of them is optional** and an empty list is a legitimate
+     * answer. Which documents exist is read from here and nowhere else: the
+     * rules used to be announced by `modules.rules` as well, which is two
+     * answers to one question and they disagree the moment one is withdrawn.
+     */
+    documents: ActivityDocumentRef[],
     /** Which sidebar modules the activity manager enabled. */
     modules: {
         ranking: boolean,
         questions: boolean,
-        rules: boolean,
     },
     /** Present once the activity has finished. */
     finalScore?: number,
     maxScore?: number,
     /** Free display metadata, e.g. `Prowadzący: Jan Kowalski`. Never queried. */
     props: { key: string, value: string }[],
+}
+
+/**
+ * What the enrolment form collected.
+ *
+ * Both fields are conditional on the activity: the password only under
+ * `joinPolicy: "password"`, the acceptance only where there are rules to accept.
+ * The Server is told what was given and decides; sending neither where both were
+ * required is refused there, not here.
+ */
+export interface EnrolInput {
+    /** The activity's join password, as typed or as it arrived in the link. */
+    password?: string,
+    /** Recorded with the enrolment, so it stays answerable who accepted what. */
+    acceptedRules?: boolean,
 }
 
 export interface ActivityFilter {
@@ -143,13 +230,6 @@ export interface Attachment {
     sha256: string,
 }
 
-/** One statement in one language. */
-export interface StatementTranslation {
-    /** BCP-47 subtag taken from the file name, for example `en`. */
-    language: string,
-    content: unknown,
-}
-
 /** A field the submit form must render, declared by the problem type. */
 export interface SubmitField {
     kind: "file" | "code",
@@ -167,17 +247,19 @@ export interface ProblemDetail {
     type: string,
     seriesId: string,
     /**
-     * The `content.md` source, or a reference to `content.pdf` when
-     * that is all the problem has. Opaque here; the content renderer validates
-     * and draws it.
+     * The statement, as **references**: `content.md`, its translations, and a
+     * `content.pdf` where the problem ships one.
+     *
+     * The text is fetched with `fileApi.getText`, exactly as it was uploaded
+     * with `fileApi.upload` when the version was published. It used to arrive
+     * inline here while being published by reference, which is the same bytes
+     * on two roads — and the read road had no `sha256`, so the one file on the
+     * page that could not be verified was the one the reader came for.
+     *
+     * The one with no `language` is the default and the fallback; a missing
+     * translation is a fallback, never an error.
      */
-    content: unknown,
-    /**
-     * The same statement in other languages, from `content-<language>.md`. The
-     * Client renders the one matching the reader's interface language and falls
-     * back to `content` — a missing translation is a fallback, never an error.
-     */
-    translations?: StatementTranslation[],
+    statements: StatementRef[],
     /** Everything scoped to participants. Well-known `content.*` files excluded. */
     attachments: Attachment[],
     /** Absent when the manager chose not to show them. */
@@ -423,9 +505,34 @@ export interface ParticipantEventDispatcher {
 export interface ParticipantApi {
     readonly eventDispatcher: ParticipantEventDispatcher;
 
+    /**
+     * The activities this reader may see.
+     *
+     * **The Server decides what that means**, and the Client never filters on
+     * `joinPolicy` or `unlisted` itself: an activity that is closed, or hidden
+     * from people who are not in it, is simply not in the answer. A rule the
+     * Client enforced would be a rule anybody could turn off.
+     */
     getActivities(filter: ActivityFilter, signal: AbortSignal): Promise<Page<Activity>>;
-    /** Accepts an id or a slug, as the API does. */
+    /**
+     * Accepts an id or a slug, as the API does.
+     *
+     * Answers for somebody **not enrolled** as well, with what the activity's
+     * own page needs to draw itself for them: identity, dates, `joinPolicy` and
+     * the `welcome` and `rules` references. Not the series, and not the
+     * problems — those belong to being in it.
+     */
     getActivity(idOrSlug: string, signal: AbortSignal): Promise<Activity>;
+
+    /**
+     * Puts the signed-in reader into the activity themselves.
+     *
+     * Answers with the activity as they now see it, so the page redraws from
+     * what came back rather than asking again. A wrong or missing password is
+     * refused by the Server; the Client sends what the form collected and does
+     * not check it.
+     */
+    enroll(idOrSlug: string, input: EnrolInput, signal: AbortSignal): Promise<Activity>;
 
     getSeries(activityId: string, signal: AbortSignal): Promise<Series[]>;
     getProblem(activityId: string, problemSlug: string, signal: AbortSignal): Promise<ProblemDetail>;
@@ -441,7 +548,4 @@ export interface ParticipantApi {
     getQuestions(activityId: string, filter: QuestionFilter, signal: AbortSignal): Promise<Page<Question>>;
     askQuestion(activityId: string, input: AskQuestionInput, signal: AbortSignal): Promise<Question>;
     markQuestionRead(activityId: string, questionId: string, signal: AbortSignal): Promise<void>;
-
-    /** Rules use the same content format as a problem statement. */
-    getRules(activityId: string, signal: AbortSignal): Promise<unknown>;
 }

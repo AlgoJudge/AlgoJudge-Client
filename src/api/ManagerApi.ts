@@ -1,6 +1,10 @@
 import { InstanceDocumentKind, InstanceDocumentRef, InstanceInfo } from "./CoreApi";
 import { Event } from "./Event";
-import { DisplayName, JobState, Page, QuestionAnswer, QuestionKind } from "./ParticipantApi";
+import { StatementRef } from "./FileApi";
+import {
+    ActivityDocumentKind, ActivityDocumentRef, DisplayName, JobState, JoinPolicy, Page,
+    QuestionAnswer, QuestionKind,
+} from "./ParticipantApi";
 
 /**
  * The manager-facing API.
@@ -119,7 +123,7 @@ export interface ManagedActivitySummary {
  */
 export type ScoreVisibility = "everyone" | "participantOnly" | "managersOnly";
 export type LogVisibility = "managersOnly" | "participant";
-export type JoinPolicy = "closed" | "invitation" | "open";
+export type { JoinPolicy };
 
 /**
  * An activity as its manager sees it: everything the participant model hides,
@@ -138,10 +142,35 @@ export interface ManagedActivity {
     /** Absent when the activity spans its series instead of stating its own bounds. */
     startDate?: string;
     endDate?: string;
-    modules: { ranking: boolean; questions: boolean; rules: boolean };
+    modules: { ranking: boolean; questions: boolean };
+    /**
+     * A reference to every document this activity publishes. What exists is what
+     * has one; there is no flag beside them saying so.
+     */
+    documents: ActivityDocumentRef[];
     scoreVisibility: ScoreVisibility;
     logVisibility: LogVisibility;
     joinPolicy: JoinPolicy;
+    /**
+     * Hidden from the activity list of anybody not enrolled — reachable by its
+     * address and nothing else.
+     *
+     * Independent of the policy, so an activity anybody may join can still be
+     * link-only. Under `closed` it is what the policy already means, and the
+     * screen shows it on and fixed.
+     */
+    unlisted: boolean;
+    /**
+     * The join password, under `joinPolicy: "password"`.
+     *
+     * **A join code, not a credential.** It authenticates nobody and belongs to
+     * the activity rather than to a person, so it is neither an end-user password
+     * nor an exception to the rule that those do not live in the Server. It is
+     * readable by a manager on purpose: the whole use of it is to be put in a
+     * link and sent to a class, and a secret its owner cannot read cannot be
+     * shared.
+     */
+    joinPassword?: string;
     /**
      * The three limits the **Server** enforces, so none of them may live in the
      * opaque configuration chain. Time and memory are the Runner's and do.
@@ -165,10 +194,13 @@ export interface ActivityInput {
     timeZone: string;
     startDate?: string;
     endDate?: string;
-    modules: { ranking: boolean; questions: boolean; rules: boolean };
+    modules: { ranking: boolean; questions: boolean };
     scoreVisibility: ScoreVisibility;
     logVisibility: LogVisibility;
     joinPolicy: JoinPolicy;
+    unlisted: boolean;
+    /** Absent or empty removes it. Meaningful only under `joinPolicy: "password"`. */
+    joinPassword?: string;
     maxUploadBytes: number;
     maxAttachments: number;
     maxSubmissionsPerProblem?: number;
@@ -436,11 +468,6 @@ export interface NewProblemPackage {
     samplesFileId?: string;
 }
 
-/** A statement in one language. `language` absent means the default `content.md`. */
-export interface StatementVariant {
-    language?: string;
-    content: unknown;
-}
 
 
 /**
@@ -1017,6 +1044,23 @@ export interface ManagerApi {
      */
     deleteActivity(id: string, signal: AbortSignal): Promise<void>;
 
+    /**
+     * Publishes a revision of one activity document, in every language it has.
+     *
+     * The same shape as the instance's, and for the same reason: the text goes
+     * up through `fileApi` and what arrives here is a list of ids. Answers with
+     * the refreshed activity, so the screen and the shell get the new references
+     * without asking again.
+     */
+    publishActivityDocument(activityId: string, kind: ActivityDocumentKind, statements: NewStatement[], signal: AbortSignal): Promise<ManagedActivity>;
+    /**
+     * Stops publishing one. Its references go and its links go with them — the
+     * navigation, the enrolment form's acceptance box, the activity's own page.
+     */
+    unpublishActivityDocument(activityId: string, kind: ActivityDocumentKind, signal: AbortSignal): Promise<ManagedActivity>;
+    /** Every revision of one activity document, newest first. */
+    getActivityDocumentHistory(activityId: string, kind: ActivityDocumentKind, signal: AbortSignal): Promise<ActivityDocumentRef[]>;
+
     getSeries(activityId: string, signal: AbortSignal): Promise<ManagedSeries[]>;
     createSeries(activityId: string, input: SeriesInput, signal: AbortSignal): Promise<ManagedSeries>;
     updateSeries(seriesId: string, input: SeriesInput, signal: AbortSignal): Promise<ManagedSeries>;
@@ -1069,11 +1113,15 @@ export interface ManagerApi {
 
     getProblemVersions(problemId: string, signal: AbortSignal): Promise<ManagedProblemVersion[]>;
     /**
-     * Every statement stored for one version — the default and each translation.
-     * One call rather than one per language: the editor shows them together, and
-     * a manager comparing two languages should not wait for a round trip.
+     * Every statement stored for one version — the default and each translation,
+     * as **references**.
+     *
+     * The text is fetched with `fileApi.getText`, which is also how it was put
+     * there. This used to answer with the content inline while
+     * `createProblemVersion` took ids, so the editor read one way and wrote
+     * another; the two halves now use one road.
      */
-    getProblemContent(problemId: string, versionId: string, signal: AbortSignal): Promise<StatementVariant[]>;
+    getProblemContent(problemId: string, versionId: string, signal: AbortSignal): Promise<StatementRef[]>;
     /**
      * Publishes a new version — the statement, the files and the package at once.
      *

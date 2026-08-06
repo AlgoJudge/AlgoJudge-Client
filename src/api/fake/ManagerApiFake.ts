@@ -39,7 +39,6 @@ import {
     PermissionTemplate,
     PermissionTemplateInput,
     SeriesInput,
-    StatementVariant,
     SeriesProblemInput,
     UserInput,
     UserUpdateInput,
@@ -54,6 +53,9 @@ import {
     MY_SYSTEM_PERMISSIONS,
     PERMISSION_CATALOGUE,
 } from "./fixtures/permissions";
+import { StatementRef } from "../FileApi";
+import { ActivityDocumentKind, ActivityDocumentRef } from "../ParticipantApi";
+import { FakeActivities } from "./FakeActivities";
 import { ActivityRecord, createActivityLibrary } from "./fixtures/activities";
 import { signedInUserId } from "./CoreApiFake";
 import { buildPackage } from "../../package/build";
@@ -114,7 +116,7 @@ export class ManagerApiFake implements ManagerApi {
 
     private templates = createTemplates();
     private grants = createGrants();
-    private library: ProblemRecord[] = createProblemLibrary();
+    private library: ProblemRecord[];
     private activities: ActivityRecord[] = createActivityLibrary();
     private submissions: ManagedSubmissionDetail[] = createSubmissions();
     private questions: ManagedQuestion[] = createQuestions();
@@ -130,8 +132,12 @@ export class ManagerApiFake implements ManagerApi {
     constructor(
         private readonly files: FakeFiles,
         private readonly instance: FakeInstance,
+        /** Shared with the participant fake: one owner for what an activity publishes. */
+        private readonly shared: FakeActivities,
         private sleepMs: number = 300,
-    ) {}
+    ) {
+        this.library = createProblemLibrary(files);
+    }
 
     async updateInstanceSettings(input: InstanceSettingsInput, signal: AbortSignal): Promise<InstanceInfo> {
         await this.settle(signal);
@@ -197,7 +203,19 @@ export class ManagerApiFake implements ManagerApi {
         await this.settle(signal);
         const me = signedInUserId() ?? ME;
         const own = this.grants.find(g => g.userId === me && g.activityId === activityId);
-        return copy([...(activityId === undefined ? this.systemPermissions(me) : []), ...(own?.permissions ?? [])]);
+        const system = this.systemPermissions(me);
+        // Scoped to an activity, what counts is the grant held **there** — a
+        // manager of one course does not manage another. An administrator is the
+        // exception, and not a special case so much as what the permission
+        // means: `system:administrator` is held everywhere, so scoping it to a
+        // grant they were never given would tell them they may do nothing in
+        // the very activities they administer.
+        const inherited = activityId === undefined
+            || this.grants.some(g => g.userId === me && g.activityId === undefined
+                && g.permissions.includes("system:administrator"))
+            ? system
+            : [];
+        return copy([...inherited, ...(own?.permissions ?? [])]);
     }
 
     async getMyAccess(signal: AbortSignal): Promise<string[]> {
@@ -350,13 +368,14 @@ export class ManagerApiFake implements ManagerApi {
         const activity: ManagedActivity = {
             id: newId(),
             ...input,
+            documents: [],
             seriesCount: 0,
             problemCount: 0,
             participantCount: 0,
         };
         this.activities = [{ activity, series: [] }, ...this.activities];
-        this.announceActivity(activity);
-        return copy(activity);
+        this.shared.setEnrolment(activity.id, input.joinPolicy, input.joinPassword, input.unlisted);
+        return this.announceActivity(activity);
     }
 
     async updateActivity(id: string, input: ActivityInput, signal: AbortSignal): Promise<ManagedActivity> {
@@ -364,8 +383,45 @@ export class ManagerApiFake implements ManagerApi {
         const record = this.findActivity(id);
         this.assertActivitySlugFree(input.slug, record.activity.id);
         Object.assign(record.activity, input);
-        this.announceActivity(record.activity);
-        return copy(record.activity);
+        // The enrolment settings belong to the shared store, because the
+        // participant side decides what to show from them.
+        this.shared.setEnrolment(record.activity.id, input.joinPolicy, input.joinPassword, input.unlisted);
+        return this.announceActivity(record.activity);
+    }
+
+    async publishActivityDocument(
+        activityId: string,
+        kind: ActivityDocumentKind,
+        statements: NewStatement[],
+        signal: AbortSignal,
+    ): Promise<ManagedActivity> {
+        await this.settle(signal);
+        const record = this.findActivity(activityId);
+        for (const statement of statements) {
+            if (!this.files.has(statement.fileId)) Utils.throwError("That file is not stored");
+        }
+        this.shared.publish(record.activity.id, kind, statements);
+        return this.announceActivity(this.withCounts(record.activity));
+    }
+
+    async unpublishActivityDocument(
+        activityId: string,
+        kind: ActivityDocumentKind,
+        signal: AbortSignal,
+    ): Promise<ManagedActivity> {
+        await this.settle(signal);
+        const record = this.findActivity(activityId);
+        this.shared.unpublish(record.activity.id, kind);
+        return this.announceActivity(this.withCounts(record.activity));
+    }
+
+    async getActivityDocumentHistory(
+        activityId: string,
+        kind: ActivityDocumentKind,
+        signal: AbortSignal,
+    ): Promise<ActivityDocumentRef[]> {
+        await this.settle(signal);
+        return copy(this.shared.historyOf(this.findActivity(activityId).activity.id, kind));
     }
 
     async setActivityArchived(id: string, archived: boolean, signal: AbortSignal): Promise<ManagedActivity> {
@@ -954,7 +1010,7 @@ export class ManagerApiFake implements ManagerApi {
             : [];
         // Every language travels with the copy: a duplicate of a bilingual
         // problem that lost its translation would be a silent deletion.
-        const content = new Map<string, StatementVariant[]>();
+        const content = new Map<string, StatementRef[]>();
         if (newest) content.set(versionId, source.content.get(newest.id) ?? []);
         this.library = [{ problem, versions, content }, ...this.library];
         this.announce(problem);
@@ -994,7 +1050,7 @@ export class ManagerApiFake implements ManagerApi {
         return copy(this.find(problemId).versions);
     }
 
-    async getProblemContent(problemId: string, versionId: string, signal: AbortSignal): Promise<StatementVariant[]> {
+    async getProblemContent(problemId: string, versionId: string, signal: AbortSignal): Promise<StatementRef[]> {
         await this.settle(signal);
         return copy(this.find(problemId).content.get(versionId) ?? []);
     }
@@ -1069,10 +1125,19 @@ export class ManagerApiFake implements ManagerApi {
         // which is what correcting a package and nothing else should do.
         record.content.set(version.id, input.statements === undefined
             ? (record.content.get(previous?.id ?? "") ?? [])
-            : await Promise.all(input.statements.map(async statement => ({
-                language: statement.language,
-                content: await this.files.blob(statement.fileId).text(),
-            }))));
+            // Kept as references. The bytes went up before the version was
+            // published and the editor reads them back the same way, so there is
+            // nowhere left that turns a statement into text in transit.
+            : input.statements.map(statement => {
+                const stored = this.files.meta(statement.fileId);
+                return {
+                    name: statement.language ? `content-${statement.language}.md` : "content.md",
+                    language: statement.language,
+                    fileId: statement.fileId,
+                    sha256: stored.sha256,
+                    sizeBytes: stored.sizeBytes,
+                };
+            }));
 
         // The package: the one published, or the previous version's carried
         // forward. A version without one is a version nothing can be judged
@@ -1349,18 +1414,34 @@ export class ManagerApiFake implements ManagerApi {
     }
 
     /** Membership is the grants, so the count is read from them, never stored. */
+    /**
+     * The activity as it leaves the fake.
+     *
+     * The counts come from the grants, because a grant in an activity **is** the
+     * membership and a second number could disagree with it. The documents and
+     * the enrolment settings come from the shared store, because the participant
+     * side serves them from there — one owner, or the manager screen and the
+     * activity page would drift apart.
+     */
     private withCounts(activity: ManagedActivity): ManagedActivity {
+        const enrolment = this.shared.enrolmentOf(activity.id);
         return {
             ...activity,
             participantCount: this.grants.filter(g => g.activityId === activity.id).length,
+            documents: this.shared.documentsOf(activity.id),
+            joinPolicy: enrolment.policy,
+            unlisted: enrolment.unlisted,
+            joinPassword: enrolment.password,
         };
     }
 
-    private announceActivity(activity: ManagedActivity): void {
+    private announceActivity(activity: ManagedActivity): ManagedActivity {
+        const dressed = this.withCounts(activity);
         this.eventDispatcher.dispatchEvent({
             type: "activityChanged",
-            data: { activity: copy(this.withCounts(activity)) },
+            data: { activity: copy(dressed) },
         });
+        return copy(dressed);
     }
 
     private announceSeries(record: ActivityRecord, series: ManagedSeries): void {

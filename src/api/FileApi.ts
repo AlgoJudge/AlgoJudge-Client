@@ -24,6 +24,33 @@ export interface UploadedFile {
     createdAt: string;
 }
 
+/**
+ * A stored statement, named and pointed at rather than carried.
+ *
+ * One shape for both sides of the fence: a participant reading a problem and a
+ * manager editing one ask for the same bytes, and used to receive them through
+ * two different fields of two different types. Publishing was already a
+ * reference (`NewStatement`); this is what reading it back looks like.
+ *
+ * It lives here rather than in either API because it is a reference to a file,
+ * which is this module's whole subject.
+ */
+export interface StatementRef {
+    /**
+     * The name within the version — `content.md`, `content-en.md`,
+     * `content.pdf`. The renderer keys on it: a problem whose statement is a PDF
+     * is drawn differently from one written in Markdown, and the name is how
+     * that is known without opening the file.
+     */
+    name: string;
+    /** BCP-47 subtag. Absent is the default statement, and the fallback. */
+    language?: string;
+    fileId: string;
+    /** SHA-256 of the bytes, so what was published is what is read. */
+    sha256: string;
+    sizeBytes: number;
+}
+
 export interface FileApi {
     /**
      * Stores bytes and answers with what they became.

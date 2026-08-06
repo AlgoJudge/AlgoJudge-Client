@@ -1,4 +1,5 @@
 import { InstanceDocumentKind, InstanceDocumentRef, LegalDocumentKind } from "./CoreApi";
+import { pickDocumentRef as pick, publishedKinds } from "./documentRefs";
 
 /**
  * The order the legal documents are offered in, wherever they are listed.
@@ -18,7 +19,7 @@ const LEGAL_ORDER: LegalDocumentKind[] = ["terms", "privacy", "cookies", "access
  * Whether a document exists is whether it has a reference.
  */
 export const publishedLegalKinds = (refs: InstanceDocumentRef[]): LegalDocumentKind[] =>
-    LEGAL_ORDER.filter(kind => refs.some(ref => ref.kind === kind));
+    publishedKinds(refs, LEGAL_ORDER);
 
 /**
  * Every kind an operator may publish, in the order the settings screen lists
@@ -37,25 +38,13 @@ export const DOCUMENT_KINDS: InstanceDocumentKind[] = ["welcome", "home", ...LEG
 export const LOGO_ATTACHMENT = "logo.svg";
 
 /**
- * The document to show, for one kind and one interface language.
+ * The instance document to show, for one kind and one interface language.
  *
- * The reader's language where the operator wrote it, and what they wrote first
- * otherwise — a policy nobody translated is still the policy, and a missing
- * translation is a fallback rather than an error. `en-GB` resolves against `en`,
- * as it does for a problem statement.
- *
- * Lives beside the API rather than in a screen because three of them ask the
- * same question, and beside the API rather than in the fake because the answer
- * is the same whichever implementation supplied the references.
+ * A thin naming of the shared rule in `documentRefs.ts`, which an activity's
+ * documents use as well: the question is the same one and deserves one answer.
  */
 export const pickDocumentRef = (
     refs: InstanceDocumentRef[],
     kind: InstanceDocumentKind,
     language: string,
-): InstanceDocumentRef | undefined => {
-    const forKind = refs.filter(ref => ref.kind === kind);
-    const base = language.split("-")[0].toLowerCase();
-    return forKind.find(ref => ref.language?.toLowerCase() === language.toLowerCase())
-        ?? forKind.find(ref => ref.language?.split("-")[0].toLowerCase() === base)
-        ?? forKind.find(ref => !ref.language);
-};
+): InstanceDocumentRef | undefined => pick(refs, kind, language);

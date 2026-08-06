@@ -12,6 +12,11 @@ import { useAuth } from "../provider/authContext";
  *
  * The path being visited travels with the redirect, so signing in returns to
  * where the person was going rather than to a lobby.
+ *
+ * **The fragment travels with it too.** An activity's self-enrolment link
+ * carries its password there — `/activities/PROG-1-LA#hasło` — and that link is
+ * mailed to people who are not signed in, which is exactly the case where
+ * dropping the fragment would lose the one part that mattered.
  */
 const RequireSession: FC<{ children: ReactNode }> = ({ children }) => {
     const { status } = useAuth();
@@ -29,7 +34,11 @@ const RequireSession: FC<{ children: ReactNode }> = ({ children }) => {
     }
 
     if (status === "anonymous") {
-        return <Navigate to="/login" state={{ from: location.pathname + location.search }} replace />;
+        return <Navigate
+            to="/login"
+            state={{ from: location.pathname + location.search + location.hash }}
+            replace
+        />;
     }
 
     return children;

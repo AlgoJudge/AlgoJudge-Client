@@ -1,5 +1,6 @@
-import { Alert, Card, Grid, Group, NumberInput, Select, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
-import { IconInfoCircle } from "@tabler/icons-react";
+import { ActionIcon, Alert, Card, Grid, Group, NumberInput, Select, Stack, Switch, Text, TextInput, Title, Tooltip } from "@mantine/core";
+import { useClipboard } from "@mantine/hooks";
+import { IconCheck, IconCopy, IconInfoCircle } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { ActivityInput, JoinPolicy, LogVisibility, ScoreVisibility } from "../../api/ManagerApi";
 import ZonedDateTimeInput from "../time/ZonedDateTimeInput";
@@ -16,6 +17,40 @@ import { activityTypes } from "../../renderers";
 
 /** The zones an installation in Poland actually uses. Free text stays allowed. */
 const ZONES = ["Europe/Warsaw", "Europe/London", "UTC"];
+
+/**
+ * The address to send to a class, with the password in the fragment.
+ *
+ * The fragment rather than a query parameter, because a fragment is never sent
+ * to a server: it does not reach an access log, a proxy or a referrer header.
+ * Copying is offered rather than assumed — the link is the whole point of the
+ * password, and reading it off the screen to retype is not a workflow.
+ */
+function ShareLink({ slug, password }: { slug: string, password?: string }) {
+    const { t } = useTranslation();
+    const clipboard = useClipboard({ timeout: 1500 });
+    if (!slug || !password) {
+        return (
+            <Text size="sm" c="dimmed" mt="xl">
+                {t("The share link appears once the activity has a slug and a password.")}
+            </Text>
+        );
+    }
+    const link = `${window.location.origin}/activities/${encodeURIComponent(slug)}#${encodeURIComponent(password)}`;
+    return (
+        <Stack gap={4}>
+            <Text size="sm" fw={500}>{t("Link for self-enrolment")}</Text>
+            <Group gap="xs" wrap="nowrap">
+                <Text size="sm" ff="monospace" style={{ wordBreak: "break-all" }}>{link}</Text>
+                <Tooltip label={clipboard.copied ? t("Copied") : t("Copy")}>
+                    <ActionIcon variant="subtle" onClick={() => clipboard.copy(link)} aria-label={t("Copy")}>
+                        {clipboard.copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
+                    </ActionIcon>
+                </Tooltip>
+            </Group>
+        </Stack>
+    );
+}
 
 export interface ActivityFormProps {
     value: ActivityInput;
@@ -142,15 +177,15 @@ export default function ActivityForm({ value, onChange, slugLocked, disabled }: 
                         onChange={e => set({ modules: { ...value.modules, questions: e.currentTarget.checked } })}
                         disabled={disabled}
                     />
-                    <Switch
-                        label={t("Rules")}
-                        checked={value.modules.rules}
-                        onChange={e => set({ modules: { ...value.modules, rules: e.currentTarget.checked } })}
-                        disabled={disabled}
-                    />
                 </Group>
                 <Text size="sm" c="dimmed" mt="xs">
                     {t("A disabled module leaves the participant's sidebar entirely.")}
+                </Text>
+                {/* The rules used to be a switch here. They are a document now,
+                    and whether there are any is whether one is published — one
+                    answer rather than a flag that can be on over nothing. */}
+                <Text size="sm" c="dimmed">
+                    {t("Rules appear once you publish them under Documents.")}
                 </Text>
             </Card>
 
@@ -186,17 +221,50 @@ export default function ActivityForm({ value, onChange, slugLocked, disabled }: 
                     <Grid.Col span={{ base: 12, sm: 4 }}>
                         <Select
                             label={t("Who may join")}
+                            description={t("A manager may always enrol somebody by hand")}
                             data={[
                                 { value: "closed", label: t("joinPolicy.closed") },
-                                { value: "invitation", label: t("joinPolicy.invitation") },
+                                { value: "password", label: t("joinPolicy.password") },
                                 { value: "open", label: t("joinPolicy.open") },
                             ]}
                             value={value.joinPolicy}
                             onChange={v => v && set({ joinPolicy: v as JoinPolicy })}
+                            allowDeselect={false}
                             disabled={disabled}
                         />
                     </Grid.Col>
+                    <Grid.Col span={{ base: 12, sm: 8 }}>
+                        <Switch
+                            mt="xl"
+                            label={t("Hide from the activity list of people who are not enrolled")}
+                            description={value.joinPolicy === "closed"
+                                ? t("A closed activity is hidden either way: nobody enrols themselves.")
+                                : t("It stays reachable by its address, which is how a link works.")}
+                            // Forced on where the policy already means it, rather
+                            // than left switchable and quietly ignored.
+                            checked={value.joinPolicy === "closed" || value.unlisted}
+                            onChange={e => set({ unlisted: e.currentTarget.checked })}
+                            disabled={disabled || value.joinPolicy === "closed"}
+                        />
+                    </Grid.Col>
                 </Grid>
+
+                {value.joinPolicy === "password" && (
+                    <Grid mt="sm">
+                        <Grid.Col span={{ base: 12, sm: 5 }}>
+                            <TextInput
+                                label={t("Join password")}
+                                description={t("A join code for the activity, not anybody's password")}
+                                value={value.joinPassword ?? ""}
+                                onChange={e => set({ joinPassword: e.currentTarget.value })}
+                                disabled={disabled}
+                            />
+                        </Grid.Col>
+                        <Grid.Col span={{ base: 12, sm: 7 }}>
+                            <ShareLink slug={value.slug} password={value.joinPassword} />
+                        </Grid.Col>
+                    </Grid>
+                )}
             </Card>
 
             <Card withBorder radius="sm">
