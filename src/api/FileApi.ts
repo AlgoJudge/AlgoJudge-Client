@@ -67,10 +67,19 @@ export interface FileApi {
      */
     upload(file: File | Blob, name: string, sha256: string, signal: AbortSignal): Promise<UploadedFile>;
 
-    /** For a document: statement source, a log, a legal text. */
+    /**
+     * For a document: statement source, a log, a legal text.
+     *
+     * **Nothing here memoizes, and nothing should.** Bytes are immutable, so an
+     * id names them for ever and the Server answers with
+     * `max-age=31536000, immutable`; asking twice is a cache lookup, not a round
+     * trip. A cache of our own would be a second one to invalidate, holding text
+     * whose only way of changing is to become a different file with a different
+     * id — see `docs/specs/FILE_API.md`.
+     */
     getText(id: string, signal: AbortSignal): Promise<string>;
 
-    /** For an archive or anything else that is not text. */
+    /** For an archive or anything else that is not text. Cached the same way. */
     getBlob(id: string, signal: AbortSignal): Promise<Blob>;
 
     /**
