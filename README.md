@@ -52,12 +52,49 @@ Build-time variables, read by Vite:
 
 | Variable | Purpose |
 |---|---|
-| `VITE_APP_API_BASE_URL` | base URL of AlgoJudge-Server |
+| `VITE_APP_API_BASE_URL` | **origin** of AlgoJudge-Server, not a base URL — see below |
 | `VITE_APP_USE_FAKE_API` | `true` forces the fake API implementation |
-| `VITE_APP_DEBUG_AUTHENTICATION` | `true` bypasses the route guard — development only |
+| `VITE_APP_DEBUG_AUTHENTICATION` | `true` bypasses the route guard. **Development only and off by default**: a production build ignores it, so no deployment can be configured into having no authentication |
+
+### Working against the fake
+
+The fake API carries a few development affordances, all read from the address and
+remembered for the tab. They exist only in the fake — the HTTP implementation has
+nothing of the sort.
+
+| Parameter | Effect |
+|---|---|
+| `?fakeUser=amy` | start signed in as `amy` (manager), `jkowalski` (participant) or `john` (administrator, SSO) |
+| `?fakeRegistration=on` | let this instance accept local sign-ups |
+| `?fakeRequireEmail=on` | make the address mandatory on the registration form |
+| `?fakeConfirmEmail=on` | refuse sign-in until the address is confirmed |
+| `?fakeName=off` | an installation nobody has named: no name beside the mark, and `AlgoJudge` alone in the title |
+
+All three seeded accounts use the password `Test1!`.
 
 Every `VITE_`-prefixed value is embedded in the published bundle, so none of
 them can hold a secret.
+
+### Where the API is
+
+`/api/v1`, on whatever host serves it. This is not configurable, and the Client
+appends it itself, so `VITE_APP_API_BASE_URL` names only the origin:
+
+| Configured | The Client asks |
+|---|---|
+| `https://api.example.com` | `https://api.example.com/api/v1/…` |
+| `/` | `/api/v1/…` — the same origin the application is served from |
+| *(empty)* | nothing: the fake API is used instead |
+
+The path is fixed because the Client and the Server may share a domain, and
+there the API cannot live at the root — the root is the application. A prefix
+that is only sometimes present is one every deployment has to get right on its
+own, and getting it wrong is quiet: the Client asks the right host for the wrong
+path and nginx answers with the application's own `index.html` instead of an
+error.
+
+A value configured in either of the older shapes — ending in `/v1` or `/api/v1`
+— is accepted and normalised rather than refused. See `src/api/http/apiBase.ts`.
 
 ### Running without a Server
 
@@ -81,6 +118,13 @@ useful for looking at the interface without a Server. To point it at one:
 
 ```bash
 docker build --build-arg VITE_APP_API_BASE_URL=https://api.example.org -t algojudge-client .
+```
+
+Serving both from one domain, with a reverse proxy sending `/api/` to the
+Server, is the same build with the origin set to the application's own:
+
+```bash
+docker build --build-arg VITE_APP_API_BASE_URL=/ -t algojudge-client .
 ```
 
 **The configuration is baked in at build time.** Vite inlines `VITE_`-prefixed

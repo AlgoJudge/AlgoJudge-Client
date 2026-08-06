@@ -86,6 +86,26 @@
     }
 }
 
+/* A planned entry: visible so the shape of the product is legible, and inert so
+   nobody follows it into a page that does not exist. */
+.link[data-soon] {
+    opacity: 0.55;
+    cursor: default;
+
+    @mixin hover {
+        background-color: transparent;
+    }
+}
+
+.soon {
+    margin-left: auto;
+    padding-left: var(--mantine-spacing-xs);
+    font-size: 10px;
+    font-style: italic;
+    opacity: 0.9;
+    flex-shrink: 0;
+}
+
 .active,
 .active:hover {
     box-shadow: var(--mantine-shadow-sm);
@@ -128,4 +148,63 @@
     @mixin dark {
         display: block;
     }
+}
+
+/* The instance mark at the top of the navigation.
+
+   A light box in both colour schemes: a logo is made for paper, and the
+   navigation is a saturated blue that swallows one. Seventy per cent of the
+   width, centred, so a wide crest cannot push the navigation sideways and a
+   narrow one is still worth looking at. */
+.mark {
+    display: block;
+    width: 90%;
+    margin: 0 auto var(--mantine-spacing-xs);
+    padding: var(--mantine-spacing-sm);
+    border-radius: var(--mantine-radius-md);
+    background-color: var(--mantine-color-gray-0);
+    border: rem(1px) solid var(--mantine-color-gray-3);
+}
+
+.mark[data-collapsed] {
+    width: 96%;
+    padding: rem(6px);
+}
+
+/* The project and the operator's documents, at the foot of the navigation. They
+   sit in the navbar's own bottom section, so they stay where a footer would sit
+   however long the list above them grows. */
+.foot {
+    padding-top: var(--mantine-spacing-xs);
+    display: flex;
+    flex-direction: column;
+    gap: rem(2px);
+}
+
+/* Quieter than `.link` on purpose: no icon, ordinary weight, one size down and
+   a paler blue. Hovering and the open document brighten it to white — that is
+   the whole of its state, with no background and no shadow, because a document
+   somebody reads once should not look like a tool they work in. */
+.footLink {
+    display: block;
+    text-decoration: none;
+    font-size: var(--mantine-font-size-xs);
+    font-weight: 400;
+    line-height: 1.5;
+    padding: rem(3px) var(--mantine-spacing-sm);
+    color: var(--mantine-color-blue-1);
+
+    @mixin hover {
+        color: var(--mantine-color-white);
+    }
+}
+
+.footLink[aria-current="page"] {
+    color: var(--mantine-color-white);
+}
+
+/* The scrollbar of the middle section, on the navigation's own blue: the default
+   grey is drawn for a light surface and all but disappears here. */
+.navbar :global(.mantine-ScrollArea-thumb) {
+    background-color: var(--mantine-color-blue-3);
 }

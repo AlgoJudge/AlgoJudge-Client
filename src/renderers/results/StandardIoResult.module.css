@@ -1,0 +1,14 @@
+/* Verdict colouring for the per-test table. Kept as light backgrounds so the
+   text stays readable in both colour schemes. */
+
+.ok {
+    background-color: light-dark(var(--mantine-color-green-1), var(--mantine-color-green-9));
+}
+
+.warning {
+    background-color: light-dark(var(--mantine-color-yellow-1), var(--mantine-color-yellow-9));
+}
+
+.error {
+    background-color: light-dark(var(--mantine-color-red-1), var(--mantine-color-red-9));
+}

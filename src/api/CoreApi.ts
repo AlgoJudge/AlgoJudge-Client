@@ -1,12 +1,183 @@
 import { Event } from "./Event";
 
-export interface User {
+/**
+ * Signing in, the signed-in account, and the few instance facts a signed-out
+ * screen has to know.
+ *
+ * One notion of "the current user" lives here and nowhere else. The Client used
+ * to hold two — one invented by the auth provider and one read from the Server —
+ * which is how a reload could sign somebody out of the interface while their
+ * session was still perfectly valid.
+ */
+
+export interface Session {
+    userId: string,
     username: string,
-    name: string,
-    email: string,
+    firstName?: string,
+    lastName?: string,
+    email?: string,
+    emailConfirmed: boolean,
+    /**
+     * False for an account owned by an identity provider. An SSO account may not
+     * change its own name, login, address or password here, and cannot delete
+     * itself: those belong to whoever owns the identity.
+     */
+    isLocal: boolean,
 }
 
-export type CoreEventType = "systemMessage";
+/**
+ * What a signed-out screen may know about the installation.
+ *
+ * Read before the login and registration screens render, because both change
+ * shape with it: an instance that accepts no sign-ups must not show a form that
+ * takes them.
+ */
+export interface InstanceInfo {
+    /**
+     * What this installation calls itself — the operator's name for it, beside
+     * the product's own.
+     *
+     * A reader has to be able to tell whose installation they are looking at:
+     * the mark says it to somebody who recognises the mark, and the name says it
+     * to everybody else. Shown beside the logo, and in the window title as
+     * `AlgoJudge | <name>`.
+     *
+     * **Absent is a real state**, not a missing field: an installation that has
+     * not been named shows the product's name alone rather than a made-up one.
+     * That is why there is no default here — a default would make "not named"
+     * indistinguishable from "named AlgoJudge".
+     */
+    name?: string,
+    /** Shipped **off**: accounts are created by an organiser or arrive by SSO. */
+    localRegistrationEnabled: boolean,
+    /** Whether the registration form must collect an address. */
+    requireEmail: boolean,
+    /** Whether an address must be confirmed before the account can sign in. */
+    requireConfirmedEmail: boolean,
+    /** Which documents this instance publishes. Empty is a legitimate answer. */
+    legalDocuments: LegalDocumentKind[],
+    /**
+     * A reference to every document currently in force, one per kind per
+     * language. The text itself is fetched from `fileApi` by whoever is about to
+     * show it — see {@link InstanceDocumentRef}.
+     */
+    documents: InstanceDocumentRef[],
+    /**
+     * The instance's own mark. Absent means it has not set one, and the Client
+     * shows the placeholder it ships with — visibly a placeholder, so an
+     * unconfigured instance reads as unconfigured.
+     */
+    logo?: InstanceLogo,
+    /**
+     * A mark per language, for an institution whose wordmark is not the same in
+     * two of them. A language without one uses `logo`, exactly as a statement
+     * without a translation uses `content.md`.
+     */
+    logoTranslations?: LocalisedLogo[],
+    /**
+     * Whether the mark appears in the application shell. False is how an
+     * operator turns it off; a page that wants no picture simply does not
+     * reference one, because the operator writes the page.
+     */
+    showLogo: boolean,
+}
+
+/**
+ * The instance's logo, as a stored file.
+ *
+ * It carries a checksum because every stored file does — the rule has no
+ * exception for pictures.
+ */
+export interface InstanceLogo {
+    url: string,
+    mimeType: string,
+    sizeBytes: number,
+    sha256: string,
+}
+
+export interface LocalisedLogo {
+    /** BCP-47 subtag, as a statement translation carries. */
+    language: string,
+    logo: InstanceLogo,
+}
+
+/**
+ * A document an instance publishes, written by its operator.
+ *
+ * Instance configuration rather than product content: the operator is the data
+ * controller, and each installation has its own. `algojudge.pl` describes the
+ * project and processes nothing, so the text does not live there.
+ *
+ * The front pages and the legal documents are one kind of thing — `content.md`
+ * an operator writes, drawn by the renderer that draws a problem statement — so
+ * they are one endpoint and, in stage 9, one screen to edit.
+ */
+export type InstanceDocumentKind = LegalDocumentKind | "welcome" | "home";
+
+/** The four documents whose absence is a legal question rather than a design one. */
+export type LegalDocumentKind = "terms" | "privacy" | "cookies" | "accessibility";
+
+/**
+ * Where one instance document lives, and what a screen needs before it has the
+ * text.
+ *
+ * The documents do not travel in the instance response — a privacy policy is
+ * tens of kilobytes per language and the configuration is read on every arrival
+ * — but their **references** do, because `/instance` is fetched anyway. The
+ * reader's language is picked from these and the text is fetched once, with
+ * `fileApi.getText`.
+ *
+ * There is one of these per kind **per language**, as `content-<language>.md` is
+ * to a statement. The one with no `language` is what the operator wrote first
+ * and is the fallback: a policy nobody translated is still the policy.
+ */
+export interface InstanceDocumentRef {
+    kind: InstanceDocumentKind,
+    /** BCP-47 subtag. Absent on the document the operator wrote first. */
+    language?: string,
+    /** Absent on the front pages: their heading is inside the document. */
+    title?: string,
+    /**
+     * When this revision came into force.
+     *
+     * Instance documents are **versioned**: publishing a new one adds a
+     * revision rather than replacing the last, so "which policy was in force on
+     * the third of August" stays answerable — a question that gets asked about a
+     * privacy policy for real, and by somebody who is owed an answer. The reader
+     * is served the newest revision whose `validFrom` has passed, which also
+     * lets an operator publish new terms ahead of the date they take effect.
+     *
+     * Absent on a document that shipped with the software: a template names the
+     * wrong controller and is in force over nothing.
+     */
+    validFrom?: string,
+    /**
+     * True while the operator is still using what shipped with the software.
+     * A template names the wrong controller, so the screen has to say so out
+     * loud rather than let it pass for a policy.
+     */
+    isTemplate: boolean,
+    /** The stored text, read with `fileApi.getText`. */
+    fileId: string,
+    sha256: string,
+    sizeBytes: number,
+}
+
+export interface ProfileInput {
+    firstName?: string,
+    lastName?: string,
+    /** Changing it is a rename: the login is what other people see. */
+    username?: string,
+    email?: string,
+}
+
+export interface RegisterInput extends ProfileInput {
+    password: string,
+    /** Refused without it, and recorded with the account. */
+    acceptedTerms: boolean,
+}
+
+export type CoreEventType = "systemMessage" | "sessionExpired";
 export type CoreEvent<T extends CoreEventType, V> = Event<T, V>;
 
 export type SystemMessageEvent = Event<"systemMessage", {
@@ -14,14 +185,48 @@ export type SystemMessageEvent = Event<"systemMessage", {
     type: "success" | "info" | "warning" | "error",
 }>;
 
+/**
+ * The Server refused a request because the session is gone. Dispatched by the
+ * transport, so a session that expires mid-visit ends at the login screen rather
+ * than in screens that spin for ever.
+ */
+export type SessionExpiredEvent = Event<"sessionExpired", Record<string, never>>;
+
 export interface CoreEventDispatcher {
     addEventListener(type: "systemMessage", listener: (evt: SystemMessageEvent) => void, signal: AbortSignal): void;
+    addEventListener(type: "sessionExpired", listener: (evt: SessionExpiredEvent) => void, signal: AbortSignal): void;
     addEventListener<T extends CoreEventType, V>(type: T, listener: (evt: CoreEvent<T, V>) => void, signal: AbortSignal): void;
 }
 
 export interface CoreApi {
     readonly eventDispatcher: CoreEventDispatcher;
-    login(email: string, password: string, signal: AbortSignal): Promise<void>;
-    register(email: string, password: string, signal: AbortSignal): Promise<void>;
-    getUser(): User | undefined;
+
+    /** What the installation admits to a screen nobody has signed in to. */
+    getInstanceInfo(signal: AbortSignal): Promise<InstanceInfo>;
+
+    /**
+     * The session the browser already holds, or undefined when there is none.
+     * Called once on load: the cookie is the truth, and the Client asks for it
+     * rather than remembering one of its own.
+     */
+    getSession(signal: AbortSignal): Promise<Session | undefined>;
+
+    /** `login` is a username or an email address; the Server accepts either. */
+    login(login: string, password: string, signal: AbortSignal): Promise<Session>;
+    logout(signal: AbortSignal): Promise<void>;
+
+    register(input: RegisterInput, signal: AbortSignal): Promise<void>;
+
+    updateProfile(input: ProfileInput, signal: AbortSignal): Promise<Session>;
+    changePassword(currentPassword: string, newPassword: string, signal: AbortSignal): Promise<void>;
+
+    /** Everything held about the signed-in person, as a document they can keep. */
+    exportData(signal: AbortSignal): Promise<Blob>;
+
+    /**
+     * Anonymizes the account and ends the session. Immediate and irreversible:
+     * submissions and results survive under an identifier that no longer names
+     * anybody.
+     */
+    deleteAccount(password: string, signal: AbortSignal): Promise<void>;
 }

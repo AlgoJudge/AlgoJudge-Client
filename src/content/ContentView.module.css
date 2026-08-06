@@ -1,0 +1,93 @@
+/* Markdown arrives as HTML, so its elements are styled here rather than through
+   components. Kept minimal: a statement should read like a document. */
+
+.content {
+    line-height: 1.6;
+
+    & h1 { font-size: 1.6rem; margin: 1.2rem 0 0.6rem; }
+    & h2 { font-size: 1.3rem; margin: 1.1rem 0 0.5rem; }
+    & h3 { font-size: 1.1rem; margin: 1rem 0 0.4rem; }
+    & h4 { font-size: 1rem; margin: 0.9rem 0 0.4rem; }
+
+    & p { margin: 0.5rem 0; }
+
+    & ul,
+    & ol { margin: 0.5rem 0; padding-left: 1.5rem; }
+
+    & blockquote {
+        margin: 0.6rem 0;
+        padding: 0.2rem 0 0.2rem 0.8rem;
+        border-left: 3px solid var(--mantine-color-gray-4);
+        color: var(--mantine-color-dimmed);
+    }
+
+    & code {
+        background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+        padding: 0.1em 0.3em;
+        border-radius: var(--mantine-radius-sm);
+        font-size: 0.9em;
+    }
+
+    & pre {
+        background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+        padding: var(--mantine-spacing-sm);
+        border-radius: var(--mantine-radius-sm);
+        overflow-x: auto;
+
+        & code { background: none; padding: 0; }
+    }
+
+    & img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0.6rem auto;
+    }
+
+    /* A table can be wider than the column it sits in, and the page must not
+       scroll sideways because of it. */
+    & table {
+        display: block;
+        overflow-x: auto;
+        border-collapse: collapse;
+        margin: 0.6rem 0;
+
+        & th,
+        & td {
+            border: 1px solid var(--mantine-color-gray-4);
+            padding: 0.35rem 0.6rem;
+            text-align: left;
+        }
+
+        & th {
+            background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+        }
+    }
+}
+
+.sample {
+    border: 1px solid var(--mantine-color-gray-4);
+    border-radius: var(--mantine-radius-sm);
+    padding: var(--mantine-spacing-sm);
+}
+
+.explanation {
+    margin-top: var(--mantine-spacing-xs);
+    font-size: var(--mantine-font-size-sm);
+    color: var(--mantine-color-dimmed);
+}
+
+.censored {
+    text-decoration: underline dotted;
+    text-underline-offset: 0.2em;
+    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+    cursor: help;
+}
+
+.missing {
+    display: inline-block;
+    padding: 0.2em 0.5em;
+    border-radius: var(--mantine-radius-sm);
+    background-color: light-dark(var(--mantine-color-yellow-1), var(--mantine-color-yellow-9));
+    font-size: var(--mantine-font-size-sm);
+}

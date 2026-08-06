@@ -1,66 +1,143 @@
-import { Card, Stack, Title, Text, Group, Pagination, Loader } from "@mantine/core";
-import { IconSchool, IconTrophy } from "@tabler/icons-react";
-import classes from "./ActivitiesPage.module.css"
-import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
+import { Badge, Card, Chip, Group, Pagination, Stack, Text, Title } from "@mantine/core";
+import { IconQuestionMark, IconSchool, IconTrophy } from "@tabler/icons-react";
 import { useState } from "react";
-import { Activity } from "../../api/ParticipantApi";
-import { useApiEffect } from "../../provider/ApiProvider";
-import { SortedList } from "../../utils/SortedList"
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import { Activity, ActivityState } from "../../api/ParticipantApi";
+import { useApiEffect } from "../../provider/apiContext";
+import LoadState from "../../components/LoadState";
+import { typeName } from "../../renderers";
+import classes from "./ActivitiesPage.module.css";
 
-const MAX_ITEMS_PER_PAGE = 5;
+const PAGE_SIZE = 5;
 
 const getIcon = (type: string) => {
-    switch (type) {
+    // The icon follows the type's name, so a new version of a known type keeps
+    // its icon instead of falling through to the default.
+    switch (typeName(type)) {
         case "contest":
             return <IconTrophy size="3em" />;
         case "course":
             return <IconSchool size="3em" />;
         default:
-            return <IconSchool size="3em" />;
+            return <IconQuestionMark size="3em" />;
     }
-}
+};
+
+const STATES: ActivityState[] = ["ongoing", "upcoming", "finished"];
+const TYPES = ["contest", "course"];
 
 export default function ActivitiesPage() {
     const { t } = useTranslation();
     const navigate = useNavigate();
-    const [data, setData] = useState<Activity[]>();
-    const [page, setPage] = useState<number>(1);
-    const sortedList: SortedList<Activity, string> = new SortedList(a => a.id, (a, b) => a.id.localeCompare(b.id), setData);
-    useApiEffect(async (api) => {
-        const getData = async () => {
-            const data = await api.participantApi.getActivities();
-            sortedList.addOrUpdate(data);
+
+    const [states, setStates] = useState<ActivityState[]>([]);
+    const [types, setTypes] = useState<string[]>([]);
+    const [page, setPage] = useState(1);
+    const [items, setItems] = useState<Activity[] | undefined>(undefined);
+    const [total, setTotal] = useState(0);
+    const [reload, setReload] = useState(0);
+
+    // Paging and filtering are the Server's job. Fetching everything and slicing
+    // in the Client only works while the list is short, and stops silently when
+    // it is not.
+    const error = useApiEffect(async (api) => {
+        setItems(undefined);
+        const result = await api.participantApi.getActivities({ page, pageSize: PAGE_SIZE, states, types });
+        setItems(result.items);
+        setTotal(result.total);
+
+        // An activity appearing, vanishing or changing state moves it between
+        // pages, so the page is refetched rather than patched — splicing a new
+        // row into the visible page would put it wherever it happened to arrive
+        // instead of where the filters and the ordering put it.
+        const refetch = () => setReload(n => n + 1);
+        api.participantApi.eventDispatcher.addEventListener("activityCreated", refetch);
+        api.participantApi.eventDispatcher.addEventListener("activityDeleted", refetch);
+        api.participantApi.eventDispatcher.addEventListener("activityUpdated", evt =>
+            setItems(current => current?.map(a => a.id === evt.data.activity.id ? evt.data.activity : a)));
+    }, [page, states, types, reload]);
+
+    const onFilterChange = <T,>(set: (value: T[]) => void) => (value: T[]) => {
+        set(value);
+        // A filter that leaves the reader on page 4 of a one-page result looks
+        // like an empty list.
+        setPage(1);
+    };
+
+    const membershipBadge = (activity: Activity) => {
+        switch (activity.membership) {
+            case "invited":
+                return <Badge color="blue" variant="light">{t("Invited")}</Badge>;
+            case "open":
+                return <Badge color="teal" variant="light">{t("Open to join")}</Badge>;
+            default:
+                return null;
         }
-        api.participantApi.eventDispatcher.addEventListener("activityCreated", evt => sortedList.addOrUpdate([evt.data.activity]));
-        api.participantApi.eventDispatcher.addEventListener("activityUpdated", evt => sortedList.addOrUpdate([evt.data.activity]));
-        await getData();
-    });
-    const pages = data ? Math.ceil(data.length / MAX_ITEMS_PER_PAGE) : 0;
-    const list = data && (() => {
-        const firstItem = MAX_ITEMS_PER_PAGE * (page - 1);
-        const list = data.slice(firstItem, firstItem + MAX_ITEMS_PER_PAGE).map(item =>
-            <Card key={item.id} className={classes.item + " " + (item.isActive && classes.active)} onClick={() => navigate(`/activities/${item.id}/problems`)}>
-                <Group justify="space-between">
-                    <Group>
-                        {getIcon(item.type)}<Text size="lg">{item.name}</Text>
-                    </Group>
-                    <Stack justify="flex-end" gap={0} className={classes.stack}>
-                        {item.props.map(p => <Text key={p.key}>{p.key}: {p.value}</Text>)}
-                    </Stack>
-                </Group>
-            </Card>
-        );
-        return list;
-    })();
+    };
+
     return (
-        <>
+        <Stack gap="xs">
             <Title>{t("Activities")}</Title>
-            {list}
-            {!data && <Loader color="blue" size="xl" />}
-            <Group justify="center" mt="xl">
-                <Pagination total={pages} value={page} onChange={setPage} mx="auto" />
+
+            <Group gap="lg" px="md">
+                <Chip.Group multiple value={states} onChange={onFilterChange(setStates) as (v: string[]) => void}>
+                    <Group gap="xs">
+                        {STATES.map(state => <Chip key={state} value={state} size="sm">{t(state)}</Chip>)}
+                    </Group>
+                </Chip.Group>
+                <Chip.Group multiple value={types} onChange={onFilterChange(setTypes)}>
+                    <Group gap="xs">
+                        {TYPES.map(type => <Chip key={type} value={type} size="sm" color="grape">{t(type)}</Chip>)}
+                    </Group>
+                </Chip.Group>
             </Group>
-        </>
+
+            <LoadState error={error} loading={!items}>
+                {items?.length === 0 && (
+                    <Text px="md" c="dimmed">{t("No activities match the filters")}</Text>
+                )}
+            </LoadState>
+
+            {items?.map(item => (
+                <Card
+                    key={item.id}
+                    // Finished activities are dimmed; ongoing and upcoming keep
+                    // full colour, which is the whole point of the state filter.
+                    className={classes.item + " " + (item.state !== "finished" ? classes.active : "")}
+                    onClick={() => navigate(`/activities/${item.slug}/problems`)}
+                >
+                    <Group justify="space-between" wrap="nowrap">
+                        <Group wrap="nowrap" style={{ minWidth: 0 }}>
+                            {getIcon(item.type)}
+                            <Stack gap={2} style={{ minWidth: 0 }}>
+                                <Text size="lg">{item.name}</Text>
+                                <Group gap="xs">
+                                    <Badge variant="outline" size="sm">{item.slug}</Badge>
+                                    {membershipBadge(item)}
+                                </Group>
+                            </Stack>
+                        </Group>
+                        <Stack justify="flex-end" gap={0} className={classes.stack}>
+                            {item.finalScore !== undefined && (
+                                <Text fw={600}>
+                                    {t("Result")}: {item.finalScore}{item.maxScore !== undefined ? ` / ${item.maxScore}` : ""}
+                                </Text>
+                            )}
+                            {item.props.map(p => <Text key={p.key}>{p.key}: {p.value}</Text>)}
+                        </Stack>
+                    </Group>
+                </Card>
+            ))}
+
+            <Group justify="center" mt="xl">
+                <Pagination
+                    total={Math.ceil(total / PAGE_SIZE)}
+                    value={page}
+                    onChange={setPage}
+                    mx="auto"
+                />
+            </Group>
+        </Stack>
     );
 }

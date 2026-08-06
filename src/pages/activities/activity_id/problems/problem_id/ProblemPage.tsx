@@ -1,40 +1,157 @@
-import {Button, Group, Stack, Title} from "@mantine/core";
+import { Anchor, Badge, Button, Card, Center, Group, Loader, SegmentedControl, Stack, Text, Title } from "@mantine/core";
+import { IconClock, IconDatabase, IconDownload, IconLanguage } from "@tabler/icons-react";
+import { Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { Activity, ProblemDetail } from "../../../../../api/ParticipantApi";
+import ProblemStatusBadge from "../../../../../components/problem/ProblemStatusBadge";
+import { useApiEffect } from "../../../../../provider/apiContext";
+import LoadState from "../../../../../components/LoadState";
+import { statementRenderers } from "../../../../../renderers";
+import { languageName, pickLanguage } from "../../../../../components/content/languageName";
+import { isStatementName } from "../../../../../content/types";
 
-interface Problem {
-    id: string,
-    name: string,
-    pdf: string
-}
+/**
+ * The value standing for `content.md`, which has no language of its own. `*`
+ * rather than the empty string: it can never be a language subtag, and Mantine's
+ * controls dislike an empty value.
+ */
+const DEFAULT = "*";
 
-const data: Problem = {
-    id: "P1",
-    name: "Problem 1",
-    pdf: "https://www.mat.umk.pl/panel/wp-content/uploads/matematyka.pdf"
-};
+/**
+ * The statement, not material beside it: `content.md`, its translations, and a
+ * `content.pdf` where a problem ships one.
+ */
+const isStatementFile = (name: string) => isStatementName(name) || /^content\.[^.]+$/i.test(name);
 
 export default function ProblemPage() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const navigate = useNavigate();
-    const params = useParams();
+    const { activityId, problemId } = useParams();
+
+    const [activity, setActivity] = useState<Activity | undefined>(undefined);
+    const [problem, setProblem] = useState<ProblemDetail | undefined>(undefined);
+    /** Set only when the reader chose; otherwise the interface language decides. */
+    const [chosenLanguage, setChosenLanguage] = useState<string | undefined>(undefined);
+
+    const error = useApiEffect(async (api) => {
+        if (!activityId || !problemId) return;
+        const activity = await api.participantApi.getActivity(activityId);
+        setActivity(activity);
+        setProblem(await api.participantApi.getProblem(activity.id, problemId));
+
+        // The statement is where a participant sits while waiting for a verdict,
+        // so their standing on this problem has to move here too — not only on
+        // the list they came from.
+        api.participantApi.eventDispatcher.addEventListener("problemStatusChanged", evt => {
+            if (evt.data.activityId !== activity.id) return;
+            setProblem(current => current && current.id === evt.data.problem.id
+                ? {
+                    ...current,
+                    status: evt.data.problem.status,
+                    bestScore: evt.data.problem.bestScore,
+                    attempts: evt.data.problem.attempts,
+                }
+                : current);
+        });
+    }, [activityId, problemId]);
+
+    if (!activity || !problem) {
+        return <LoadState error={error} loading={!error} />;
+    }
+
+    const Statement = statementRenderers.resolve(problem.type).value;
+    const downloads = problem.attachments.filter(a => !isStatementFile(a.name));
+
+    // The statement follows the interface language when it can, and the reader
+    // may override it — wanting the English statement in a Polish interface is
+    // an ordinary thing to want, so the switcher changes the statement alone.
+    const translations = problem.translations ?? [];
+    const preferred = pickLanguage(translations.map(v => v.language), i18n.language) ?? DEFAULT;
+    const language = chosenLanguage ?? preferred;
+    const statement = translations.find(v => v.language === language)?.content ?? problem.content;
+
     return (
-        <>
-            <Stack gap={2}>
-                <Title>{data.name}</Title>
-                <Group justify="space-between">
-                    <Button onClick={() => navigate(-1)}>{t("Back")}</Button>
-                    <Group>
-                        <Button component={Link} to={data.pdf} download target="_self">{t("Download problem")}</Button>
-                        <Button component={Link} to={`/activities/${params.activityId}/submit/${params.problemId}`}>{t("Submit")}</Button>
+        <Stack gap="md">
+            <Group justify="space-between" align="flex-start" wrap="wrap">
+                <Stack gap={4}>
+                    <Title>[{problem.slug}] {problem.name}</Title>
+                    <Group gap="xs">
+                        <ProblemStatusBadge
+                            status={problem.status}
+                            bestScore={problem.bestScore}
+                            maxScore={problem.maxScore}
+                            attempts={problem.attempts}
+                        />
+                        {/* Absent when the manager chose not to show them, so the
+                            screen renders nothing rather than "undefined". */}
+                        {problem.limits && (
+                            <>
+                                <Badge variant="light" leftSection={<IconClock size={14} />}>
+                                    {(problem.limits.timeMs / 1000).toFixed(2)} s
+                                </Badge>
+                                <Badge variant="light" leftSection={<IconDatabase size={14} />}>
+                                    {problem.limits.memoryMb} MB
+                                </Badge>
+                            </>
+                        )}
+                        {problem.submissionsLeft !== undefined && (
+                            <Badge variant="outline" color="gray">
+                                {t("Submissions left")}: {problem.submissionsLeft}
+                            </Badge>
+                        )}
                     </Group>
+                </Stack>
+                <Group>
+                    <Button variant="default" onClick={() => navigate(-1)}>{t("Back")}</Button>
+                    <Button component={Link} to={`/activities/${activity.slug}/submit/${problem.slug}`}>
+                        {t("Submit")}
+                    </Button>
                 </Group>
-                <Group h={600}>
-                    <object data={data.pdf} type="application/pdf" width="100%" height="100%">
-                        <p>{t("PDF should be here")}</p>
-                    </object>
+            </Group>
+
+            {translations.length > 0 && (
+                <Group gap="xs">
+                    <IconLanguage size={16} />
+                    <SegmentedControl
+                        size="xs"
+                        value={language}
+                        onChange={setChosenLanguage}
+                        data={[
+                            { value: DEFAULT, label: t("Default statement") },
+                            ...translations.map(v => ({
+                                value: v.language,
+                                label: languageName(v.language, i18n.language),
+                            })),
+                        ]}
+                    />
                 </Group>
-            </Stack>
-        </>
+            )}
+
+            <Suspense fallback={<Center my="xl"><Loader /></Center>}>
+                <Statement content={statement} attachments={problem.attachments} />
+            </Suspense>
+
+            {problem.samples && problem.samples.length > 0 && (
+                <Text size="sm" c="dimmed">
+                    {t("Samples are also available as separate files where the problem provides them.")}
+                </Text>
+            )}
+
+            {downloads.length > 0 && (
+                <Card withBorder radius="sm">
+                    <Title order={4} mb="xs">{t("Attachments")}</Title>
+                    <Stack gap={4}>
+                        {downloads.map(a => (
+                            <Group key={a.name} gap="xs">
+                                <IconDownload size={16} />
+                                <Anchor href={a.url} download>{a.name}</Anchor>
+                                <Text size="xs" c="dimmed">{Math.ceil(a.sizeBytes / 1024)} kB</Text>
+                            </Group>
+                        ))}
+                    </Stack>
+                </Card>
+            )}
+        </Stack>
     );
 }

@@ -1,6 +1,7 @@
 .header {
     height: rem(56px);
-    margin-bottom: rem(120px);
+    /* No margin of its own: the page below it is spaced by its own container,
+       and 120 px here put every public page a screenful down. */
     background-color: var(--mantine-color-body);
     border-bottom: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
 }

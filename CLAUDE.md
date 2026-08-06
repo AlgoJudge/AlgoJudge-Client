@@ -25,13 +25,41 @@ verified as outdated and removed there.
 | `npm ci` | install dependencies |
 | `npm run dev` | development server |
 | `npm run lint` | ESLint 9, flat config in `eslint.config.mjs` |
+| `npm run lint:deps` | dependency lists at every `useApiEffect` call site |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run build` | `tsc && vite build` |
+| `npm run check:package` | round-trips a Runner package through the real builder |
+| `npm run check:content` | parses and validates every `content.md` fixture |
+| `npm run check:events` | drives the event socket against a stub `WebSocket` |
+| `npm run check:api` | lists every endpoint the HTTP layer calls; checks it against an OpenAPI document when given one |
 
-There are no tests and no CI, so lint, typecheck and build are the whole gate.
-All three must exit 0 before anything is merged. Lint currently reports seven
-warnings that do not gate the build: four `react-hooks/exhaustive-deps` and
-three `react-refresh/only-export-components`.
+There is no test runner. Lint, `lint:deps`, typecheck and build are the gate and
+all four must exit 0 before anything is merged; the `check:` scripts cover what
+the Client owns and are run when it changes — the two formats
+(`check:content`, `check:package`) and the event transport (`check:events`).
+
+`check:api` is not a gate yet: it prints the endpoints the HTTP layer calls, and
+only checks them when handed an OpenAPI document —
+`npm run check:api -- openapi.json`. It becomes a gate the day the Server
+publishes one.
+
+**Lint is silent.** Not "nine known warnings", not two — nothing. It reported
+nine until 2026-08-05 and two until 2026-08-06. A warning in the output means
+something to fix or a decision to record, not something to recognise.
+
+The one deliberate silencing is the `useEffect` inside `useApiEffect`
+(`provider/apiContext.ts`), where the rule cannot see the dependency list because
+it is a parameter, and what it asks for instead would loop. The comment there
+says so. Silencing it is safe only because `reportUnusedDisableDirectives` is on,
+so ESLint reports the directive the day it stops being needed — do not turn that
+option off.
+
+What that silencing gives up, `lint:deps` takes back: it runs the same rule with
+`useApiEffect` declared as an effect hook, so the dependency list every screen
+declares is checked. Plain `eslint` cannot do this itself — with the wrapper
+declared it also demands a synchronous effect callback, and all of ours are async
+by design — so that single message is filtered out by `scripts/lint-deps.mjs` and
+anything else fails the run.
 
 ## Rules
 
@@ -50,6 +78,12 @@ the fake when `VITE_APP_USE_FAKE_API` is `"true"` or when no
 `VITE_APP_API_BASE_URL` is set, the real HTTP client otherwise. Views call
 through `useApi`, `useApiEffect` or `useApiCall` and never talk to `fetch`
 directly.
+
+**The API is at `/api/v1` on every installation** (2026-08-06), whatever host
+serves it, so `VITE_APP_API_BASE_URL` names an origin and `src/api/http/apiBase.ts`
+appends the path. `/` means the origin the application itself came from, which is
+the case the rule exists for: one domain serving both. Do not make the path
+configurable again.
 
 Not implemented yet: no renderer registry and no `typeId`/`typeVersion`
 selection, and no WebSocket — the event dispatchers exist and are shaped for one,

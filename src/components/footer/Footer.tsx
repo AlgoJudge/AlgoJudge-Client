@@ -1,17 +1,28 @@
-import { Affix, Anchor, Center, Container, Group, Menu } from '@mantine/core';
+import { Anchor, Center, Container, Group, Menu, useMantineColorScheme } from '@mantine/core';
 import { IconChevronUp } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import Logo from '../logo/Logo';
 import classes from './Footer.module.css';
-import { usePreferences } from '../../provider/PreferencesProvider';
+import { useInstance } from '../../provider/instanceContext';
+import { PROJECT_SITE } from '../../site';
 
 function Footer() {
-    const { t } = useTranslation();
-    const { setTheme, setLang } = usePreferences();
+    // Mantine and i18next each remember their own setting, and the application
+    // shell already switches them directly. One store rather than two: a second
+    // one only meant that whichever screen was mounted last won.
+    const { t, i18n } = useTranslation();
+    const { setColorScheme } = useMantineColorScheme();
+
+    // Which documents exist is the instance's decision, and one that publishes
+    // none must not show four dead links. Read from the shared answer rather
+    // than fetched again: the shell, the front page and the two account screens
+    // all need it, and they should not each ask.
+    const { instance } = useInstance();
+    const documents = instance.legalDocuments;
 
     const links = [
-        { link: 'https://algojudge.pl', label: t('About'), prev: false },
+        { link: PROJECT_SITE, label: t('About'), prev: false },
     ];
 
     const links2 = [
@@ -19,16 +30,16 @@ function Footer() {
             link: '#1',
             label: 'Lang',
             links: [
-                { link: '#1-en', label: 'English', func: () => setLang('en') },
-                { link: '#1-pl', label: 'Polski', func: () => setLang('pl') },
+                { link: '#1-en', label: 'English', func: () => void i18n.changeLanguage('en') },
+                { link: '#1-pl', label: 'Polski', func: () => void i18n.changeLanguage('pl') },
             ],
         },
         {
             link: '#2',
             label: 'Theme',
             links: [
-                { link: '#2-light', label: 'Light', func: () => setTheme('light') },
-                { link: '#2-dark', label: 'Dark', func: () => setTheme('dark') },
+                { link: '#2-light', label: 'Light', func: () => setColorScheme('light') },
+                { link: '#2-dark', label: 'Dark', func: () => setColorScheme('dark') },
             ],
         }
     ];
@@ -76,17 +87,25 @@ function Footer() {
             </Link>
         );
     });
-    const items3 = [...items, ...items2];
+    const legalItems = documents.map(kind => (
+        <Anchor c="dimmed" key={kind} component={Link} to={`/${kind}`} size="sm">
+            {t(`legal.${kind}`)}
+        </Anchor>
+    ));
 
+    const items3 = [...items, ...legalItems, ...items2];
+
+    // In the flow of the page rather than pinned to the viewport. Affixed, it
+    // floated over the last paragraph of every page with nothing behind it, so
+    // the text of a document and the links of the footer were drawn on top of
+    // each other and neither could be read.
     return (
-        <Affix withinPortal={false} position={{ bottom: 0, left: 0, right: 0 }}>
-            <div className={classes.footer}>
-                <Container className={classes.inner}>
-                    <Link to="/"><Logo /></Link>
-                    <Group className={classes.links}>{items3}</Group>
-                </Container>
-            </div>
-        </Affix>
+        <div className={classes.footer}>
+            <Container className={classes.inner}>
+                <Link to="/"><Logo /></Link>
+                <Group className={classes.links}>{items3}</Group>
+            </Container>
+        </div>
     );
 }
 

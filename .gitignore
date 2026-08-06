@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Output of `npm run check:package`.
+.package-check/
+
+# Output of `npm run check:content`.
+.content-check/
+# Output of `npm run check:events`.
+.events-check/

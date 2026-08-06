@@ -1,345 +1,283 @@
-import {Center, Divider, Group, Input, Modal, Pagination, Stack, Text, Title} from "@mantine/core";
+import { Badge, Center, Divider, Group, Loader, Modal, Pagination, Select, Stack, Table, Text, TextInput, Title, UnstyledButton } from "@mantine/core";
+import { IconArrowDown, IconArrowUp, IconMessageReply, IconSearch, IconSelector, IconSpeakerphone } from "@tabler/icons-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { IconChevronDown } from "@tabler/icons-react";
-import {useState} from "react";
-
-import classes from "./QuestionsPage.module.css"
+import { useParams } from "react-router-dom";
+import { Activity, Question, QuestionKind, QuestionSort, Series } from "../../../../api/ParticipantApi";
+import ActivityTime from "../../../../components/time/ActivityTime";
+import { useApiCall, useApiEffect } from "../../../../provider/apiContext";
+import LoadState from "../../../../components/LoadState";
 import QuestionFormModal from "./submit_question/QuestionFormModal";
+import classes from "./QuestionsPage.module.css";
 
-interface Question {
-    topic: string;
-    author: string;
-    group: string | null;
-    exercise: string | null;
-    date: Date;
-    isReaded: boolean;
-    content: string;
-}
-type sortTypes = "Date"|"Topic"|"Group"|"Exercise"|"Author"
+const PAGE_SIZE = 10;
 
-type Sort = {type: sortTypes, direction: "ASC" | "DESC"}
-
-const sortOptions: Sort[] = [
-    {type: "Date", direction: "ASC"},
-    {type: "Date", direction: "DESC"},
-    {type: "Topic", direction: "ASC"},
-    {type: "Topic", direction: "DESC"},
-    {type: "Group", direction: "ASC"},
-    {type: "Group", direction: "DESC"},
-    {type: "Exercise", direction: "ASC"},
-    {type: "Exercise", direction: "DESC"},
-    {type: "Author", direction: "ASC"},
-    {type: "Author", direction: "DESC"},
-]
-
-const questionsData: Question[] = [
-    {
-        topic: "Błąd w treści zadania",
-        author: "Jan Kowalski",
-        group: "Lekcja 1",
-        exercise: "Sprawdzanie spójności grafu",
-        date: new Date("2025-03-22T10:00:00.000Z"),
-        isReaded: false,
-        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
-    },
-    {
-        topic: "xDDDDDDDD",
-        author: "Jan Kowalski",
-        group: "Lekcja 1",
-        exercise: "Sprawdzanie spójności grafu",
-        date: new Date("2025-01-22T10:00:00.000Z"),
-        isReaded: false,
-        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
-    },
-    {
-        topic: "Błąd w treści zadania",
-        author: "Jan Kowalski",
-        group: null,
-        exercise: "Sprawdzanie spójności grafu",
-        date: new Date("2025-03-22T10:00:00.000Z"),
-        isReaded: false,
-        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
-    },
-    {
-        topic: "Niejasne sformułowanie pytania",
-        author: "Anna Nowak",
-        group: "Lekcja 1",
-        exercise: "Minimalne drzewo rozpinające Minimalne",
-        date: new Date("2025-03-20T14:30:00.000Z"),
-        isReaded: false,
-        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
-    },
-    {
-        topic: "Błąd w teście przykładowym",
-        author: "Piotr Wiśniewski",
-        group: "Lekcja 2",
-        exercise: "Najkrótsza ścieżka w grafie",
-        date: new Date("2025-03-18T09:15:00.000Z"),
-        isReaded: true,
-        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
-    },
-    {
-        topic: "Brak pełnej specyfikacji",
-        author: "Katarzyna Lewandowska",
-        group: "Lekcja 2",
-        exercise: "Sortowanie topologiczne",
-        date: new Date("2025-03-21T16:45:00.000Z"),
-        isReaded: false,
-        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
-    },
-    {
-        topic: "Niepoprawny wynik testowy",
-        author: "Marek Dąbrowski",
-        group: "Lekcja 2",
-        exercise: "Algorytm Dijkstry",
-        date: new Date("2025-03-19T11:20:00.000Z"),
-        isReaded: true,
-        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
-    },
-    {
-        topic: "Brak opisu wejścia i wyjścia",
-        author: "Ewa Kaczmarek",
-        group: "Lekcja 3",
-        exercise: "Maksymalny przepływ",
-        date: new Date("2025-03-17T08:05:00.000Z"),
-        isReaded: false,
-        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
-    },
-    {
-        topic: "Błąd w przykładowym rozwiązaniu",
-        author: "Tomasz Zieliński",
-        group: "Lekcja 3",
-        exercise: "Kolorowanie grafu",
-        date: new Date("2025-03-23T13:55:00.000Z"),
-        isReaded: false,
-        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
-    },
-    {
-        topic: "Niepoprawny opis algorytmu",
-        author: "Barbara Wójcik",
-        group: "Lekcja 3",
-        exercise: "Drzewo przedziałowe",
-        date: new Date("2025-03-16T15:10:00.000Z"),
-        isReaded: true,
-        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
-    },
-    {
-        topic: "Złe sformułowanie warunków zadania",
-        author: "Krzysztof Pawlak",
-        group: "Lekcja 3",
-        exercise: "Znajdowanie mostów w grafie",
-        date: new Date("2025-03-24T17:30:00.000Z"),
-        isReaded: false,
-        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
-    },
-    {
-        topic: "Nieścisłość w podanym kodzie",
-        author: "Agnieszka Lis",
-        group: "Lekcja 3",
-        exercise: "Przeszukiwanie BFS",
-        date: new Date("2025-03-15T12:40:00.000Z"),
-        isReaded: true,
-        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
-    },
-    {
-        topic: "Błąd w definicji problemu",
-        author: "Paweł Szymański",
-        group: "Lekcja 4",
-        exercise: null,
-        date: new Date("2025-03-25T19:00:00.000Z"),
-        isReaded: false,
-        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Treść pytania pojawi się tutaj po podłączeniu API.",
-    },
-];
-
-function questionSort(posts: Question[], option: Sort): Question[]{
-    if(option.type === "Date")
-        return posts.sort((a,b) => option.direction === "ASC" ? a.date > b.date ? 1:-1 : a.date > b.date ? -1:1);
-    else if(option.type === "Topic")
-        return posts.sort((a,b) => {
-            const A = a.topic.toUpperCase()
-            const B = b.topic.toUpperCase()
-            return option.direction === "ASC" ? A > B ? 1:-1 : A > B ? -1:1
-        });
-    else if(option.type === "Exercise")
-        return posts.sort((a,b) => {
-            const A = (a.exercise ?? "").toUpperCase()
-            const B = (b.exercise ?? "").toUpperCase()
-            return option.direction === "ASC" ? A > B ? 1:-1 : A > B ? -1:1
-        });
-    else if(option.type === "Author")
-        return posts.sort((a,b) => {
-            const A = a.author.toUpperCase()
-            const B = b.author.toUpperCase()
-            return option.direction === "ASC" ? A > B ? 1:-1 : A > B ? -1:1
-        });
-    else
-        return posts.sort((a,b) => {
-            const A = (a.group ?? "").toUpperCase()
-            const B = (b.group ?? "").toUpperCase()
-            return option.direction === "ASC" ? A > B ? 1:-1 : A > B ? -1:1
-        });
-}
-
-const formatDate = (d: Date) =>
-    `${d.getUTCDate()}.${(d.getUTCMonth() < 9 ? "0" : "") + (d.getUTCMonth() + 1)}.${d.getUTCFullYear()}`;
-
-/** Shows the full body of one question. The list only has room for the topic. */
-const QuestionModal = (props: { question: Question | undefined, onClose: () => void }) => {
-    const { t } = useTranslation();
-    if (!props.question) return;
-    const q = props.question;
+/**
+ * A column header that sorts.
+ *
+ * Sorting is a request, not a client-side reorder: the page is cut on the
+ * Server, so ordering the rows here would order the ten that happen to be shown.
+ */
+const SortableTh = ({ label, column, sortBy, order, onSort }: {
+    label: string;
+    column: QuestionSort;
+    sortBy: QuestionSort;
+    order: "asc" | "desc";
+    onSort: (column: QuestionSort) => void;
+}) => {
+    const active = sortBy === column;
+    const Icon = !active ? IconSelector : order === "asc" ? IconArrowUp : IconArrowDown;
     return (
-        <Modal opened={!!props.question} onClose={props.onClose} title={<Title order={4}>{q.topic}</Title>} size="lg" centered>
-            <Stack gap="xs">
-                <Group gap="xl">
-                    <Text size="sm" c="dimmed">{t("Author")}: {q.author}</Text>
-                    <Text size="sm" c="dimmed">{t("Group")}: {q.group ?? t("General")}</Text>
-                    <Text size="sm" c="dimmed">{t("Exercise")}: {q.exercise ?? t("General")}</Text>
-                    <Text size="sm" c="dimmed">{t("Date")}: {formatDate(q.date)}</Text>
+        <Table.Th>
+            <UnstyledButton onClick={() => onSort(column)} style={{ width: "100%" }}>
+                <Group gap={4} wrap="nowrap">
+                    <Text size="sm" fw={500}>{label}</Text>
+                    <Icon size={14} opacity={active ? 1 : 0.4} />
+                </Group>
+            </UnstyledButton>
+        </Table.Th>
+    );
+};
+
+const KindBadge = ({ kind }: { kind: QuestionKind }) => {
+    const { t } = useTranslation();
+    return kind === "announcement"
+        ? <Badge color="grape" variant="light" leftSection={<IconSpeakerphone size={12} />}>{t("Announcement")}</Badge>
+        : <Badge color="blue" variant="light">{t("Question")}</Badge>;
+};
+
+/** Where a question applies: one problem, one series, or the activity at large. */
+const Scope = ({ question }: { question: Question }) => {
+    const { t } = useTranslation();
+    if (question.problemSlug) return <Text size="sm">[{question.problemSlug}] {question.problemName}</Text>;
+    if (question.seriesName) return <Text size="sm">{question.seriesName}</Text>;
+    return <Text size="sm" c="dimmed">{t("General")}</Text>;
+};
+
+const QuestionModal = ({ question, timeZone, onClose }: { question?: Question; timeZone: string; onClose: () => void }) => {
+    const { t } = useTranslation();
+    if (!question) return null;
+    return (
+        <Modal opened onClose={onClose} title={<Title order={4}>{question.topic}</Title>} size="lg" centered>
+            <Stack gap="sm">
+                <Group gap="md" wrap="wrap">
+                    <KindBadge kind={question.kind} />
+                    <Text size="sm" c="dimmed">{t("Author")}: {question.authorName}</Text>
+                    <Scope question={question} />
+                    <ActivityTime value={question.createdAt} timeZone={timeZone} size="sm" c="dimmed" />
                 </Group>
                 <Divider />
-                <Text style={{ whiteSpace: "pre-wrap" }}>{q.content}</Text>
+                <Text style={{ whiteSpace: "pre-wrap" }}>{question.body}</Text>
+
+                {question.answer ? (
+                    <>
+                        <Divider label={t("Answer")} labelPosition="left" />
+                        <Stack gap={4}>
+                            <Text style={{ whiteSpace: "pre-wrap" }}>{question.answer.body}</Text>
+                            <Text size="xs" c="dimmed">
+                                {question.answer.authorName}, <ActivityTime value={question.answer.answeredAt} timeZone={timeZone} size="xs" />
+                            </Text>
+                        </Stack>
+                    </>
+                ) : (
+                    question.kind === "question" && (
+                        <Text size="sm" c="dimmed">{t("Not answered yet")}</Text>
+                    )
+                )}
             </Stack>
         </Modal>
     );
-}
+};
 
 export default function QuestionsPage() {
     const { t } = useTranslation();
+    const { activityId } = useParams();
+    const call = useApiCall();
 
-    //States
-    const [questions, setQuestions] = useState<Question[]>(questionsData)
-    const [openedQuestion, setOpenedQuestion] = useState<Question | undefined>(undefined)
+    const [activity, setActivity] = useState<Activity | undefined>(undefined);
+    const [series, setSeries] = useState<Series[]>([]);
+    const [items, setItems] = useState<Question[] | undefined>(undefined);
+    const [total, setTotal] = useState(0);
+    const [page, setPage] = useState(1);
+    const [search, setSearch] = useState("");
+    const [kind, setKind] = useState<string | null>(null);
+    const [seriesId, setSeriesId] = useState<string | null>(null);
+    const [sortBy, setSortBy] = useState<QuestionSort>("createdAt");
+    const [order, setOrder] = useState<"asc" | "desc">("desc");
+    const [problemId, setProblemId] = useState<string | null>(null);
+    const [opened, setOpened] = useState<Question | undefined>(undefined);
+    const [reload, setReload] = useState(0);
 
-    const [search, setSearch] = useState<string>("");
-    const [groupFilter, setGroupFilter] = useState<string>("none");
-    const [exerciseFilter, setExerciseFilter] = useState<string>("none");
-    const [sort, setSort] = useState<Sort>({type: "Date", direction: "DESC"})
+    const error = useApiEffect(async (api) => {
+        if (!activityId) return;
+        const activity = await api.participantApi.getActivity(activityId);
+        setActivity(activity);
+        setSeries(await api.participantApi.getSeries(activity.id));
 
-    const [page, setPage] = useState<number>(1);
+        setItems(undefined);
+        // Filtering and paging both happen on the Server. Doing it the other way
+        // round — slice, then filter — silently filters only the visible page.
+        const result = await api.participantApi.getQuestions(activity.id, {
+            page, pageSize: PAGE_SIZE,
+            search: search || undefined,
+            kind: (kind as QuestionKind) ?? undefined,
+            seriesId: seriesId ?? undefined,
+            problemId: problemId ?? undefined,
+            sortBy,
+            order,
+        });
+        setItems(result.items);
+        setTotal(result.total);
 
-    //Handlers
-    const sortHandler = (value: string) => {
-        const newSort : Sort = {type: value.replace("DESC","").replace("ASC","") as sortTypes, direction: value.includes("ASC") ? "ASC" : "DESC" };
-        setSort(newSort);
-        setQuestions(prevState => questionSort(prevState, newSort));
-    }
-    const onClickSortHandler = (type: sortTypes) => {
+        const refresh = (question: Question) =>
+            setItems(current => current?.map(q => q.id === question.id ? question : q));
+        api.participantApi.eventDispatcher.addEventListener("questionAnswered", evt => {
+            if (evt.data.activityId === activity.id) refresh(evt.data.question);
+        });
+        // A publication adds a row that was not visible before, so the page is
+        // refetched: patching would place it wherever it arrived rather than
+        // where the sort puts it, and could push another row off the page.
+        api.participantApi.eventDispatcher.addEventListener("questionPublished", evt => {
+            if (evt.data.activityId === activity.id) setReload(n => n + 1);
+        });
+        api.participantApi.eventDispatcher.addEventListener("announcementPublished", evt => {
+            if (evt.data.activityId === activity.id) setReload(n => n + 1);
+        });
+    }, [activityId, page, search, kind, seriesId, problemId, sortBy, order, reload]);
 
-        setSort(prevState => ({type: type, direction: type === prevState.type ? prevState.direction === "ASC" ? "DESC" : "ASC" : "ASC"} as Sort));
-    }
-    const groupFilterHandler = (value :string) => {
-        setGroupFilter(value);
-        setExerciseFilter('none');
-    }
+    const open = async (question: Question) => {
+        setOpened(question);
+        if (question.isRead || !activity) return;
+        // Read state is per user and lives on the Server, so opening it here has
+        // to say so rather than only dimming the row locally.
+        await call(api => api.participantApi.markQuestionRead(activity.id, question.id));
+        setItems(current => current?.map(q => q.id === question.id ? { ...q, isRead: true } : q));
+    };
 
-    //JSX
-    const groupOptionsElement = [... new Set(questions.map(q => q.group))]
-        .sort((a,b)=> (a ?? "") > (b ?? "") ? 1:-1)
-        .map((group) =>
-        (<option key={group ?? "GeneralG"} value={`${group ?? null}`}>{group ?? t("General")}</option>));
+    const problems = series.flatMap(s => (s.problems ?? []).map(p => ({
+        value: p.id,
+        label: `[${p.slug}] ${p.name}`,
+    })));
 
-    const exerciseOptionsElement = [... new Set((groupFilter === 'none' ? questions : questions.filter(e=> (e.group ?? 'null') === groupFilter)).map(q => q.exercise))]
-        .sort((a,b)=> (a ?? "") > (b ?? "") ? 1:-1)
-        .map((exercise) =>
-        (<option key={exercise ?? "GeneralE"} value={`${exercise ?? null}`}>{exercise ?? t("General")}</option>));
+    const onFilter = <T,>(set: (v: T) => void) => (value: T) => {
+        set(value);
+        setPage(1);
+    };
 
-    const sortOptionsElement = sortOptions.map((element) =>
-        (<option key={element.type + element.direction} value={element.type + element.direction}>
-            {t(`${element.type}`)}
-            {element.direction === "ASC" ? "⭡" : "⭣"}
-        </option>));
+    const onSort = (column: QuestionSort) => {
+        // Clicking the column already sorted on flips the direction; a new
+        // column starts descending, which is what "newest first" means for the
+        // date and what a reader expects the first click to do.
+        setOrder(sortBy === column && order === "desc" ? "asc" : "desc");
+        setSortBy(column);
+        setPage(1);
+    };
 
-    const questionElemets =
-        questionSort(questions,sort).filter(q => q.topic.toUpperCase().includes(search.toUpperCase()))
-            .slice(10 * (page-1),10 * page)
-            .filter(q => (q.group ?? "null") === groupFilter || groupFilter === "none")
-            .filter(q => (q.exercise ?? "null") === exerciseFilter || exerciseFilter === "none")
-            .map(((q,i) => (
-                <div
-                    key={i}
-                    style={q.isReaded ? {backgroundColor: "#D9D9D9"} : {backgroundColor: "#f0f0f0"}}
-                    className={classes.question}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setOpenedQuestion(q)}
-                    onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setOpenedQuestion(q)}
-                >
-                    <Text title={q.topic}>{q.topic}</Text>
-                    <Text title={q.author}>{q.author}</Text>
-                    <Text title={q.group ?? "ogólne"}>{q.group}</Text>
-                    <Text title={q.exercise ?? "ogólne"}>{q.exercise}</Text>
-                    <Text title={formatDate(q.date)}>{formatDate(q.date)}</Text>
-                </div>
-            )))
+    if (!activity) return <LoadState error={error} loading={!error} />;
 
     return (
-        <>
-            <div className={classes.header}>
+        <Stack gap="md">
+            <Group justify="space-between" wrap="wrap">
                 <Title>{t("Questions and announcements")}</Title>
-                <QuestionFormModal />
-                {/* The design marks "add announcement" as administrators only. There is
-                    no permission model yet, so it is left out of the participant view
-                    rather than shown to everyone. */}
-            </div>
-            <div className={classes.searchElement}>
-                <div className={classes.left}>
-                    <Input
-                        value={search}
-                        onChange={e=> setSearch(e.target.value)}
-                        className={classes.searchBar}
-                        placeholder={t("Search by topic") + " ..."}
-                    />
-                    <Input
-                        className={classes.group}
-                        value={groupFilter}
-                        onChange={e=> groupFilterHandler(e.target.value)}
-                        component="select"
-                        rightSection={<IconChevronDown size={14} stroke={1.5}/>}
-                        pointer
-                        mt="md">
-                            <option value="none">{t("All groups")}</option>
-                            {groupOptionsElement}
-                    </Input>
-                    <Input
-                        className={classes.exercise}
-                        disabled={exerciseOptionsElement.length < 2}
-                        value={exerciseFilter}
-                        onChange={e=>setExerciseFilter(e.target.value)}
-                        component="select"
-                        rightSection={<IconChevronDown size={14} stroke={1.5}/>}
-                        pointer
-                        mt="md">
-                            <option value="none">{t("All exercise")}</option>
-                            {exerciseOptionsElement}
-                    </Input>
-                </div>
-                <div className={classes.right}>
-                    <Text>{t("Sort") + ": "}</Text>
-                    <Input
-                        value={sort.type+sort.direction}
-                        onChange={e=> sortHandler(e.target.value)}
-                        component="select"
-                        rightSection={<IconChevronDown size={14} stroke={1.5}/>}
-                        pointer mt="md"
-                    >
-                        {sortOptionsElement}
-                    </Input>
-                </div>
-            </div>
-            <div className={classes.questionHeader}>
-                {["Topic","Author","Group","Exercise","Date"].map(e=> (
-                    <Title key={e} size="h4" onClick={() => onClickSortHandler(e as sortTypes)}>
-                        {t(e)}
-                    </Title>
-                ))}
-            </div>
-            <div className={classes.questions}>
-                {questionElemets}
-            </div>
-            <Center><Pagination total={Math.trunc(questions.length/10 + 1)} value={page} onChange={e=>setPage(e)} mx="auto" /></Center>
-            <QuestionModal question={openedQuestion} onClose={() => setOpenedQuestion(undefined)} />
-        </>
+                {/* Only asking. Announcing is a manager action and the design
+                    marks it as such, so it is not offered here at all. */}
+                <QuestionFormModal
+                    activityId={activity.id}
+                    series={series}
+                    onCreated={() => setReload(n => n + 1)}
+                />
+            </Group>
+
+            <Group gap="sm" wrap="wrap">
+                <TextInput
+                    placeholder={t("Search by topic")}
+                    leftSection={<IconSearch size={16} />}
+                    value={search}
+                    onChange={e => onFilter(setSearch)(e.currentTarget.value)}
+                    w={260}
+                />
+                <Select
+                    placeholder={t("All kinds")}
+                    data={[
+                        { value: "question", label: t("Question") },
+                        { value: "announcement", label: t("Announcement") },
+                    ]}
+                    value={kind}
+                    onChange={onFilter(setKind)}
+                    clearable
+                    w={180}
+                />
+                <Select
+                    placeholder={t("All series")}
+                    data={series.map(s => ({ value: s.id, label: s.name }))}
+                    value={seriesId}
+                    onChange={onFilter(setSeriesId)}
+                    clearable
+                    w={220}
+                />
+                <Select
+                    placeholder={t("All problems")}
+                    data={problems}
+                    value={problemId}
+                    onChange={onFilter(setProblemId)}
+                    clearable
+                    w={260}
+                />
+            </Group>
+
+            {!items && <Center my="xl"><Loader /></Center>}
+            {items?.length === 0 && <Text c="dimmed">{t("Nothing matches the filters")}</Text>}
+
+            {items && items.length > 0 && (
+                <Table.ScrollContainer minWidth={720}>
+                    <Table striped highlightOnHover>
+                        <Table.Thead>
+                            <Table.Tr>
+                                <Table.Th>{t("Topic")}</Table.Th>
+                                <Table.Th>{t("Author")}</Table.Th>
+                                <SortableTh label={t("Series")} column="series" sortBy={sortBy} order={order} onSort={onSort} />
+                                <SortableTh label={t("Problem")} column="problem" sortBy={sortBy} order={order} onSort={onSort} />
+                                <SortableTh label={t("Date")} column="createdAt" sortBy={sortBy} order={order} onSort={onSort} />
+                            </Table.Tr>
+                        </Table.Thead>
+                        <Table.Tbody>
+                            {items.map(q => (
+                                <Table.Tr
+                                    key={q.id}
+                                    className={q.isRead ? classes.read : classes.unread}
+                                    onClick={() => open(q)}
+                                >
+                                    <Table.Td>
+                                        <Group gap="xs" wrap="nowrap">
+                                            <KindBadge kind={q.kind} />
+                                            <Text fw={q.isRead ? 400 : 600}>{q.topic}</Text>
+                                            {q.answer && <IconMessageReply size={16} />}
+                                        </Group>
+                                    </Table.Td>
+                                    <Table.Td>{q.authorName}</Table.Td>
+                                    <Table.Td>
+                                        {q.seriesName ?? <Text size="sm" c="dimmed">{t("Whole activity")}</Text>}
+                                    </Table.Td>
+                                    <Table.Td>
+                                        {q.problemSlug
+                                            ? <Text size="sm">[{q.problemSlug}] {q.problemName}</Text>
+                                            : <Text size="sm" c="dimmed">—</Text>}
+                                    </Table.Td>
+                                    <Table.Td>
+                                        <ActivityTime value={q.createdAt} timeZone={activity.timeZone} format="date" hideZone />
+                                    </Table.Td>
+                                </Table.Tr>
+                            ))}
+                        </Table.Tbody>
+                    </Table>
+                </Table.ScrollContainer>
+            )}
+
+            <Group justify="center">
+                <Pagination total={Math.ceil(total / PAGE_SIZE)} value={page} onChange={setPage} />
+            </Group>
+
+            <QuestionModal question={opened} timeZone={activity.timeZone} onClose={() => setOpened(undefined)} />
+        </Stack>
     );
 }

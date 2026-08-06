@@ -1,18 +1,19 @@
-import { Burger, Center, Container, Group, Menu, useMantineColorScheme } from '@mantine/core';
+import { Burger, Center, Container, Group, Menu, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconChevronDown } from '@tabler/icons-react';
-import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../provider/AuthProvider';
-import { useApiEffect } from '../../provider/ApiProvider';
+import { Link, useNavigate } from 'react-router-dom';
+import { displayName } from '../../api/displayName';
+import { useAuth } from '../../provider/authContext';
+import { useApiEffect } from '../../provider/apiContext';
 import Logo from '../logo/Logo';
 import classes from './Header.module.css';
 import { notifications } from '@mantine/notifications';
-import { usePreferences } from '../../provider/PreferencesProvider';
+import { useInstance } from '../../provider/instanceContext';
 
 function Header() {
     const [opened, { toggle }] = useDisclosure(false);
+    const navigate = useNavigate();
 
     useApiEffect(async (api) => {
         api.authApi.eventDispatcher.addEventListener('systemMessage', (evt) => {
@@ -24,30 +25,24 @@ function Header() {
         });
     });
 
-    const { t, i18n } = useTranslation();
-    const { user, logout } = useAuth();
+    const { t } = useTranslation();
+    const { session, signOut } = useAuth();
+    const { instance } = useInstance();
 
-
-
-    const { theme, lang } = usePreferences();
-    const { setColorScheme } = useMantineColorScheme();
-
-    useEffect(() => { if (theme) setColorScheme(theme) }, [theme])
-    useEffect(() => { if (lang) i18n.changeLanguage(lang) }, [lang])
-
-    const links = user === undefined ? [] : user ?[
+    const links = session ? [
         { link: '/', label: t('Home') },
+        { link: '/activities', label: t('Activities') },
         {
-            link: '#1',
-            label: user.email,
+            link: '#account',
+            label: displayName(session),
             links: [
-                { link: '#logout', label: 'Logout', func: () => logout() },
+                { link: '/account', label: t('My account'), func: () => navigate('/account') },
+                { link: '#logout', label: t('Logout'), func: () => void signOut() },
             ],
         }
     ] : [
         { link: '/', label: t('Home') },
         { link: '/login', label: t('Login') },
-        { link: '/register', label: t('Register') }
     ];
 
     const items = links.map((link) => {
@@ -86,7 +81,16 @@ function Header() {
         <header className={classes.header}>
             <Container size="md">
                 <div className={classes.inner}>
-                    <Link to="/"><Logo /></Link>
+                    <Group gap="sm" wrap="nowrap">
+                        <Link to="/"><Logo /></Link>
+                        {/* A visitor should be able to tell whose installation
+                            they have landed on, not only whose software. */}
+                        {instance.name && (
+                            <Text size="sm" c="dimmed" lineClamp={1} visibleFrom="sm">
+                                {instance.name}
+                            </Text>
+                        )}
+                    </Group>
                     <Group gap={5} visibleFrom="sm">
                         {items}
                     </Group>

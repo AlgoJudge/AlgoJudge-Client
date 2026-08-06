@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 200" role="img" aria-labelledby="title desc">
+    <title id="title">Znak zastępczy instancji</title>
+    <desc id="desc">Robot przy komputerze sprawdza paczkę z kodem. Obok sygnalizator z trzema światłami: zielonym, pomarańczowym i czerwonym.</desc>
+
+    <!--
+        The placeholder an instance shows until its operator sets a logo.
+
+        Deliberately a drawing rather than a wordmark: an operator who sees a
+        robot where their crest belongs knows something is unset, the way a legal
+        template says it is a template.
+
+        One file for both colour schemes. Nothing here is pure white or pure
+        black, and no fill relies on the page behind it: the body is the product
+        blue, the desk and the paper are mid greys that hold their own against a
+        light or a dark background, and the three lights are saturated enough to
+        read either way.
+
+        Every fill is opaque. A half-transparent lamp was meant to read as "not
+        lit" and read as a rendering fault, and the signal stands clear of the
+        monitor rather than across it — a tower that overlaps the screen it is
+        reporting on looks like a mistake, because it is one.
+    -->
+
+    <defs>
+        <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#4dabf7" />
+            <stop offset="1" stop-color="#1c7ed6" />
+        </linearGradient>
+    </defs>
+
+    <!-- The desk, wide enough to carry the signal at its right end. -->
+    <rect x="18" y="150" width="316" height="10" rx="5" fill="#868e96" />
+    <rect x="46" y="160" width="10" height="26" rx="4" fill="#868e96" />
+    <rect x="296" y="160" width="10" height="26" rx="4" fill="#868e96" />
+
+    <!-- The screen it is working at, with three lines of somebody's solution. -->
+    <rect x="180" y="72" width="90" height="66" rx="8" fill="#495057" />
+    <rect x="188" y="80" width="74" height="50" rx="4" fill="#dee2e6" />
+    <rect x="196" y="90" width="44" height="6" rx="3" fill="#868e96" />
+    <rect x="196" y="102" width="56" height="6" rx="3" fill="#adb5bd" />
+    <rect x="196" y="114" width="32" height="6" rx="3" fill="#adb5bd" />
+    <rect x="211" y="138" width="28" height="12" rx="3" fill="#495057" />
+
+    <!-- The robot: head, antenna, eyes, body, arms. -->
+    <rect x="144" y="18" width="4" height="16" rx="2" fill="#868e96" />
+    <circle cx="146" cy="14" r="7" fill="#fab005" />
+
+    <rect x="106" y="34" width="80" height="60" rx="18" fill="url(#body)" />
+    <rect x="120" y="52" width="52" height="24" rx="12" fill="#e7f5ff" />
+    <circle cx="135" cy="64" r="7" fill="#1c7ed6" />
+    <circle cx="157" cy="64" r="7" fill="#1c7ed6" />
+    <circle cx="137" cy="62" r="2.5" fill="#e7f5ff" />
+    <circle cx="159" cy="62" r="2.5" fill="#e7f5ff" />
+
+    <rect x="114" y="98" width="64" height="52" rx="14" fill="url(#body)" />
+    <rect x="128" y="112" width="36" height="24" rx="6" fill="#74c0fc" />
+
+    <!-- The left arm holds the package it is checking. -->
+    <rect x="80" y="108" width="42" height="12" rx="6" fill="#1c7ed6" transform="rotate(-14 101 114)" />
+    <rect x="50" y="106" width="42" height="38" rx="6" fill="#f8c471" stroke="#b07d2b" stroke-width="3" />
+    <path d="M50 122h42" stroke="#b07d2b" stroke-width="3" />
+    <path d="M71 106v38" stroke="#b07d2b" stroke-width="3" />
+    <path d="M58 116l5 5-5 5" fill="none" stroke="#495057" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- The right arm reaches for the keyboard. -->
+    <rect x="170" y="112" width="42" height="12" rx="6" fill="#1c7ed6" transform="rotate(12 191 118)" />
+
+    <!-- The signal: accepted, judging, failed. It stands on the desk, to the
+         right of the screen, touching nothing. -->
+    <rect x="316" y="118" width="10" height="34" rx="4" fill="#868e96" />
+    <rect x="308" y="34" width="26" height="84" rx="13" fill="#f8f9fa" stroke="#868e96" stroke-width="3" />
+    <circle cx="321" cy="52" r="9" fill="#37b24d" />
+    <circle cx="321" cy="76" r="9" fill="#f59f00" />
+    <circle cx="321" cy="100" r="9" fill="#f03e3e" />
+</svg>

@@ -1,5 +1,9 @@
 .footer {
     border-top: rem(1px) solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+    /* Opaque, and its own colour: whatever the page put above it must not show
+       through the links. */
+    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7));
+    margin-top: var(--mantine-spacing-xl);
 }
 
 .inner {

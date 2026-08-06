@@ -1,54 +1,79 @@
-import { CoreApi, User } from "../CoreApi";
+import {
+    CoreApi,
+    InstanceInfo,
+    ProfileInput,
+    RegisterInput,
+    Session,
+} from "../CoreApi";
 import { CoreEventDispatcherImpl } from "../impl/CoreEventDispatcherImpl";
 import { HttpClient } from "./HttpClient";
 
-/** Shape returned by the Server's `/identity/manage/info` endpoint. */
-interface IdentityInfo {
-    email: string;
-}
-
+/**
+ * Signing in over REST.
+ *
+ * `MapIdentityApi` provides registration and sign-in and **nothing else** — no
+ * logout, no account screen, no export, no deletion. Everything under `/account`
+ * is an endpoint the Server has yet to grow and answers 404 until it does, which
+ * is the arrangement every other contract in this repository already has.
+ */
 export class CoreApiHttp implements CoreApi {
-    private user: User | undefined = undefined;
-
     constructor(
         private readonly http: HttpClient,
         readonly eventDispatcher: CoreEventDispatcherImpl
     ) { }
 
-    async login(email: string, password: string, signal: AbortSignal): Promise<void> {
+    getInstanceInfo(signal: AbortSignal): Promise<InstanceInfo> {
+        return this.http.request<InstanceInfo>("/instance", "GET", { signal });
+    }
+
+    async getSession(signal: AbortSignal): Promise<Session | undefined> {
+        try {
+            return await this.http.request<Session>("/account", "GET", { signal });
+        } catch {
+            // Having no session is not a failure; it is the answer to the
+            // question this method asks.
+            return undefined;
+        }
+    }
+
+    async login(login: string, password: string, signal: AbortSignal): Promise<Session> {
+        // The field is called `email`, but the endpoint hands it to
+        // `PasswordSignInAsync`, which takes a user name — which is how an
+        // account with no address signs in at all.
         await this.http.request<void>("/identity/login", "POST", {
             query: { useSessionCookies: true },
-            body: { email, password },
+            body: { email: login, password },
             signal,
         });
-        await this.refreshUser(signal);
+        return await this.http.request<Session>("/account", "GET", { signal });
     }
 
-    async register(email: string, password: string, signal: AbortSignal): Promise<void> {
-        await this.http.request<void>("/identity/register", "POST", {
-            body: { email, password },
+    async logout(signal: AbortSignal): Promise<void> {
+        // Not part of `MapIdentityApi`: the Server has to end the cookie session
+        // itself, or signing out only forgets it in this tab.
+        await this.http.request<void>("/identity/logout", "POST", { signal });
+    }
+
+    async register(input: RegisterInput, signal: AbortSignal): Promise<void> {
+        await this.http.request<void>("/identity/register", "POST", { signal, body: input });
+    }
+
+    updateProfile(input: ProfileInput, signal: AbortSignal): Promise<Session> {
+        return this.http.request<Session>("/account", "PUT", { signal, body: input });
+    }
+
+    async changePassword(currentPassword: string, newPassword: string, signal: AbortSignal): Promise<void> {
+        await this.http.request<void>("/account/password", "POST", {
             signal,
+            body: { currentPassword, newPassword },
         });
     }
 
-    getUser(): User | undefined {
-        return this.user;
+    exportData(signal: AbortSignal): Promise<Blob> {
+        return this.http.download("/account/export", signal);
     }
 
-    /**
-     * Reads the current session from the Server. The Server exposes only the
-     * email address today, so `username` and `name` fall back to it until the
-     * identity contract carries them.
-     */
-    async refreshUser(signal: AbortSignal): Promise<User | undefined> {
-        try {
-            const info = await this.http.request<IdentityInfo>("/identity/manage/info", "GET", { signal });
-            this.user = info.email
-                ? { username: info.email, name: info.email, email: info.email }
-                : undefined;
-        } catch {
-            this.user = undefined;
-        }
-        return this.user;
+    async deleteAccount(password: string, signal: AbortSignal): Promise<void> {
+        await this.http.request<void>("/account/delete", "POST", { signal, body: { password } });
     }
 }
