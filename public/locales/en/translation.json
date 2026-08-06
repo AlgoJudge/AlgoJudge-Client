@@ -787,5 +787,8 @@
   "series.paused": "The series has been paused",
   "series.resumed": "The series has started again",
   "series.rescheduled": "The series' times have changed",
-  "Evaluated": "Evaluated"
+  "Evaluated": "Evaluated",
+  "The series is paused": "The series is paused",
+  "This series has ended. The statements stay readable; nothing more is accepted.": "This series has ended. The statements stay readable; nothing more is accepted.",
+  "This series has not started yet.": "This series has not started yet."
 }

@@ -268,7 +268,29 @@ export const createDataset = (files: FakeFiles): Dataset => {
         isOpen: false,
     };
 
-    series.set(contestId, [round1, round2, round3]);
+    // A round that is over, and still readable. `isOpen` is false because the
+    // Server closed it, and its problems stay: a competitor goes back to what
+    // they were solving, and nothing more is accepted.
+    const round0Problems = [
+        problemSummary("R", "Rozgrzewka", "solved", 100, 1),
+        problemSummary("S", "Sumy prefiksowe", "partial", 60, 3),
+    ];
+    const round0: Series = {
+        id: "series-r0",
+        slug: "runda-0",
+        name: "Runda 0 — rozgrzewkowa",
+        startDate: nowPlus(-days(1)),
+        endDate: nowPlus(-days(1) + hours(3)),
+        isOpen: false,
+        problemCount: round0Problems.length,
+        problems: round0Problems,
+    };
+
+    series.set(contestId, [round0, round1, round2, round3]);
+    for (const problem of round0Problems) {
+        problems.set(`${contestId}/${problem.slug}`,
+            problemDetail(round0.id, problem, "standard-io@1", only(loopsStatement)));
+    }
     withheld.set(round2.id, r2Problems);
 
     problems.set(`${contestId}/A`, problemDetail(round1.id, r1Problems[0], "standard-io@1", [

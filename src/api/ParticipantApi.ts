@@ -217,8 +217,12 @@ export interface Series {
      * start passes and closes it when its end does, and announces both. No
      * screen decides this by looking at a date.
      *
-     * While `false`, `problems` is absent. It is not an empty array: a closed
-     * series does not disclose what it holds.
+     * **Before** it opens, `problems` is absent — not an empty array: a series
+     * that has not started does not disclose what it holds. **After** it ends
+     * they stay: a round that is over is readable for ever and simply accepts
+     * nothing more. `isOpen` is false in both cases, which is why what may be
+     * read and what may be sent are worked out by `api/seriesState.ts` rather
+     * than from this field alone.
      */
     isOpen: boolean,
     /**

@@ -18,8 +18,10 @@ import {
     SubmitPayload,
 } from "../ParticipantApi";
 import { FakeActivities, SeriesRelay } from "./FakeActivities";
+import { maySubmit, mayReadProblems } from "../seriesState";
 import { FakeFiles } from "./FileApiFake";
 import { createDataset, Dataset, OPENING_SERIES_DELAY } from "./fixtures";
+import { ForbiddenError } from "../ApiError";
 import { Utils } from "./Utils";
 import { sha256 } from "../../utils/sha256";
 
@@ -363,7 +365,15 @@ export class ParticipantApiFake implements ParticipantApi {
     async getProblem(activityId: string, problemSlug: string, signal: AbortSignal): Promise<ProblemDetail> {
         await this.settle(signal);
         const problem = this.state.dataset().problems.get(`${activityId}/${problemSlug}`);
-        return problem ? copy(problem) : notFound("Problem");
+        if (!problem) return notFound("Problem");
+        // The address of a problem is guessable and gets shared, so the series
+        // is asked here and not only where the list is drawn. A series whose
+        // problems are withheld withholds them from everybody who types the
+        // address too — which is the whole of what hiding them means.
+        const series = this.state.dataset().series.get(activityId)
+            ?.find(s => s.id === problem.seriesId);
+        if (series && !mayReadProblems(series)) return notFound("Problem");
+        return copy(problem);
     }
 
     async getSubmissions(activityId: string, filter: SubmissionFilter, signal: AbortSignal): Promise<Page<SubmissionSummary>> {
@@ -394,6 +404,15 @@ export class ParticipantApiFake implements ParticipantApi {
         await this.settle(signal);
         const data = this.state.dataset();
         const problem = data.problems.get(`${activityId}/${problemSlug}`) ?? notFound("Problem");
+
+        // Refused here as the Server refuses it: a series that has not started,
+        // has been stopped, or has ended takes nothing, whatever a screen let
+        // somebody press.
+        const series = data.series.get(activityId)?.find(s => s.id === problem.seriesId);
+        if (series && !maySubmit(series)) {
+            throw new ForbiddenError(
+                "This series is not accepting submissions", "series.closed");
+        }
 
         // Same rule as every other upload: the Server recomputes and refuses a
         // mismatch rather than storing a claim about the bytes.

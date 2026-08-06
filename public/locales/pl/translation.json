@@ -787,5 +787,8 @@
   "series.paused": "Seria została wstrzymana",
   "series.resumed": "Seria została wznowiona",
   "series.rescheduled": "Godziny serii uległy zmianie",
-  "Evaluated": "Sprawdzone"
+  "Evaluated": "Sprawdzone",
+  "The series is paused": "Seria jest wstrzymana",
+  "This series has ended. The statements stay readable; nothing more is accepted.": "Ta seria się zakończyła. Treści pozostają do czytania, nic więcej nie zostanie przyjęte.",
+  "This series has not started yet.": "Ta seria jeszcze się nie rozpoczęła."
 }

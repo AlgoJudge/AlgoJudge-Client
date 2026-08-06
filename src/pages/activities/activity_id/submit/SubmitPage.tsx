@@ -4,6 +4,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { Activity, ProblemDetail, Series } from "../../../../api/ParticipantApi";
+import { maySubmit, seriesState } from "../../../../api/seriesState";
 import { useApiCall, useApiEffect } from "../../../../provider/apiContext";
 import { sha256 } from "../../../../utils/sha256";
 import LoadState from "../../../../components/LoadState";
@@ -96,9 +97,12 @@ export default function SubmitPage() {
         );
     }
 
-    // The series this problem belongs to, so a stopped round is refused here
-    // rather than by the Server after somebody has written an answer.
-    const paused = series.find(s => s.id === problem.seriesId)?.pausedAt !== undefined;
+    // The series this problem belongs to. A round that has not started, was
+    // stopped, or has ended is refused here rather than by the Server after
+    // somebody has written an answer.
+    const holding = series.find(s => s.id === problem.seriesId);
+    const state = holding ? seriesState(holding) : "open";
+    const closed = holding !== undefined && !maySubmit(holding);
     const wantsFile = problem.submitFields.some(f => f.kind === "file");
     const wantsCode = problem.submitFields.some(f => f.kind === "code");
 
@@ -221,9 +225,13 @@ export default function SubmitPage() {
             {/* Said before anything is written rather than after it is sent:
                 the Server refuses a submission into a stopped series, and
                 letting somebody finish an answer first is the wrong order. */}
-            {paused && (
+            {closed && (
                 <Alert color="orange" icon={<IconAlertCircle size={18} />}>
-                    {t("This series is paused. Nothing is accepted until it starts again.")}
+                    {state === "paused"
+                        ? t("This series is paused. Nothing is accepted until it starts again.")
+                        : state === "ended"
+                            ? t("This series has ended. The statements stay readable; nothing more is accepted.")
+                            : t("This series has not started yet.")}
                 </Alert>
             )}
 
@@ -231,7 +239,7 @@ export default function SubmitPage() {
                 <Button
                     size="md"
                     loading={sending}
-                    disabled={paused}
+                    disabled={closed}
                     onClick={send}
                     rightSection={<IconSend size={18} />}
                 >
