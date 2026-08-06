@@ -309,7 +309,6 @@
   "Line": "Line",
   "New activity": "New activity",
   "A contest, a course, a practice set — one place where problems are given to people.": "A contest, a course, a practice set — one place where problems are given to people.",
-  "Activity type discriminator, name@version": "Activity type discriminator, name@version",
   "Used in URLs, for example AMMPZ-2019. Immutable once set.": "Used in URLs, for example AMMPZ-2019. Immutable once set.",
   "Used in URLs, for example AMMPZ-2019": "Used in URLs, for example AMMPZ-2019",
   "The rest is edited on the activity itself, with sensible defaults to start from.": "The rest is edited on the activity itself, with sensible defaults to start from.",
@@ -697,5 +696,9 @@
   "A blocked account has no sessions: blocking ends them and stops new ones.": "A blocked account has no sessions: blocking ends them and stops new ones.",
   "A session is active while the browser holds a connection to the Server. Signing out is not the same as closing the tab.": "A session is active while the browser holds a connection to the Server. Signing out is not the same as closing the tab.",
   "In force since": "In force since",
-  "There is no such page here": "There is no such page here"
+  "There is no such page here": "There is no such page here",
+  "Contest": "Contest",
+  "Course": "Course",
+  "Problems open at a moment and the clock counts down to it. A series is a round.": "Problems open at a moment and the clock counts down to it. A series is a round.",
+  "Work is due by a date and the deadline is what is shown. A series is a week or a class.": "Work is due by a date and the deadline is what is shown. A series is a week or a class."
 }

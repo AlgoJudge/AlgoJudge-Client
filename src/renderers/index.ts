@@ -115,5 +115,48 @@ const PROBLEM_TYPE_CATALOGUE: ProblemTypeOption[] = [
 export const problemTypes = (): ProblemTypeOption[] => PROBLEM_TYPE_CATALOGUE.filter(type =>
     statementRenderers.resolve(type.id).supported && resultRenderers.resolve(type.id).supported);
 
+/**
+ * An activity type a manager may create, on the same terms as a problem type.
+ *
+ * The same argument applies for the same reason: the Server stores the
+ * discriminator and never reads it, so what kinds of activity exist is a
+ * property of this Client and belongs beside the registry that gives them their
+ * behaviour.
+ */
+export interface ActivityTypeOption {
+    /** The stored discriminator, `name@version`. */
+    id: string;
+    /** English label, and the translation key the screens use. */
+    label: string;
+    description: string;
+}
+
+const ACTIVITY_TYPE_CATALOGUE: ActivityTypeOption[] = [
+    {
+        id: "contest@1",
+        label: "Contest",
+        description: "Problems open at a moment and the clock counts down to it. "
+            + "A series is a round.",
+    },
+    {
+        id: "course@1",
+        label: "Course",
+        description: "Work is due by a date and the deadline is what is shown. "
+            + "A series is a week or a class.",
+    },
+];
+
+/**
+ * The activity types a manager may choose from: those this Client has behaviour
+ * for.
+ *
+ * Filtered against the registry rather than listed, exactly as the problem types
+ * are. An unregistered discriminator still draws — `activityRenderers` falls
+ * back to something generic rather than to a refusal — but offering one from a
+ * list would be offering a kind of activity nobody decided how to present.
+ */
+export const activityTypes = (): ActivityTypeOption[] =>
+    ACTIVITY_TYPE_CATALOGUE.filter(type => activityRenderers.resolve(type.id).supported);
+
 export { TypeRegistry, typeName } from "./TypeRegistry";
 export type { Resolved } from "./TypeRegistry";

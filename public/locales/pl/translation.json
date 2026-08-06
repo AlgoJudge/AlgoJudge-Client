@@ -309,7 +309,6 @@
   "Line": "Wiersz",
   "New activity": "Nowa aktywność",
   "A contest, a course, a practice set — one place where problems are given to people.": "Zawody, kurs, zbiór treningowy — jedno miejsce, w którym zadania trafiają do ludzi.",
-  "Activity type discriminator, name@version": "Dyskryminator typu aktywności, nazwa@wersja",
   "Used in URLs, for example AMMPZ-2019. Immutable once set.": "Używany w adresach, np. AMMPZ-2019. Po utworzeniu niezmienny.",
   "Used in URLs, for example AMMPZ-2019": "Używany w adresach, np. AMMPZ-2019",
   "The rest is edited on the activity itself, with sensible defaults to start from.": "Resztę ustawisz już w samej aktywności — na start dostanie rozsądne wartości.",
@@ -697,5 +696,9 @@
   "A blocked account has no sessions: blocking ends them and stops new ones.": "Zablokowane konto nie ma sesji: blokada kończy istniejące i nie pozwala założyć nowych.",
   "A session is active while the browser holds a connection to the Server. Signing out is not the same as closing the tab.": "Sesja jest aktywna, dopóki przeglądarka utrzymuje połączenie z Serverem. Wylogowanie to nie to samo co zamknięcie karty.",
   "In force since": "Obowiązuje od",
-  "There is no such page here": "Nie ma tu takiej strony"
+  "There is no such page here": "Nie ma tu takiej strony",
+  "Contest": "Zawody",
+  "Course": "Zajęcia",
+  "Problems open at a moment and the clock counts down to it. A series is a round.": "Zadania otwierają się o wyznaczonej godzinie i zegar do niej odlicza. Seria to runda.",
+  "Work is due by a date and the deadline is what is shown. A series is a week or a class.": "Praca jest na termin i to on jest pokazywany. Seria to tydzień albo zajęcia."
 }

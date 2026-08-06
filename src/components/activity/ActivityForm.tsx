@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ActivityInput, JoinPolicy, LogVisibility, ScoreVisibility } from "../../api/ManagerApi";
 import ZonedDateTimeInput from "../time/ZonedDateTimeInput";
 import { MB } from "./activityInput";
+import { activityTypes } from "../../renderers";
 
 /**
  * Everything an activity is configured with, in one form.
@@ -27,6 +28,7 @@ export interface ActivityFormProps {
 export default function ActivityForm({ value, onChange, slugLocked, disabled }: ActivityFormProps) {
     const { t } = useTranslation();
     const set = (patch: Partial<ActivityInput>) => onChange({ ...value, ...patch });
+    const chosenType = activityTypes().find(type => type.id === value.type);
 
     return (
         <Stack gap="md">
@@ -55,11 +57,19 @@ export default function ActivityForm({ value, onChange, slugLocked, disabled }: 
                         />
                     </Grid.Col>
                     <Grid.Col span={{ base: 12, sm: 4 }}>
-                        <TextInput
+                        {/* A choice here too, and for the same reason as on the
+                            create form: the type decides how the activity
+                            presents its series. */}
+                        <Select
                             label={t("Type")}
-                            description={t("Activity type discriminator, name@version")}
+                            description={chosenType ? t(chosenType.description) : undefined}
+                            data={activityTypes().map(type => ({
+                                value: type.id,
+                                label: `${t(type.label)} — ${type.id}`,
+                            }))}
                             value={value.type}
-                            onChange={e => set({ type: e.currentTarget.value })}
+                            onChange={type => type && set({ type })}
+                            allowDeselect={false}
                             disabled={disabled}
                         />
                     </Grid.Col>
