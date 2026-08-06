@@ -152,5 +152,3 @@ const DOCUMENTS: Record<LegalDocumentKind, FixtureDocument> = {
 
 export const legalDocuments = (): FixtureDocument[] => Object.values(DOCUMENTS);
 
-export const legalDocumentKinds = (): LegalDocumentKind[] =>
-    Object.keys(DOCUMENTS) as LegalDocumentKind[];

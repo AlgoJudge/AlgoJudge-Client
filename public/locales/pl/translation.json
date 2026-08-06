@@ -571,7 +571,6 @@
   "legal.privacy": "Polityka prywatności",
   "legal.cookies": "Ciasteczka",
   "legal.accessibility": "Deklaracja dostępności",
-  "This instance publishes no such document. Ask whoever runs it.": "Ta instancja nie publikuje takiego dokumentu. Zapytaj osobę, która ją prowadzi.",
   "This is the template that ships with the software. The operator of this instance has not replaced it yet, so it is not binding.": "To szablon dostarczony wraz z oprogramowaniem. Operator tej instancji jeszcze go nie zastąpił, więc dokument nie jest wiążący.",
   "Updated": "Aktualizacja",
   "Add a file": "Dodaj plik",
@@ -664,7 +663,6 @@
   "No version yet. Prepare the statement, the files and the package, then publish them as version 1.": "Nie ma jeszcze żadnej wersji. Przygotuj treść, pliki i paczkę, a potem opublikuj je jako wersję 1.",
   "Standard input and output": "Wejście i wyjście standardowe",
   "The solution reads standard input and writes standard output. The package carries the tests, the limits and the scoring.": "Rozwiązanie czyta wejście standardowe i pisze na wyjście standardowe. Paczka niesie testy, limity i punktację.",
-  "This instance publishes no front page yet.": "Ta instancja nie ma jeszcze strony głównej.",
   "This is the front page that ships with the software. Replace it in the instance settings.": "To strona główna dostarczona wraz z oprogramowaniem. Zastąp ją w ustawieniach instancji.",
   "Your activities": "Twoje aktywności",
   "You are not enrolled in anything yet. An organiser adds you to an activity.": "Nie należysz jeszcze do żadnej aktywności. Dodaje do niej organizator.",
@@ -698,5 +696,6 @@
   "No sessions. Nobody is signed in as this account.": "Brak sesji. Nikt nie jest zalogowany na to konto.",
   "A blocked account has no sessions: blocking ends them and stops new ones.": "Zablokowane konto nie ma sesji: blokada kończy istniejące i nie pozwala założyć nowych.",
   "A session is active while the browser holds a connection to the Server. Signing out is not the same as closing the tab.": "Sesja jest aktywna, dopóki przeglądarka utrzymuje połączenie z Serverem. Wylogowanie to nie to samo co zamknięcie karty.",
-  "In force since": "Obowiązuje od"
+  "In force since": "Obowiązuje od",
+  "There is no such page here": "Nie ma tu takiej strony"
 }

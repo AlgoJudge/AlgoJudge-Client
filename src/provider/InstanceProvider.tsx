@@ -24,7 +24,6 @@ const DEFAULTS: InstanceInfo = {
     localRegistrationEnabled: false,
     requireEmail: false,
     requireConfirmedEmail: false,
-    legalDocuments: [],
     showLogo: true,
 };
 

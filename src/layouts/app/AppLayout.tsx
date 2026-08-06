@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { useApiEffect } from "../../provider/apiContext";
 import { Activity, Series } from "../../api/ParticipantApi";
 import { PROJECT_SITE } from "../../site";
+import { publishedLegalKinds } from "../../api/instanceDocuments";
 import Countdown from "../../components/time/Countdown";
 
 const NavbarLink = (props: {
@@ -107,6 +108,7 @@ const ManagerNavbar = (props: { collapsed: boolean }) => {
 const FootLinks = (props: { collapsed: boolean }) => {
     const { t } = useTranslation();
     const { instance } = useInstance();
+    const documents = publishedLegalKinds(instance.documents);
     // Nothing when collapsed: without an icon there is nothing left to draw at a
     // hundred pixels wide.
     if (props.collapsed) return null;
@@ -119,7 +121,7 @@ const FootLinks = (props: { collapsed: boolean }) => {
             </a>
             {/* Which documents exist is the instance's decision, and one that
                 publishes none must not show four dead links. */}
-            {instance.legalDocuments.map(kind => (
+            {documents.map(kind => (
                 <NavLink key={kind} to={`/${kind}`} className={classes.footLink}>
                     {t(`legal.${kind}`)}
                 </NavLink>

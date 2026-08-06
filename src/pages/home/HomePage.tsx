@@ -72,13 +72,12 @@ export default function HomePage() {
     return (
         <Container size={900}>
             <Stack gap="lg">
-                {content === undefined ? (
+                {/* An instance that has written no front page shows none. Not a
+                    placeholder and not an apology: the reader still gets the way
+                    in, or their activities, which is what they came for. */}
+                {content === undefined && ref ? (
                     <Center my="xl"><Loader /></Center>
-                ) : content === null || !ref ? (
-                    <Alert color="yellow" icon={<IconAlertTriangle size={18} />}>
-                        {t("This instance publishes no front page yet.")}
-                    </Alert>
-                ) : (
+                ) : content && ref ? (
                     <>
                         {/* Said where an operator will see it, and only to
                             somebody who could act on it. A greeting nobody
@@ -94,7 +93,7 @@ export default function HomePage() {
                             </Suspense>
                         </Paper>
                     </>
-                )}
+                ) : null}
 
                 {!signedIn && status !== "loading" && (
                     <Group>

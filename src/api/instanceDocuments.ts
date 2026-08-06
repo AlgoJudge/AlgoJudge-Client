@@ -1,4 +1,24 @@
-import { InstanceDocumentKind, InstanceDocumentRef } from "./CoreApi";
+import { InstanceDocumentKind, InstanceDocumentRef, LegalDocumentKind } from "./CoreApi";
+
+/**
+ * The order the legal documents are offered in, wherever they are listed.
+ *
+ * Fixed rather than taken from the answer: the footer must not reshuffle
+ * because an operator republished one of them.
+ */
+const LEGAL_ORDER: LegalDocumentKind[] = ["terms", "privacy", "cookies", "accessibility"];
+
+/**
+ * Which legal documents this instance publishes — derived from the references
+ * rather than announced separately.
+ *
+ * There used to be an `InstanceInfo.legalDocuments` beside these, which is two
+ * answers to one question: withdrawing a document would remove its text and
+ * leave the footer linking to it until somebody remembered the second field.
+ * Whether a document exists is whether it has a reference.
+ */
+export const publishedLegalKinds = (refs: InstanceDocumentRef[]): LegalDocumentKind[] =>
+    LEGAL_ORDER.filter(kind => refs.some(ref => ref.kind === kind));
 
 /**
  * The document to show, for one kind and one interface language.

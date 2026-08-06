@@ -8,7 +8,6 @@ import {
     Session,
 } from "../CoreApi";
 import { CoreEventDispatcherImpl } from "../impl/CoreEventDispatcherImpl";
-import { legalDocumentKinds } from "./fixtures/legal";
 import { seedInstanceDocuments } from "./fixtures/documents";
 import { FakeFiles } from "./FileApiFake";
 import { Utils } from "./Utils";
@@ -157,7 +156,6 @@ export class CoreApiFake implements CoreApi {
             localRegistrationEnabled: false,
             requireEmail: false,
             requireConfirmedEmail: false,
-            legalDocuments: legalDocumentKinds(),
             documents,
             // No logo: this instance has not set one, so the Client shows the
             // placeholder it ships with. `?fakeLogo=off` turns the mark off
@@ -178,7 +176,6 @@ export class CoreApiFake implements CoreApi {
                 instance = defaults;
             }
         }
-        if (!Array.isArray(instance.legalDocuments)) instance.legalDocuments = defaults.legalDocuments;
         // Never from storage: the references name files in a store that is built
         // fresh on every load, and a stored id would point at bytes this tab has
         // never seen. Only the settings survive a reload.

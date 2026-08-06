@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import Logo from '../logo/Logo';
 import classes from './Footer.module.css';
 import { useInstance } from '../../provider/instanceContext';
+import { publishedLegalKinds } from '../../api/instanceDocuments';
 import { PROJECT_SITE } from '../../site';
 
 function Footer() {
@@ -15,11 +16,10 @@ function Footer() {
     const { setColorScheme } = useMantineColorScheme();
 
     // Which documents exist is the instance's decision, and one that publishes
-    // none must not show four dead links. Read from the shared answer rather
-    // than fetched again: the shell, the front page and the two account screens
-    // all need it, and they should not each ask.
+    // none must not show four dead links. Derived from the references the
+    // instance answer carries, so withdrawing a document takes its link with it.
     const { instance } = useInstance();
-    const documents = instance.legalDocuments;
+    const documents = publishedLegalKinds(instance.documents);
 
     const links = [
         { link: PROJECT_SITE, label: t('About'), prev: false },

@@ -571,7 +571,6 @@
   "legal.privacy": "Privacy policy",
   "legal.cookies": "Cookies",
   "legal.accessibility": "Accessibility statement",
-  "This instance publishes no such document. Ask whoever runs it.": "This instance publishes no such document. Ask whoever runs it.",
   "This is the template that ships with the software. The operator of this instance has not replaced it yet, so it is not binding.": "This is the template that ships with the software. The operator of this instance has not replaced it yet, so it is not binding.",
   "Updated": "Updated",
   "Add a file": "Add a file",
@@ -664,7 +663,6 @@
   "No version yet. Prepare the statement, the files and the package, then publish them as version 1.": "No version yet. Prepare the statement, the files and the package, then publish them as version 1.",
   "Standard input and output": "Standard input and output",
   "The solution reads standard input and writes standard output. The package carries the tests, the limits and the scoring.": "The solution reads standard input and writes standard output. The package carries the tests, the limits and the scoring.",
-  "This instance publishes no front page yet.": "This instance publishes no front page yet.",
   "This is the front page that ships with the software. Replace it in the instance settings.": "This is the front page that ships with the software. Replace it in the instance settings.",
   "Your activities": "Your activities",
   "You are not enrolled in anything yet. An organiser adds you to an activity.": "You are not enrolled in anything yet. An organiser adds you to an activity.",
@@ -698,5 +696,6 @@
   "No sessions. Nobody is signed in as this account.": "No sessions. Nobody is signed in as this account.",
   "A blocked account has no sessions: blocking ends them and stops new ones.": "A blocked account has no sessions: blocking ends them and stops new ones.",
   "A session is active while the browser holds a connection to the Server. Signing out is not the same as closing the tab.": "A session is active while the browser holds a connection to the Server. Signing out is not the same as closing the tab.",
-  "In force since": "In force since"
+  "In force since": "In force since",
+  "There is no such page here": "There is no such page here"
 }
