@@ -39,6 +39,16 @@ export const InstanceProvider: FC<{ children: ReactNode }> = ({ children }) => {
             // Server that answers without a field must not remove it.
             .then(info => setInstance({ ...DEFAULTS, ...info }))
             .catch(() => { /* The defaults are a usable answer. */ });
+
+        // An operator publishing a document or a mark changes what every screen
+        // shows — the footer, the navigation, the front page — so the answer is
+        // replaced where it is held rather than each of them being told to
+        // reload. The event carries the whole thing for exactly that reason.
+        api.managerApi.eventDispatcher.addEventListener(
+            "instanceChanged",
+            evt => setInstance({ ...DEFAULTS, ...evt.data.instance }),
+            controller.signal);
+
         return () => controller.abort();
     }, [api]);
 

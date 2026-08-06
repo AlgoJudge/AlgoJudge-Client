@@ -1,15 +1,13 @@
 import { UnauthorizedError } from "../ApiError";
 import {
     CoreApi,
-    InstanceDocumentRef,
     InstanceInfo,
     ProfileInput,
     RegisterInput,
     Session,
 } from "../CoreApi";
 import { CoreEventDispatcherImpl } from "../impl/CoreEventDispatcherImpl";
-import { seedInstanceDocuments } from "./fixtures/documents";
-import { FakeFiles } from "./FileApiFake";
+import { FakeInstance } from "./FakeInstance";
 import { Utils } from "./Utils";
 
 /**
@@ -38,7 +36,6 @@ const SESSION_KEY = "algojudge.fake.session";
  */
 export const signedInUserId = (): string | undefined =>
     sessionStorage.getItem(SESSION_KEY) ?? undefined;
-const INSTANCE_KEY = "algojudge.fake.instance";
 const MIN_PASSWORD = 12;
 const MAX_ATTEMPTS = 10;
 const LOCKOUT_MS = 60 * 60 * 1000;
@@ -119,17 +116,13 @@ export class CoreApiFake implements CoreApi {
 
     private accounts = createAccounts();
     private signedInAs: string | undefined = CoreApiFake.restore();
-    private readonly instance: InstanceInfo;
 
     /**
-     * The file store arrives from outside because the documents live in it: an
-     * operator's first publish puts them there, and this is the fake standing in
-     * for that. Seeding in the constructor rather than in a field initializer,
-     * so the store is certainly assigned before anything reads it.
+     * The instance arrives from outside because it is written elsewhere: the
+     * manager screen publishes documents and marks, and both ends have to see
+     * one answer. The same arrangement the file store has, for the same reason.
      */
-    constructor(files: FakeFiles, private sleepMs: number = 300) {
-        this.instance = CoreApiFake.restoreInstance(seedInstanceDocuments(files));
-    }
+    constructor(private readonly instance: FakeInstance, private sleepMs: number = 300) { }
 
     /**
      * The session this browser already holds — or one named in the address.
@@ -140,71 +133,6 @@ export class CoreApiFake implements CoreApi {
      * fake only runs when an installation has no Server configured or has asked
      * for it explicitly.
      */
-    /**
-     * The instance settings, which stage 9 will make a screen.
-     *
-     * Until then the fake takes them from the address so the registration path
-     * can be seen at all: `?fakeRegistration=on` turns local sign-ups on,
-     * `&fakeRequireEmail=on` makes the address mandatory, and
-     * `&fakeConfirmEmail=on` makes an unconfirmed address unable to sign in.
-     * Each choice sticks until it is changed or the tab closes.
-     */
-    private static restoreInstance(documents: InstanceDocumentRef[]): InstanceInfo {
-        // The shipped default: accounts come from an organiser or from SSO.
-        const defaults: InstanceInfo = {
-            name: "Wydział Informatyki",
-            localRegistrationEnabled: false,
-            requireEmail: false,
-            requireConfirmedEmail: false,
-            documents,
-            // No logo: this instance has not set one, so the Client shows the
-            // placeholder it ships with. `?fakeLogo=off` turns the mark off
-            // entirely, which is what an operator who wants none does.
-            showLogo: true,
-        };
-
-        // Merged over the defaults rather than trusting what was stored. A tab
-        // that kept settings written by an older build has an object missing
-        // whatever was added since, and reading a field that is not there is how
-        // `undefined.map` reaches a screen.
-        const stored = sessionStorage.getItem(INSTANCE_KEY);
-        let instance = defaults;
-        if (stored) {
-            try {
-                instance = { ...defaults, ...JSON.parse(stored) as Partial<InstanceInfo> };
-            } catch {
-                instance = defaults;
-            }
-        }
-        // Never from storage: the references name files in a store that is built
-        // fresh on every load, and a stored id would point at bytes this tab has
-        // never seen. Only the settings survive a reload.
-        instance.documents = documents;
-
-        const query = new URLSearchParams(window.location.search);
-        const flag = (name: string): boolean | undefined => {
-            const value = query.get(name);
-            return value === null ? undefined : value === "on" || value === "true" || value === "1";
-        };
-
-        const registration = flag("fakeRegistration");
-        const requireEmail = flag("fakeRequireEmail");
-        const confirmEmail = flag("fakeConfirmEmail");
-        const logo = flag("fakeLogo");
-        // An installation nobody has named is a state the screens have to draw,
-        // not only a field that could be absent: the title falls back to the
-        // product's name and the shells show nothing beside the mark.
-        const named = flag("fakeName");
-        if (registration !== undefined) instance.localRegistrationEnabled = registration;
-        if (requireEmail !== undefined) instance.requireEmail = requireEmail;
-        if (confirmEmail !== undefined) instance.requireConfirmedEmail = confirmEmail;
-        if (logo !== undefined) instance.showLogo = logo;
-        if (named === false) instance.name = undefined;
-
-        sessionStorage.setItem(INSTANCE_KEY, JSON.stringify(instance));
-        return instance;
-    }
-
     private static restore(): string | undefined {
         const wanted = new URLSearchParams(window.location.search).get("fakeUser");
         if (wanted) {
@@ -219,7 +147,7 @@ export class CoreApiFake implements CoreApi {
 
     async getInstanceInfo(signal: AbortSignal): Promise<InstanceInfo> {
         await this.settle(signal);
-        return { ...this.instance };
+        return this.instance.read();
     }
 
     async getSession(signal: AbortSignal): Promise<Session | undefined> {
@@ -239,7 +167,7 @@ export class CoreApiFake implements CoreApi {
         // the two apart tells a stranger which accounts exist.
         if (!account) throw new UnauthorizedError();
 
-        if (this.instance.requireConfirmedEmail && !account.emailConfirmed) {
+        if (this.instance.read().requireConfirmedEmail && !account.emailConfirmed) {
             Utils.throwError("Confirm the address before signing in");
         }
 
@@ -272,7 +200,7 @@ export class CoreApiFake implements CoreApi {
 
     async register(input: RegisterInput, signal: AbortSignal): Promise<void> {
         await this.settle(signal);
-        if (!this.instance.localRegistrationEnabled) {
+        if (!this.instance.read().localRegistrationEnabled) {
             // Refused whatever the form sends: an instance that takes no sign-ups
             // must refuse them at the door, not only in the screen that draws it.
             Utils.throwError("This instance does not accept sign-ups");
@@ -283,7 +211,7 @@ export class CoreApiFake implements CoreApi {
         if (this.accounts.some(a => a.username.toLowerCase() === username.toLowerCase())) {
             Utils.throwError("That login is taken");
         }
-        if (this.instance.requireEmail && !(input.email ?? "").trim()) {
+        if (this.instance.read().requireEmail && !(input.email ?? "").trim()) {
             Utils.throwError("This instance requires an email address");
         }
         if (input.password.length < MIN_PASSWORD) {

@@ -1,5 +1,6 @@
 import { Api } from "./Api";
 import { FileApi, UploadedFile } from "./FileApi";
+import { InstanceDocumentKind, InstanceDocumentRef } from "./CoreApi";
 import {
     CoreApi,
     CoreEvent,
@@ -61,6 +62,9 @@ import {
     SeriesProblemInput,
     UserChangedEvent,
     UserInput,
+    InstanceLogoInput,
+    InstanceSettingsInput,
+    NewStatement,
     UserSession,
     UserUpdateInput,
 } from "./ManagerApi";
@@ -368,6 +372,21 @@ export class ScopedManagerApi {
     }
     getManagedActivities(): Promise<ManagedActivitySummary[]> {
         return this.managerApi.getManagedActivities(this.signal);
+    }
+    updateInstanceSettings(input: InstanceSettingsInput): Promise<InstanceInfo> {
+        return this.managerApi.updateInstanceSettings(input, this.signal);
+    }
+    setInstanceLogo(input: InstanceLogoInput): Promise<InstanceInfo> {
+        return this.managerApi.setInstanceLogo(input, this.signal);
+    }
+    publishInstanceDocument(kind: InstanceDocumentKind, statements: NewStatement[]): Promise<InstanceInfo> {
+        return this.managerApi.publishInstanceDocument(kind, statements, this.signal);
+    }
+    unpublishInstanceDocument(kind: InstanceDocumentKind): Promise<InstanceInfo> {
+        return this.managerApi.unpublishInstanceDocument(kind, this.signal);
+    }
+    getInstanceDocumentHistory(kind: InstanceDocumentKind): Promise<InstanceDocumentRef[]> {
+        return this.managerApi.getInstanceDocumentHistory(kind, this.signal);
     }
 
     getActivities(filter: ManagedActivityFilter = {}): Promise<Page<ManagedActivity>> {

@@ -1,3 +1,4 @@
+import { InstanceDocumentKind, InstanceDocumentRef, InstanceInfo } from "../CoreApi";
 import {
     ActivityInput,
     Grant,
@@ -35,6 +36,9 @@ import {
     SeriesProblemInput,
     StatementVariant,
     UserInput,
+    InstanceLogoInput,
+    InstanceSettingsInput,
+    NewStatement,
     UserSession,
     UserUpdateInput,
 } from "../ManagerApi";
@@ -190,6 +194,29 @@ export class ManagerApiHttp implements ManagerApi {
 
     getManagedActivities(signal: AbortSignal): Promise<ManagedActivitySummary[]> {
         return this.http.request<ManagedActivitySummary[]>("/manager/activities", "GET", { signal });
+    }
+
+    updateInstanceSettings(input: InstanceSettingsInput, signal: AbortSignal): Promise<InstanceInfo> {
+        return this.http.request<InstanceInfo>("/instance", "PUT", { signal, body: input });
+    }
+
+    setInstanceLogo(input: InstanceLogoInput, signal: AbortSignal): Promise<InstanceInfo> {
+        return this.http.request<InstanceInfo>("/instance/logo", "PUT", { signal, body: input });
+    }
+
+    publishInstanceDocument(kind: InstanceDocumentKind, statements: NewStatement[], signal: AbortSignal): Promise<InstanceInfo> {
+        return this.http.request<InstanceInfo>(
+            `/instance/documents/${encodeURIComponent(kind)}`, "POST", { signal, body: { statements } });
+    }
+
+    unpublishInstanceDocument(kind: InstanceDocumentKind, signal: AbortSignal): Promise<InstanceInfo> {
+        return this.http.request<InstanceInfo>(
+            `/instance/documents/${encodeURIComponent(kind)}`, "DELETE", { signal });
+    }
+
+    getInstanceDocumentHistory(kind: InstanceDocumentKind, signal: AbortSignal): Promise<InstanceDocumentRef[]> {
+        return this.http.request<InstanceDocumentRef[]>(
+            `/instance/documents/${encodeURIComponent(kind)}`, "GET", { signal });
     }
 
     getActivities(filter: ManagedActivityFilter, signal: AbortSignal): Promise<Page<ManagedActivity>> {

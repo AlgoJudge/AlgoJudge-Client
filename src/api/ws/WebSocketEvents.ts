@@ -42,6 +42,7 @@ const MANAGER: Record<ManagerEventType, true> = {
     questionChanged: true,
     userChanged: true,
     runnerChanged: true,
+    instanceChanged: true,
 };
 
 // Membership in one of the three records is what decides where an event goes,

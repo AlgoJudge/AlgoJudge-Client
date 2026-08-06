@@ -1,3 +1,4 @@
+import { InstanceDocumentKind, InstanceDocumentRef, InstanceInfo } from "./CoreApi";
 import { Event } from "./Event";
 import { DisplayName, JobState, Page, QuestionAnswer, QuestionKind } from "./ParticipantApi";
 
@@ -798,9 +799,36 @@ export interface ManagedRunnerFilter {
     search?: string;
 }
 
+/**
+ * What an operator may change about the installation itself.
+ *
+ * The name is optional here as it is on `InstanceInfo`: an installation nobody
+ * has named shows the product's name alone, and clearing the field is how an
+ * operator says so.
+ */
+export interface InstanceSettingsInput {
+    name?: string;
+    localRegistrationEnabled: boolean;
+    requireEmail: boolean;
+    requireConfirmedEmail: boolean;
+    showLogo: boolean;
+}
+
+/**
+ * The mark, for one language or for the instance as a whole.
+ *
+ * An absent `fileId` removes it: there is no separate call for taking a mark
+ * off, because setting it to nothing is what that is.
+ */
+export interface InstanceLogoInput {
+    fileId?: string;
+    /** Absent sets the default mark, which every language without one uses. */
+    language?: string;
+}
+
 export type ManagerEventType = "permissionTemplateChanged" | "grantChanged" | "problemChanged"
     | "activityChanged" | "seriesChanged" | "submissionChanged" | "questionChanged" | "userChanged"
-    | "runnerChanged";
+    | "runnerChanged" | "instanceChanged";
 export type ManagerEvent<T extends ManagerEventType, V> = Event<T, V>;
 
 export type PermissionTemplateChangedEvent = ManagerEvent<"permissionTemplateChanged", {
@@ -848,6 +876,17 @@ export type RunnerChangedEvent = ManagerEvent<"runnerChanged", {
     runner: ManagedRunner;
 }>;
 
+/**
+ * The installation's own settings, mark or documents changed.
+ *
+ * Carries the whole answer, because that is what every reader of it holds: the
+ * shell, the footer and the front page all read one `InstanceInfo`, and a patch
+ * would leave them assembling it themselves.
+ */
+export type InstanceChangedEvent = ManagerEvent<"instanceChanged", {
+    instance: InstanceInfo;
+}>;
+
 export interface ManagerEventDispatcher {
     addEventListener(type: "permissionTemplateChanged", listener: (evt: PermissionTemplateChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "grantChanged", listener: (evt: GrantChangedEvent) => void, signal: AbortSignal): void;
@@ -858,6 +897,7 @@ export interface ManagerEventDispatcher {
     addEventListener(type: "questionChanged", listener: (evt: QuestionChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "userChanged", listener: (evt: UserChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "runnerChanged", listener: (evt: RunnerChangedEvent) => void, signal: AbortSignal): void;
+    addEventListener(type: "instanceChanged", listener: (evt: InstanceChangedEvent) => void, signal: AbortSignal): void;
     addEventListener<T extends ManagerEventType, V>(type: T, listener: (evt: ManagerEvent<T, V>) => void, signal: AbortSignal): void;
 }
 
@@ -933,6 +973,35 @@ export interface ManagerApi {
      */
     getUserSessions(userId: string, signal: AbortSignal): Promise<UserSession[]>;
     getManagedActivities(signal: AbortSignal): Promise<ManagedActivitySummary[]>;
+
+    /**
+     * The installation's own configuration. Every one of these answers with the
+     * whole `InstanceInfo`, so the screen and the shell see the result without
+     * asking again — and the same document reaches every other tab as an
+     * `instanceChanged` event.
+     *
+     * Read under no permission at all — `getInstanceInfo` is public, because a
+     * signed-out screen needs it — and written under `instance:update`.
+     */
+    updateInstanceSettings(input: InstanceSettingsInput, signal: AbortSignal): Promise<InstanceInfo>;
+    setInstanceLogo(input: InstanceLogoInput, signal: AbortSignal): Promise<InstanceInfo>;
+    /**
+     * Publishes a revision of one document, in every language it has.
+     *
+     * The text was uploaded through `fileApi` first, exactly as a problem
+     * version's statement is, and what arrives here is a list of ids. The
+     * revision comes into force now; earlier ones stay readable at their own
+     * dates.
+     */
+    publishInstanceDocument(kind: InstanceDocumentKind, statements: NewStatement[], signal: AbortSignal): Promise<InstanceInfo>;
+    /**
+     * Stops publishing one. Its links disappear with its references — nothing
+     * lists a document that has none — and the revisions already published stay
+     * readable at their dates.
+     */
+    unpublishInstanceDocument(kind: InstanceDocumentKind, signal: AbortSignal): Promise<InstanceInfo>;
+    /** Every revision of one document, newest first, including superseded ones. */
+    getInstanceDocumentHistory(kind: InstanceDocumentKind, signal: AbortSignal): Promise<InstanceDocumentRef[]>;
 
     getActivities(filter: ManagedActivityFilter, signal: AbortSignal): Promise<Page<ManagedActivity>>;
     /** Accepts an id or a slug: the manager's URLs read like the participant's. */

@@ -24,6 +24,9 @@ import {
     ManagedSubmissionDetail,
     ManagedSubmissionFilter,
     ManagedUser,
+    InstanceLogoInput,
+    InstanceSettingsInput,
+    NewStatement,
     UserSession,
     ManagedUserFilter,
     ManagedUserSummary,
@@ -62,6 +65,8 @@ import { createRunners, runnerFile } from "./fixtures/runners";
 import { createUsers } from "./fixtures/users";
 import { createSessions } from "./fixtures/sessions";
 import { FakeFiles } from "./FileApiFake";
+import { FakeInstance } from "./FakeInstance";
+import { InstanceDocumentKind, InstanceDocumentRef, InstanceInfo } from "../CoreApi";
 import { createSubmissions, submissionSource } from "./fixtures/submissions";
 import { sha256 } from "../../utils/sha256";
 import { Utils } from "./Utils";
@@ -122,7 +127,56 @@ export class ManagerApiFake implements ManagerApi {
      * The same store the rest of the fake reads: a version references files
      * that were uploaded before it was published, exactly as on the Server.
      */
-    constructor(private readonly files: FakeFiles, private sleepMs: number = 300) {}
+    constructor(
+        private readonly files: FakeFiles,
+        private readonly instance: FakeInstance,
+        private sleepMs: number = 300,
+    ) {}
+
+    async updateInstanceSettings(input: InstanceSettingsInput, signal: AbortSignal): Promise<InstanceInfo> {
+        await this.settle(signal);
+        return this.announceInstance(this.instance.settings(input));
+    }
+
+    async setInstanceLogo(input: InstanceLogoInput, signal: AbortSignal): Promise<InstanceInfo> {
+        await this.settle(signal);
+        if (input.fileId !== undefined && !this.files.has(input.fileId)) {
+            Utils.throwError("That file is not stored");
+        }
+        return this.announceInstance(this.instance.logo(input.fileId, input.language));
+    }
+
+    async publishInstanceDocument(
+        kind: InstanceDocumentKind,
+        statements: NewStatement[],
+        signal: AbortSignal,
+    ): Promise<InstanceInfo> {
+        await this.settle(signal);
+        for (const statement of statements) {
+            if (!this.files.has(statement.fileId)) Utils.throwError("That file is not stored");
+        }
+        return this.announceInstance(this.instance.publish(kind, statements));
+    }
+
+    async unpublishInstanceDocument(kind: InstanceDocumentKind, signal: AbortSignal): Promise<InstanceInfo> {
+        await this.settle(signal);
+        return this.announceInstance(this.instance.unpublish(kind));
+    }
+
+    async getInstanceDocumentHistory(kind: InstanceDocumentKind, signal: AbortSignal): Promise<InstanceDocumentRef[]> {
+        await this.settle(signal);
+        return copy(this.instance.historyOf(kind));
+    }
+
+    /**
+     * Every writer answers with the whole thing and says so to every listener:
+     * the shell, the footer and the front page all read one `InstanceInfo`, and
+     * a screen that published something should not have to reload to see it.
+     */
+    private announceInstance(instance: InstanceInfo): InstanceInfo {
+        this.eventDispatcher.dispatchEvent({ type: "instanceChanged", data: { instance: copy(instance) } });
+        return copy(instance);
+    }
 
     async getPermissionCatalogue(signal: AbortSignal): Promise<PermissionDefinition[]> {
         await this.settle(signal);
