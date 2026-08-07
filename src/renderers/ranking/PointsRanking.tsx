@@ -92,6 +92,7 @@ export default function PointsRanking({ ranking, timeZone }: RankingProps) {
     // scores you may not see is not a standing — and a blank column under a "#"
     // reads as a bug rather than as a deliberate omission.
     const placed = rows.some(row => row.rank !== undefined);
+    const nameLeft = { left: placed ? "3.5rem" : 0 };
     const me = asString(document.me);
 
 
@@ -124,8 +125,10 @@ export default function PointsRanking({ ranking, timeZone }: RankingProps) {
                 <Table stickyHeader striped highlightOnHover withColumnBorders tabularNums>
                     <Table.Thead>
                         <Table.Tr>
-                            {placed && <Table.Th>{t("Place")}</Table.Th>}
-                            <Table.Th>{t("Contestant")}</Table.Th>
+                            {placed && <Table.Th className={classes.stickyPlace}>{t("Place")}</Table.Th>}
+                            <Table.Th className={classes.stickyName} style={nameLeft}>
+                                {t("Contestant")}
+                            </Table.Th>
                             <Table.Th>{t("Solved")}</Table.Th>
                             <Table.Th>{t("Sum")}</Table.Th>
                             {series.map(s => {
@@ -153,8 +156,8 @@ export default function PointsRanking({ ranking, timeZone }: RankingProps) {
                                 ref={row.id === me ? myRow : undefined}
                                 className={row.id === me ? classes.me : undefined}
                             >
-                                {placed && <Table.Td>{row.rank}</Table.Td>}
-                                <Table.Td>{row.name}</Table.Td>
+                                {placed && <Table.Td className={classes.stickyPlace}>{row.rank}</Table.Td>}
+                                <Table.Td className={classes.stickyName} style={nameLeft}>{row.name}</Table.Td>
                                 <Table.Td>{row.solved}</Table.Td>
                                 <Table.Td><Text fw={600}>{row.total}</Text></Table.Td>
                                 {series.map(s => {

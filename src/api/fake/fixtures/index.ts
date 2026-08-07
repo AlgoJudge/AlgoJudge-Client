@@ -256,6 +256,10 @@ export const createDataset = (files: FakeFiles): Dataset => {
         name: "Runda 1",
         startDate: nowPlus(-hours(2)),
         endDate: nowPlus(hours(1)),
+        // Its board is held back until the round ends, while Runda 0's is
+        // already published: one activity, two windows, which is what the
+        // per-round window is for.
+        rankingVisibleFrom: nowPlus(hours(1)),
         isOpen: true,
         problemCount: r1Problems.length,
         problems: r1Problems,
@@ -474,19 +478,21 @@ export const createDataset = (files: FakeFiles): Dataset => {
         ],
     });
 
-    // The combined board: **totals only**. The per-problem cells belong to the
-    // round whose problems they are, and a contest of three rounds would
-    // otherwise be thirty columns wide.
+    // The combined board carries the problems of every round whose window is
+    // open — here Runda 0 alone, because Runda 1's board is held back until it
+    // ends. Slugs are unique across the whole activity, so no qualifying is
+    // needed and `cells` stays keyed by slug.
     rankings.set(contestId, {
         format: "icpc",
         frozen: false,
         me: "team-7",
+        problems: round0Problems.map(p => ({ id: p.id, slug: p.slug, name: p.name })),
         rows: [
-            { rank: 1, id: "team-1", name: "Politechnika Poznańska 1", solved: 5, penalty: 343 },
-            { rank: 2, id: "team-2", name: "Uniwersytet Warszawski 2", solved: 5, penalty: 275 },
-            { rank: 3, id: "team-7", name: "Politechnika Poznańska 3", solved: 4, penalty: 250 },
-            { rank: 4, id: "team-4", name: "AGH 1", solved: 2, penalty: 178 },
-            { rank: 5, id: "team-5", name: "Uniwersytet Jagielloński 1", solved: 1, penalty: 45 },
+            { rank: 1, id: "team-2", name: "Uniwersytet Warszawski 2", solved: 2, penalty: 74, cells: { R: { attempts: 1, acceptedAt: 12 }, S: { attempts: 2, acceptedAt: 42 } } },
+            { rank: 2, id: "team-7", name: "Politechnika Poznańska 3", solved: 2, penalty: 96, cells: { R: { attempts: 1, acceptedAt: 18 }, S: { attempts: 3, acceptedAt: 58 } } },
+            { rank: 3, id: "team-1", name: "Politechnika Poznańska 1", solved: 1, penalty: 331, cells: { R: { attempts: 2, acceptedAt: 331 }, S: { attempts: 4 } } },
+            { rank: 4, id: "team-4", name: "AGH 1", solved: 0, penalty: 0, cells: {} },
+            { rank: 5, id: "team-5", name: "Uniwersytet Jagielloński 1", solved: 0, penalty: 0, cells: {} },
         ],
     });
 
@@ -666,9 +672,6 @@ export const createDataset = (files: FakeFiles): Dataset => {
         joinPolicy: "closed",
         scoreVisibility: "everyone",
         hideEndedSeriesProblems: false,
-        // Its standings were published and then closed: the state a participant
-        // meets when the results have been taken down again.
-        rankingVisibleTo: nowPlus(-days(1)),
         modules: { questions: false },
         documents: [],
         finalScore: 3,
@@ -703,9 +706,6 @@ export const createDataset = (files: FakeFiles): Dataset => {
         joinPolicy: "open",
         scoreVisibility: "everyone",
         hideEndedSeriesProblems: false,
-        // And these standings are not open yet, which is the other half of the
-        // window: a participant is told when rather than shown an empty table.
-        rankingVisibleFrom: nowPlus(hours(3)),
         modules: { questions: false },
         documents: [],
         props: [],

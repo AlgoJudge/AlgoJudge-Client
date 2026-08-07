@@ -796,11 +796,11 @@
   "Off, a finished round stays readable: it is over, not secret.": "Wyłączone — zakończona runda pozostaje do czytania: jest po niej, a nie jest tajna.",
   "Ranking visible from": "Ranking widoczny od",
   "Ranking visible until": "Ranking widoczny do",
-  "Empty means from the activity's own start": "Puste oznacza: od startu aktywności",
   "Empty means for ever": "Puste oznacza: bezterminowo",
   "Combined": "Zbiorczy",
   "The ranking opens on": "Ranking będzie dostępny od",
   "The ranking was available until": "Ranking był dostępny do",
   "The ranking is not available.": "Ranking nie jest dostępny.",
-  "Nothing sent yet": "Nic jeszcze nie wysłano"
+  "Nothing sent yet": "Nic jeszcze nie wysłano",
+  "Empty means from this series' own start": "Puste oznacza: od startu tej serii"
 }

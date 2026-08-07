@@ -208,17 +208,6 @@ export interface ManagedActivity {
      */
     hideEndedSeriesProblems: boolean;
     /**
-     * When participants may see the ranking. Absent `from` means the activity's
-     * own start; absent `to` means for ever.
-     *
-     * A window rather than a switch, because "from the start until the results
-     * are announced" is what an organiser actually says. Whoever holds
-     * `ranking:read:unfrozen` sees it outside the window, exactly as that
-     * permission already bypasses a series freeze.
-     */
-    rankingVisibleFrom?: string;
-    rankingVisibleTo?: string;
-    /**
      * The three limits the **Server** enforces, so none of them may live in the
      * opaque configuration chain. Time and memory are the Runner's and do.
      */
@@ -257,17 +246,6 @@ export interface ActivityInput {
      * reuses its problems next year.
      */
     hideEndedSeriesProblems: boolean;
-    /**
-     * When participants may see the ranking. Absent `from` means the activity's
-     * own start; absent `to` means for ever.
-     *
-     * A window rather than a switch, because "from the start until the results
-     * are announced" is what an organiser actually says. Whoever holds
-     * `ranking:read:unfrozen` sees it outside the window, exactly as that
-     * permission already bypasses a series freeze.
-     */
-    rankingVisibleFrom?: string;
-    rankingVisibleTo?: string;
     maxUploadBytes: number;
     maxAttachments: number;
     maxSubmissionsPerProblem?: number;
@@ -301,6 +279,17 @@ export interface ManagedSeries {
      */
     rankingFreezeAt?: string;
     rankingRevealAt?: string;
+    /**
+     * When participants may see this round's standings. Absent `from` means the
+     * round's own start; absent `to` means for ever.
+     *
+     * A window per round rather than per activity: an organiser publishes the
+     * first round's board while the second is still being fought. Different
+     * from the freeze above it — that hides late results within a board, this
+     * decides whether there is a board at all.
+     */
+    rankingVisibleFrom?: string;
+    rankingVisibleTo?: string;
     problems: ManagedSeriesProblem[];
 }
 
@@ -322,6 +311,17 @@ export interface SeriesInput {
     revealProblemCount: boolean;
     rankingFreezeAt?: string;
     rankingRevealAt?: string;
+    /**
+     * When participants may see this round's standings. Absent `from` means the
+     * round's own start; absent `to` means for ever.
+     *
+     * A window per round rather than per activity: an organiser publishes the
+     * first round's board while the second is still being fought. Different
+     * from the freeze above it — that hides late results within a board, this
+     * decides whether there is a board at all.
+     */
+    rankingVisibleFrom?: string;
+    rankingVisibleTo?: string;
 }
 
 /**

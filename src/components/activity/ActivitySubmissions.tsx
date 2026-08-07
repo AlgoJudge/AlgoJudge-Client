@@ -89,26 +89,43 @@ export default function ActivitySubmissions({ activityId, slug, timeZone }: Acti
                                 className={classes.row}
                                 onClick={() => navigate(`/activities/${slug}/submissions/${submission.id}`)}
                             >
-                                <Group justify="space-between" wrap="nowrap" gap="xs">
-                                    <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
-                                        <Text size="xs" c="dimmed" ff="monospace">
-                                            <ActivityTime
-                                                value={submission.submittedAt}
-                                                timeZone={timeZone ?? "Europe/Warsaw"}
-                                                format="time"
-                                                hideZone
-                                            />
-                                        </Text>
-                                        <Text size="sm" lineClamp={1}>[{submission.problemSlug}]</Text>
-                                    </Group>
-                                    <Group gap={6} wrap="nowrap">
+                                <Group justify="space-between" wrap="nowrap" gap="xs" align="flex-start">
+                                    <Stack gap={0} style={{ minWidth: 0 }}>
+                                        <Group gap={6} wrap="nowrap" style={{ minWidth: 0 }}>
+                                            <Text size="xs" c="dimmed" ff="monospace">
+                                                <ActivityTime
+                                                    value={submission.submittedAt}
+                                                    timeZone={timeZone ?? "Europe/Warsaw"}
+                                                    format="time"
+                                                    hideZone
+                                                />
+                                            </Text>
+                                            {/* The slug leads: it is what somebody
+                                                scanning for their own submission
+                                                looks at, and the name is what
+                                                tells them which problem it was. */}
+                                            <Text size="sm" fw={500}>[{submission.problemSlug}]</Text>
+                                            <Text size="sm" lineClamp={1} c="dimmed">
+                                                {submission.problemName}
+                                            </Text>
+                                        </Group>
+                                    </Stack>
+                                    <Stack gap={2} align="flex-end" style={{ flexShrink: 0 }}>
                                         <StateBadge
                                             state={submission.state}
                                             verdict={submission.verdict}
                                             score={submission.score}
                                             maxScore={submission.maxScore}
                                         />
-                                    </Group>
+                                        {/* Beside the verdict rather than inside
+                                            it: `12/100` and `Wrong answer` are
+                                            two facts, and the badge carries one. */}
+                                        {submission.score !== undefined && (
+                                            <Text size="xs" c="dimmed" ff="monospace">
+                                                {submission.score} / {submission.maxScore ?? "?"}
+                                            </Text>
+                                        )}
+                                    </Stack>
                                 </Group>
                             </UnstyledButton>
                         ))}

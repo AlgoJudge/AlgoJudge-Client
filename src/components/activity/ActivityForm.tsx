@@ -280,29 +280,6 @@ export default function ActivityForm({ value, onChange, slugLocked, disabled }: 
                     </Grid.Col>
                 </Grid>
 
-                <Grid mt="sm">
-                    <Grid.Col span={{ base: 12, sm: 6 }}>
-                        <ZonedDateTimeInput
-                            label={t("Ranking visible from")}
-                            description={t("Empty means from the activity's own start")}
-                            value={value.rankingVisibleFrom}
-                            timeZone={value.timeZone}
-                            onChange={rankingVisibleFrom => set({ rankingVisibleFrom })}
-                            disabled={disabled}
-                        />
-                    </Grid.Col>
-                    <Grid.Col span={{ base: 12, sm: 6 }}>
-                        <ZonedDateTimeInput
-                            label={t("Ranking visible until")}
-                            description={t("Empty means for ever")}
-                            value={value.rankingVisibleTo}
-                            timeZone={value.timeZone}
-                            onChange={rankingVisibleTo => set({ rankingVisibleTo })}
-                            disabled={disabled}
-                        />
-                    </Grid.Col>
-                </Grid>
-
                 {/* Both policies that admit self-enrolment get the link. Only
                     `closed` has nobody to give it to. */}
                 {value.joinPolicy !== "closed" && (

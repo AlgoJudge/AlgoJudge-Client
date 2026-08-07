@@ -24,8 +24,6 @@ interface Enrolment {
 /** The activity settings a participant sees the effect of. */
 export interface ParticipantSettings {
     hideEndedSeriesProblems: boolean;
-    rankingVisibleFrom?: string;
-    rankingVisibleTo?: string;
     scoreVisibility: ScoreVisibility;
 }
 

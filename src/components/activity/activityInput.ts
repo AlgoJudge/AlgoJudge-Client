@@ -39,8 +39,6 @@ export const toInput = (activity: ManagedActivity): ActivityInput => ({
     unlisted: activity.unlisted,
     joinPassword: activity.joinPassword,
     hideEndedSeriesProblems: activity.hideEndedSeriesProblems,
-    rankingVisibleFrom: activity.rankingVisibleFrom,
-    rankingVisibleTo: activity.rankingVisibleTo,
     maxUploadBytes: activity.maxUploadBytes,
     maxAttachments: activity.maxAttachments,
     maxSubmissionsPerProblem: activity.maxSubmissionsPerProblem,

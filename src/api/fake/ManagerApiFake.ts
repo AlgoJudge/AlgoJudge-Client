@@ -399,8 +399,6 @@ export class ManagerApiFake implements ManagerApi {
         this.shared.setEnrolment(record.activity.id, input.joinPolicy, input.joinPassword, input.unlisted);
         this.shared.setSettings(record.activity.id, {
             hideEndedSeriesProblems: input.hideEndedSeriesProblems,
-            rankingVisibleFrom: input.rankingVisibleFrom,
-            rankingVisibleTo: input.rankingVisibleTo,
             scoreVisibility: input.scoreVisibility,
         });
         return this.announceActivity(record.activity);

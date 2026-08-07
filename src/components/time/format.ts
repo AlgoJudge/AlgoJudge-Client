@@ -60,3 +60,16 @@ export const formatDuration = (ms: number, t: (key: string) => string): string =
     if (hours > 0) return `${hours}:${pad(minutes)}:${pad(seconds)}`;
     return `${minutes}:${pad(seconds)}`;
 };
+
+/**
+ * A number of minutes as a clock: `118` → `1:58`, `312` → `5:12`, `1500` → `25:00`.
+ *
+ * Hours are neither capped nor padded and minutes always are, so a contest's
+ * penalty reads as a duration rather than as a count nobody converts in their
+ * head. Past a day it simply keeps counting hours — a scoreboard's numbers are
+ * compared with each other, and a day component would break that.
+ */
+export const minutesAsClock = (minutes: number): string => {
+    const whole = Math.max(0, Math.round(minutes));
+    return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
+};

@@ -38,3 +38,27 @@
     outline: 2px solid var(--mantine-color-blue-5);
     outline-offset: -2px;
 }
+
+/* With twenty problems the board scrolls sideways, and a row that has lost its
+   name is a row nobody can read. The two leading columns stay put and the rest
+   slides under them.
+   They need a background of their own: a sticky cell over a striped row would
+   otherwise be transparent and the columns would smear together. The place
+   column is given a width so the name's offset can be exact. */
+.stickyPlace {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    width: 3.5rem;
+    min-width: 3.5rem;
+    background: var(--mantine-color-body);
+}
+
+/* Its `left` is set where it is drawn, because it depends on whether there is a
+   place column at all — a board with no places starts at zero. */
+.stickyName {
+    position: sticky;
+    z-index: 2;
+    background: var(--mantine-color-body);
+    white-space: nowrap;
+}

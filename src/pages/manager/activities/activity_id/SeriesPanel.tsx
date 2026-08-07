@@ -37,6 +37,8 @@ const toSeriesInput = (series: ManagedSeries): SeriesInput => ({
     revealProblemCount: series.revealProblemCount,
     rankingFreezeAt: series.rankingFreezeAt,
     rankingRevealAt: series.rankingRevealAt,
+    rankingVisibleFrom: series.rankingVisibleFrom,
+    rankingVisibleTo: series.rankingVisibleTo,
 });
 
 const toAssignmentInput = (assignment: ManagedSeriesProblem): SeriesProblemInput => ({
@@ -245,6 +247,31 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                                                 value={draftFor(s).endDate}
                                                 timeZone={activity.timeZone}
                                                 onChange={endDate => setDraft(s, { endDate })}
+                                                disabled={locked}
+                                            />
+                                        </Grid.Col>
+                                        {/* Four instants on one round, so each
+                                            says what it does rather than when:
+                                            the freeze hides late results within
+                                            a board, the window decides whether
+                                            there is a board at all. */}
+                                        <Grid.Col span={{ base: 12, sm: 6 }}>
+                                            <ZonedDateTimeInput
+                                                label={t("Ranking visible from")}
+                                                description={t("Empty means from this series' own start")}
+                                                value={draftFor(s).rankingVisibleFrom}
+                                                timeZone={activity.timeZone}
+                                                onChange={rankingVisibleFrom => setDraft(s, { rankingVisibleFrom })}
+                                                disabled={locked}
+                                            />
+                                        </Grid.Col>
+                                        <Grid.Col span={{ base: 12, sm: 6 }}>
+                                            <ZonedDateTimeInput
+                                                label={t("Ranking visible until")}
+                                                description={t("Empty means for ever")}
+                                                value={draftFor(s).rankingVisibleTo}
+                                                timeZone={activity.timeZone}
+                                                onChange={rankingVisibleTo => setDraft(s, { rankingVisibleTo })}
                                                 disabled={locked}
                                             />
                                         </Grid.Col>

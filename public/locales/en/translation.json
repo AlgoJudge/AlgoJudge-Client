@@ -796,11 +796,11 @@
   "Off, a finished round stays readable: it is over, not secret.": "Off, a finished round stays readable: it is over, not secret.",
   "Ranking visible from": "Ranking visible from",
   "Ranking visible until": "Ranking visible until",
-  "Empty means from the activity's own start": "Empty means from the activity's own start",
   "Empty means for ever": "Empty means for ever",
   "Combined": "Combined",
   "The ranking opens on": "The ranking opens on",
   "The ranking was available until": "The ranking was available until",
   "The ranking is not available.": "The ranking is not available.",
-  "Nothing sent yet": "Nothing sent yet"
+  "Nothing sent yet": "Nothing sent yet",
+  "Empty means from this series' own start": "Empty means from this series' own start"
 }

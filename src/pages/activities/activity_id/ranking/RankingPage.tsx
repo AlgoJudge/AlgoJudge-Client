@@ -53,12 +53,20 @@ export default function RankingPage() {
 
     if (!activity) return <LoadState error={error} loading={!error} />;
 
+    const started = series.filter(s => seriesState(s) !== "upcoming");
+
+    // The window belongs to the round. The combined board is a combination of
+    // the rounds whose windows are open, so it is there while **any** of them
+    // is — and says when the earliest one opens while none is.
+    const chosenSeries = started.find(s => s.id === chosen);
+    const windows = started.map(s => rankingWindow(s));
+    const window = chosenSeries
+        ? rankingWindow(chosenSeries)
+        : windows.find(w => w.visible) ?? windows[0] ?? { visible: started.length === 0 };
+
     // Whoever may read a frozen board may read one outside its window: the
     // window is what an organiser tells participants, not an access rule.
-    const window = rankingWindow(activity);
     const withheld = !window.visible && !has("ranking:read:unfrozen");
-
-    const started = series.filter(s => seriesState(s) !== "upcoming");
 
     // Chosen by the activity's ranking type, not by its activity type: ICPC and
     // a points board are different tables, not different sorts of one table.

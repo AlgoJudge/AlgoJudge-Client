@@ -154,13 +154,6 @@ export interface Activity {
      */
     hideEndedSeriesProblems: boolean,
     /**
-     * When the ranking may be seen. Absent `from` means this activity's start;
-     * absent `to` means for ever. Outside the window the entry stays and the
-     * page says from when — a standing that opens at six is worth knowing about.
-     */
-    rankingVisibleFrom?: string,
-    rankingVisibleTo?: string,
-    /**
      * A reference to every document this activity currently publishes, one per
      * kind per language.
      *
@@ -247,6 +240,15 @@ export interface Series {
      * because "may I see it" is what `isOpen` has always answered.
      */
     pausedAt?: string,
+    /**
+     * When this round's standings may be seen. Absent `from` means the round's
+     * own start; absent `to` means for ever.
+     *
+     * Per round rather than per activity: an organiser publishes the first
+     * round's board while the second is still being fought.
+     */
+    rankingVisibleFrom?: string,
+    rankingVisibleTo?: string,
     /**
      * How many problems the series holds, when the manager allows that to be
      * shown before it opens. Absent means even the count is withheld.
