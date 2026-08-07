@@ -9,6 +9,9 @@ import LoadState from "../../../../components/LoadState";
 import ActivityTime from "../../../../components/time/ActivityTime";
 import { useApiCall, useApiEffect } from "../../../../provider/apiContext";
 import { resultRenderers } from "../../../../renderers";
+import { ManagedAttempt } from "../../../../api/ManagerApi";
+import { SUBMISSION_DETAILS, SUBMISSION_LOG } from "../../../../api/ParticipantApi";
+import { useAttachment, useResultDocument } from "../../../../components/submission/useAttachment";
 
 const CodeEditor = lazy(() => import("../../../../components/editor/CodeEditor"));
 
@@ -29,6 +32,37 @@ const isFinished = (state: JobState) => state === "completed" || state === "fail
  * the two cannot drift; what a manager has that a participant does not is the
  * log, the Runner's name, and the ability to add an attempt or stop one.
  */
+/**
+ * What one evaluation left behind: its result document and its log.
+ *
+ * A manager sees every attachment whatever the activity's table says — the table
+ * decides what reaches a participant, and the log was kept for whoever runs the
+ * activity.
+ */
+const AttemptResult = ({ attempt, problemType }: { attempt: ManagedAttempt; problemType: string }) => {
+    const { t } = useTranslation();
+    const Result = resultRenderers.resolve(problemType).value;
+    const { document } = useResultDocument(attempt.files, SUBMISSION_DETAILS);
+    const { text: log } = useAttachment(attempt.files, SUBMISSION_LOG);
+
+    if (document === undefined && log === undefined) return null;
+    return (
+        <Card withBorder radius="sm">
+            <Group justify="space-between" mb="sm">
+                <Title order={5}>{t("Result of attempt")} {attempt.attempt}</Title>
+                <Text size="sm" c="dimmed">{attempt.runnerName}</Text>
+            </Group>
+            {document !== undefined && <Result detail={document} />}
+            {log && (
+                <Stack gap={4} mt="sm">
+                    <Text size="xs" c="dimmed">{t("Evaluation log")}</Text>
+                    <Code block style={{ whiteSpace: "pre-wrap" }}>{log}</Code>
+                </Stack>
+            )}
+        </Card>
+    );
+};
+
 export default function ManagerSubmissionPage() {
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -45,7 +79,7 @@ export default function ManagerSubmissionPage() {
         if (!submissionId) return;
         const loaded = await api.managerApi.getSubmission(submissionId);
         const file = loaded.files[0];
-        const text = file ? await api.managerApi.getSubmissionFile(loaded.id, file.name) : "";
+        const text = file ? await api.fileApi.getText(file.fileId) : "";
 
         setSubmission(loaded);
         setSource(text);
@@ -72,7 +106,6 @@ export default function ManagerSubmissionPage() {
 
     if (!submission) return <LoadState error={loadError} loading={!loadError} />;
 
-    const Result = resultRenderers.resolve(submission.problemType).value;
     const file = submission.files[0];
 
     return (
@@ -176,27 +209,16 @@ export default function ManagerSubmissionPage() {
                 </Table.ScrollContainer>
             </Card>
 
-            {submission.attemptList.map(attempt => attempt.detail !== undefined && (
-                <Card key={`${attempt.id}-result`} withBorder radius="sm">
-                    <Group justify="space-between" mb="sm">
-                        <Title order={5}>{t("Result of attempt")} {attempt.attempt}</Title>
-                        <Text size="sm" c="dimmed">{attempt.runnerName}</Text>
-                    </Group>
-                    <Result detail={attempt.detail} />
-                </Card>
+            {/* One card per attempt, each fetching its own attachments. A
+                component rather than a loop of hooks: an attempt's files are
+                read with a hook, and a hook cannot be called from inside a map. */}
+            {submission.attemptList.map(attempt => (
+                <AttemptResult
+                    key={`${attempt.id}-result`}
+                    attempt={attempt}
+                    problemType={submission.problemType}
+                />
             ))}
-
-            {submission.attemptList.some(a => a.log) && (
-                <Card withBorder radius="sm">
-                    <Title order={5} mb="sm">{t("Evaluation log")}</Title>
-                    {submission.attemptList.filter(a => a.log).map(attempt => (
-                        <Stack key={`${attempt.id}-log`} gap={4} mb="sm">
-                            <Text size="xs" c="dimmed">#{attempt.attempt} · {attempt.runnerName ?? t("no runner")}</Text>
-                            <Code block style={{ whiteSpace: "pre-wrap" }}>{attempt.log}</Code>
-                        </Stack>
-                    ))}
-                </Card>
-            )}
 
             <Card withBorder radius="sm" p={0}>
                 <Group justify="space-between" p="sm">

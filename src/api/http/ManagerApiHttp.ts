@@ -381,14 +381,6 @@ export class ManagerApiHttp implements ManagerApi {
         return this.http.request<ManagedSubmissionDetail>(`/submissions/${encodeURIComponent(id)}`, "GET", { signal });
     }
 
-    async getSubmissionFile(id: string, name: string, signal: AbortSignal): Promise<string> {
-        // The same wrapper the participant's own view reads. One file, one
-        // shape: this end expected a bare JSON string until 2026-08-06, so the
-        // two screens would have needed two Server endpoints for one idea.
-        const file = await this.http.request<{ content: string }>(
-            `/submissions/${encodeURIComponent(id)}/files/${encodeURIComponent(name)}`, "GET", { signal });
-        return file.content;
-    }
 
     rejudgeSubmission(id: string, signal: AbortSignal): Promise<ManagedSubmission> {
         return this.http.request<ManagedSubmission>(`/submissions/${encodeURIComponent(id)}/rejudge`, "POST", { signal });

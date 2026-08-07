@@ -15,7 +15,14 @@ export const emptyActivity = (): ActivityInput => ({
     timeZone: "Europe/Warsaw",
     modules: { questions: true },
     scoreVisibility: "everyone",
-    logVisibility: "managersOnly",
+    // The three a Runner attaches by convention. The source and the per-test
+    // table are the participant's own work and its verdict; the log is where a
+    // compiler says things about a solution, so it starts internal.
+    attachmentVisibility: [
+        { name: "source", visibility: "participant" },
+        { name: "details", visibility: "participant" },
+        { name: "log", visibility: "managersOnly" },
+    ],
     joinPolicy: "closed",
     unlisted: true,
     // A finished round stays readable unless somebody says otherwise.
@@ -34,7 +41,7 @@ export const toInput = (activity: ManagedActivity): ActivityInput => ({
     endDate: activity.endDate,
     modules: { ...activity.modules },
     scoreVisibility: activity.scoreVisibility,
-    logVisibility: activity.logVisibility,
+    attachmentVisibility: activity.attachmentVisibility.map(rule => ({ ...rule })),
     joinPolicy: activity.joinPolicy,
     unlisted: activity.unlisted,
     joinPassword: activity.joinPassword,

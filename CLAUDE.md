@@ -129,6 +129,18 @@ never a scalar or an array, so the `isRecord` guard every reader writes matches
 what can arrive. `docs/specs/OPAQUE_DOCUMENTS.md` carries the rule and the two
 ceilings the Server holds them to; the Client enforces neither and authors none.
 
+### A submission's parts are files (2026-08-07)
+
+The source, the compiler log and the per-test table are **attachments**: named
+within the submission or its attempt, fetched with `fileApi.getText(fileId)`.
+There is no `detail` field and no `getSubmissionFile` endpoint — a file is
+reached by id, as every other stored document is.
+
+Who reads which name is the activity's `attachmentVisibility`, one row per name,
+and **an unlisted name is `managersOnly`**. Filter where the data leaves, never
+when a fixture is built: a manager changing the table has to change what
+yesterday's submissions show.
+
 ### Rankings are computed here (2026-08-07)
 
 The Server sends **results, not a board**: `GET /activities/{id}/results` answers

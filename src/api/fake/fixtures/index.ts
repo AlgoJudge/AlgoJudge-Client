@@ -14,6 +14,7 @@ import { seriesState } from "../../seriesState";
 // Type-only, as `documents.ts` does it: the fixtures say what is stored and are
 // handed the store rather than reaching for one of their own.
 import type { FakeFiles } from "../FileApiFake";
+import { attemptFiles, sourceFiles } from "./attachments";
 import { fakeSha } from "./problems";
 import {
     SeedActivity, SeedAssignment, SeedAttempt, SeedSeries, WORLD,
@@ -67,78 +68,6 @@ export interface Dataset {
 
 /** What a problem is worth where its assignment does not say otherwise. */
 const MAX_SCORE = 100;
-
-const sampleCode = `#include <bits/stdc++.h>
-using namespace std;
-
-int main() {
-    int n, m;
-    cin >> n >> m;
-    vector<vector<int>> g(n + 1);
-    for (int i = 0; i < m; i++) {
-        int a, b;
-        cin >> a >> b;
-        g[a].push_back(b);
-        g[b].push_back(a);
-    }
-    vector<bool> seen(n + 1, false);
-    queue<int> q;
-    q.push(1);
-    seen[1] = true;
-    int visited = 1;
-    while (!q.empty()) {
-        int v = q.front();
-        q.pop();
-        for (int u : g[v]) {
-            if (!seen[u]) {
-                seen[u] = true;
-                visited++;
-                q.push(u);
-            }
-        }
-    }
-    cout << (visited == n ? "TAK" : "NIE") << endl;
-    return 0;
-}
-`;
-
-const SOURCE: Record<string, string> = {
-    cpp: sampleCode,
-    python: "n = int(input())\nprint(n * (n + 1) // 2)\n",
-    java: "public class Main {\n    public static void main(String[] args) {\n        // ...\n    }\n}\n",
-};
-
-const EXTENSION: Record<string, string> = { cpp: "cpp", python: "py", java: "java" };
-
-/** The per-test document a Runner attaches. Opaque to the Server, rendered by type. */
-const standardIoDetail = (tests: { status: string; timeMs: number; memoryMb: number; score: number; note?: string }[]) => ({
-    kind: "standard-io",
-    version: 1,
-    limits: { timeMs: 1000, memoryMb: 256 },
-    tests: tests.map((t, i) => ({
-        no: i + 1,
-        status: t.status,
-        timeMs: t.timeMs,
-        memoryMb: t.memoryMb,
-        score: t.score,
-        maxScore: 10,
-        note: t.note ?? "",
-    })),
-});
-
-/** Four tests whose outcome adds up to the submission's score. */
-const testsFor = (score: number | undefined) => {
-    const passed = Math.round(((score ?? 0) / 100) * 4);
-    const notes = [
-        "Abnormal program termination. Exit status: 6",
-        "Przekroczenie limitu czasu",
-        "warning: control reaches end of non-void function",
-        "Zła odpowiedź",
-    ];
-    return Array.from({ length: 4 }, (_, i) => i < passed
-        ? { status: "OK", timeMs: 20 + i * 5, memoryMb: 12, score: 10 }
-        : { status: "ERROR", timeMs: i === 2 ? 1000 : 20, memoryMb: 12, score: 0, note: notes[i] });
-};
 
 const maxScoreOf = (assignment: SeedAssignment): number => assignment.maxScore ?? MAX_SCORE;
 
@@ -334,20 +263,14 @@ export const createDataset = (files: FakeFiles): Dataset => {
                         state: summary.state,
                         verdict: summary.verdict,
                         score: summary.score,
+                        // Everything the Runner attached. The filtering happens
+                        // where the data leaves — `getSubmission` — so a manager
+                        // changing the table changes what yesterday's
+                        // submissions show, which is what a manager expects.
+                        files: attemptFiles(files, seed, attempt),
                     }],
-                    // Derived from the score so the table agrees with the verdict
-                    // above it. A fixture that says 100/100 next to three failed
-                    // tests reads as a rendering bug.
-                    //
-                    // **Absent while nothing has judged it.** This used to be an
-                    // empty standard-io document, which asserts "a result with
-                    // no tests" where the truth is "nothing has looked at it".
-                    detail: finished ? standardIoDetail(testsFor(summary.score)) : undefined,
-                    files: [{ name: `solution.${EXTENSION[attempt.language] ?? "txt"}`, language: attempt.language }],
+                    files: sourceFiles(files, seed, attempt),
                 });
-                submissionFiles.set(summary.id, new Map([
-                    [`solution.${EXTENSION[attempt.language] ?? "txt"}`, SOURCE[attempt.language] ?? ""],
-                ]));
             }
         }
         // Newest first, which is the order both the screen and the panel read.

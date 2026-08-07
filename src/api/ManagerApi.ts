@@ -3,7 +3,7 @@ import { Event } from "./Event";
 import { StatementRef } from "./FileApi";
 import {
     ActivityDocumentKind, ActivityDocumentRef, DisplayName, JobState, JoinPolicy, Page,
-    QuestionAnswer, QuestionKind, ScoreVisibility,
+    QuestionAnswer, QuestionKind, ScoreVisibility, SubmissionFile,
 } from "./ParticipantApi";
 
 /**
@@ -149,8 +149,32 @@ export interface ManagedActivitySummary {
  * settings rather than one policy: a manager may want a public scoreboard while
  * the compiler output stays internal.
  */
-export type LogVisibility = "managersOnly" | "participant";
-export type { JoinPolicy, ScoreVisibility };
+/**
+ * Who may read one named attachment on a submission.
+ *
+ * `participant` means **whoever may read the submission** — its author and the
+ * managers — not every participant of the activity. The scope is judged against
+ * the file's owner, and a submission's owner is one person's work.
+ */
+export type AttachmentVisibility = "managersOnly" | "participant";
+
+/**
+ * What an activity says about one attachment name.
+ *
+ * Keyed on the name **within the submission** — `source`, `log`, `details` —
+ * never on the uploaded file name, which is `main.cpp` and differs per person.
+ *
+ * **A name with no rule is `managersOnly`.** A Runner that starts attaching
+ * something new must not publish it by arriving: the manager sees a row they did
+ * not have before and decides. The cost of being wrong is asymmetric — an
+ * over-cautious default is one click, an under-cautious one leaks the tests
+ * during a contest.
+ */
+export interface AttachmentRule {
+    name: string;
+    visibility: AttachmentVisibility;
+}
+export type { JoinPolicy, ScoreVisibility, SubmissionFile };
 
 /**
  * An activity as its manager sees it: everything the participant model hides,
@@ -176,7 +200,16 @@ export interface ManagedActivity {
      */
     documents: ActivityDocumentRef[];
     scoreVisibility: ScoreVisibility;
-    logVisibility: LogVisibility;
+    /**
+     * Who reads each named attachment a submission carries.
+     *
+     * Replaces `logVisibility`, which was this table with one row in it and no
+     * way to add another. A Runner attaches a log, a per-test document and
+     * whatever else the problem type produces, and they are not equally public:
+     * a diff of the failing input is a teaching aid in a course and a leak in a
+     * contest, which is an activity's decision and nobody else's.
+     */
+    attachmentVisibility: AttachmentRule[];
     joinPolicy: JoinPolicy;
     /**
      * Hidden from the activity list of anybody not enrolled — reachable by its
@@ -232,7 +265,7 @@ export interface ActivityInput {
     endDate?: string;
     modules: { questions: boolean };
     scoreVisibility: ScoreVisibility;
-    logVisibility: LogVisibility;
+    attachmentVisibility: AttachmentRule[];
     joinPolicy: JoinPolicy;
     unlisted: boolean;
     /** Absent or empty removes it. Meaningful only under `joinPolicy: "password"`. */
@@ -597,14 +630,14 @@ export interface ManagedAttempt {
     /** Which Runner claimed it, once one has. */
     runnerName?: string;
     /**
-     * The Runner's result document, rendered by the problem type.
+     * What the Runner attached for this attempt — its log, its per-test
+     * document, whatever else the type produces.
      *
-     * Absent until something has judged this attempt, which is most of what a
-     * queued one is. Opaque to the Server; an object or absent.
+     * A manager sees every one of them whatever the activity's table says: the
+     * table decides what reaches a **participant**, and somebody who runs the
+     * activity is the person the log was kept for.
      */
-    detail?: unknown;
-    /** Compiler output and the judge's messages. Managers always see it. */
-    log?: string;
+    files: SubmissionFile[];
 }
 
 export interface ManagedSubmissionDetail extends ManagedSubmission {
@@ -612,7 +645,8 @@ export interface ManagedSubmissionDetail extends ManagedSubmission {
     problemType: string;
     /** Newest first. */
     attemptList: ManagedAttempt[];
-    files: { name: string; language?: string; sizeBytes: number; sha256: string }[];
+    /** What was sent. The attachments an evaluation produced are on the attempt. */
+    files: SubmissionFile[];
 }
 
 export interface ManagedSubmissionFilter {
@@ -1213,7 +1247,6 @@ export interface ManagerApi {
     getSubmissions(filter: ManagedSubmissionFilter, signal: AbortSignal): Promise<Page<ManagedSubmission>>;
     getSubmission(id: string, signal: AbortSignal): Promise<ManagedSubmissionDetail>;
     /** The submitted source, as stored. */
-    getSubmissionFile(id: string, name: string, signal: AbortSignal): Promise<string>;
 
     /**
      * Adds an evaluation job. The previous attempts stay: a result belongs to

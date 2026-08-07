@@ -86,12 +86,6 @@ export class ParticipantApiHttp implements ParticipantApi {
             "GET", { signal });
     }
 
-    async getSubmissionFile(activityId: string, submissionId: string, name: string, signal: AbortSignal): Promise<string> {
-        const file = await this.http.request<{ content: string }>(
-            `/activities/${encodeURIComponent(activityId)}/submissions/${encodeURIComponent(submissionId)}/files/${encodeURIComponent(name)}`,
-            "GET", { signal });
-        return file.content;
-    }
 
     submit(activityId: string, problemSlug: string, payload: SubmitPayload, signal: AbortSignal): Promise<SubmissionSummary> {
         // Multipart, because a submission may be a file. The transport leaves

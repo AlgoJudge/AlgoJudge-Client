@@ -1,8 +1,11 @@
-import { ActionIcon, Alert, Card, Grid, Group, NumberInput, Select, Stack, Switch, Text, TextInput, Title, Tooltip } from "@mantine/core";
+import {
+    ActionIcon, Alert, Card, Grid, Group, NumberInput, SegmentedControl, Select,
+    Stack, Switch, Text, TextInput, Title, Tooltip,
+} from "@mantine/core";
 import { useClipboard } from "@mantine/hooks";
 import { IconCheck, IconCopy, IconInfoCircle } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
-import { ActivityInput, JoinPolicy, LogVisibility, ScoreVisibility } from "../../api/ManagerApi";
+import { ActivityInput, AttachmentVisibility, JoinPolicy, ScoreVisibility } from "../../api/ManagerApi";
 import ZonedDateTimeInput from "../time/ZonedDateTimeInput";
 import { MB } from "./activityInput";
 import { activityTypes } from "../../renderers";
@@ -154,6 +157,38 @@ export default function ActivityForm({ value, onChange, slugLocked, disabled }: 
                         />
                     </Grid.Col>
                 </Grid>
+
+                {/* One row per name a Runner attaches. It replaced a single
+                    "who sees the log" switch, which was this table with one row
+                    and no way to add another — and a Runner attaches more than
+                    a log. */}
+                <Stack gap={4}>
+                    <Text size="sm" fw={500}>{t("Who sees what a submission carries")}</Text>
+                    <Text size="xs" c="dimmed">
+                        {t("A name that is not listed here is shown to managers only.")}
+                    </Text>
+                    {value.attachmentVisibility.map((rule, index) => (
+                        <Group key={rule.name} gap="sm" wrap="nowrap">
+                            <Text size="sm" ff="monospace" style={{ width: "8rem" }}>{rule.name}</Text>
+                            <Text size="xs" c="dimmed" style={{ flex: 1 }}>
+                                {t(`attachment.${rule.name}`, { defaultValue: "" })}
+                            </Text>
+                            <SegmentedControl
+                                size="xs"
+                                value={rule.visibility}
+                                onChange={v => set({
+                                    attachmentVisibility: value.attachmentVisibility.map((other, at) =>
+                                        at === index ? { ...other, visibility: v as AttachmentVisibility } : other),
+                                })}
+                                data={[
+                                    { value: "managersOnly", label: t("logVisibility.managersOnly") },
+                                    { value: "participant", label: t("logVisibility.participant") },
+                                ]}
+                                disabled={disabled}
+                            />
+                        </Group>
+                    ))}
+                </Stack>
             </Card>
 
             <Card withBorder radius="sm">
@@ -233,19 +268,6 @@ export default function ActivityForm({ value, onChange, slugLocked, disabled }: 
                             value={value.scoreVisibility}
                             onChange={v => v && set({ scoreVisibility: v as ScoreVisibility })}
                             allowDeselect={false}
-                            disabled={disabled}
-                        />
-                    </Grid.Col>
-                    <Grid.Col span={{ base: 12, sm: 4 }}>
-                        <Select
-                            label={t("Who sees the evaluation log")}
-                            description={t("Compiler output and the judge's messages")}
-                            data={[
-                                { value: "managersOnly", label: t("logVisibility.managersOnly") },
-                                { value: "participant", label: t("logVisibility.participant") },
-                            ]}
-                            value={value.logVisibility}
-                            onChange={v => v && set({ logVisibility: v as LogVisibility })}
                             disabled={disabled}
                         />
                     </Grid.Col>

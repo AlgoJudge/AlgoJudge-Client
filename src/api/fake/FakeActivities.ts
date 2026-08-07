@@ -2,6 +2,7 @@ import { ForbiddenError } from "../ApiError";
 import {
     ActivityDocumentKind, ActivityDocumentRef, JoinPolicy, ScoreVisibility, SeriesChange,
 } from "../ParticipantApi";
+import { AttachmentRule } from "../ManagerApi";
 import { COURSE_JOIN_PASSWORD } from "./fixtures/activities";
 import { seedActivityDocuments, COURSE_ID, INVITED_COURSE_ID, OPEN_ID } from "./fixtures/activityDocuments";
 import { FakeFiles } from "./FileApiFake";
@@ -25,6 +26,16 @@ interface Enrolment {
 export interface ParticipantSettings {
     hideEndedSeriesProblems: boolean;
     scoreVisibility: ScoreVisibility;
+    /**
+     * Which attachment names reach a participant.
+     *
+     * Here for the same reason as the two above it: a manager saves it and the
+     * participant side has to enforce it. Reading the seed instead would make
+     * the setting look like it did nothing — which is how the series dates, the
+     * activity settings and the ranking permission each behaved before they were
+     * moved here.
+     */
+    attachmentVisibility: AttachmentRule[];
 }
 
 export interface SeriesRelay {

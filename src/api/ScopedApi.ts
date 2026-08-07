@@ -252,9 +252,6 @@ export class ScopedParticipantApi {
     getSubmission(activityId: string, submissionId: string): Promise<SubmissionDetail> {
         return this.participantApi.getSubmission(activityId, submissionId, this.signal);
     }
-    getSubmissionFile(activityId: string, submissionId: string, name: string): Promise<string> {
-        return this.participantApi.getSubmissionFile(activityId, submissionId, name, this.signal);
-    }
     submit(activityId: string, problemSlug: string, payload: SubmitPayload): Promise<SubmissionSummary> {
         return this.participantApi.submit(activityId, problemSlug, payload, this.signal);
     }
@@ -483,9 +480,6 @@ export class ScopedManagerApi {
     }
     getSubmission(id: string): Promise<ManagedSubmissionDetail> {
         return this.managerApi.getSubmission(id, this.signal);
-    }
-    getSubmissionFile(id: string, name: string): Promise<string> {
-        return this.managerApi.getSubmissionFile(id, name, this.signal);
     }
     rejudgeSubmission(id: string): Promise<ManagedSubmission> {
         return this.managerApi.rejudgeSubmission(id, this.signal);

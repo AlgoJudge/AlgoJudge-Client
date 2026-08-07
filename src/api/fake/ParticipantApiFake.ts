@@ -17,13 +17,16 @@ import {
     SeriesChange,
     SubmissionSummary,
     SubmitPayload,
+    SUBMISSION_SOURCE,
 } from "../ParticipantApi";
 import { FakeActivities, SeriesRelay } from "./FakeActivities";
 import { FakeAccess } from "./FakeAccess";
+import { AttachmentRule } from "../ManagerApi";
 import { maySubmit, mayReadProblems } from "../seriesState";
 import { FakeFiles } from "./FileApiFake";
 import { createDataset, Dataset, OPENING_SERIES_DELAY } from "./fixtures";
 import { activityResults, resultOf } from "./fixtures/results";
+import { attemptFiles, readableBy } from "./fixtures/attachments";
 import { attemptId, meOf, SeedAttempt, SeedSeries } from "./fixtures/world";
 import { rankingWindow } from "../rankingWindow";
 import { ForbiddenError } from "../ApiError";
@@ -66,16 +69,18 @@ const notFound = (what: string): never => Utils.throwError(`${what} does not exi
  */
 class FakeParticipantState {
     private readonly data: Dataset;
+    private readonly shared: FakeActivities;
     private readonly timers: ReturnType<typeof setTimeout>[] = [];
     private started = false;
 
     constructor(
         private readonly events: ParticipantEventDispatcherImpl,
-        files: FakeFiles,
+        private readonly files: FakeFiles,
         shared: FakeActivities,
         private readonly access: FakeAccess,
     ) {
         this.data = createDataset(files);
+        this.shared = shared;
         shared.onSeriesChanged(relay => this.applyRelay(relay));
     }
 
@@ -175,20 +180,14 @@ class FakeParticipantState {
             verdict,
             score,
         };
-        detail.detail = {
-            kind: "standard-io",
-            version: 1,
-            limits: { timeMs: 1000, memoryMb: 256 },
-            tests: Array.from({ length: 4 }, (_, i) => ({
-                no: i + 1,
-                status: score === 100 || i === 0 ? "OK" : "ERROR",
-                timeMs: 20 + i * 5,
-                memoryMb: 12,
-                score: score === 100 || i === 0 ? 10 : 0,
-                maxScore: 10,
-                note: score === 100 || i === 0 ? "" : "Zła odpowiedź",
-            })),
-        };
+        // What the Runner attached, filtered as it leaves. The activity's table
+        // decides which names reach a participant, and this is one.
+        // Stored whole; what a participant may read is decided where it leaves.
+        const judged = this.attemptOf(activityId, submissionId);
+        if (judged) {
+            detail.attempts[0].files = attemptFiles(this.files, judged.series,
+                { ...judged.attempt, state: "completed", score, verdict });
+        }
 
         this.events.dispatchEvent({
             type: "submissionStateChanged",
@@ -399,6 +398,25 @@ class FakeParticipantState {
         return undefined;
     }
 
+    /**
+     * Which attachment names a participant may read here.
+     *
+     * Whatever a manager last saved beats the seed — the same arrangement the
+     * other participant-visible settings have, and for the same reason: a table
+     * saved in the panel that never crossed is a table that looks like it did
+     * nothing.
+     */
+    rulesFor(activityId: string): AttachmentRule[] {
+        return this.shared.settingsOf(activityId)?.attachmentVisibility
+            ?? this.data.seeds.get(activityId)?.attachmentVisibility
+            ?? [];
+    }
+
+    /** Stores bytes in the same store every other file lives in. */
+    store(name: string, mimeType: string, text: string) {
+        return this.files.seedText(name, mimeType, text);
+    }
+
     /** Puts a freshly submitted solution through the same lifecycle. */
     scheduleEvaluation(activityId: string, submissionId: string): void {
         this.after(2500, () => this.setSubmissionState(activityId, submissionId, "running"));
@@ -551,10 +569,23 @@ export class ParticipantApiFake implements ParticipantApi {
 
     // The activity is part of the route and of the real endpoint's authorisation,
     // but the fake keeps submissions in one map keyed by id, so it goes unused.
-    async getSubmission(_activityId: string, submissionId: string, signal: AbortSignal): Promise<SubmissionDetail> {
+    async getSubmission(activityId: string, submissionId: string, signal: AbortSignal): Promise<SubmissionDetail> {
         await this.settle(signal);
         const detail = this.state.dataset().submissionDetails.get(submissionId);
-        return detail ? copy(detail) : notFound("Submission");
+        if (!detail) return notFound("Submission");
+        // **Here**, where it leaves. The activity says which names a participant
+        // may read; a name it does not name is theirs to see only if somebody
+        // said so. Filtering when the dataset was built would have frozen
+        // yesterday's submissions against today's setting.
+        const rules = this.state.rulesFor(activityId);
+        return copy({
+            ...detail,
+            files: readableBy(rules, detail.files, false),
+            attempts: detail.attempts.map(attempt => ({
+                ...attempt,
+                files: readableBy(rules, attempt.files, false),
+            })),
+        });
     }
 
     async getSubmissionFile(_activityId: string, submissionId: string, name: string, signal: AbortSignal): Promise<string> {
@@ -604,12 +635,26 @@ export class ParticipantApiFake implements ParticipantApi {
             ...summary,
             problemType: problem.type,
             authorName: "Amy Horsefighter",
-            attempts: [{ id: `${id}-job-1`, attempt: 1, startedAt: summary.submittedAt, state: "queued" }],
-            // Nothing has judged it yet, so it carries no result document.
-            detail: undefined,
-            files: [{ name: fileName, language: payload.language }],
+            // Nothing has judged it, so the attempt has attached nothing.
+            attempts: [{
+                id: `${id}-job-1`, attempt: 1,
+                startedAt: summary.submittedAt, state: "queued", files: [],
+            }],
+            // The source is stored like every other file, so the screen reads it
+            // by id rather than through an endpoint of its own.
+            files: [(() => {
+                const stored = this.state.store(
+                    `${id}/${fileName}`, "text/plain", payload.code ?? "// wysłano jako plik");
+                return {
+                    name: SUBMISSION_SOURCE,
+                    fileName,
+                    language: payload.language,
+                    fileId: stored.id,
+                    sha256: stored.sha256,
+                    sizeBytes: stored.sizeBytes,
+                };
+            })()],
         });
-        data.submissionFiles.set(id, new Map([[fileName, payload.code ?? "// wysłano jako plik"]]));
 
         this.eventDispatcher.dispatchEvent({
             type: "submissionStateChanged",

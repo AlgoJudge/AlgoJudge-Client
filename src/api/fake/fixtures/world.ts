@@ -1,5 +1,5 @@
 import { JobState, ProblemLimits, ProblemSample, ScoreVisibility, SubmitField } from "../../ParticipantApi";
-import { LogVisibility } from "../../ManagerApi";
+import { AttachmentRule } from "../../ManagerApi";
 import {
     arraysStatement,
     graphConnectivityStatement,
@@ -56,6 +56,29 @@ export const ARCHIVED_ID = "018f2c00-0000-7000-8000-000000000007";
  * A manager types it and the participant side checks what somebody typed against
  * it, so it is stated where both can read it.
  */
+/**
+ * Who reads what a Runner attaches.
+ *
+ * A contest keeps the compiler output internal — it says a good deal about a
+ * solution — while showing the per-test table, which is what a competitor needs
+ * in order to know why. A course shows both: the log is where a student learns
+ * what they got wrong.
+ *
+ * Neither lists anything else a Runner might attach, which is the point: an
+ * unlisted name is `managersOnly` until somebody says otherwise.
+ */
+const CONTEST_ATTACHMENTS: AttachmentRule[] = [
+    { name: "source", visibility: "participant" },
+    { name: "details", visibility: "participant" },
+    { name: "log", visibility: "managersOnly" },
+];
+
+const COURSE_ATTACHMENTS: AttachmentRule[] = [
+    { name: "source", visibility: "participant" },
+    { name: "details", visibility: "participant" },
+    { name: "log", visibility: "participant" },
+];
+
 export const COURSE_JOIN_PASSWORD = "PROG1-LA";
 
 // ───────────────────────────────────────────────────────────── the shapes
@@ -176,7 +199,7 @@ export interface SeedActivity {
     endDate?: string;
     modules: { questions: boolean };
     scoreVisibility: ScoreVisibility;
-    logVisibility: LogVisibility;
+    attachmentVisibility: AttachmentRule[];
     joinPolicy: "closed" | "password" | "open";
     joinPassword?: string;
     unlisted: boolean;
@@ -402,7 +425,7 @@ export const WORLD: SeedActivity[] = [
         endDate: at(days(3)),
         modules: { questions: true },
         scoreVisibility: "everyone",
-        logVisibility: "managersOnly",
+        attachmentVisibility: CONTEST_ATTACHMENTS,
         // Nobody joins a national final from a link: the teams are entered.
         joinPolicy: "closed",
         unlisted: true,
@@ -429,7 +452,7 @@ export const WORLD: SeedActivity[] = [
         // A course where somebody sees their own standing and nobody else's: the
         // ranking is one row, without a place.
         scoreVisibility: "participantOnly",
-        logVisibility: "participant",
+        attachmentVisibility: COURSE_ATTACHMENTS,
         // The emailed-link case: a group of students enrol themselves with the
         // password their lecturer gave them.
         joinPolicy: "password",
@@ -507,7 +530,7 @@ export const WORLD: SeedActivity[] = [
         timeZone: "Europe/Warsaw",
         modules: { questions: false },
         scoreVisibility: "everyone",
-        logVisibility: "participant",
+        attachmentVisibility: COURSE_ATTACHMENTS,
         // Anybody may join, and there is no password to type.
         joinPolicy: "open",
         unlisted: false,
@@ -542,7 +565,7 @@ export const WORLD: SeedActivity[] = [
         endDate: at(hours(4)),
         modules: { questions: true },
         scoreVisibility: "everyone",
-        logVisibility: "managersOnly",
+        attachmentVisibility: CONTEST_ATTACHMENTS,
         joinPolicy: "closed",
         unlisted: true,
         hideEndedSeriesProblems: false,
@@ -594,7 +617,7 @@ export const WORLD: SeedActivity[] = [
         endDate: at(-days(399)),
         modules: { questions: false },
         scoreVisibility: "managersOnly",
-        logVisibility: "managersOnly",
+        attachmentVisibility: CONTEST_ATTACHMENTS,
         joinPolicy: "closed",
         unlisted: true,
         hideEndedSeriesProblems: false,
@@ -620,7 +643,7 @@ export const WORLD: SeedActivity[] = [
         endDate: at(-days(400) + hours(5)),
         modules: { questions: false },
         scoreVisibility: "everyone",
-        logVisibility: "managersOnly",
+        attachmentVisibility: CONTEST_ATTACHMENTS,
         joinPolicy: "closed",
         unlisted: true,
         hideEndedSeriesProblems: false,
@@ -668,7 +691,7 @@ export const WORLD: SeedActivity[] = [
         modules: { questions: true },
         // Nobody but a manager: no ranking entry at all.
         scoreVisibility: "managersOnly",
-        logVisibility: "participant",
+        attachmentVisibility: COURSE_ATTACHMENTS,
         // Unlisted **and** password-protected: reachable only by the address
         // somebody was sent, which is the state the share link exists for.
         joinPolicy: "password",
@@ -703,7 +726,7 @@ export const WORLD: SeedActivity[] = [
         endDate: at(-days(1000 + i * 365) + hours(5)),
         modules: { questions: false },
         scoreVisibility: "everyone",
-        logVisibility: "managersOnly",
+        attachmentVisibility: CONTEST_ATTACHMENTS,
         joinPolicy: "closed",
         unlisted: true,
         hideEndedSeriesProblems: false,

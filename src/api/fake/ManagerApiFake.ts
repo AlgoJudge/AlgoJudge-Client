@@ -71,7 +71,7 @@ import { createSessions } from "./fixtures/sessions";
 import { FakeFiles } from "./FileApiFake";
 import { FakeInstance } from "./FakeInstance";
 import { InstanceDocumentKind, InstanceDocumentRef, InstanceInfo } from "../CoreApi";
-import { createSubmissions, submissionSource } from "./fixtures/submissions";
+import { createSubmissions } from "./fixtures/submissions";
 import { sha256 } from "../../utils/sha256";
 import { Utils } from "./Utils";
 
@@ -119,7 +119,7 @@ export class ManagerApiFake implements ManagerApi {
     private templates = createTemplates();
     private library: ProblemRecord[];
     private activities: ActivityRecord[] = createActivityLibrary();
-    private submissions: ManagedSubmissionDetail[] = createSubmissions();
+    private submissions: ManagedSubmissionDetail[];
     private questions: ManagedQuestion[] = createQuestions();
     /** Package bytes, by version id. Uploaded ones are kept; seeded ones are built. */
     private packages = new Map<string, Blob>();
@@ -140,6 +140,7 @@ export class ManagerApiFake implements ManagerApi {
         private sleepMs: number = 300,
     ) {
         this.library = createProblemLibrary(files);
+        this.submissions = createSubmissions(files);
         // Counted from the assignments that exist, not stated beside them. It is
         // what **refuses a delete**, so a number of its own could refuse one that
         // nothing justifies — or allow one that orphans a series.
@@ -403,6 +404,7 @@ export class ManagerApiFake implements ManagerApi {
         this.shared.setSettings(record.activity.id, {
             hideEndedSeriesProblems: input.hideEndedSeriesProblems,
             scoreVisibility: input.scoreVisibility,
+            attachmentVisibility: input.attachmentVisibility,
         });
         return this.announceActivity(record.activity);
     }
@@ -1000,12 +1002,6 @@ export class ManagerApiFake implements ManagerApi {
         return copy(this.findSubmission(id));
     }
 
-    async getSubmissionFile(id: string, name: string, signal: AbortSignal): Promise<string> {
-        await this.settle(signal);
-        const submission = this.findSubmission(id);
-        if (!submission.files.some(f => f.name === name)) notFound("File");
-        return submissionSource(submission.language);
-    }
 
     async rejudgeSubmission(id: string, signal: AbortSignal): Promise<ManagedSubmission> {
         await this.settle(signal);
@@ -1419,6 +1415,8 @@ export class ManagerApiFake implements ManagerApi {
             attempt: submission.attemptList.length + 1,
             state: "queued",
             startedAt: new Date().toISOString(),
+            // Nothing has judged it, so it has attached nothing.
+            files: [],
         };
         submission.attemptList = [attempt, ...submission.attemptList];
         submission.attempts = submission.attemptList.length;
@@ -1438,15 +1436,13 @@ export class ManagerApiFake implements ManagerApi {
             const previous = submission.attemptList[1];
             attempt.state = "completed";
             attempt.finishedAt = new Date().toISOString();
-            // The same verdict as before: a rejudge against unchanged tests
-            // should reproduce the result, and a fake that shuffled it would
-            // teach the screen to expect noise.
-            attempt.detail = previous?.detail;
+            // The same result as before: a rejudge against unchanged tests
+            // should reproduce it, and a fake that shuffled it would teach the
+            // screen to expect noise. The attachments are the same files —
+            // identical bytes, so identical ids; nothing is copied.
+            attempt.files = previous?.files ?? [];
             submission.state = "completed";
-            submission.verdict = previous?.state === "completed"
-                ? (previous.detail as { verdict?: string } | undefined)?.verdict
-                : undefined;
-            submission.score = (previous?.detail as { score?: number } | undefined)?.score;
+            submission.verdict = previous?.state === "completed" ? submission.verdict : undefined;
             this.announceSubmission(submission);
         }, 4000);
 

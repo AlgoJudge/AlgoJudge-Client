@@ -89,7 +89,7 @@ const activityOf = (activity: SeedActivity): ManagedActivity => ({
     // Served from the shared store, which is where an activity's documents live.
     documents: [],
     scoreVisibility: activity.scoreVisibility,
-    logVisibility: activity.logVisibility,
+    attachmentVisibility: activity.attachmentVisibility,
     joinPolicy: activity.joinPolicy,
     joinPassword: activity.joinPassword,
     unlisted: activity.unlisted,

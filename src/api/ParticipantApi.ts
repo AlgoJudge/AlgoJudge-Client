@@ -6,18 +6,16 @@ import { StatementRef } from "./FileApi";
  *
  * They mirror the Server entities in
  * `AlgoJudge-Server/AlgoJudge.Server/Database/Models/`, reduced to what a
- * participant may see. Two fields are deliberately `unknown` — a submission's
- * evaluation `detail` and a result's `extra`. Both are documents the Runner
- * produces and the Server stores without parsing, rendered or reckoned with here
- * by whatever the problem type calls for. Typing them would put back into the
- * Client exactly the coupling the Server was freed from.
+ * participant may see. One field is deliberately `unknown` — a result's `extra`,
+ * the metric a ranking type may want. It is a document the Runner produces and
+ * the Server stores without parsing; typing it would put back into the Client
+ * exactly the coupling the Server was freed from.
  *
- * The ranking payload used to be a third. It is not one any more: the Server
- * sends results and the board is computed here, so the feed has one shape for
- * every ranking type and there is nothing left to guess at.
- *
- * Both are **optional, and absent means none** — `docs/specs/OPAQUE_DOCUMENTS.md`
- * carries the rule and the ceilings the Server holds them to.
+ * Two others used to be. The ranking payload went when the Server started
+ * sending results instead of a board, and a submission's evaluation `detail`
+ * went when it became an **attachment**: the per-test table is a file now, named
+ * within its attempt and fetched by id, so the Server carries a reference rather
+ * than a document. See `docs/specs/OPAQUE_DOCUMENTS.md`.
  *
  * Every identifier is a string holding a UUID. A `slug` is a human-readable
  * alias used in URLs and never a reference: nothing points at anything by slug.
@@ -375,12 +373,48 @@ export interface EvaluationAttempt {
     state: JobState,
     verdict?: string,
     score?: number,
+    /**
+     * What the Runner attached for this attempt — its log, its per-test
+     * document, whatever else the problem type produces.
+     *
+     * On the **attempt** rather than on the submission, because a rejudge makes
+     * new ones: the source is what was sent once, the log is what one run said.
+     *
+     * Carries only what the reader may see. The activity says who may read each
+     * name, and the Server leaves out the rest — so an empty list means nothing
+     * was attached **or** nothing here is for this reader, and the screen has no
+     * business telling those apart.
+     */
+    files: SubmissionFile[],
 }
 
+/**
+ * One file hanging off a submission or one of its attempts.
+ *
+ * Two names, as `docs/specs/FILE_API.md` has it: `name` is the name **within
+ * the owner** and is what the activity's visibility table keys on — `source`,
+ * `log`, `details`. `fileName` is what was uploaded, and is what a person reads
+ * and downloads.
+ *
+ * The text is fetched with `fileApi.getText(fileId)`, as every other stored
+ * document is. There is no by-name endpoint: a file is reached by its id.
+ */
 export interface SubmissionFile {
+    /** `source`, `log`, `details`. The role, not the file name. */
     name: string,
+    /** `main.cpp`, `solution.zip`, `details.json`. */
+    fileName: string,
+    /** Set on a source file, for the editor's highlighting. */
     language?: string,
+    fileId: string,
+    sha256: string,
+    sizeBytes: number,
 }
+
+/** The names a Runner attaches by convention. Anything else is a new name. */
+export const SUBMISSION_SOURCE = "source";
+export const SUBMISSION_LOG = "log";
+export const SUBMISSION_DETAILS = "details";
 
 export interface SubmissionDetail extends SubmissionSummary {
     /**
@@ -394,17 +428,11 @@ export interface SubmissionDetail extends SubmissionSummary {
     /** Newest first. */
     attempts: EvaluationAttempt[],
     /**
-     * The Runner's result document, rendered by the problem type's renderer.
+     * What was sent: the source, or the archive.
      *
-     * **Absent until something has judged it.** A queued or running submission
-     * has no result, and an empty document standing in for one says "a result
-     * with nothing in it" where the truth is "nothing has looked at this yet".
-     * Opaque to the Server; an object or absent — see
-     * `docs/specs/OPAQUE_DOCUMENTS.md`.
+     * On the submission rather than on an attempt, because it is what somebody
+     * did once and every rejudge reads the same bytes.
      */
-    detail?: unknown,
-    /** Present only when the activity's log visibility permits it. */
-    log?: string,
     files: SubmissionFile[],
 }
 
@@ -775,7 +803,6 @@ export interface ParticipantApi {
 
     getSubmissions(activityId: string, filter: SubmissionFilter, signal: AbortSignal): Promise<Page<SubmissionSummary>>;
     getSubmission(activityId: string, submissionId: string, signal: AbortSignal): Promise<SubmissionDetail>;
-    getSubmissionFile(activityId: string, submissionId: string, name: string, signal: AbortSignal): Promise<string>;
     submit(activityId: string, problemSlug: string, payload: SubmitPayload, signal: AbortSignal): Promise<SubmissionSummary>;
 
     /**
