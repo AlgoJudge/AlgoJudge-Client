@@ -24,6 +24,9 @@ import {
     ManagedSubmissionDetail,
     ManagedSubmissionFilter,
     ManagedUser,
+    InstanceLogoInput,
+    InstanceSettingsInput,
+    NewStatement,
     UserSession,
     ManagedUserFilter,
     ManagedUserSummary,
@@ -35,8 +38,9 @@ import {
     PermissionDefinition,
     PermissionTemplate,
     PermissionTemplateInput,
+    PauseInput,
+    ResumeInput,
     SeriesInput,
-    StatementVariant,
     SeriesProblemInput,
     UserInput,
     UserUpdateInput,
@@ -44,13 +48,16 @@ import {
 import { Page } from "../ParticipantApi";
 import { displayName } from "../displayName";
 import {
-    createGrants,
     createTemplates,
     MANAGED_ACTIVITIES,
     MANAGED_USERS,
-    MY_SYSTEM_PERMISSIONS,
     PERMISSION_CATALOGUE,
 } from "./fixtures/permissions";
+import { StatementRef } from "../FileApi";
+import { ActivityDocumentKind, ActivityDocumentRef } from "../ParticipantApi";
+import { FakeActivities } from "./FakeActivities";
+import { FakeAccess } from "./FakeAccess";
+import { systemicByDefault } from "../permissions";
 import { ActivityRecord, createActivityLibrary } from "./fixtures/activities";
 import { signedInUserId } from "./CoreApiFake";
 import { buildPackage } from "../../package/build";
@@ -62,7 +69,9 @@ import { createRunners, runnerFile } from "./fixtures/runners";
 import { createUsers } from "./fixtures/users";
 import { createSessions } from "./fixtures/sessions";
 import { FakeFiles } from "./FileApiFake";
-import { createSubmissions, submissionSource } from "./fixtures/submissions";
+import { FakeInstance } from "./FakeInstance";
+import { InstanceDocumentKind, InstanceDocumentRef, InstanceInfo } from "../CoreApi";
+import { createSubmissions } from "./fixtures/submissions";
 import { sha256 } from "../../utils/sha256";
 import { Utils } from "./Utils";
 
@@ -108,10 +117,9 @@ export class ManagerApiFake implements ManagerApi {
     readonly eventDispatcher = new ManagerEventDispatcherImpl();
 
     private templates = createTemplates();
-    private grants = createGrants();
-    private library: ProblemRecord[] = createProblemLibrary();
+    private library: ProblemRecord[];
     private activities: ActivityRecord[] = createActivityLibrary();
-    private submissions: ManagedSubmissionDetail[] = createSubmissions();
+    private submissions: ManagedSubmissionDetail[];
     private questions: ManagedQuestion[] = createQuestions();
     /** Package bytes, by version id. Uploaded ones are kept; seeded ones are built. */
     private packages = new Map<string, Blob>();
@@ -122,7 +130,73 @@ export class ManagerApiFake implements ManagerApi {
      * The same store the rest of the fake reads: a version references files
      * that were uploaded before it was published, exactly as on the Server.
      */
-    constructor(private readonly files: FakeFiles, private sleepMs: number = 300) {}
+    constructor(
+        private readonly files: FakeFiles,
+        private readonly instance: FakeInstance,
+        /** Shared with the participant fake: one owner for what an activity publishes. */
+        private readonly shared: FakeActivities,
+        /** And one owner for the grants, because the feeds have to enforce them. */
+        private readonly access: FakeAccess,
+        private sleepMs: number = 300,
+    ) {
+        this.library = createProblemLibrary(files);
+        this.submissions = createSubmissions(files);
+        // Counted from the assignments that exist, not stated beside them. It is
+        // what **refuses a delete**, so a number of its own could refuse one that
+        // nothing justifies — or allow one that orphans a series.
+        for (const record of this.library) {
+            record.problem.attachedCount = this.activities
+                .flatMap(activity => activity.series)
+                .flatMap(series => series.problems)
+                .filter(problem => problem.problemId === record.problem.id)
+                .length;
+        }
+    }
+
+    async updateInstanceSettings(input: InstanceSettingsInput, signal: AbortSignal): Promise<InstanceInfo> {
+        await this.settle(signal);
+        return this.announceInstance(this.instance.settings(input));
+    }
+
+    async setInstanceLogo(input: InstanceLogoInput, signal: AbortSignal): Promise<InstanceInfo> {
+        await this.settle(signal);
+        if (input.fileId !== undefined && !this.files.has(input.fileId)) {
+            Utils.throwError("That file is not stored");
+        }
+        return this.announceInstance(this.instance.logo(input.fileId, input.language));
+    }
+
+    async publishInstanceDocument(
+        kind: InstanceDocumentKind,
+        statements: NewStatement[],
+        signal: AbortSignal,
+    ): Promise<InstanceInfo> {
+        await this.settle(signal);
+        for (const statement of statements) {
+            if (!this.files.has(statement.fileId)) Utils.throwError("That file is not stored");
+        }
+        return this.announceInstance(this.instance.publish(kind, statements));
+    }
+
+    async unpublishInstanceDocument(kind: InstanceDocumentKind, signal: AbortSignal): Promise<InstanceInfo> {
+        await this.settle(signal);
+        return this.announceInstance(this.instance.unpublish(kind));
+    }
+
+    async getInstanceDocumentHistory(kind: InstanceDocumentKind, signal: AbortSignal): Promise<InstanceDocumentRef[]> {
+        await this.settle(signal);
+        return copy(this.instance.historyOf(kind));
+    }
+
+    /**
+     * Every writer answers with the whole thing and says so to every listener:
+     * the shell, the footer and the front page all read one `InstanceInfo`, and
+     * a screen that published something should not have to reload to see it.
+     */
+    private announceInstance(instance: InstanceInfo): InstanceInfo {
+        this.eventDispatcher.dispatchEvent({ type: "instanceChanged", data: { instance: copy(instance) } });
+        return copy(instance);
+    }
 
     async getPermissionCatalogue(signal: AbortSignal): Promise<PermissionDefinition[]> {
         await this.settle(signal);
@@ -142,8 +216,20 @@ export class ManagerApiFake implements ManagerApi {
     async getMyPermissions(activityId: string | undefined, signal: AbortSignal): Promise<string[]> {
         await this.settle(signal);
         const me = signedInUserId() ?? ME;
-        const own = this.grants.find(g => g.userId === me && g.activityId === activityId);
-        return copy([...(activityId === undefined ? this.systemPermissions(me) : []), ...(own?.permissions ?? [])]);
+        const own = this.access.grants.find(g => g.userId === me && g.activityId === activityId);
+        const system = this.systemPermissions(me);
+        // Scoped to an activity, what counts is the grant held **there** — a
+        // manager of one course does not manage another. An administrator is the
+        // exception, and not a special case so much as what the permission
+        // means: `system:administrator` is held everywhere, so scoping it to a
+        // grant they were never given would tell them they may do nothing in
+        // the very activities they administer.
+        const inherited = activityId === undefined
+            || this.access.grants.some(g => g.userId === me && g.activityId === undefined
+                && g.permissions.includes("system:administrator"))
+            ? system
+            : [];
+        return copy([...inherited, ...(own?.permissions ?? [])]);
     }
 
     async getMyAccess(signal: AbortSignal): Promise<string[]> {
@@ -151,22 +237,15 @@ export class ManagerApiFake implements ManagerApi {
         const me = signedInUserId() ?? ME;
         // Everywhere, unioned: the question a menu asks. A manager of one
         // activity and nothing else still needs the panel that activity is in.
-        const everywhere = this.grants
+        const everywhere = this.access.grants
             .filter(g => g.userId === me)
             .flatMap(g => g.permissions);
         return copy([...new Set([...this.systemPermissions(me), ...everywhere])]);
     }
 
-    /** What a user holds at system scope, before any activity grant. */
+    /** What a user holds at system scope. The rule is `FakeAccess`'s, and shared. */
     private systemPermissions(userId: string): string[] {
-        if (userId === ME) return MY_SYSTEM_PERMISSIONS;
-        const global = this.grants.find(g => g.userId === userId && g.activityId === undefined);
-        if (!global) return [];
-        // An administrator holds the catalogue; there is no list to keep in step
-        // with it, which is the point of the permission being what it is.
-        return global.permissions.includes("system:administrator")
-            ? PERMISSION_CATALOGUE.map(definition => definition.key)
-            : global.permissions;
+        return this.access.systemPermissions(userId);
     }
 
     async getPermissionTemplates(signal: AbortSignal): Promise<PermissionTemplate[]> {
@@ -207,7 +286,7 @@ export class ManagerApiFake implements ManagerApi {
 
     async getGrants(filter: GrantFilter, signal: AbortSignal): Promise<Page<Grant>> {
         await this.settle(signal);
-        const matched = this.grants.filter(g =>
+        const matched = this.access.grants.filter(g =>
             (!filter.userId || g.userId === filter.userId) &&
             (!filter.activityId || g.activityId === filter.activityId) &&
             (!filter.scope
@@ -230,9 +309,15 @@ export class ManagerApiFake implements ManagerApi {
             }
         }
 
-        const existing = this.grants.find(g => g.userId === input.userId && g.activityId === input.activityId);
+        // Settled here rather than taken from the caller, as the Server must
+        // settle it: a staff grant is systemic whatever the request said, and a
+        // flag only the screen maintained would be whatever the next caller
+        // felt like sending.
+        const isSystem = systemicByDefault(input.permissions, PERMISSION_CATALOGUE, input.isSystem);
+
+        const existing = this.access.grants.find(g => g.userId === input.userId && g.activityId === input.activityId);
         const grant: Grant = existing
-            ? { ...existing, ...input, permissions: [...input.permissions] }
+            ? { ...existing, ...input, isSystem, permissions: [...input.permissions] }
             : {
                 id: newId(),
                 userName: MANAGED_USERS.find(u => u.id === input.userId)?.name ?? input.userId,
@@ -241,18 +326,19 @@ export class ManagerApiFake implements ManagerApi {
                 state: "active",
                 createdAt: new Date().toISOString(),
                 ...input,
+                isSystem,
                 permissions: [...input.permissions],
             };
-        this.grants = existing
-            ? this.grants.map(g => g.id === grant.id ? grant : g)
-            : [...this.grants, grant];
+        this.access.grants = existing
+            ? this.access.grants.map(g => g.id === grant.id ? grant : g)
+            : [...this.access.grants, grant];
         this.eventDispatcher.dispatchEvent({ type: "grantChanged", data: { grant: copy(grant) } });
         return copy(grant);
     }
 
     async revokeGrant(id: string, signal: AbortSignal): Promise<void> {
         await this.settle(signal);
-        this.grants = this.grants.filter(g => g.id !== id);
+        this.access.grants = this.access.grants.filter(g => g.id !== id);
         this.eventDispatcher.dispatchEvent({ type: "grantChanged", data: { deletedId: id } });
     }
 
@@ -296,13 +382,14 @@ export class ManagerApiFake implements ManagerApi {
         const activity: ManagedActivity = {
             id: newId(),
             ...input,
+            documents: [],
             seriesCount: 0,
             problemCount: 0,
             participantCount: 0,
         };
         this.activities = [{ activity, series: [] }, ...this.activities];
-        this.announceActivity(activity);
-        return copy(activity);
+        this.shared.setEnrolment(activity.id, input.joinPolicy, input.joinPassword, input.unlisted);
+        return this.announceActivity(activity);
     }
 
     async updateActivity(id: string, input: ActivityInput, signal: AbortSignal): Promise<ManagedActivity> {
@@ -310,8 +397,52 @@ export class ManagerApiFake implements ManagerApi {
         const record = this.findActivity(id);
         this.assertActivitySlugFree(input.slug, record.activity.id);
         Object.assign(record.activity, input);
-        this.announceActivity(record.activity);
-        return copy(record.activity);
+        // The enrolment settings belong to the shared store, because the
+        // participant side decides what to show from them — and so does
+        // everything else about the activity a participant can see.
+        this.shared.setEnrolment(record.activity.id, input.joinPolicy, input.joinPassword, input.unlisted);
+        this.shared.setSettings(record.activity.id, {
+            hideEndedSeriesProblems: input.hideEndedSeriesProblems,
+            scoreVisibility: input.scoreVisibility,
+            attachmentVisibility: input.attachmentVisibility,
+            languages: input.languages,
+        });
+        return this.announceActivity(record.activity);
+    }
+
+    async publishActivityDocument(
+        activityId: string,
+        kind: ActivityDocumentKind,
+        statements: NewStatement[],
+        signal: AbortSignal,
+    ): Promise<ManagedActivity> {
+        await this.settle(signal);
+        const record = this.findActivity(activityId);
+        for (const statement of statements) {
+            if (!this.files.has(statement.fileId)) Utils.throwError("That file is not stored");
+        }
+        this.shared.publish(record.activity.id, kind, statements);
+        return this.announceActivity(this.withCounts(record.activity));
+    }
+
+    async unpublishActivityDocument(
+        activityId: string,
+        kind: ActivityDocumentKind,
+        signal: AbortSignal,
+    ): Promise<ManagedActivity> {
+        await this.settle(signal);
+        const record = this.findActivity(activityId);
+        this.shared.unpublish(record.activity.id, kind);
+        return this.announceActivity(this.withCounts(record.activity));
+    }
+
+    async getActivityDocumentHistory(
+        activityId: string,
+        kind: ActivityDocumentKind,
+        signal: AbortSignal,
+    ): Promise<ActivityDocumentRef[]> {
+        await this.settle(signal);
+        return copy(this.shared.historyOf(this.findActivity(activityId).activity.id, kind));
     }
 
     async setActivityArchived(id: string, archived: boolean, signal: AbortSignal): Promise<ManagedActivity> {
@@ -352,6 +483,10 @@ export class ManagerApiFake implements ManagerApi {
             activityId: record.activity.id,
             order: record.series.length + 1,
             problems: [],
+            // The Server's scheduler opens it when its start passes; a series
+            // created with a start already behind it is running from the moment
+            // it exists.
+            isOpen: input.startDate === undefined || Date.parse(input.startDate) <= Date.now(),
             ...input,
         };
         record.series = [...record.series, series];
@@ -366,6 +501,89 @@ export class ManagerApiFake implements ManagerApi {
         this.assertSeriesSlugFree(record, input.slug, series.id);
         Object.assign(series, input);
         this.announceSeries(record, series);
+        // And the participant side, which keeps its own view of the series.
+        // Editing the dates here is the ordinary way a round is moved — the
+        // shift control is the hurried one — so it has to arrive there as
+        // surely as a shift does.
+        this.shared.announceSeries({
+            activityId: record.activity.id,
+            seriesId: series.id,
+            change: "rescheduled",
+            startDate: series.startDate,
+            endDate: series.endDate,
+            name: series.name,
+        });
+        return copy(series);
+    }
+
+    async shiftSeries(seriesId: string, minutes: number, signal: AbortSignal): Promise<ManagedSeries> {
+        await this.settle(signal);
+        const { record, series } = this.findSeries(seriesId);
+        this.assertNotArchived(record);
+        // Every instant the series holds, so a delayed round does not freeze its
+        // ranking at the hour it was originally going to end.
+        const moved = (at: string | undefined) => at === undefined
+            ? undefined
+            : new Date(Date.parse(at) + minutes * 60_000).toISOString();
+        series.startDate = moved(series.startDate);
+        series.endDate = moved(series.endDate);
+        series.rankingFreezeAt = moved(series.rankingFreezeAt);
+        series.rankingRevealAt = moved(series.rankingRevealAt);
+        this.announceSeries(record, series);
+        this.shared.announceSeries({
+            activityId: record.activity.id,
+            seriesId: series.id,
+            change: "rescheduled",
+            startDate: series.startDate,
+            endDate: series.endDate,
+        });
+        return copy(series);
+    }
+
+    async pauseSeries(seriesId: string, input: PauseInput, signal: AbortSignal): Promise<ManagedSeries> {
+        await this.settle(signal);
+        const { record, series } = this.findSeries(seriesId);
+        this.assertNotArchived(record);
+        if (series.pausedAt) Utils.throwError("That series is already paused");
+        series.pausedAt = new Date().toISOString();
+        // Hiding the statements is `isOpen` going false: what a participant may
+        // see is what that field has always answered.
+        if (input.hideProblems) series.isOpen = false;
+        this.announceSeries(record, series);
+        this.shared.announceSeries({
+            activityId: record.activity.id,
+            seriesId: series.id,
+            change: "paused",
+            pausedAt: series.pausedAt,
+            isOpen: series.isOpen,
+        });
+        return copy(series);
+    }
+
+    async resumeSeries(seriesId: string, input: ResumeInput, signal: AbortSignal): Promise<ManagedSeries> {
+        await this.settle(signal);
+        const { record, series } = this.findSeries(seriesId);
+        if (!series.pausedAt) Utils.throwError("That series is not paused");
+        const paused = Date.now() - Date.parse(series.pausedAt);
+        series.pausedAt = undefined;
+        // Given back only if asked for. The arithmetic is the Server's; this is
+        // it, so the screen can be seen doing the right thing.
+        if (input.extendEnd && series.endDate) {
+            series.endDate = new Date(Date.parse(series.endDate) + paused).toISOString();
+        }
+        // A series hidden by the pause comes back, unless its end has passed.
+        const ended = series.endDate !== undefined && Date.parse(series.endDate) <= Date.now();
+        const started = series.startDate === undefined || Date.parse(series.startDate) <= Date.now();
+        series.isOpen = started && !ended;
+        this.announceSeries(record, series);
+        this.shared.announceSeries({
+            activityId: record.activity.id,
+            seriesId: series.id,
+            change: "resumed",
+            pausedAt: null,
+            isOpen: series.isOpen,
+            endDate: series.endDate,
+        });
         return copy(series);
     }
 
@@ -601,7 +819,7 @@ export class ManagerApiFake implements ManagerApi {
             if (input.activityId) {
                 // Enrolled as they are created: a hundred accounts nobody is in
                 // an activity with are a hundred accounts that cannot submit.
-                this.grants = [...this.grants, {
+                this.access.grants = [...this.access.grants, {
                     id: newId(),
                     userId: user.id,
                     userName: displayName(user),
@@ -609,6 +827,10 @@ export class ManagerApiFake implements ManagerApi {
                     activityId: input.activityId,
                     activityName: MANAGED_ACTIVITIES.find(a => a.id === input.activityId)?.name,
                     permissions: [...(input.permissions ?? [])],
+                    // Settled the same way as any other grant: accounts made for
+                    // a class are participants, and one made with a staff set is
+                    // not, whoever asked for it.
+                    isSystem: systemicByDefault(input.permissions ?? [], PERMISSION_CATALOGUE, false),
                     state: "active",
                     createdAt: user.createdAt,
                 }];
@@ -781,12 +1003,6 @@ export class ManagerApiFake implements ManagerApi {
         return copy(this.findSubmission(id));
     }
 
-    async getSubmissionFile(id: string, name: string, signal: AbortSignal): Promise<string> {
-        await this.settle(signal);
-        const submission = this.findSubmission(id);
-        if (!submission.files.some(f => f.name === name)) notFound("File");
-        return submissionSource(submission.language);
-    }
 
     async rejudgeSubmission(id: string, signal: AbortSignal): Promise<ManagedSubmission> {
         await this.settle(signal);
@@ -900,7 +1116,7 @@ export class ManagerApiFake implements ManagerApi {
             : [];
         // Every language travels with the copy: a duplicate of a bilingual
         // problem that lost its translation would be a silent deletion.
-        const content = new Map<string, StatementVariant[]>();
+        const content = new Map<string, StatementRef[]>();
         if (newest) content.set(versionId, source.content.get(newest.id) ?? []);
         this.library = [{ problem, versions, content }, ...this.library];
         this.announce(problem);
@@ -940,7 +1156,7 @@ export class ManagerApiFake implements ManagerApi {
         return copy(this.find(problemId).versions);
     }
 
-    async getProblemContent(problemId: string, versionId: string, signal: AbortSignal): Promise<StatementVariant[]> {
+    async getProblemContent(problemId: string, versionId: string, signal: AbortSignal): Promise<StatementRef[]> {
         await this.settle(signal);
         return copy(this.find(problemId).content.get(versionId) ?? []);
     }
@@ -1015,10 +1231,19 @@ export class ManagerApiFake implements ManagerApi {
         // which is what correcting a package and nothing else should do.
         record.content.set(version.id, input.statements === undefined
             ? (record.content.get(previous?.id ?? "") ?? [])
-            : await Promise.all(input.statements.map(async statement => ({
-                language: statement.language,
-                content: await this.files.blob(statement.fileId).text(),
-            }))));
+            // Kept as references. The bytes went up before the version was
+            // published and the editor reads them back the same way, so there is
+            // nowhere left that turns a statement into text in transit.
+            : input.statements.map(statement => {
+                const stored = this.files.meta(statement.fileId);
+                return {
+                    name: statement.language ? `content-${statement.language}.md` : "content.md",
+                    language: statement.language,
+                    fileId: statement.fileId,
+                    sha256: stored.sha256,
+                    sizeBytes: stored.sizeBytes,
+                };
+            }));
 
         // The package: the one published, or the previous version's carried
         // forward. A version without one is a version nothing can be judged
@@ -1151,7 +1376,7 @@ export class ManagerApiFake implements ManagerApi {
 
     /** Read from the grants rather than stored, for the same reason as elsewhere. */
     private withGrantCount(user: ManagedUser): ManagedUser {
-        return { ...user, grantCount: this.grants.filter(g => g.userId === user.id).length };
+        return { ...user, grantCount: this.access.grants.filter(g => g.userId === user.id).length };
     }
 
     private announceUser(user: ManagedUser): void {
@@ -1191,6 +1416,8 @@ export class ManagerApiFake implements ManagerApi {
             attempt: submission.attemptList.length + 1,
             state: "queued",
             startedAt: new Date().toISOString(),
+            // Nothing has judged it, so it has attached nothing.
+            files: [],
         };
         submission.attemptList = [attempt, ...submission.attemptList];
         submission.attempts = submission.attemptList.length;
@@ -1210,15 +1437,13 @@ export class ManagerApiFake implements ManagerApi {
             const previous = submission.attemptList[1];
             attempt.state = "completed";
             attempt.finishedAt = new Date().toISOString();
-            // The same verdict as before: a rejudge against unchanged tests
-            // should reproduce the result, and a fake that shuffled it would
-            // teach the screen to expect noise.
-            attempt.detail = previous?.detail;
+            // The same result as before: a rejudge against unchanged tests
+            // should reproduce it, and a fake that shuffled it would teach the
+            // screen to expect noise. The attachments are the same files —
+            // identical bytes, so identical ids; nothing is copied.
+            attempt.files = previous?.files ?? [];
             submission.state = "completed";
-            submission.verdict = previous?.state === "completed"
-                ? (previous.detail as { verdict?: string } | undefined)?.verdict
-                : undefined;
-            submission.score = (previous?.detail as { score?: number } | undefined)?.score;
+            submission.verdict = previous?.state === "completed" ? submission.verdict : undefined;
             this.announceSubmission(submission);
         }, 4000);
 
@@ -1295,18 +1520,37 @@ export class ManagerApiFake implements ManagerApi {
     }
 
     /** Membership is the grants, so the count is read from them, never stored. */
+    /**
+     * The activity as it leaves the fake.
+     *
+     * The counts come from the grants, because a grant in an activity **is** the
+     * membership and a second number could disagree with it. The documents and
+     * the enrolment settings come from the shared store, because the participant
+     * side serves them from there — one owner, or the manager screen and the
+     * activity page would drift apart.
+     */
     private withCounts(activity: ManagedActivity): ManagedActivity {
+        const enrolment = this.shared.enrolmentOf(activity.id);
         return {
             ...activity,
-            participantCount: this.grants.filter(g => g.activityId === activity.id).length,
+            // Whoever runs the activity is not competing in it, so the number
+            // beside "Participants" is the number of people actually taking part.
+            participantCount: this.access.grants
+                .filter(g => g.activityId === activity.id && !g.isSystem).length,
+            documents: this.shared.documentsOf(activity.id),
+            joinPolicy: enrolment.policy,
+            unlisted: enrolment.unlisted,
+            joinPassword: enrolment.password,
         };
     }
 
-    private announceActivity(activity: ManagedActivity): void {
+    private announceActivity(activity: ManagedActivity): ManagedActivity {
+        const dressed = this.withCounts(activity);
         this.eventDispatcher.dispatchEvent({
             type: "activityChanged",
-            data: { activity: copy(this.withCounts(activity)) },
+            data: { activity: copy(dressed) },
         });
+        return copy(dressed);
     }
 
     private announceSeries(record: ActivityRecord, series: ManagedSeries): void {

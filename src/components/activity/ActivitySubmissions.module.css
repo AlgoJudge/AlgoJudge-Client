@@ -1,0 +1,58 @@
+/*
+ * Bottom right, above everything. The notifications took the opposite corner, so
+ * the two never argue over the same pixels.
+ *
+ * Wide enough for a row to say everything on one line — the hour, the problem,
+ * the verdict and the score. It was 320px, which put the verdict on a second
+ * line, and a panel that has to be read twice is worth less than the trip to the
+ * submissions screen it saves.
+ */
+.panel {
+    position: fixed;
+    right: var(--mantine-spacing-md);
+    bottom: var(--mantine-spacing-md);
+    width: 460px;
+    max-width: calc(100vw - 2 * var(--mantine-spacing-md));
+    z-index: 200;
+    overflow: hidden;
+    background: var(--mantine-color-body);
+}
+
+/*
+ * A row of siblings, not one button wrapping the rest: the send button lives
+ * here too, and a button inside a button is invalid markup.
+ */
+.bar {
+    display: flex;
+    align-items: center;
+    gap: var(--mantine-spacing-xs);
+    width: 100%;
+    padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+}
+
+/* Takes the slack, so the whole width of the name still toggles the panel. */
+.toggle {
+    flex: 1;
+    min-width: 0;
+}
+
+.chevron {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.bar:hover {
+    background: var(--mantine-color-default-hover);
+}
+
+.row {
+    display: block;
+    width: 100%;
+    padding: 6px var(--mantine-spacing-sm);
+    border-radius: var(--mantine-radius-sm);
+}
+
+.row:hover {
+    background: var(--mantine-color-default-hover);
+}

@@ -1,3 +1,4 @@
+import { InstanceDocumentKind, InstanceDocumentRef, InstanceInfo } from "../CoreApi";
 import {
     ActivityInput,
     Grant,
@@ -31,14 +32,19 @@ import {
     PermissionDefinition,
     PermissionTemplate,
     PermissionTemplateInput,
+    PauseInput,
+    ResumeInput,
     SeriesInput,
     SeriesProblemInput,
-    StatementVariant,
     UserInput,
+    InstanceLogoInput,
+    InstanceSettingsInput,
+    NewStatement,
     UserSession,
     UserUpdateInput,
 } from "../ManagerApi";
-import { Page } from "../ParticipantApi";
+import { StatementRef } from "../FileApi";
+import { ActivityDocumentKind, ActivityDocumentRef, Page } from "../ParticipantApi";
 import { ManagerEventDispatcherImpl } from "../impl/ManagerEventDispatcher";
 import { HttpClient } from "./HttpClient";
 
@@ -192,6 +198,29 @@ export class ManagerApiHttp implements ManagerApi {
         return this.http.request<ManagedActivitySummary[]>("/manager/activities", "GET", { signal });
     }
 
+    updateInstanceSettings(input: InstanceSettingsInput, signal: AbortSignal): Promise<InstanceInfo> {
+        return this.http.request<InstanceInfo>("/instance", "PUT", { signal, body: input });
+    }
+
+    setInstanceLogo(input: InstanceLogoInput, signal: AbortSignal): Promise<InstanceInfo> {
+        return this.http.request<InstanceInfo>("/instance/logo", "PUT", { signal, body: input });
+    }
+
+    publishInstanceDocument(kind: InstanceDocumentKind, statements: NewStatement[], signal: AbortSignal): Promise<InstanceInfo> {
+        return this.http.request<InstanceInfo>(
+            `/instance/documents/${encodeURIComponent(kind)}`, "POST", { signal, body: { statements } });
+    }
+
+    unpublishInstanceDocument(kind: InstanceDocumentKind, signal: AbortSignal): Promise<InstanceInfo> {
+        return this.http.request<InstanceInfo>(
+            `/instance/documents/${encodeURIComponent(kind)}`, "DELETE", { signal });
+    }
+
+    getInstanceDocumentHistory(kind: InstanceDocumentKind, signal: AbortSignal): Promise<InstanceDocumentRef[]> {
+        return this.http.request<InstanceDocumentRef[]>(
+            `/instance/documents/${encodeURIComponent(kind)}`, "GET", { signal });
+    }
+
     getActivities(filter: ManagedActivityFilter, signal: AbortSignal): Promise<Page<ManagedActivity>> {
         const query: Record<string, string | number | boolean> = {};
         if (filter.page !== undefined) query.page = filter.page;
@@ -223,6 +252,24 @@ export class ManagerApiHttp implements ManagerApi {
         await this.http.request<void>(`/activities/${encodeURIComponent(id)}`, "DELETE", { signal });
     }
 
+    publishActivityDocument(activityId: string, kind: ActivityDocumentKind, statements: NewStatement[], signal: AbortSignal): Promise<ManagedActivity> {
+        return this.http.request<ManagedActivity>(
+            `/activities/${encodeURIComponent(activityId)}/documents/${encodeURIComponent(kind)}`,
+            "POST", { signal, body: { statements } });
+    }
+
+    unpublishActivityDocument(activityId: string, kind: ActivityDocumentKind, signal: AbortSignal): Promise<ManagedActivity> {
+        return this.http.request<ManagedActivity>(
+            `/activities/${encodeURIComponent(activityId)}/documents/${encodeURIComponent(kind)}`,
+            "DELETE", { signal });
+    }
+
+    getActivityDocumentHistory(activityId: string, kind: ActivityDocumentKind, signal: AbortSignal): Promise<ActivityDocumentRef[]> {
+        return this.http.request<ActivityDocumentRef[]>(
+            `/activities/${encodeURIComponent(activityId)}/documents/${encodeURIComponent(kind)}`,
+            "GET", { signal });
+    }
+
     getSeries(activityId: string, signal: AbortSignal): Promise<ManagedSeries[]> {
         return this.http.request<ManagedSeries[]>(
             `/activities/${encodeURIComponent(activityId)}/series`, "GET", { signal });
@@ -235,6 +282,23 @@ export class ManagerApiHttp implements ManagerApi {
 
     updateSeries(seriesId: string, input: SeriesInput, signal: AbortSignal): Promise<ManagedSeries> {
         return this.http.request<ManagedSeries>(`/series/${encodeURIComponent(seriesId)}`, "PUT", { signal, body: input });
+    }
+
+    shiftSeries(seriesId: string, minutes: number, signal: AbortSignal): Promise<ManagedSeries> {
+        // A delta, not two dates: two managers moving the same delayed round by
+        // ten minutes would otherwise both compute +10 from what they read.
+        return this.http.request<ManagedSeries>(
+            `/series/${encodeURIComponent(seriesId)}/shift`, "POST", { signal, body: { minutes } });
+    }
+
+    pauseSeries(seriesId: string, input: PauseInput, signal: AbortSignal): Promise<ManagedSeries> {
+        return this.http.request<ManagedSeries>(
+            `/series/${encodeURIComponent(seriesId)}/pause`, "POST", { signal, body: input });
+    }
+
+    resumeSeries(seriesId: string, input: ResumeInput, signal: AbortSignal): Promise<ManagedSeries> {
+        return this.http.request<ManagedSeries>(
+            `/series/${encodeURIComponent(seriesId)}/resume`, "POST", { signal, body: input });
     }
 
     async deleteSeries(seriesId: string, signal: AbortSignal): Promise<void> {
@@ -317,14 +381,6 @@ export class ManagerApiHttp implements ManagerApi {
         return this.http.request<ManagedSubmissionDetail>(`/submissions/${encodeURIComponent(id)}`, "GET", { signal });
     }
 
-    async getSubmissionFile(id: string, name: string, signal: AbortSignal): Promise<string> {
-        // The same wrapper the participant's own view reads. One file, one
-        // shape: this end expected a bare JSON string until 2026-08-06, so the
-        // two screens would have needed two Server endpoints for one idea.
-        const file = await this.http.request<{ content: string }>(
-            `/submissions/${encodeURIComponent(id)}/files/${encodeURIComponent(name)}`, "GET", { signal });
-        return file.content;
-    }
 
     rejudgeSubmission(id: string, signal: AbortSignal): Promise<ManagedSubmission> {
         return this.http.request<ManagedSubmission>(`/submissions/${encodeURIComponent(id)}/rejudge`, "POST", { signal });
@@ -392,8 +448,8 @@ export class ManagerApiHttp implements ManagerApi {
             `/problems/${encodeURIComponent(problemId)}/versions`, "GET", { signal });
     }
 
-    getProblemContent(problemId: string, versionId: string, signal: AbortSignal): Promise<StatementVariant[]> {
-        return this.http.request<StatementVariant[]>(
+    getProblemContent(problemId: string, versionId: string, signal: AbortSignal): Promise<StatementRef[]> {
+        return this.http.request<StatementRef[]>(
             `/problems/${encodeURIComponent(problemId)}/versions/${encodeURIComponent(versionId)}/content`,
             "GET", { signal });
     }

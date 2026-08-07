@@ -54,12 +54,16 @@ export interface InstanceInfo {
     requireEmail: boolean,
     /** Whether an address must be confirmed before the account can sign in. */
     requireConfirmedEmail: boolean,
-    /** Which documents this instance publishes. Empty is a legitimate answer. */
-    legalDocuments: LegalDocumentKind[],
     /**
      * A reference to every document currently in force, one per kind per
      * language. The text itself is fetched from `fileApi` by whoever is about to
      * show it — see {@link InstanceDocumentRef}.
+     *
+     * **Every document is optional**, the front pages as much as the legal ones,
+     * and an empty list is a legitimate answer. Which documents exist is read
+     * from here and nowhere else: there was a second field saying which legal
+     * ones were published, and two answers to one question disagree the moment
+     * something is withdrawn.
      */
     documents: InstanceDocumentRef[],
     /**

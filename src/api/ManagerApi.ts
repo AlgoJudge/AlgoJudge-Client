@@ -1,5 +1,10 @@
+import { InstanceDocumentKind, InstanceDocumentRef, InstanceInfo } from "./CoreApi";
 import { Event } from "./Event";
-import { DisplayName, JobState, Page, QuestionAnswer, QuestionKind } from "./ParticipantApi";
+import { StatementRef } from "./FileApi";
+import {
+    ActivityDocumentKind, ActivityDocumentRef, DisplayName, JobState, JoinPolicy, Page,
+    QuestionAnswer, QuestionKind, ScoreVisibility, SubmissionFile,
+} from "./ParticipantApi";
 
 /**
  * The manager-facing API.
@@ -28,6 +33,16 @@ export interface PermissionDefinition {
     scope: PermissionScope;
     /** Grouping for the editor: `activity`, `problem`, `submission`, and so on. */
     group: string;
+    /**
+     * Whether an ordinary participant holds it.
+     *
+     * Everything else is staff, and a grant carrying any of it is a membership
+     * that **runs** the activity rather than takes part in it — which is what
+     * decides whether it counts among the competitors. The catalogue says so
+     * because the Server owns the catalogue: a rule the Client kept its own copy
+     * of would be a rule the Server could not enforce.
+     */
+    participant: boolean;
 }
 
 export interface PermissionTemplate {
@@ -68,6 +83,18 @@ export interface Grant {
     activityId?: string;
     activityName?: string;
     permissions: string[];
+    /**
+     * A membership that is not a participation: whoever runs the activity, a
+     * reference solution, a monitor. Submits like anybody, counts as nobody —
+     * absent from `participantCount` and from the ranking.
+     *
+     * **Forced true for a staff grant**, which is any grant carrying a
+     * permission a participant does not hold. A jury member counted among the
+     * competitors is a bug, not a setting somebody might want. On a grant that
+     * holds only a participant's permissions it is free, and off unless
+     * somebody says otherwise.
+     */
+    isSystem: boolean;
     /** Where the set started. Informational: it is not a reference. */
     createdFromTemplate?: string;
     state: GrantState;
@@ -78,6 +105,12 @@ export interface GrantInput {
     userId: string;
     activityId?: string;
     permissions: string[];
+    /**
+     * Ignored where the permissions already settle it: a staff grant is systemic
+     * whatever this says. The Server decides, as it must — a flag only the
+     * Client maintained is a flag the next caller sets to whatever it likes.
+     */
+    isSystem?: boolean;
     createdFromTemplate?: string;
     state?: GrantState;
 }
@@ -116,9 +149,32 @@ export interface ManagedActivitySummary {
  * settings rather than one policy: a manager may want a public scoreboard while
  * the compiler output stays internal.
  */
-export type ScoreVisibility = "everyone" | "participantOnly" | "managersOnly";
-export type LogVisibility = "managersOnly" | "participant";
-export type JoinPolicy = "closed" | "invitation" | "open";
+/**
+ * Who may read one named attachment on a submission.
+ *
+ * `participant` means **whoever may read the submission** — its author and the
+ * managers — not every participant of the activity. The scope is judged against
+ * the file's owner, and a submission's owner is one person's work.
+ */
+export type AttachmentVisibility = "managersOnly" | "participant";
+
+/**
+ * What an activity says about one attachment name.
+ *
+ * Keyed on the name **within the submission** — `source`, `log`, `details` —
+ * never on the uploaded file name, which is `main.cpp` and differs per person.
+ *
+ * **A name with no rule is `managersOnly`.** A Runner that starts attaching
+ * something new must not publish it by arriving: the manager sees a row they did
+ * not have before and decides. The cost of being wrong is asymmetric — an
+ * over-cautious default is one click, an under-cautious one leaks the tests
+ * during a contest.
+ */
+export interface AttachmentRule {
+    name: string;
+    visibility: AttachmentVisibility;
+}
+export type { JoinPolicy, ScoreVisibility, SubmissionFile };
 
 /**
  * An activity as its manager sees it: everything the participant model hides,
@@ -137,10 +193,62 @@ export interface ManagedActivity {
     /** Absent when the activity spans its series instead of stating its own bounds. */
     startDate?: string;
     endDate?: string;
-    modules: { ranking: boolean; questions: boolean; rules: boolean };
+    modules: { questions: boolean };
+    /**
+     * A reference to every document this activity publishes. What exists is what
+     * has one; there is no flag beside them saying so.
+     */
+    documents: ActivityDocumentRef[];
     scoreVisibility: ScoreVisibility;
-    logVisibility: LogVisibility;
+    /**
+     * Who reads each named attachment a submission carries.
+     *
+     * Replaces `logVisibility`, which was this table with one row in it and no
+     * way to add another. A Runner attaches a log, a per-test document and
+     * whatever else the problem type produces, and they are not equally public:
+     * a diff of the failing input is a teaching aid in a course and a leak in a
+     * contest, which is an activity's decision and nobody else's.
+     */
+    attachmentVisibility: AttachmentRule[];
+    /**
+     * The languages a solution may be written in here.
+     *
+     * The activity's answer, and the only one: nothing declares a problem's own
+     * languages yet, so this is what the submit form offers and what the Server
+     * accepts. Narrowing it **leaves what has already been sent alone** — a
+     * result belongs to what it was judged against.
+     */
+    languages: string[];
     joinPolicy: JoinPolicy;
+    /**
+     * Hidden from the activity list of anybody not enrolled — reachable by its
+     * address and nothing else.
+     *
+     * Independent of the policy, so an activity anybody may join can still be
+     * link-only. Under `closed` it is what the policy already means, and the
+     * screen shows it on and fixed.
+     */
+    unlisted: boolean;
+    /**
+     * The join password, under `joinPolicy: "password"`.
+     *
+     * **A join code, not a credential.** It authenticates nobody and belongs to
+     * the activity rather than to a person, so it is neither an end-user password
+     * nor an exception to the rule that those do not live in the Server. It is
+     * readable by a manager on purpose: the whole use of it is to be put in a
+     * link and sent to a class, and a secret its owner cannot read cannot be
+     * shared.
+     */
+    joinPassword?: string;
+    /**
+     * Take the problems of a finished round away, rather than leaving them
+     * readable.
+     *
+     * Off by default, because a round that is over is over, not secret: a
+     * competitor goes back to what they were solving. On for a course that
+     * reuses its problems next year.
+     */
+    hideEndedSeriesProblems: boolean;
     /**
      * The three limits the **Server** enforces, so none of them may live in the
      * opaque configuration chain. Time and memory are the Runner's and do.
@@ -164,10 +272,23 @@ export interface ActivityInput {
     timeZone: string;
     startDate?: string;
     endDate?: string;
-    modules: { ranking: boolean; questions: boolean; rules: boolean };
+    modules: { questions: boolean };
     scoreVisibility: ScoreVisibility;
-    logVisibility: LogVisibility;
+    attachmentVisibility: AttachmentRule[];
+    languages: string[];
     joinPolicy: JoinPolicy;
+    unlisted: boolean;
+    /** Absent or empty removes it. Meaningful only under `joinPolicy: "password"`. */
+    joinPassword?: string;
+    /**
+     * Take the problems of a finished round away, rather than leaving them
+     * readable.
+     *
+     * Off by default, because a round that is over is over, not secret: a
+     * competitor goes back to what they were solving. On for a course that
+     * reuses its problems next year.
+     */
+    hideEndedSeriesProblems: boolean;
     maxUploadBytes: number;
     maxAttachments: number;
     maxSubmissionsPerProblem?: number;
@@ -188,6 +309,10 @@ export interface ManagedSeries {
     order: number;
     startDate?: string;
     endDate?: string;
+    /** Whether it is running now. The **Server** sets it, from the clock. */
+    isOpen: boolean;
+    /** Since when a manager has it stopped. Absent means it is not paused. */
+    pausedAt?: string;
     /** Whether a closed series admits how many problems it holds. */
     revealProblemCount: boolean;
     /**
@@ -197,7 +322,28 @@ export interface ManagedSeries {
      */
     rankingFreezeAt?: string;
     rankingRevealAt?: string;
+    /**
+     * When participants may see this round's standings. Absent `from` means the
+     * round's own start; absent `to` means for ever.
+     *
+     * A window per round rather than per activity: an organiser publishes the
+     * first round's board while the second is still being fought. Different
+     * from the freeze above it — that hides late results within a board, this
+     * decides whether there is a board at all.
+     */
+    rankingVisibleFrom?: string;
+    rankingVisibleTo?: string;
     problems: ManagedSeriesProblem[];
+}
+
+export interface PauseInput {
+    /** Take the statements away as well, not only the clock. */
+    hideProblems: boolean;
+}
+
+export interface ResumeInput {
+    /** Move the end by however long the pause lasted. */
+    extendEnd: boolean;
 }
 
 export interface SeriesInput {
@@ -208,6 +354,17 @@ export interface SeriesInput {
     revealProblemCount: boolean;
     rankingFreezeAt?: string;
     rankingRevealAt?: string;
+    /**
+     * When participants may see this round's standings. Absent `from` means the
+     * round's own start; absent `to` means for ever.
+     *
+     * A window per round rather than per activity: an organiser publishes the
+     * first round's board while the second is still being fought. Different
+     * from the freeze above it — that hides late results within a board, this
+     * decides whether there is a board at all.
+     */
+    rankingVisibleFrom?: string;
+    rankingVisibleTo?: string;
 }
 
 /**
@@ -244,8 +401,29 @@ export interface ManagedSeriesProblem {
      * removing the assignment would orphan it.
      */
     submissionCount: number;
-    /** Per-assignment configuration. Opaque to the Server. */
-    config: unknown;
+    /**
+     * Per-assignment configuration. Opaque to the Server, and **absent means
+     * none** — see `docs/specs/OPAQUE_DOCUMENTS.md`. An object or absent, never
+     * a scalar or an array.
+     */
+    config?: unknown;
+    /**
+     * What this problem is worth **here**.
+     *
+     * The Server rescales what the Runner gave into it —
+     * `round(score / scoreMax × maxPoints)` — wherever it reports a number: the
+     * submission, the problem's standing, the results feed. Absent keeps the
+     * problem's own scale, which is what an assignment that says nothing has.
+     *
+     * On the assignment rather than on the problem, so the same library problem
+     * may be attached twice in one activity and be worth different amounts —
+     * a warm-up in one round and the hard one in another.
+     *
+     * An **ICPC** board is unaffected: it counts solves and penalty minutes, and
+     * a point value has nowhere to land in it. This moves a points board, the
+     * problem list and the submission's own numbers.
+     */
+    maxPoints?: number;
     /** Narrow the activity's ceilings. Absent inherits. */
     maxUploadBytes?: number;
     maxAttachments?: number;
@@ -257,7 +435,10 @@ export interface SeriesProblemInput {
     slug: string;
     name?: string;
     pinnedProblemVersionId?: string;
+    /** Absent leaves the assignment with none. */
     config?: unknown;
+    /** Absent keeps the problem's own scale. */
+    maxPoints?: number;
     maxUploadBytes?: number;
     maxAttachments?: number;
     maxSubmissions?: number;
@@ -304,8 +485,12 @@ export interface ManagedProblemVersion {
     createdByName?: string;
     /** What changed, for the manager reading the history later. */
     note?: string;
-    /** Limits and scoring for this version. Opaque to the Server. */
-    config: unknown;
+    /**
+     * Limits and scoring for this version. Opaque to the Server, and **absent
+     * means none** — see `docs/specs/OPAQUE_DOCUMENTS.md`. An object or absent,
+     * never a scalar or an array.
+     */
+    config?: unknown;
     /** Whether a Runner package has been uploaded for this version. */
     hasPackage: boolean;
     files: ProblemFile[];
@@ -435,11 +620,6 @@ export interface NewProblemPackage {
     samplesFileId?: string;
 }
 
-/** A statement in one language. `language` absent means the default `content.md`. */
-export interface StatementVariant {
-    language?: string;
-    content: unknown;
-}
 
 
 /**
@@ -478,10 +658,15 @@ export interface ManagedAttempt {
     finishedAt?: string;
     /** Which Runner claimed it, once one has. */
     runnerName?: string;
-    /** The Runner's result document, rendered by the problem type. */
-    detail?: unknown;
-    /** Compiler output and the judge's messages. Managers always see it. */
-    log?: string;
+    /**
+     * What the Runner attached for this attempt — its log, its per-test
+     * document, whatever else the type produces.
+     *
+     * A manager sees every one of them whatever the activity's table says: the
+     * table decides what reaches a **participant**, and somebody who runs the
+     * activity is the person the log was kept for.
+     */
+    files: SubmissionFile[];
 }
 
 export interface ManagedSubmissionDetail extends ManagedSubmission {
@@ -489,7 +674,8 @@ export interface ManagedSubmissionDetail extends ManagedSubmission {
     problemType: string;
     /** Newest first. */
     attemptList: ManagedAttempt[];
-    files: { name: string; language?: string; sizeBytes: number; sha256: string }[];
+    /** What was sent. The attachments an evaluation produced are on the attempt. */
+    files: SubmissionFile[];
 }
 
 export interface ManagedSubmissionFilter {
@@ -715,11 +901,14 @@ export interface CreatedCredential {
 /**
  * A Runner, as the administrator screen shows it.
  *
- * **Everything here is reported by the Runner itself** — product and version,
- * the problem types it supports, its address, its key fingerprint and what
- * `lscpu` and `free` say about the machine. The Server records the report and
- * matches jobs against `problemTypes` by equality; it never interprets a type,
- * and the screen never invents a field the Runner did not send.
+ * **Almost everything here is reported by the Runner itself** — product and
+ * version, the problem types it supports, its key fingerprint and what `lscpu`
+ * and `free` say about the machine. The Server records the report and matches
+ * jobs against `problemTypes` by equality; it never interprets a type, and the
+ * screen never invents a field the Runner did not send.
+ *
+ * Two fields are not the Runner's: `tags`, which an operator sets to steer work
+ * at it, and `address`, which the Server reads from the connection.
  */
 export interface ManagedRunner {
     id: string;
@@ -731,6 +920,11 @@ export interface ManagedRunner {
     problemTypes: string[];
     /** Free labels used to steer work at it. Set here, not by the Runner. */
     tags: string[];
+    /**
+     * Where the Server saw the connection come from, not what the machine says
+     * about itself: a Runner sees a private interface or a container's address
+     * and not what the Server actually talked to. Decided 2026-08-06.
+     */
     address: string;
     /** The Ed25519 public key it registered with. Immutable for its lifetime. */
     publicKey: string;
@@ -790,9 +984,36 @@ export interface ManagedRunnerFilter {
     search?: string;
 }
 
+/**
+ * What an operator may change about the installation itself.
+ *
+ * The name is optional here as it is on `InstanceInfo`: an installation nobody
+ * has named shows the product's name alone, and clearing the field is how an
+ * operator says so.
+ */
+export interface InstanceSettingsInput {
+    name?: string;
+    localRegistrationEnabled: boolean;
+    requireEmail: boolean;
+    requireConfirmedEmail: boolean;
+    showLogo: boolean;
+}
+
+/**
+ * The mark, for one language or for the instance as a whole.
+ *
+ * An absent `fileId` removes it: there is no separate call for taking a mark
+ * off, because setting it to nothing is what that is.
+ */
+export interface InstanceLogoInput {
+    fileId?: string;
+    /** Absent sets the default mark, which every language without one uses. */
+    language?: string;
+}
+
 export type ManagerEventType = "permissionTemplateChanged" | "grantChanged" | "problemChanged"
     | "activityChanged" | "seriesChanged" | "submissionChanged" | "questionChanged" | "userChanged"
-    | "runnerChanged";
+    | "runnerChanged" | "instanceChanged";
 export type ManagerEvent<T extends ManagerEventType, V> = Event<T, V>;
 
 export type PermissionTemplateChangedEvent = ManagerEvent<"permissionTemplateChanged", {
@@ -840,6 +1061,17 @@ export type RunnerChangedEvent = ManagerEvent<"runnerChanged", {
     runner: ManagedRunner;
 }>;
 
+/**
+ * The installation's own settings, mark or documents changed.
+ *
+ * Carries the whole answer, because that is what every reader of it holds: the
+ * shell, the footer and the front page all read one `InstanceInfo`, and a patch
+ * would leave them assembling it themselves.
+ */
+export type InstanceChangedEvent = ManagerEvent<"instanceChanged", {
+    instance: InstanceInfo;
+}>;
+
 export interface ManagerEventDispatcher {
     addEventListener(type: "permissionTemplateChanged", listener: (evt: PermissionTemplateChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "grantChanged", listener: (evt: GrantChangedEvent) => void, signal: AbortSignal): void;
@@ -850,6 +1082,7 @@ export interface ManagerEventDispatcher {
     addEventListener(type: "questionChanged", listener: (evt: QuestionChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "userChanged", listener: (evt: UserChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "runnerChanged", listener: (evt: RunnerChangedEvent) => void, signal: AbortSignal): void;
+    addEventListener(type: "instanceChanged", listener: (evt: InstanceChangedEvent) => void, signal: AbortSignal): void;
     addEventListener<T extends ManagerEventType, V>(type: T, listener: (evt: ManagerEvent<T, V>) => void, signal: AbortSignal): void;
 }
 
@@ -926,6 +1159,35 @@ export interface ManagerApi {
     getUserSessions(userId: string, signal: AbortSignal): Promise<UserSession[]>;
     getManagedActivities(signal: AbortSignal): Promise<ManagedActivitySummary[]>;
 
+    /**
+     * The installation's own configuration. Every one of these answers with the
+     * whole `InstanceInfo`, so the screen and the shell see the result without
+     * asking again — and the same document reaches every other tab as an
+     * `instanceChanged` event.
+     *
+     * Read under no permission at all — `getInstanceInfo` is public, because a
+     * signed-out screen needs it — and written under `instance:update`.
+     */
+    updateInstanceSettings(input: InstanceSettingsInput, signal: AbortSignal): Promise<InstanceInfo>;
+    setInstanceLogo(input: InstanceLogoInput, signal: AbortSignal): Promise<InstanceInfo>;
+    /**
+     * Publishes a revision of one document, in every language it has.
+     *
+     * The text was uploaded through `fileApi` first, exactly as a problem
+     * version's statement is, and what arrives here is a list of ids. The
+     * revision comes into force now; earlier ones stay readable at their own
+     * dates.
+     */
+    publishInstanceDocument(kind: InstanceDocumentKind, statements: NewStatement[], signal: AbortSignal): Promise<InstanceInfo>;
+    /**
+     * Stops publishing one. Its links disappear with its references — nothing
+     * lists a document that has none — and the revisions already published stay
+     * readable at their dates.
+     */
+    unpublishInstanceDocument(kind: InstanceDocumentKind, signal: AbortSignal): Promise<InstanceInfo>;
+    /** Every revision of one document, newest first, including superseded ones. */
+    getInstanceDocumentHistory(kind: InstanceDocumentKind, signal: AbortSignal): Promise<InstanceDocumentRef[]>;
+
     getActivities(filter: ManagedActivityFilter, signal: AbortSignal): Promise<Page<ManagedActivity>>;
     /** Accepts an id or a slug: the manager's URLs read like the participant's. */
     getActivity(idOrSlug: string, signal: AbortSignal): Promise<ManagedActivity>;
@@ -940,11 +1202,60 @@ export interface ManagerApi {
      */
     deleteActivity(id: string, signal: AbortSignal): Promise<void>;
 
+    /**
+     * Publishes a revision of one activity document, in every language it has.
+     *
+     * The same shape as the instance's, and for the same reason: the text goes
+     * up through `fileApi` and what arrives here is a list of ids. Answers with
+     * the refreshed activity, so the screen and the shell get the new references
+     * without asking again.
+     */
+    publishActivityDocument(activityId: string, kind: ActivityDocumentKind, statements: NewStatement[], signal: AbortSignal): Promise<ManagedActivity>;
+    /**
+     * Stops publishing one. Its references go and its links go with them — the
+     * navigation, the enrolment form's acceptance box, the activity's own page.
+     */
+    unpublishActivityDocument(activityId: string, kind: ActivityDocumentKind, signal: AbortSignal): Promise<ManagedActivity>;
+    /** Every revision of one activity document, newest first. */
+    getActivityDocumentHistory(activityId: string, kind: ActivityDocumentKind, signal: AbortSignal): Promise<ActivityDocumentRef[]>;
+
     getSeries(activityId: string, signal: AbortSignal): Promise<ManagedSeries[]>;
     createSeries(activityId: string, input: SeriesInput, signal: AbortSignal): Promise<ManagedSeries>;
     updateSeries(seriesId: string, input: SeriesInput, signal: AbortSignal): Promise<ManagedSeries>;
     /** Refused once anything has been submitted to it. */
     deleteSeries(seriesId: string, signal: AbortSignal): Promise<void>;
+
+    /**
+     * Moves every instant the series holds by `minutes` — its start, its end,
+     * and the ranking freeze and reveal with them.
+     *
+     * A delta rather than two new dates, because two managers each moving a
+     * delayed round by ten minutes from the same screen would otherwise both
+     * write **+10** and lose one of the shifts. The freeze travels because a
+     * round delayed by ten minutes whose freeze stayed at the old wall clock
+     * would freeze the wrong hour.
+     *
+     * Negative moves it earlier.
+     */
+    shiftSeries(seriesId: string, minutes: number, signal: AbortSignal): Promise<ManagedSeries>;
+
+    /**
+     * Stops a running series: nothing is accepted for it and the countdown
+     * stands still.
+     *
+     * `hideProblems` also takes the statements away — `isOpen` goes false —
+     * which is for a leak or a mistake in a statement rather than for an
+     * ordinary interruption. Taking a problem off the screen of somebody in the
+     * middle of it is violent, and they have read it already.
+     */
+    pauseSeries(seriesId: string, input: PauseInput, signal: AbortSignal): Promise<ManagedSeries>;
+
+    /**
+     * Starts it again. `extendEnd` gives the interruption back by moving the end
+     * by however long the pause lasted, which is what pausing exists for; without
+     * it every date is left alone.
+     */
+    resumeSeries(seriesId: string, input: ResumeInput, signal: AbortSignal): Promise<ManagedSeries>;
     reorderSeries(activityId: string, orderedIds: string[], signal: AbortSignal): Promise<ManagedSeries[]>;
 
     attachProblem(seriesId: string, input: SeriesProblemInput, signal: AbortSignal): Promise<ManagedSeries>;
@@ -965,7 +1276,6 @@ export interface ManagerApi {
     getSubmissions(filter: ManagedSubmissionFilter, signal: AbortSignal): Promise<Page<ManagedSubmission>>;
     getSubmission(id: string, signal: AbortSignal): Promise<ManagedSubmissionDetail>;
     /** The submitted source, as stored. */
-    getSubmissionFile(id: string, name: string, signal: AbortSignal): Promise<string>;
 
     /**
      * Adds an evaluation job. The previous attempts stay: a result belongs to
@@ -992,11 +1302,15 @@ export interface ManagerApi {
 
     getProblemVersions(problemId: string, signal: AbortSignal): Promise<ManagedProblemVersion[]>;
     /**
-     * Every statement stored for one version — the default and each translation.
-     * One call rather than one per language: the editor shows them together, and
-     * a manager comparing two languages should not wait for a round trip.
+     * Every statement stored for one version — the default and each translation,
+     * as **references**.
+     *
+     * The text is fetched with `fileApi.getText`, which is also how it was put
+     * there. This used to answer with the content inline while
+     * `createProblemVersion` took ids, so the editor read one way and wrote
+     * another; the two halves now use one road.
      */
-    getProblemContent(problemId: string, versionId: string, signal: AbortSignal): Promise<StatementVariant[]>;
+    getProblemContent(problemId: string, versionId: string, signal: AbortSignal): Promise<StatementRef[]>;
     /**
      * Publishes a new version — the statement, the files and the package at once.
      *

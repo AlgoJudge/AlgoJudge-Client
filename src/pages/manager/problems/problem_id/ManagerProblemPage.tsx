@@ -76,11 +76,14 @@ export default function ManagerProblemPage() {
         if (newest) {
             // Edited as the text it is. An unreadable document still opens, so
             // the author can see and repair what is wrong with it.
-            const variants = await api.managerApi.getProblemContent(problemId, newest.id);
+            //
+            // Fetched by id, which is how it was stored: publishing uploads the
+            // text and names the file, and this reads the same file back. The
+            // two halves of the editor finally use one road.
+            const refs = await api.managerApi.getProblemContent(problemId, newest.id);
             const loadedSources: Record<string, string> = { [DEFAULT_LANGUAGE]: emptyDocument() };
-            for (const variant of variants) {
-                if (typeof variant.content !== "string") continue;
-                loadedSources[variant.language ?? DEFAULT_LANGUAGE] = variant.content;
+            for (const ref of refs) {
+                loadedSources[ref.language ?? DEFAULT_LANGUAGE] = await api.fileApi.getText(ref.fileId);
             }
             setSources(loadedSources);
             setLanguage(DEFAULT_LANGUAGE);

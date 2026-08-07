@@ -23,7 +23,7 @@ const PARTICIPANT: Record<ParticipantEventType, true> = {
     activityUpdated: true,
     activityDeleted: true,
     activityTimesChanged: true,
-    sectionOpened: true,
+    seriesChanged: true,
     problemStatusChanged: true,
     submissionStateChanged: true,
     rankingChanged: true,
@@ -42,6 +42,7 @@ const MANAGER: Record<ManagerEventType, true> = {
     questionChanged: true,
     userChanged: true,
     runnerChanged: true,
+    instanceChanged: true,
 };
 
 // Membership in one of the three records is what decides where an event goes,
@@ -71,6 +72,9 @@ export class WebSocketEvents implements EventConnection {
     private retryMs = FIRST_RETRY_MS;
     private timer: ReturnType<typeof setTimeout> | undefined;
     private wanted = false;
+    /** True once a connection has been open and lost, so the next one is a return. */
+    private wasConnected = false;
+    private readonly restored = new Set<() => void>();
 
     constructor(
         private readonly url: string,
@@ -85,8 +89,17 @@ export class WebSocketEvents implements EventConnection {
         this.open();
     }
 
+    onRestored(listener: () => void): () => void {
+        this.restored.add(listener);
+        return () => this.restored.delete(listener);
+    }
+
     stop(): void {
         this.wanted = false;
+        // A connection taken down on purpose is not one that was lost: starting
+        // again is a first connection, not a return, and must not make every
+        // screen refetch.
+        this.wasConnected = false;
         clearTimeout(this.timer);
         this.timer = undefined;
         // Detached before closing: the close handler exists to reopen, and this
@@ -109,7 +122,13 @@ export class WebSocketEvents implements EventConnection {
         }
         this.socket = socket;
 
-        socket.addEventListener("open", () => { this.retryMs = FIRST_RETRY_MS; });
+        socket.addEventListener("open", () => {
+            this.retryMs = FIRST_RETRY_MS;
+            // A return, not a first connection: nothing was replayed while the
+            // socket was down, so whoever is showing something has to ask again.
+            if (this.wasConnected) for (const listener of this.restored) listener();
+            this.wasConnected = true;
+        });
         socket.addEventListener("message", event => { this.receive(event.data); });
         socket.addEventListener("close", () => {
             if (this.socket !== socket) return;

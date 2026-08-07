@@ -32,12 +32,14 @@ export default function CodePage() {
         const submission = await api.participantApi.getSubmission(activity.id, submissionId);
         setSubmission(submission);
 
+        // Read from the file store by id, as every other stored document is.
+        // Keyed by the uploaded name, which is what the tabs show.
         const loaded: Record<string, string> = {};
         for (const file of submission.files) {
-            loaded[file.name] = await api.participantApi.getSubmissionFile(activity.id, submission.id, file.name);
+            loaded[file.fileName] = await api.fileApi.getText(file.fileId);
         }
         setFiles(loaded);
-        setActive(submission.files[0]?.name ?? null);
+        setActive(submission.files[0]?.fileName ?? null);
     }, [activityId, submissionId]);
 
     if (!activity || !submission || !active) {
@@ -45,7 +47,7 @@ export default function CodePage() {
     }
 
     const current = files[active] ?? "";
-    const language = submission.files.find(f => f.name === active)?.language ?? submission.language;
+    const language = submission.files.find(f => f.fileName === active)?.language ?? submission.language;
     const shown = editing ? draft : current;
 
     const startEditing = () => {
@@ -123,7 +125,7 @@ export default function CodePage() {
                 <Tabs value={active} onChange={value => { setActive(value); setEditing(false); }}>
                     <Tabs.List>
                         {submission.files.map(f => (
-                            <Tabs.Tab key={f.name} value={f.name}>{f.name}</Tabs.Tab>
+                            <Tabs.Tab key={f.fileName} value={f.fileName}>{f.fileName}</Tabs.Tab>
                         ))}
                     </Tabs.List>
                 </Tabs>

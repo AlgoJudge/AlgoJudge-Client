@@ -1,7 +1,9 @@
 import {
     Activity,
+    ActivityResults,
     ActivityFilter,
     AskQuestionInput,
+    EnrolInput,
     Page,
     ParticipantApi,
     ProblemDetail,
@@ -49,6 +51,11 @@ export class ParticipantApiHttp implements ParticipantApi {
         return this.http.request<Activity>(`/activities/${encodeURIComponent(idOrSlug)}`, "GET", { signal });
     }
 
+    enroll(idOrSlug: string, input: EnrolInput, signal: AbortSignal): Promise<Activity> {
+        return this.http.request<Activity>(
+            `/activities/${encodeURIComponent(idOrSlug)}/enrolment`, "POST", { body: input, signal });
+    }
+
     getSeries(activityId: string, signal: AbortSignal): Promise<Series[]> {
         return this.http.request<Series[]>(`/activities/${encodeURIComponent(activityId)}/series`, "GET", { signal });
     }
@@ -79,12 +86,6 @@ export class ParticipantApiHttp implements ParticipantApi {
             "GET", { signal });
     }
 
-    async getSubmissionFile(activityId: string, submissionId: string, name: string, signal: AbortSignal): Promise<string> {
-        const file = await this.http.request<{ content: string }>(
-            `/activities/${encodeURIComponent(activityId)}/submissions/${encodeURIComponent(submissionId)}/files/${encodeURIComponent(name)}`,
-            "GET", { signal });
-        return file.content;
-    }
 
     submit(activityId: string, problemSlug: string, payload: SubmitPayload, signal: AbortSignal): Promise<SubmissionSummary> {
         // Multipart, because a submission may be a file. The transport leaves
@@ -106,8 +107,15 @@ export class ParticipantApiHttp implements ParticipantApi {
             "POST", { signal, body: form });
     }
 
-    getRanking(activityId: string, signal: AbortSignal): Promise<unknown> {
-        return this.http.request<unknown>(`/activities/${encodeURIComponent(activityId)}/ranking`, "GET", { signal });
+    getResults(activityId: string, seriesId: string | undefined, signal: AbortSignal): Promise<ActivityResults> {
+        // Absent asks for every round the reader may see, which is what the
+        // ranking screen wants: it computes the combined board and each round's
+        // own from one answer rather than asking again per tab.
+        return this.http.request<ActivityResults>(
+            `/activities/${encodeURIComponent(activityId)}/results`, "GET", {
+                signal,
+                query: query({ seriesId }),
+            });
     }
 
     getQuestions(activityId: string, filter: QuestionFilter, signal: AbortSignal): Promise<Page<Question>> {
@@ -138,9 +146,6 @@ export class ParticipantApiHttp implements ParticipantApi {
             "POST", { signal });
     }
 
-    getRules(activityId: string, signal: AbortSignal): Promise<unknown> {
-        return this.http.request<unknown>(`/activities/${encodeURIComponent(activityId)}/rules`, "GET", { signal });
-    }
 }
 
 /** Drops absent parameters so they never reach the URL as `undefined`. */

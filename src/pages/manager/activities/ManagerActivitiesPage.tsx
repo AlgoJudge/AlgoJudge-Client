@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, Modal, Pagination, Stack, Switch, Table, Text, TextInput, Title, Tooltip } from "@mantine/core";
+import { Alert, Badge, Button, Group, Modal, Pagination, Select, Stack, Switch, Table, Text, TextInput, Title, Tooltip } from "@mantine/core";
 import { IconArchive, IconArchiveOff, IconPlus, IconSearch, IconTrash } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -7,6 +7,10 @@ import { ManagedActivity } from "../../../api/ManagerApi";
 import LoadState from "../../../components/LoadState";
 import ActivityTime from "../../../components/time/ActivityTime";
 import { emptyActivity } from "../../../components/activity/activityInput";
+import { activityTypes } from "../../../renderers";
+
+/** The first type this Client can present, so the form opens on a working one. */
+const DEFAULT_TYPE = activityTypes()[0]?.id ?? "contest@1";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
 
 const PAGE_SIZE = 20;
@@ -35,7 +39,8 @@ export default function ManagerActivitiesPage() {
     const [search, setSearch] = useState("");
     const [includeArchived, setIncludeArchived] = useState(false);
     const [creating, setCreating] = useState(false);
-    const [draft, setDraft] = useState({ slug: "", name: "", type: "contest@1" });
+    const [draft, setDraft] = useState({ slug: "", name: "", type: DEFAULT_TYPE });
+    const chosenType = activityTypes().find(type => type.id === draft.type);
     const [error, setError] = useState<string | undefined>(undefined);
     const [busy, setBusy] = useState(false);
     const [reload, setReload] = useState(0);
@@ -76,8 +81,11 @@ export default function ManagerActivitiesPage() {
             type: draft.type,
         }));
         setCreating(false);
-        setDraft({ slug: "", name: "", type: "contest@1" });
-        navigate(`/manager/activities/${created.id}`);
+        setDraft({ slug: "", name: "", type: DEFAULT_TYPE });
+        // The slug, as the participant's addresses have always read: the
+        // endpoint takes either, and a UUID in the address bar tells nobody
+        // which activity they are looking at.
+        navigate(`/manager/activities/${created.slug}`);
     });
 
     if (!items) return <LoadState error={loadError} loading={!loadError} />;
@@ -135,7 +143,7 @@ export default function ManagerActivitiesPage() {
                                         <Text
                                             fw={500}
                                             style={{ cursor: "pointer" }}
-                                            onClick={() => navigate(`/manager/activities/${activity.id}`)}
+                                            onClick={() => navigate(`/manager/activities/${activity.slug}`)}
                                         >
                                             {activity.name}
                                         </Text>
@@ -167,7 +175,7 @@ export default function ManagerActivitiesPage() {
                                         <Button
                                             variant="light"
                                             size="compact-sm"
-                                            onClick={() => navigate(`/manager/activities/${activity.id}`)}
+                                            onClick={() => navigate(`/manager/activities/${activity.slug}`)}
                                         >
                                             {t("Open")}
                                         </Button>
@@ -229,11 +237,20 @@ export default function ManagerActivitiesPage() {
                         onChange={e => setDraft({ ...draft, slug: e.currentTarget.value })}
                         required
                     />
-                    <TextInput
+                    {/* A choice, not a free field, as it is for a problem: the
+                        type decides how the activity presents its series, and a
+                        string nothing is registered for gets whatever generic
+                        behaviour the fallback happens to have. */}
+                    <Select
                         label={t("Type")}
-                        description={t("Activity type discriminator, name@version")}
+                        description={chosenType ? t(chosenType.description) : undefined}
+                        data={activityTypes().map(type => ({
+                            value: type.id,
+                            label: `${t(type.label)} — ${type.id}`,
+                        }))}
                         value={draft.type}
-                        onChange={e => setDraft({ ...draft, type: e.currentTarget.value })}
+                        onChange={value => value && setDraft({ ...draft, type: value })}
+                        allowDeselect={false}
                     />
                     <Text size="sm" c="dimmed">
                         {t("The rest is edited on the activity itself, with sensible defaults to start from.")}

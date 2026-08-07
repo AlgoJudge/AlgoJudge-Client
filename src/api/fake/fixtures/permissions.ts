@@ -1,4 +1,6 @@
 import { Grant, ManagedActivitySummary, ManagedUserSummary, PermissionDefinition, PermissionTemplate } from "../../ManagerApi";
+import { isStaffGrant } from "../../permissions";
+import { CONTEST_ID, COURSE_ID, WORKSHOP_ID, WORLD } from "./world";
 
 /**
  * The permission catalogue and the shipped templates.
@@ -8,8 +10,23 @@ import { Grant, ManagedActivitySummary, ManagedUserSummary, PermissionDefinition
  * standing in for that endpoint, and the two must not drift.
  */
 
+/**
+ * The seven an ordinary participant holds. Everything else is staff, and the
+ * catalogue says which is which — a grant carrying any staff permission is a
+ * membership that runs the activity rather than takes part in it.
+ */
+const PARTICIPANT = [
+    "activity:read",
+    "submission:read:own",
+    "submission:create",
+    "result:read:own",
+    "question:read:own",
+    "question:create",
+    "ranking:read",
+];
+
 const definition = (key: string, group: string, scope: PermissionDefinition["scope"]): PermissionDefinition =>
-    ({ key, group, scope });
+    ({ key, group, scope, participant: PARTICIPANT.includes(key) });
 
 export const PERMISSION_CATALOGUE: PermissionDefinition[] = [
     definition("activity:read", "activity", "activity"),
@@ -67,17 +84,13 @@ export const PERMISSION_CATALOGUE: PermissionDefinition[] = [
     definition("runner:revoke", "runner", "global"),
     definition("runner:update", "runner", "global"),
 
-    definition("system:administrator", "system", "global"),
-];
+    // Configuring the installation: its name, its mark, the documents it
+    // publishes. Global by construction — there is one instance — and not part
+    // of the manager set, because running an activity is not running the
+    // installation it lives in.
+    definition("instance:update", "instance", "global"),
 
-const PARTICIPANT = [
-    "activity:read",
-    "submission:read:own",
-    "submission:create",
-    "result:read:own",
-    "question:read:own",
-    "question:create",
-    "ranking:read",
+    definition("system:administrator", "system", "global"),
 ];
 
 const MANAGER = [
@@ -139,14 +152,27 @@ export const createTemplates = (): PermissionTemplate[] => [
  * fixture that can spell it differently, and the two screens would then disagree
  * about who somebody is.
  */
-const named = (grant: Omit<Grant, "userName" | "userLogin">): Grant => {
+const named = (grant: Omit<Grant, "userName" | "userLogin" | "isSystem">): Grant => {
     const user = MANAGED_USERS.find(u => u.id === grant.userId);
     return {
         ...grant,
         userName: user?.name ?? grant.userId,
         userLogin: user?.username ?? grant.userId,
+        // Derived, never written down twice: whoever runs the activity is
+        // systemic by virtue of what they may do in it.
+        isSystem: isStaffGrant(grant.permissions, PERMISSION_CATALOGUE),
     };
 };
+
+/**
+ * What an activity is called, read from the seed.
+ *
+ * A grant carries the name so the list can be read without a second request.
+ * Written out here it was a copy that went stale the moment the activity was
+ * renamed — and it had: the contest was two different names in two files.
+ */
+const nameOf = (activityId: string): string =>
+    WORLD.find(activity => activity.id === activityId)?.name ?? activityId;
 
 export const createGrants = (): Grant[] => [
     named({
@@ -160,8 +186,8 @@ export const createGrants = (): Grant[] => [
     named({
         id: "018f2c00-0000-7000-8000-0000000000b2",
         userId: "user-kowalski",
-        activityId: "018f2c00-0000-7000-8000-000000000002",
-        activityName: "Programowanie 1 — grupa LA",
+        activityId: COURSE_ID,
+        activityName: nameOf(COURSE_ID),
         permissions: [...MANAGER],
         createdFromTemplate: "manager",
         state: "active",
@@ -172,8 +198,8 @@ export const createGrants = (): Grant[] => [
         // role in a model that unioned them, and is one edited set here.
         id: "018f2c00-0000-7000-8000-0000000000b3",
         userId: "user-wisniewski",
-        activityId: "018f2c00-0000-7000-8000-000000000001",
-        activityName: "Akademickie Mistrzostwa Polski 2019",
+        activityId: CONTEST_ID,
+        activityName: nameOf(CONTEST_ID),
         permissions: MANAGER.filter(p => p !== "activity:update"),
         createdFromTemplate: "manager",
         state: "active",
@@ -182,8 +208,8 @@ export const createGrants = (): Grant[] => [
     named({
         id: "018f2c00-0000-7000-8000-0000000000b4",
         userId: "user-me",
-        activityId: "018f2c00-0000-7000-8000-000000000001",
-        activityName: "Akademickie Mistrzostwa Polski 2019",
+        activityId: CONTEST_ID,
+        activityName: nameOf(CONTEST_ID),
         permissions: [...PARTICIPANT],
         createdFromTemplate: "participant",
         state: "active",
@@ -196,8 +222,8 @@ export const createGrants = (): Grant[] => [
         // permission, so nobody holds it from the system scope.
         id: "018f2c00-0000-7000-8000-0000000000b6",
         userId: "user-me",
-        activityId: "018f2c00-0000-7000-8000-000000000002",
-        activityName: "Programowanie 1 — grupa LA",
+        activityId: COURSE_ID,
+        activityName: nameOf(COURSE_ID),
         permissions: [...MANAGER],
         createdFromTemplate: "manager",
         state: "active",
@@ -206,8 +232,8 @@ export const createGrants = (): Grant[] => [
     named({
         id: "018f2c00-0000-7000-8000-0000000000b5",
         userId: "user-nowak",
-        activityId: "018f2c00-0000-7000-8000-000000000005",
-        activityName: "Warsztat interaktywny",
+        activityId: WORKSHOP_ID,
+        activityName: nameOf(WORKSHOP_ID),
         permissions: [...PARTICIPANT],
         createdFromTemplate: "participant",
         state: "invited",

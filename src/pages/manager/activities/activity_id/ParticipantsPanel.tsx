@@ -1,14 +1,17 @@
-import { Alert, Badge, Button, Group, Modal, Pagination, Select, Stack, Table, Text, Title } from "@mantine/core";
-import { IconPlus, IconTrash } from "@tabler/icons-react";
+import { Alert, Badge, Button, Group, Modal, Pagination, Select, Stack, Switch, Table, Text, Title } from "@mantine/core";
+import { IconPlus, IconTrash, IconUsersPlus } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     Grant, ManagedActivity, ManagedUserSummary, PermissionDefinition, PermissionTemplate,
 } from "../../../../api/ManagerApi";
 import LoadState from "../../../../components/LoadState";
+import { isStaffGrant } from "../../../../api/permissions";
 import PermissionSetEditor from "../../../../components/permissions/PermissionSetEditor";
+import TemporaryAccountsModal from "../../../../components/users/TemporaryAccountsModal";
 import ActivityTime from "../../../../components/time/ActivityTime";
 import { useApiCall, useApiEffect } from "../../../../provider/apiContext";
+import { usePermissions } from "../../../../provider/permissionsContext";
 
 /**
  * Who is in the activity.
@@ -25,6 +28,8 @@ interface Draft {
     userId: string;
     permissions: string[];
     createdFromTemplate?: string;
+    /** What the manager asked for. Ignored where the permissions settle it. */
+    isSystem: boolean;
     existing: boolean;
 }
 
@@ -36,6 +41,7 @@ export interface ParticipantsPanelProps {
 export default function ParticipantsPanel({ activity, onError }: ParticipantsPanelProps) {
     const { t } = useTranslation();
     const call = useApiCall();
+    const { has } = usePermissions();
 
     const [grants, setGrants] = useState<Grant[] | undefined>(undefined);
     const [total, setTotal] = useState(0);
@@ -45,6 +51,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
     const [users, setUsers] = useState<ManagedUserSummary[]>([]);
     const [grantable, setGrantable] = useState<string[]>([]);
     const [draft, setDraft] = useState<Draft | undefined>(undefined);
+    const [bulk, setBulk] = useState(false);
     const [busy, setBusy] = useState(false);
     const [reload, setReload] = useState(0);
 
@@ -56,7 +63,10 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
         // this activity**, which is not the same set as their system rights.
         setGrantable(await api.managerApi.getMyPermissions(activity.id));
 
-        setGrants(undefined);
+        // The previous list stays on screen while the next one loads. Blanking it
+        // would take the whole panel down to a spinner on every save — and with
+        // it the modal holding freshly created passwords, which are the only
+        // copy there will ever be.
         const result = await api.managerApi.getGrants({ page, pageSize: PAGE_SIZE, activityId: activity.id });
         setGrants(result.items);
         setTotal(result.total);
@@ -95,6 +105,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                 userId: draft.userId,
                 activityId: activity.id,
                 permissions: draft.permissions,
+                isSystem: draft.isSystem,
                 createdFromTemplate: draft.createdFromTemplate,
             }));
             setDraft(undefined);
@@ -112,18 +123,38 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                 <Text size="sm" c="dimmed">
                     {t("A grant in this activity is the membership: holding one is being in it.")}
                 </Text>
-                <Button
-                    leftSection={<IconPlus size={16} />}
-                    disabled={activity.archivedAt !== undefined}
-                    onClick={() => setDraft({
-                        userId: "",
-                        permissions: participantTemplate ? [...participantTemplate.permissions] : [],
-                        createdFromTemplate: participantTemplate?.name,
-                        existing: false,
-                    })}
-                >
-                    {t("Enrol someone")}
-                </Button>
+                <Group gap="xs">
+                    {/* Accounts for a class that has none, enrolled here as they
+                        are created. Offered only to somebody who may do both:
+                        an entry that answers 403 is worse than none.
+                        Enrolling is asked of **this** activity, because a grant
+                        is per activity. Creating accounts is not: the permission
+                        is held system-wide as readily as in one activity, so it
+                        is asked of what the reader holds anywhere. */}
+                    {has("user:create:temporary") && grantable.includes("activity:enroll") && (
+                        <Button
+                            variant="light"
+                            leftSection={<IconUsersPlus size={16} />}
+                            disabled={activity.archivedAt !== undefined}
+                            onClick={() => setBulk(true)}
+                        >
+                            {t("Temporary accounts")}
+                        </Button>
+                    )}
+                    <Button
+                        leftSection={<IconPlus size={16} />}
+                        disabled={activity.archivedAt !== undefined}
+                        onClick={() => setDraft({
+                            userId: "",
+                            permissions: participantTemplate ? [...participantTemplate.permissions] : [],
+                            createdFromTemplate: participantTemplate?.name,
+                            isSystem: false,
+                            existing: false,
+                        })}
+                    >
+                        {t("Enrol someone")}
+                    </Button>
+                </Group>
             </Group>
 
             <Table.ScrollContainer minWidth={720}>
@@ -141,7 +172,20 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                     <Table.Tbody>
                         {grants.map(grant => (
                             <Table.Tr key={grant.id}>
-                                <Table.Td><Text fw={500}>{grant.userName}</Text></Table.Td>
+                                <Table.Td>
+                                    <Group gap="xs" wrap="nowrap">
+                                        <Text fw={500}>{grant.userName}</Text>
+                                        {/* Said in the row, because the count
+                                            above it is a count of everybody
+                                            else and the difference has to be
+                                            visible somewhere. */}
+                                        {grant.isSystem && (
+                                            <Badge size="sm" variant="outline" color="gray">
+                                                {t("systemic")}
+                                            </Badge>
+                                        )}
+                                    </Group>
+                                </Table.Td>
                                 <Table.Td>
                                     <Text size="sm" c="dimmed">{grant.createdFromTemplate ?? "—"}</Text>
                                 </Table.Td>
@@ -163,6 +207,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                                                 userId: grant.userId,
                                                 permissions: [...grant.permissions],
                                                 createdFromTemplate: grant.createdFromTemplate,
+                                                isSystem: grant.isSystem,
                                                 existing: true,
                                             })}
                                         >
@@ -226,6 +271,20 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                             grantable={grantable}
                             scope="activity"
                         />
+                        {/* Forced on for staff: a jury member in the ranking
+                            beside the students is a bug, not a preference. Free
+                            for an ordinary membership, where a test account or
+                            the one running the reference solution is exactly
+                            what it is for. */}
+                        <Switch
+                            label={t("Systemic membership")}
+                            description={isStaffGrant(draft.permissions, catalogue)
+                                ? t("Whoever runs the activity does not compete in it, so this cannot be turned off.")
+                                : t("Submits like anybody, counts as nobody: absent from the participant count and from the ranking.")}
+                            checked={isStaffGrant(draft.permissions, catalogue) || draft.isSystem}
+                            onChange={e => setDraft({ ...draft, isSystem: e.currentTarget.checked })}
+                            disabled={isStaffGrant(draft.permissions, catalogue)}
+                        />
                         <Alert color="blue">
                             {t("Nobody may grant a permission they do not hold themselves.")}
                         </Alert>
@@ -236,6 +295,25 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                     </Stack>
                 )}
             </Modal>
+
+            {/* The activity is fixed: this was opened from inside it, so it is
+                not a field somebody could get wrong. */}
+            <TemporaryAccountsModal
+                opened={bulk}
+                onClose={() => setBulk(false)}
+                activityId={activity.id}
+                templates={templates}
+                run={run}
+                busy={busy}
+                onCreated={() => setReload(n => n + 1)}
+                // Made for this activity, so the slip points at this activity
+                // rather than at the front page somebody would have to search
+                // from.
+                handout={{
+                    url: `${window.location.origin}/activities/${activity.slug}`,
+                    title: activity.name,
+                }}
+            />
         </Stack>
     );
 }

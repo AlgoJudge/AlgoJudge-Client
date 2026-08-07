@@ -22,6 +22,17 @@ export interface EventConnection {
 
     /** Closes it and stops trying to reopen it. */
     stop(): void;
+
+    /**
+     * Called when the connection comes back after having been lost — not when it
+     * is first opened.
+     *
+     * Reconnecting is what a screen has to hear about, because nothing is
+     * replayed: `docs/protocols/SERVER_CLIENT_EVENTS.md` settles that REST is
+     * the state and a screen that missed events refetches. This is how it is
+     * told. Answers with a function that unsubscribes.
+     */
+    onRestored(listener: () => void): () => void;
 }
 
 /**
@@ -31,4 +42,8 @@ export interface EventConnection {
 export class NullEventConnection implements EventConnection {
     start(): void { /* nothing to open */ }
     stop(): void { /* nothing to close */ }
+    onRestored(): () => void {
+        // Nothing is ever lost, so nothing is ever restored.
+        return () => { /* nothing to unsubscribe */ };
+    }
 }

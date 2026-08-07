@@ -3,6 +3,7 @@ import { IconQuestionMark, IconSchool, IconTrophy } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { activityEntryPath } from "../../api/activityDocuments";
 import { Activity, ActivityState } from "../../api/ParticipantApi";
 import { useApiEffect } from "../../provider/apiContext";
 import LoadState from "../../components/LoadState";
@@ -105,7 +106,10 @@ export default function ActivitiesPage() {
                     // Finished activities are dimmed; ongoing and upcoming keep
                     // full colour, which is the whole point of the state filter.
                     className={classes.item + " " + (item.state !== "finished" ? classes.active : "")}
-                    onClick={() => navigate(`/activities/${item.slug}/problems`)}
+                    // Its own page where somebody wrote one, its problems
+                    // otherwise: the rule lives in one place so the list and the
+                    // front page cannot come to disagree about it.
+                    onClick={() => navigate(activityEntryPath(item))}
                 >
                     <Group justify="space-between" wrap="nowrap">
                         <Group wrap="nowrap" style={{ minWidth: 0 }}>

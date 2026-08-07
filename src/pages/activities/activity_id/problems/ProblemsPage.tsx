@@ -1,9 +1,10 @@
-import { Box, Button, Card, Group, Overlay, Stack, Text, Title } from "@mantine/core";
+import { Badge, Box, Button, Card, Group, Overlay, Stack, Text, Title } from "@mantine/core";
 import { IconLock } from "@tabler/icons-react";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 import { Activity, ProblemSummary, Series } from "../../../../api/ParticipantApi";
+import { maySubmit, seriesState } from "../../../../api/seriesState";
 import ProblemStatusBadge from "../../../../components/problem/ProblemStatusBadge";
 import ActivityTime from "../../../../components/time/ActivityTime";
 import Countdown from "../../../../components/time/Countdown";
@@ -12,7 +13,12 @@ import LoadState from "../../../../components/LoadState";
 import { activityRenderers } from "../../../../renderers";
 import classes from "./ProblemsPage.module.css";
 
-const ProblemRow = ({ problem, activitySlug }: { problem: ProblemSummary; activitySlug: string }) => {
+const ProblemRow = ({ problem, activitySlug, canSubmit }: {
+    problem: ProblemSummary;
+    activitySlug: string;
+    /** False once the round has ended or been stopped: the statement stays, the button does not. */
+    canSubmit: boolean;
+}) => {
     const { t } = useTranslation();
     return (
         <Card className={classes.problem} component={Link} to={`/activities/${activitySlug}/problems/${problem.slug}`}>
@@ -20,14 +26,25 @@ const ProblemRow = ({ problem, activitySlug }: { problem: ProblemSummary; activi
                 <Text size="md" style={{ minWidth: 0 }}>[{problem.slug}] {problem.name}</Text>
                 <Group gap="md" wrap="nowrap">
                     <ProblemStatusBadge status={problem.status} bestScore={problem.bestScore} maxScore={problem.maxScore} attempts={problem.attempts} />
-                    <Button
-                        component={Link}
-                        to={`/activities/${activitySlug}/submit/${problem.slug}`}
-                        onClick={e => e.stopPropagation()}
-                        size="compact-sm"
-                    >
-                        {t("Submit")}
-                    </Button>
+                    {/* A disabled button rather than none: the way in stays where
+                        it has always been, and says it is shut instead of
+                        vanishing and leaving somebody looking for it. Two
+                        buttons rather than one with a conditional element,
+                        because a link that leads nowhere is not a link. */}
+                    {canSubmit ? (
+                        <Button
+                            component={Link}
+                            to={`/activities/${activitySlug}/submit/${problem.slug}`}
+                            onClick={e => e.stopPropagation()}
+                            size="compact-sm"
+                        >
+                            {t("Submit")}
+                        </Button>
+                    ) : (
+                        <Button disabled size="compact-sm" onClick={e => e.stopPropagation()}>
+                            {t("Submit")}
+                        </Button>
+                    )}
                 </Group>
             </Group>
         </Card>
@@ -45,6 +62,11 @@ const ProblemRow = ({ problem, activitySlug }: { problem: ProblemSummary; activi
 const ClosedSeries = ({ series, timeZone, onOpen }: { series: Series; timeZone: string; onOpen: () => void }) => {
     const { t } = useTranslation();
     const count = series.problemCount;
+    // Three ways a round shows nothing, and they are not the same sentence:
+    // it has not started, a manager took the statements away, or it is over and
+    // the activity closes finished rounds.
+    const state = seriesState(series);
+    const stopped = state === "paused" || state === "ended";
     return (
         // Without a floor the container collapses when the problem count is
         // withheld too, and the overlay lands on top of the series heading.
@@ -62,10 +84,13 @@ const ClosedSeries = ({ series, timeZone, onOpen }: { series: Series; timeZone: 
                     <Group gap="xs">
                         <IconLock size={18} />
                         <Text size="lg" fw={700}>
-                            {count === undefined ? t("Not started yet") : `${t("Problems")}: ${count}`}
+                            {state === "paused" ? t("The series is paused")
+                                : state === "ended" ? t("The series has ended")
+                                : count === undefined ? t("Not started yet")
+                                : `${t("Problems")}: ${count}`}
                         </Text>
                     </Group>
-                    {series.startDate && (
+                    {!stopped && series.startDate && (
                         <>
                             <Text size="sm">
                                 {t("Starts")}: <ActivityTime value={series.startDate} timeZone={timeZone} />
@@ -105,10 +130,10 @@ export default function ProblemsPage() {
         setActivity(activity);
         setSeries(await scoped.participantApi.getSeries(activity.id));
 
-        // A series opening and a status changing both arrive as events, so the
+        // A series changing and a status changing both arrive as events, so the
         // page updates without the participant reloading at the exact second a
-        // round begins.
-        scoped.participantApi.eventDispatcher.addEventListener("sectionOpened", evt => {
+        // round begins — or is stopped.
+        scoped.participantApi.eventDispatcher.addEventListener("seriesChanged", evt => {
             if (evt.data.activityId !== activity.id) return;
             setSeries(current => current?.map(s => s.id === evt.data.series.id ? evt.data.series : s));
         });
@@ -144,8 +169,18 @@ export default function ProblemsPage() {
             {series.length === 0 && <Text px="md" c="dimmed">{t("This activity has no problems yet")}</Text>}
 
             {series.map(s => {
-                const problems = s.isOpen
-                    ? (s.problems ?? []).map(p => <ProblemRow key={p.id} problem={p} activitySlug={activity.slug} />)
+                // Drawn from what arrived rather than worked out: a series the
+                // Server withheld the problems of has none to draw, whether that
+                // is because it has not started or because it was stopped.
+                const problems = s.problems
+                    ? s.problems.map(p => (
+                        <ProblemRow
+                            key={p.id}
+                            problem={p}
+                            activitySlug={activity.slug}
+                            canSubmit={maySubmit(s)}
+                        />
+                    ))
                     : <ClosedSeries series={s} timeZone={activity.timeZone} onOpen={reload} />;
 
                 if (flat) return <Box key={s.id}>{problems}</Box>;
@@ -153,7 +188,14 @@ export default function ProblemsPage() {
                 return (
                     <Card key={s.id} className={classes.round}>
                         <Group justify="space-between" wrap="wrap">
-                            <Title order={2}>{s.name}</Title>
+                            <Group gap="xs">
+                                <Title order={2}>{s.name}</Title>
+                                {/* Said where the problems are, because that is
+                                    where somebody is when it happens. */}
+                                {s.pausedAt && (
+                                    <Badge color="orange" variant="filled" size="lg">{t("Paused")}</Badge>
+                                )}
+                            </Group>
                             <Group gap="md">
                                 {renderer.showStartCountdown && s.startDate && (
                                     <Text size="sm" c="dimmed">

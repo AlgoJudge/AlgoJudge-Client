@@ -1,15 +1,21 @@
 import { Event } from "./Event";
+import { StatementRef } from "./FileApi";
 
 /**
  * Models for the participant-facing part of the product.
  *
  * They mirror the Server entities in
  * `AlgoJudge-Server/AlgoJudge.Server/Database/Models/`, reduced to what a
- * participant may see. Two fields are deliberately `unknown` — the ranking
- * payload and a submission's evaluation detail. Both are documents the Runner
- * produces and the Server stores without parsing, rendered here by a renderer
- * chosen from the type. Typing them would put back into the Client exactly the
- * coupling the Server was freed from.
+ * participant may see. One field is deliberately `unknown` — a result's `extra`,
+ * the metric a ranking type may want. It is a document the Runner produces and
+ * the Server stores without parsing; typing it would put back into the Client
+ * exactly the coupling the Server was freed from.
+ *
+ * Two others used to be. The ranking payload went when the Server started
+ * sending results instead of a board, and a submission's evaluation `detail`
+ * went when it became an **attachment**: the per-test table is a file now, named
+ * within its attempt and fetched by id, so the Server carries a reference rather
+ * than a document. See `docs/specs/OPAQUE_DOCUMENTS.md`.
  *
  * Every identifier is a string holding a UUID. A `slug` is a human-readable
  * alias used in URLs and never a reference: nothing points at anything by slug.
@@ -42,10 +48,81 @@ export type DisplayName = string;
 export type ActivityState = "upcoming" | "ongoing" | "finished";
 
 /**
+ * Who may see scores — and, by the same answer, who may see the ranking.
+ *
+ * One setting rather than two. There used to be a `modules.ranking` switch
+ * beside it, which is two answers to one question: a board switched on where
+ * nobody may see a score shows nothing, and a board switched off where everybody
+ * may see them withholds what is already public.
+ *
+ * - `everyone` — the whole board, with places.
+ * - `participantOnly` — the reader's own row, and **no place**: a standing among
+ *   people whose scores they may not see is not a standing.
+ * - `managersOnly` — no ranking screen at all.
+ */
+export type ScoreVisibility = "everyone" | "participantOnly" | "managersOnly";
+
+/**
  * How the signed-in user relates to the activity. The list also shows activities
  * that may be joined, so this is not always "enrolled".
  */
 export type ActivityMembership = "enrolled" | "invited" | "open";
+
+/**
+ * How somebody gets in without a manager doing it for them.
+ *
+ * A manager may always enrol somebody by hand — that is what a grant is — so
+ * these are the three answers to *self*-enrolment and nothing else.
+ */
+export type JoinPolicy =
+    /** No self-enrolment, and not listed to anybody who is not already in it. */
+    | "closed"
+    /** Self-enrolment on giving the activity's join password. */
+    | "password"
+    /** Self-enrolment, no password. */
+    | "open";
+
+/**
+ * A document an activity publishes, written by whoever runs it.
+ *
+ * The same arrangement the instance's documents got, for the same reason: text
+ * an author owns, in the `content.md` format the Client already renders, stored
+ * as a file and referred to by id. An activity is simply a second owner.
+ */
+export type ActivityDocumentKind =
+    /** What somebody **not enrolled** reads on the activity's page. */
+    | "welcome"
+    /** What a participant reads there instead — their landing page. */
+    | "home"
+    /** The regulations, and what the enrolment form asks acceptance of. */
+    | "rules";
+
+/**
+ * Where one activity document lives, and what a screen needs before it has the
+ * text.
+ *
+ * There is one per kind **per language**, as `content-<language>.md` is to a
+ * statement, and the one with no `language` is the fallback. The references ride
+ * on the activity because the activity is loaded once for the whole shell
+ * anyway — the same bargain `InstanceInfo` makes, and for the same reason: a
+ * reference is small and read on every arrival, a document is neither.
+ *
+ * There is no `isTemplate` here. An activity ships nothing: what it publishes,
+ * somebody wrote.
+ */
+export interface ActivityDocumentRef {
+    kind: ActivityDocumentKind,
+    /** BCP-47 subtag. Absent on the one written first. */
+    language?: string,
+    /** Absent on the front pages: their heading is inside the document. */
+    title?: string,
+    /** When this revision came into force. Publishing adds one; it replaces none. */
+    validFrom?: string,
+    /** The stored text, read with `fileApi.getText`. */
+    fileId: string,
+    sha256: string,
+    sizeBytes: number,
+}
 
 export interface Activity {
     id: string,
@@ -60,20 +137,67 @@ export interface Activity {
     timeZone: string,
     state: ActivityState,
     membership: ActivityMembership,
+    /**
+     * How somebody not enrolled may get in. Carried to the participant because
+     * the activity's own page draws the enrolment form from it — the Server
+     * still decides, and refuses whatever the form sends if it is wrong.
+     */
+    joinPolicy: JoinPolicy,
+    /**
+     * Who sees scores, which is also what decides whether the ranking is
+     * offered. Carried to the participant so the navigation can be drawn without
+     * a second field that could disagree with it.
+     */
+    scoreVisibility: ScoreVisibility,
     /** Absent when the activity is not time-limited. */
     startDate?: string,
     endDate?: string,
-    /** Which sidebar modules the activity manager enabled. */
+    /**
+     * Whether a finished round keeps its problems readable. Carried so the
+     * screen can say **why** a round shows none, not so it can decide: the
+     * Server withholds them.
+     */
+    hideEndedSeriesProblems: boolean,
+    /**
+     * A reference to every document this activity currently publishes, one per
+     * kind per language.
+     *
+     * **Every one of them is optional** and an empty list is a legitimate
+     * answer. Which documents exist is read from here and nowhere else: the
+     * rules used to be announced by `modules.rules` as well, which is two
+     * answers to one question and they disagree the moment one is withdrawn.
+     */
+    documents: ActivityDocumentRef[],
+    /**
+     * Which sidebar modules the activity manager enabled.
+     *
+     * Questions alone: the ranking left this list because `scoreVisibility`
+     * already answers it, and the rules left it because whether there are rules
+     * is whether one is published.
+     */
     modules: {
-        ranking: boolean,
         questions: boolean,
-        rules: boolean,
     },
     /** Present once the activity has finished. */
     finalScore?: number,
     maxScore?: number,
     /** Free display metadata, e.g. `Prowadzący: Jan Kowalski`. Never queried. */
     props: { key: string, value: string }[],
+}
+
+/**
+ * What the enrolment form collected.
+ *
+ * Both fields are conditional on the activity: the password only under
+ * `joinPolicy: "password"`, the acceptance only where there are rules to accept.
+ * The Server is told what was given and decides; sending neither where both were
+ * required is refused there, not here.
+ */
+export interface EnrolInput {
+    /** The activity's join password, as typed or as it arrived in the link. */
+    password?: string,
+    /** Recorded with the enrolment, so it stays answerable who accepted what. */
+    acceptedRules?: boolean,
 }
 
 export interface ActivityFilter {
@@ -98,10 +222,38 @@ export interface Series {
     startDate?: string,
     endDate?: string,
     /**
-     * While `false`, `problems` is absent. It is not an empty array: a closed
-     * series does not disclose what it holds.
+     * Whether it is running now.
+     *
+     * The **Server** sets it, from the clock: a scheduler opens a series when its
+     * start passes and closes it when its end does, and announces both. No
+     * screen decides this by looking at a date.
+     *
+     * **Before** it opens, `problems` is absent — not an empty array: a series
+     * that has not started does not disclose what it holds. **After** it ends
+     * they stay: a round that is over is readable for ever and simply accepts
+     * nothing more. `isOpen` is false in both cases, which is why what may be
+     * read and what may be sent are worked out by `api/seriesState.ts` rather
+     * than from this field alone.
      */
     isOpen: boolean,
+    /**
+     * Since when a manager has it stopped. Absent means it is not paused.
+     *
+     * A pause takes no submission and stops the countdown. Whether it also takes
+     * the statements away is the manager's decision at the moment of pausing,
+     * and it is expressed by `isOpen` going false — there is no third field,
+     * because "may I see it" is what `isOpen` has always answered.
+     */
+    pausedAt?: string,
+    /**
+     * When this round's standings may be seen. Absent `from` means the round's
+     * own start; absent `to` means for ever.
+     *
+     * Per round rather than per activity: an organiser publishes the first
+     * round's board while the second is still being fought.
+     */
+    rankingVisibleFrom?: string,
+    rankingVisibleTo?: string,
     /**
      * How many problems the series holds, when the manager allows that to be
      * shown before it opens. Absent means even the count is withheld.
@@ -143,13 +295,6 @@ export interface Attachment {
     sha256: string,
 }
 
-/** One statement in one language. */
-export interface StatementTranslation {
-    /** BCP-47 subtag taken from the file name, for example `en`. */
-    language: string,
-    content: unknown,
-}
-
 /** A field the submit form must render, declared by the problem type. */
 export interface SubmitField {
     kind: "file" | "code",
@@ -167,17 +312,19 @@ export interface ProblemDetail {
     type: string,
     seriesId: string,
     /**
-     * The `content.md` source, or a reference to `content.pdf` when
-     * that is all the problem has. Opaque here; the content renderer validates
-     * and draws it.
+     * The statement, as **references**: `content.md`, its translations, and a
+     * `content.pdf` where the problem ships one.
+     *
+     * The text is fetched with `fileApi.getText`, exactly as it was uploaded
+     * with `fileApi.upload` when the version was published. It used to arrive
+     * inline here while being published by reference, which is the same bytes
+     * on two roads — and the read road had no `sha256`, so the one file on the
+     * page that could not be verified was the one the reader came for.
+     *
+     * The one with no `language` is the default and the fallback; a missing
+     * translation is a fallback, never an error.
      */
-    content: unknown,
-    /**
-     * The same statement in other languages, from `content-<language>.md`. The
-     * Client renders the one matching the reader's interface language and falls
-     * back to `content` — a missing translation is a fallback, never an error.
-     */
-    translations?: StatementTranslation[],
+    statements: StatementRef[],
     /** Everything scoped to participants. Well-known `content.*` files excluded. */
     attachments: Attachment[],
     /** Absent when the manager chose not to show them. */
@@ -226,12 +373,48 @@ export interface EvaluationAttempt {
     state: JobState,
     verdict?: string,
     score?: number,
+    /**
+     * What the Runner attached for this attempt — its log, its per-test
+     * document, whatever else the problem type produces.
+     *
+     * On the **attempt** rather than on the submission, because a rejudge makes
+     * new ones: the source is what was sent once, the log is what one run said.
+     *
+     * Carries only what the reader may see. The activity says who may read each
+     * name, and the Server leaves out the rest — so an empty list means nothing
+     * was attached **or** nothing here is for this reader, and the screen has no
+     * business telling those apart.
+     */
+    files: SubmissionFile[],
 }
 
+/**
+ * One file hanging off a submission or one of its attempts.
+ *
+ * Two names, as `docs/specs/FILE_API.md` has it: `name` is the name **within
+ * the owner** and is what the activity's visibility table keys on — `source`,
+ * `log`, `details`. `fileName` is what was uploaded, and is what a person reads
+ * and downloads.
+ *
+ * The text is fetched with `fileApi.getText(fileId)`, as every other stored
+ * document is. There is no by-name endpoint: a file is reached by its id.
+ */
 export interface SubmissionFile {
+    /** `source`, `log`, `details`. The role, not the file name. */
     name: string,
+    /** `main.cpp`, `solution.zip`, `details.json`. */
+    fileName: string,
+    /** Set on a source file, for the editor's highlighting. */
     language?: string,
+    fileId: string,
+    sha256: string,
+    sizeBytes: number,
 }
+
+/** The names a Runner attaches by convention. Anything else is a new name. */
+export const SUBMISSION_SOURCE = "source";
+export const SUBMISSION_LOG = "log";
+export const SUBMISSION_DETAILS = "details";
 
 export interface SubmissionDetail extends SubmissionSummary {
     /**
@@ -244,10 +427,12 @@ export interface SubmissionDetail extends SubmissionSummary {
     authorName: string,
     /** Newest first. */
     attempts: EvaluationAttempt[],
-    /** The Runner's result document. Rendered by the problem type's renderer. */
-    detail: unknown,
-    /** Present only when the activity's log visibility permits it. */
-    log?: string,
+    /**
+     * What was sent: the source, or the archive.
+     *
+     * On the submission rather than on an attempt, because it is what somebody
+     * did once and every rejudge reads the same bytes.
+     */
     files: SubmissionFile[],
 }
 
@@ -271,6 +456,118 @@ export interface SubmitPayload {
      * encoded as UTF-8. The Server recomputes it and refuses a mismatch.
      */
     sha256?: string,
+}
+
+/* ── Results, from which every ranking is computed ─────────────────────────── */
+
+/**
+ * Somebody with a row on the board.
+ *
+ * A **contestant**, not a user: an ICPC row is a team and three people submit
+ * for it. Who typed a particular solution is the submissions screen's business
+ * and is not disclosed here.
+ */
+export interface Contestant {
+    id: string,
+    name: string,
+}
+
+/** A problem as a board's column: what it is called and what it is worth. */
+export interface ResultProblem {
+    id: string,
+    /** Unique across the whole activity, which is why cells key on it. */
+    slug: string,
+    name: string,
+    maxPoints: number,
+}
+
+/**
+ * One round the results cover.
+ *
+ * Carried even where nobody has attempted anything in it, because a board's
+ * columns are the problems that exist, not the problems somebody has solved.
+ */
+export interface ResultSeries {
+    id: string,
+    name: string,
+    /** What a penalty minute is counted from. Absent in an untimed activity. */
+    startDate?: string,
+    /**
+     * The board is frozen right now: outcomes after the freeze arrive withheld.
+     *
+     * Renderers mark a frozen round's columns, because a combined board that
+     * mixed settled and withheld columns without saying so would read as a
+     * standing when it is not one.
+     */
+    frozen: boolean,
+    /** When the organiser said it comes back. Absent means they did not say. */
+    revealAt?: string,
+    problems: ResultProblem[],
+}
+
+/**
+ * One submission, reduced to what a board needs.
+ *
+ * Deliberately not `SubmissionSummary`: the verdict text, the language and the
+ * Runner's per-test document say more about somebody's solution than a
+ * scoreboard has any business publishing, and the per-test document would also
+ * be most of the payload.
+ */
+export interface ContestantResult {
+    id: string,
+    contestantId: string,
+    seriesId: string,
+    problemId: string,
+    problemSlug: string,
+    submittedAt: string,
+    /**
+     * Absent while `frozen`, and while nothing has judged it yet. Absent is not
+     * zero: a board must not score what it has not been told.
+     */
+    points?: number,
+    /** Absent alongside `points`, for the same two reasons. */
+    state?: JobState,
+    /**
+     * Whatever else the problem type wants a board to have — cycles used, peak
+     * memory, a domain measure. Filled by the Runner, stored by the Server
+     * without being read, shaped by the problem type.
+     *
+     * **Public by construction.** Everyone who may see the board is sent this,
+     * so nothing goes in it that is not meant to be seen. It is not a way back
+     * in for the Runner's per-test document, which is kept out of the feed both
+     * for its size and because per-test rows of everybody's submissions publish
+     * how other people's solutions behave — that stays on the submission, with
+     * its own access rule.
+     *
+     * Untyped for the same reason `SubmissionDetail.detail` is: a ranking type
+     * that needs a metric must not need a Server release to carry it. Whoever
+     * reads it guards the shape, as the result renderers already do.
+     *
+     * An object or absent. **Kept small** — it rides in a list, so it is
+     * multiplied by every submission of every contestant, which is why its
+     * ceiling is a hundredth of the result document's. See
+     * `docs/specs/OPAQUE_DOCUMENTS.md`.
+     */
+    extra?: unknown,
+    /**
+     * Its outcome is withheld: that it happened is all that is disclosed.
+     *
+     * This is what a freeze looks like on the wire. Omitting the result instead
+     * would leave a board unable to tell "did not try" from "tried, and you may
+     * not know yet" — and the second is what the `?` cell of an ICPC board is.
+     */
+    frozen?: boolean,
+}
+
+/** Everything a board is computed from. */
+export interface ActivityResults {
+    /** In the order the rounds run. */
+    series: ResultSeries[],
+    /** Everyone with a row, including those who have sent nothing. */
+    contestants: Contestant[],
+    results: ContestantResult[],
+    /** Which contestant the reader is, where they are one. */
+    me?: string,
 }
 
 export type QuestionKind = "question" | "announcement";
@@ -341,7 +638,7 @@ export type ParticipantEventType =
     | "activityUpdated"
     | "activityDeleted"
     | "activityTimesChanged"
-    | "sectionOpened"
+    | "seriesChanged"
     | "problemStatusChanged"
     | "submissionStateChanged"
     | "rankingChanged"
@@ -370,11 +667,32 @@ export type ActivityTimesChangedEvent = ParticipantEvent<"activityTimesChanged",
     endDate?: string;
 }>;
 
-/** A series reached its start. Carries the problems that were withheld until now. */
-export type SectionOpenedEvent = ParticipantEvent<"sectionOpened", {
+/**
+ * Something happened to a series: it opened, ended, was stopped, started again,
+ * or was moved.
+ *
+ * One event rather than five, because all five carry the same thing — the whole
+ * series, so a screen redraws from what arrived rather than patching it — and
+ * differ only in the sentence to say about it. `opened` carries the problems
+ * that were withheld until then, as it always did.
+ */
+export type SeriesChangedEvent = ParticipantEvent<"seriesChanged", {
     activityId: string;
     series: Series;
+    change: SeriesChange;
 }>;
+
+export type SeriesChange =
+    /** Its start passed, or a manager lifted a pause that had hidden it. */
+    | "opened"
+    /** Its end passed. */
+    | "closed"
+    /** A manager stopped it. */
+    | "paused"
+    /** A manager started it again. */
+    | "resumed"
+    /** Its times moved. */
+    | "rescheduled";
 
 export type ProblemStatusChangedEvent = ParticipantEvent<"problemStatusChanged", {
     activityId: string;
@@ -386,8 +704,36 @@ export type SubmissionStateChangedEvent = ParticipantEvent<"submissionStateChang
     submission: SubmissionSummary;
 }>;
 
+/**
+ * What happened to the results, on the same footing as `SeriesChange`.
+ *
+ * One event with a discriminator rather than three types carrying the same
+ * payload: every listener wants the same thing, which is to end up drawing the
+ * right board.
+ */
+export type RankingChange =
+    /** A submission was judged. `result` carries it, already filtered. */
+    | "result"
+    /** A freeze ended. Everything it withheld is now readable. */
+    | "unfrozen"
+    /** A round's ranking window opened. There is a board that was not there. */
+    | "windowOpened";
+
 export type RankingChangedEvent = ParticipantEvent<"rankingChanged", {
     activityId: string;
+    change: RankingChange;
+    /** Which round it concerns, where it concerns one. */
+    seriesId?: string;
+    /**
+     * The result itself, on `change: "result"` — pushed rather than fetched
+     * because it is small and a scoreboard is watched.
+     *
+     * A screen may merge it, but **the feed remains the source of state**: a
+     * dropped message would otherwise leave a board quietly wrong with nothing
+     * to notice it by, so a reconnection refetches. The other two changes carry
+     * nothing precisely because they mean "what you hold is now incomplete".
+     */
+    result?: ContestantResult;
 }>;
 
 export type QuestionAnsweredEvent = ParticipantEvent<"questionAnswered", {
@@ -410,7 +756,7 @@ export interface ParticipantEventDispatcher {
     addEventListener(type: "activityUpdated", listener: (evt: ActivityUpdatedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "activityDeleted", listener: (evt: ActivityDeletedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "activityTimesChanged", listener: (evt: ActivityTimesChangedEvent) => void, signal: AbortSignal): void;
-    addEventListener(type: "sectionOpened", listener: (evt: SectionOpenedEvent) => void, signal: AbortSignal): void;
+    addEventListener(type: "seriesChanged", listener: (evt: SeriesChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "problemStatusChanged", listener: (evt: ProblemStatusChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "submissionStateChanged", listener: (evt: SubmissionStateChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "rankingChanged", listener: (evt: RankingChangedEvent) => void, signal: AbortSignal): void;
@@ -423,25 +769,67 @@ export interface ParticipantEventDispatcher {
 export interface ParticipantApi {
     readonly eventDispatcher: ParticipantEventDispatcher;
 
+    /**
+     * The activities this reader may see.
+     *
+     * **The Server decides what that means**, and the Client never filters on
+     * `joinPolicy` or `unlisted` itself: an activity that is closed, or hidden
+     * from people who are not in it, is simply not in the answer. A rule the
+     * Client enforced would be a rule anybody could turn off.
+     */
     getActivities(filter: ActivityFilter, signal: AbortSignal): Promise<Page<Activity>>;
-    /** Accepts an id or a slug, as the API does. */
+    /**
+     * Accepts an id or a slug, as the API does.
+     *
+     * Answers for somebody **not enrolled** as well, with what the activity's
+     * own page needs to draw itself for them: identity, dates, `joinPolicy` and
+     * the `welcome` and `rules` references. Not the series, and not the
+     * problems — those belong to being in it.
+     */
     getActivity(idOrSlug: string, signal: AbortSignal): Promise<Activity>;
+
+    /**
+     * Puts the signed-in reader into the activity themselves.
+     *
+     * Answers with the activity as they now see it, so the page redraws from
+     * what came back rather than asking again. A wrong or missing password is
+     * refused by the Server; the Client sends what the form collected and does
+     * not check it.
+     */
+    enroll(idOrSlug: string, input: EnrolInput, signal: AbortSignal): Promise<Activity>;
 
     getSeries(activityId: string, signal: AbortSignal): Promise<Series[]>;
     getProblem(activityId: string, problemSlug: string, signal: AbortSignal): Promise<ProblemDetail>;
 
     getSubmissions(activityId: string, filter: SubmissionFilter, signal: AbortSignal): Promise<Page<SubmissionSummary>>;
     getSubmission(activityId: string, submissionId: string, signal: AbortSignal): Promise<SubmissionDetail>;
-    getSubmissionFile(activityId: string, submissionId: string, name: string, signal: AbortSignal): Promise<string>;
     submit(activityId: string, problemSlug: string, payload: SubmitPayload, signal: AbortSignal): Promise<SubmissionSummary>;
 
-    /** The ranking document, shaped by `Activity.rankingType` and rendered from it. */
-    getRanking(activityId: string, signal: AbortSignal): Promise<unknown>;
+    /**
+     * Every result the reader may see, from which a board is computed.
+     *
+     * The Server sends **results, not a ranking**: which board they add up to is
+     * the activity's `rankingType`, and that is a renderer's business — a Server
+     * computing an ICPC penalty would be encoding the semantics of one ranking
+     * type, which is the thing it is not supposed to know.
+     *
+     * What stays the Server's is not arithmetic but disclosure, and none of it
+     * is optional:
+     *
+     * - the **window** decides whether there is an answer at all,
+     * - the **freeze** withholds outcomes — see `ContestantResult.frozen`,
+     * - `scoreVisibility` decides whose results are in it.
+     *
+     * A board is assembled in the Client, so anything sent has already been
+     * disclosed. Filtering has to happen where the data leaves.
+     *
+     * `seriesId` narrows the feed to one round. The ranking screen does not use
+     * it: the combined board already carries every round the reader may see, so
+     * it asks once and slices what it was given.
+     */
+    getResults(activityId: string, seriesId: string | undefined, signal: AbortSignal): Promise<ActivityResults>;
 
     getQuestions(activityId: string, filter: QuestionFilter, signal: AbortSignal): Promise<Page<Question>>;
     askQuestion(activityId: string, input: AskQuestionInput, signal: AbortSignal): Promise<Question>;
     markQuestionRead(activityId: string, questionId: string, signal: AbortSignal): Promise<void>;
-
-    /** Rules use the same content format as a problem statement. */
-    getRules(activityId: string, signal: AbortSignal): Promise<unknown>;
 }

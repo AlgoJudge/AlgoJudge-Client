@@ -1,6 +1,9 @@
 import { Api } from "../Api";
 import { NullEventConnection } from "../EventConnection";
 import { CoreApiFake } from "./CoreApiFake";
+import { FakeActivities } from "./FakeActivities";
+import { FakeAccess } from "./FakeAccess";
+import { FakeInstance } from "./FakeInstance";
 import { FakeFiles, FileApiFake } from "./FileApiFake";
 import { ManagerApiFake } from "./ManagerApiFake";
 import { ParticipantApiFake } from "./ParticipantApiFake";
@@ -11,10 +14,22 @@ export class FakeApiFactory {
         // problem's figure and a Runner's log are the same row, told apart by
         // what references them. Handed to whoever seeds or reads bytes.
         const files = new FakeFiles();
+        // And one instance, for the same reason: the manager screen writes what
+        // the shell and the front page read.
+        const instance = new FakeInstance(files);
+        // And one owner for what an activity publishes and how somebody joins
+        // it, because the manager screen writes exactly what the activity page
+        // reads — two copies would let them disagree.
+        const activities = new FakeActivities(files);
+        // And one owner for the grants. The manager screens write them and the
+        // participant endpoints enforce them — the ranking feed decides what
+        // leaves from `ranking:read:unfrozen`, so a second copy would let a
+        // revoked permission still open a door.
+        const access = new FakeAccess();
         return {
-            authApi: new CoreApiFake(files),
-            participantApi: new ParticipantApiFake(),
-            managerApi: new ManagerApiFake(files),
+            authApi: new CoreApiFake(instance),
+            participantApi: new ParticipantApiFake(files, activities, access),
+            managerApi: new ManagerApiFake(files, instance, activities, access),
             fileApi: new FileApiFake(files),
             // The fake dispatches its own events as it changes things, so there
             // is no connection to open and nothing to pretend about.

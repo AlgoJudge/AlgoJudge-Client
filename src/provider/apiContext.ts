@@ -1,6 +1,7 @@
 import { createContext, DependencyList, useCallback, useContext, useEffect, useState } from "react";
 import { Api } from "../api/Api";
 import { ScopedApi } from "../api/ScopedApi";
+import { useConnectionGeneration } from "./connectionContext";
 
 /**
  * The API context and the three hooks that read it, apart from the component
@@ -31,6 +32,11 @@ export const useApi = (): Api => {
 export const useApiEffect = (f: (api: ScopedApi) => Promise<void>, deps: DependencyList = []): unknown => {
     const api = useApi();
     const [error, setError] = useState<unknown>(undefined);
+    // A reconnected socket replays nothing, so whatever this effect fetched
+    // while the connection was down may have moved. Carried here rather than at
+    // the call sites: every one of them wants it, and none of them should have
+    // to remember. Zero and unchanging until something is actually lost.
+    const generation = useConnectionGeneration();
     // Silenced here because here is the one place nothing can go wrong. The list
     // is a parameter rather than a literal, so the rule stops at the wrapper —
     // and what it asks for instead would break the application: `api` is created
@@ -51,7 +57,9 @@ export const useApiEffect = (f: (api: ScopedApi) => Promise<void>, deps: Depende
             setError(reason ?? new Error("Request failed"));
         });
         return () => controller.abort();
-    }, deps);
+        // Spread rather than passed through: React compares the entries, not the
+        // array, so building a new one each render costs nothing.
+    }, [...deps, generation]);
     /* eslint-enable react-hooks/exhaustive-deps */
     return error;
 }

@@ -9,6 +9,8 @@ import { useApiEffect } from "../../../../../provider/apiContext";
 import LoadState from "../../../../../components/LoadState";
 import { resultRenderers } from "../../../../../renderers";
 import StateBadge from "../../../../../components/submission/StateBadge";
+import { useAttachment, useResultDocument } from "../../../../../components/submission/useAttachment";
+import { SUBMISSION_DETAILS, SUBMISSION_LOG } from "../../../../../api/ParticipantApi";
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
     <Text>
@@ -39,6 +41,12 @@ export default function SubmissionPage() {
             setSubmission(await api.participantApi.getSubmission(activity.id, submissionId));
         });
     }, [activityId, submissionId]);
+
+    // The newest attempt's attachments. Above the early return, because a hook
+    // cannot be called conditionally — and `undefined` files fetch nothing.
+    const latest = submission?.attempts[0]?.files;
+    const { document: details } = useResultDocument(latest, SUBMISSION_DETAILS);
+    const { text: log } = useAttachment(latest, SUBMISSION_LOG);
 
     if (!activity || !submission) {
         return <LoadState error={error} loading={!error} />;
@@ -110,7 +118,7 @@ export default function SubmissionPage() {
                     </Group>
                 </Alert>
             ) : (
-                <Result detail={submission.detail} />
+                <Result detail={details} />
             )}
 
             {submission.attempts.length > 1 && (
@@ -137,11 +145,13 @@ export default function SubmissionPage() {
                 </Card>
             )}
 
-            {/* Present only when the activity's log visibility permits it. */}
-            {submission.log && (
+            {/* Here only when the activity lets a participant read it. The
+                Server sends the attachment or does not; there is nothing here to
+                decide, and nothing to say when it is absent. */}
+            {log && (
                 <Card withBorder radius="sm">
                     <Title order={4} mb="xs">{t("Evaluation log")}</Title>
-                    <Code block style={{ whiteSpace: "pre-wrap" }}>{submission.log}</Code>
+                    <Code block style={{ whiteSpace: "pre-wrap" }}>{log}</Code>
                 </Card>
             )}
         </Stack>

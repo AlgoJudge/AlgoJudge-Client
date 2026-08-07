@@ -1,25 +1,27 @@
+import { ActivityResults } from "../../api/ParticipantApi";
+
 /**
- * Reading a ranking document.
+ * What every ranking renderer is handed.
  *
- * The document is produced by a Runner and stored by the Server without being
- * parsed, so it reaches the Client as genuinely unknown data. Every field is
- * read through one of these rather than asserted, because a shape that is only
- * assumed is a shape that eventually arrives wrong.
+ * The **results**, not a ranking: one shape for every ranking type, because what
+ * differs between them is the arithmetic, not the data it runs on. This used to
+ * be an opaque document each renderer parsed for itself, which was right while
+ * the Server assembled the board — it no longer does, so there is nothing left
+ * to guess at and the type says so.
+ *
+ * A ranking type needing more than this should read it from the activity or the
+ * series rather than have it smuggled through the results: the feed is what
+ * everybody submitted, and it stays that.
  */
-
 export interface RankingProps {
-    /** The ranking document, as stored. Each renderer parses its own shape. */
-    ranking: unknown;
+    results: ActivityResults;
     timeZone: string;
+    /**
+     * Whether the rows get places.
+     *
+     * False under `scoreVisibility: "participantOnly"`, where the reader is sent
+     * their own results and nobody else's: a standing among people whose scores
+     * you may not see is not a standing.
+     */
+    ranked: boolean;
 }
-
-export const isRecord = (v: unknown): v is Record<string, unknown> =>
-    typeof v === "object" && v !== null && !Array.isArray(v);
-
-export const asArray = (v: unknown): unknown[] => Array.isArray(v) ? v : [];
-
-export const asString = (v: unknown): string | undefined =>
-    typeof v === "string" ? v : undefined;
-
-export const asNumber = (v: unknown): number | undefined =>
-    typeof v === "number" ? v : undefined;

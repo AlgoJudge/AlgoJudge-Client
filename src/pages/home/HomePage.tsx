@@ -3,7 +3,8 @@ import { IconAlertTriangle, IconArrowRight, IconListDetails, IconLogin, IconSett
 import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { pickDocumentRef } from "../../api/instanceDocuments";
+import { activityEntryPath } from "../../api/activityDocuments";
+import { LOGO_ATTACHMENT, pickDocumentRef } from "../../api/instanceDocuments";
 import { Activity, Attachment } from "../../api/ParticipantApi";
 import ActivityTime from "../../components/time/ActivityTime";
 import { MANAGER_PERMISSIONS } from "../manager/managerAreas";
@@ -29,7 +30,6 @@ const ContentView = lazy(() => import("../../content/ContentView"));
  * the page cannot reach outside the instance.
  */
 
-const LOGO_ATTACHMENT = "logo.svg";
 
 export default function HomePage() {
     const { t, i18n } = useTranslation();
@@ -72,13 +72,12 @@ export default function HomePage() {
     return (
         <Container size={900}>
             <Stack gap="lg">
-                {content === undefined ? (
+                {/* An instance that has written no front page shows none. Not a
+                    placeholder and not an apology: the reader still gets the way
+                    in, or their activities, which is what they came for. */}
+                {content === undefined && ref ? (
                     <Center my="xl"><Loader /></Center>
-                ) : content === null || !ref ? (
-                    <Alert color="yellow" icon={<IconAlertTriangle size={18} />}>
-                        {t("This instance publishes no front page yet.")}
-                    </Alert>
-                ) : (
+                ) : content && ref ? (
                     <>
                         {/* Said where an operator will see it, and only to
                             somebody who could act on it. A greeting nobody
@@ -94,7 +93,7 @@ export default function HomePage() {
                             </Suspense>
                         </Paper>
                     </>
-                )}
+                ) : null}
 
                 {!signedIn && status !== "loading" && (
                     <Group>
@@ -144,7 +143,7 @@ export default function HomePage() {
                                             withBorder
                                             radius="md"
                                             component={Link}
-                                            to={`/activities/${activity.slug}/problems`}
+                                            to={activityEntryPath(activity)}
                                             h="100%"
                                         >
                                             <Stack gap={6}>

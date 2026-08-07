@@ -1,4 +1,8 @@
-import { ManagedProblem, ManagedProblemVersion, StatementVariant } from "../../ManagerApi";
+import { StatementRef } from "../../FileApi";
+import { ManagedProblem, ManagedProblemVersion } from "../../ManagerApi";
+// Type-only, as the other fixtures do it: they say what is stored and are handed
+// the store rather than reaching for one of their own.
+import type { FakeFiles } from "../FileApiFake";
 import {
     arraysStatement,
     graphConnectivityStatement,
@@ -48,17 +52,23 @@ const standardIoConfig = (timeMs: number, memoryMb: number, groups: number[]) =>
 export interface ProblemRecord {
     problem: ManagedProblem;
     versions: ManagedProblemVersion[];
-    /** Every statement of each version — the default and its translations. */
-    content: Map<string, StatementVariant[]>;
+    /**
+     * Every statement of each version — the default and its translations, as
+     * **references**. The text is in the file store, which is where it is on the
+     * Server: the editor reads it back with `fileApi.getText`, exactly as it
+     * uploaded it.
+     */
+    content: Map<string, StatementRef[]>;
 }
 
 const record = (
+    files: FakeFiles,
     problem: ManagedProblem,
     versions: {
         id: string; version: number; note?: string; days: number; config: unknown; hasPackage: boolean;
-        content?: unknown;
+        content?: string;
         /** Keyed by language subtag, stored as `content-<language>.md`. */
-        translations?: Record<string, unknown>;
+        translations?: Record<string, string>;
     }[],
 ): ProblemRecord => ({
     problem,
@@ -90,13 +100,27 @@ const record = (
         ],
     })).sort((a, b) => b.version - a.version),
     content: new Map(versions.filter(v => v.content).map(v => [v.id, [
-        { content: v.content },
-        ...Object.entries(v.translations ?? {}).map(([language, content]) => ({ language, content })),
+        statementRef(files, v.id, undefined, v.content!),
+        ...Object.entries(v.translations ?? {}).map(([language, text]) =>
+            statementRef(files, v.id, language, text)),
     ]])),
 });
 
-export const createProblemLibrary = (): ProblemRecord[] => [
+/** Stores one language's text and answers with the reference the editor reads. */
+const statementRef = (
+    files: FakeFiles,
+    versionId: string,
+    language: string | undefined,
+    text: string,
+): StatementRef => {
+    const name = language ? `content-${language}.md` : "content.md";
+    const stored = files.seedText(`${versionId}/${name}`, "text/markdown", text);
+    return { name, language, fileId: stored.id, sha256: stored.sha256, sizeBytes: stored.sizeBytes };
+};
+
+export const createProblemLibrary = (files: FakeFiles): ProblemRecord[] => [
     record(
+        files,
         {
             id: "prob-graf", slug: "spojnosc-grafu", name: "Spójność grafu", type: "standard-io@1",
             ownerUserId: ME, ownerName: "Amy Horsefighter",
@@ -112,6 +136,7 @@ export const createProblemLibrary = (): ProblemRecord[] => [
         ],
     ),
     record(
+        files,
         {
             id: "prob-dijkstra", slug: "najkrotsza-sciezka", name: "Najkrótsza ścieżka", type: "standard-io@1",
             ownerUserId: ME, ownerName: "Amy Horsefighter",
@@ -125,6 +150,7 @@ export const createProblemLibrary = (): ProblemRecord[] => [
         ],
     ),
     record(
+        files,
         {
             // A draft: private, one version, no package yet. The common state of
             // something being written, and the one the editor is for.
@@ -139,6 +165,7 @@ export const createProblemLibrary = (): ProblemRecord[] => [
         ],
     ),
     record(
+        files,
         {
             id: "prob-petle", slug: "petle-i-sumy", name: "Pętle i sumy", type: "standard-io@1",
             ownerUserId: "user-kowalski", ownerName: "Jan Kowalski",
@@ -151,6 +178,7 @@ export const createProblemLibrary = (): ProblemRecord[] => [
         ],
     ),
     record(
+        files,
         {
             // Retired: out of the picker, still working wherever it was used.
             id: "prob-tablice", slug: "tablice", name: "Tablice", type: "standard-io@1",

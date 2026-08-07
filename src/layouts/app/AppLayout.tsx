@@ -14,7 +14,11 @@ import { useTranslation } from "react-i18next";
 import { useApiEffect } from "../../provider/apiContext";
 import { Activity, Series } from "../../api/ParticipantApi";
 import { PROJECT_SITE } from "../../site";
+import { publishedLegalKinds } from "../../api/instanceDocuments";
+import { hasDocument } from "../../api/activityDocuments";
 import Countdown from "../../components/time/Countdown";
+import ActivityNotifications from "../../components/notifications/ActivityNotifications";
+import ActivitySubmissions from "../../components/activity/ActivitySubmissions";
 
 const NavbarLink = (props: {
     label: string,
@@ -107,6 +111,7 @@ const ManagerNavbar = (props: { collapsed: boolean }) => {
 const FootLinks = (props: { collapsed: boolean }) => {
     const { t } = useTranslation();
     const { instance } = useInstance();
+    const documents = publishedLegalKinds(instance.documents);
     // Nothing when collapsed: without an icon there is nothing left to draw at a
     // hundred pixels wide.
     if (props.collapsed) return null;
@@ -119,7 +124,7 @@ const FootLinks = (props: { collapsed: boolean }) => {
             </a>
             {/* Which documents exist is the instance's decision, and one that
                 publishes none must not show four dead links. */}
-            {instance.legalDocuments.map(kind => (
+            {documents.map(kind => (
                 <NavLink key={kind} to={`/${kind}`} className={classes.footLink}>
                     {t(`legal.${kind}`)}
                 </NavLink>
@@ -142,18 +147,34 @@ const ActivityNavbar = (props: {
     // course legitimately has no ranking, and the entry must not be there when
     // it does not.
     const base = `/activities/${activity.slug}`;
+    // Somebody who is not in the activity gets its name and the way to manage it
+    // if they may, and nothing else. Offering Submit and My submissions to
+    // somebody who is not enrolled is offering five screens that will refuse.
+    const enrolled = activity.membership === "enrolled";
     const links = [
-        { to: `${base}/problems`, label: t("Problems"), icon: IconNotes },
-        { to: `${base}/submit`, label: t("Submit"), icon: IconPackageExport },
-        { to: `${base}/submissions`, label: t("My submissions"), icon: IconBox },
-        activity.modules.ranking && { to: `${base}/ranking`, label: t("Ranking"), icon: IconChartBarPopular },
-        activity.modules.questions && { to: `${base}/questions`, label: t("Questions and announcements"), icon: IconMessageQuestion },
-        activity.modules.rules && { to: `${base}/rules`, label: t("Rules"), icon: IconSectionSign },
+        // Above the problems, and only where somebody wrote the page: an entry
+        // leading to a blank page is worse than no entry.
+        enrolled && hasDocument(activity.documents, "home")
+            && { to: base, label: t("Activity page"), icon: IconHome },
+        enrolled && { to: `${base}/problems`, label: t("Problems"), icon: IconNotes },
+        enrolled && { to: `${base}/submit`, label: t("Submit"), icon: IconPackageExport },
+        enrolled && { to: `${base}/submissions`, label: t("My submissions"), icon: IconBox },
+        // From who may see scores, not from a switch beside it. Withheld only
+        // where nobody but a manager may see one: a participant who may see
+        // their own gets the screen showing exactly that.
+        enrolled && activity.scoreVisibility !== "managersOnly"
+            && { to: `${base}/ranking`, label: t("Ranking"), icon: IconChartBarPopular },
+        enrolled && activity.modules.questions && { to: `${base}/questions`, label: t("Questions and announcements"), icon: IconMessageQuestion },
+        // From the reference rather than a module flag: whether there are rules
+        // is whether somebody published any, and a flag beside them could be on
+        // over nothing.
+        hasDocument(activity.documents, "rules")
+            && { to: `${base}/rules`, label: t("Rules"), icon: IconSectionSign },
         // The way back into administering the activity being looked at. Scoped
         // to this one: holding `activity:update` somewhere else is not a reason
         // to offer a screen that would refuse.
         props.permissions.includes("activity:update")
-            && { to: `/manager/activities/${activity.id}`, label: t("Manage this activity"), icon: IconSettings },
+            && { to: `/manager/activities/${activity.slug}`, label: t("Manage this activity"), icon: IconSettings },
     ]
     return (
         <>
@@ -179,8 +200,23 @@ const ActivityClock = ({ activity, series }: { activity: Activity | undefined, s
     const now = Date.now();
     const running = series.find(s =>
         s.isOpen && s.endDate !== undefined &&
+        // A paused series counts to nothing: its end is going to move, or the
+        // time is simply not running, and a header ticking through an
+        // interruption is worse than a header saying so.
+        s.pausedAt === undefined &&
         (s.startDate === undefined || Date.parse(s.startDate) <= now) &&
         Date.parse(s.endDate) > now);
+
+    // Stopped rather than absent: somebody watching the clock should see why it
+    // is not moving.
+    const paused = series.find(s => s.pausedAt !== undefined);
+    if (paused) {
+        return (
+            <Badge size="lg" variant="light" color="orange" leftSection={<IconClock size={14} />}>
+                {t("Paused")}
+            </Badge>
+        );
+    }
     if (!running?.endDate) return null;
 
     return (
@@ -330,7 +366,10 @@ export default function AppLayout() {
         api.participantApi.eventDispatcher.addEventListener("activityUpdated", evt => {
             if (evt.data.activity.id === loaded.id) setActivity(evt.data.activity);
         });
-        api.participantApi.eventDispatcher.addEventListener("sectionOpened", evt => {
+        // Opened, ended, stopped, started again or moved — all of it arrives as
+        // the whole series, so the sidebar and the clock redraw from what came
+        // rather than working out which fields changed.
+        api.participantApi.eventDispatcher.addEventListener("seriesChanged", evt => {
             if (evt.data.activityId !== loaded.id) return;
             setSeries(current => current.map(s => s.id === evt.data.series.id ? evt.data.series : s));
         });
@@ -435,6 +474,15 @@ export default function AppLayout() {
                     <Outlet />
                 </Suspense>
             </AppShell.Main>
+
+            {/* Mounted by the shell, which already knows which activity is being
+                looked at, and stays mounted while the reader moves between its
+                screens — so nothing is announced twice and nothing is missed. */}
+            <ActivityNotifications activityId={activity?.id} slug={activity?.slug} />
+            {/* Beside them, in the other corner, and only inside an activity. */}
+            {/* The shell already holds both, and the panel's modal needs the
+                rounds to offer a problem — so nothing is fetched twice. */}
+            <ActivitySubmissions activity={activity} series={series} />
         </AppShell>
     );
 }

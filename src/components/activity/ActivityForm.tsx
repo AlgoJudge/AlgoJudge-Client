@@ -1,9 +1,15 @@
-import { Alert, Card, Grid, Group, NumberInput, Select, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
-import { IconInfoCircle } from "@tabler/icons-react";
+import {
+    ActionIcon, Alert, Card, Grid, Group, MultiSelect, NumberInput, SegmentedControl,
+    Select, Stack, Switch, Text, TextInput, Title, Tooltip,
+} from "@mantine/core";
+import { useClipboard } from "@mantine/hooks";
+import { IconCheck, IconCopy, IconInfoCircle } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
-import { ActivityInput, JoinPolicy, LogVisibility, ScoreVisibility } from "../../api/ManagerApi";
+import { ActivityInput, AttachmentVisibility, JoinPolicy, ScoreVisibility } from "../../api/ManagerApi";
 import ZonedDateTimeInput from "../time/ZonedDateTimeInput";
 import { MB } from "./activityInput";
+import { LANGUAGES } from "../editor/languages";
+import { activityTypes } from "../../renderers";
 
 /**
  * Everything an activity is configured with, in one form.
@@ -16,6 +22,61 @@ import { MB } from "./activityInput";
 /** The zones an installation in Poland actually uses. Free text stays allowed. */
 const ZONES = ["Europe/Warsaw", "Europe/London", "UTC"];
 
+/**
+ * The address to send to a class.
+ *
+ * Offered wherever somebody may enrol themselves, which is both policies that
+ * allow it — the difference is only whether the password rides along. An open
+ * activity needs the link just as much: it may be unlisted, and then the address
+ * is the only way anybody reaches it.
+ *
+ * The password goes in the **fragment**, never a query parameter, because a
+ * fragment is not sent to a server: it reaches no access log, no proxy and no
+ * referrer header. Copying is offered rather than assumed — the link is the
+ * whole point, and reading it off the screen to retype is not a workflow.
+ */
+function ShareLink({ slug, password, withPassword }: {
+    slug: string,
+    password?: string,
+    withPassword: boolean,
+}) {
+    const { t } = useTranslation();
+    const clipboard = useClipboard({ timeout: 1500 });
+
+    if (!slug || (withPassword && !password)) {
+        return (
+            <Text size="sm" c="dimmed" mt="xl">
+                {withPassword
+                    ? t("The share link appears once the activity has a slug and a password.")
+                    : t("The share link appears once the activity has a slug.")}
+            </Text>
+        );
+    }
+
+    const link = `${window.location.origin}/activities/${encodeURIComponent(slug)}`
+        + (withPassword ? `#${encodeURIComponent(password!)}` : "");
+    return (
+        <Stack gap={4}>
+            <Text size="sm" fw={500}>
+                {withPassword ? t("Link for self-enrolment") : t("Link to the activity")}
+            </Text>
+            <Group gap="xs" wrap="nowrap">
+                <Text size="sm" ff="monospace" style={{ wordBreak: "break-all" }}>{link}</Text>
+                <Tooltip label={clipboard.copied ? t("Copied") : t("Copy")}>
+                    <ActionIcon variant="subtle" onClick={() => clipboard.copy(link)} aria-label={t("Copy")}>
+                        {clipboard.copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
+                    </ActionIcon>
+                </Tooltip>
+            </Group>
+            <Text size="xs" c="dimmed">
+                {withPassword
+                    ? t("Anybody with this link and an account can enrol themselves.")
+                    : t("Anybody with an account can enrol themselves from this link.")}
+            </Text>
+        </Stack>
+    );
+}
+
 export interface ActivityFormProps {
     value: ActivityInput;
     onChange: (value: ActivityInput) => void;
@@ -27,6 +88,7 @@ export interface ActivityFormProps {
 export default function ActivityForm({ value, onChange, slugLocked, disabled }: ActivityFormProps) {
     const { t } = useTranslation();
     const set = (patch: Partial<ActivityInput>) => onChange({ ...value, ...patch });
+    const chosenType = activityTypes().find(type => type.id === value.type);
 
     return (
         <Stack gap="md">
@@ -55,11 +117,19 @@ export default function ActivityForm({ value, onChange, slugLocked, disabled }: 
                         />
                     </Grid.Col>
                     <Grid.Col span={{ base: 12, sm: 4 }}>
-                        <TextInput
+                        {/* A choice here too, and for the same reason as on the
+                            create form: the type decides how the activity
+                            presents its series. */}
+                        <Select
                             label={t("Type")}
-                            description={t("Activity type discriminator, name@version")}
+                            description={chosenType ? t(chosenType.description) : undefined}
+                            data={activityTypes().map(type => ({
+                                value: type.id,
+                                label: `${t(type.label)} — ${type.id}`,
+                            }))}
                             value={value.type}
-                            onChange={e => set({ type: e.currentTarget.value })}
+                            onChange={type => type && set({ type })}
+                            allowDeselect={false}
                             disabled={disabled}
                         />
                     </Grid.Col>
@@ -87,7 +157,51 @@ export default function ActivityForm({ value, onChange, slugLocked, disabled }: 
                             disabled={disabled}
                         />
                     </Grid.Col>
+                    <Grid.Col span={{ base: 12, sm: 8 }}>
+                        <MultiSelect
+                            label={t("Languages accepted")}
+                            description={t("Narrowing this leaves what has already been sent alone")}
+                            data={LANGUAGES}
+                            value={value.languages}
+                            onChange={languages => set({ languages })}
+                            disabled={disabled}
+                            searchable
+                            clearable
+                        />
+                    </Grid.Col>
                 </Grid>
+
+                {/* One row per name a Runner attaches. It replaced a single
+                    "who sees the log" switch, which was this table with one row
+                    and no way to add another — and a Runner attaches more than
+                    a log. */}
+                <Stack gap={4}>
+                    <Text size="sm" fw={500}>{t("Who sees what a submission carries")}</Text>
+                    <Text size="xs" c="dimmed">
+                        {t("A name that is not listed here is shown to managers only.")}
+                    </Text>
+                    {value.attachmentVisibility.map((rule, index) => (
+                        <Group key={rule.name} gap="sm" wrap="nowrap">
+                            <Text size="sm" ff="monospace" style={{ width: "8rem" }}>{rule.name}</Text>
+                            <Text size="xs" c="dimmed" style={{ flex: 1 }}>
+                                {t(`attachment.${rule.name}`, { defaultValue: "" })}
+                            </Text>
+                            <SegmentedControl
+                                size="xs"
+                                value={rule.visibility}
+                                onChange={v => set({
+                                    attachmentVisibility: value.attachmentVisibility.map((other, at) =>
+                                        at === index ? { ...other, visibility: v as AttachmentVisibility } : other),
+                                })}
+                                data={[
+                                    { value: "managersOnly", label: t("logVisibility.managersOnly") },
+                                    { value: "participant", label: t("logVisibility.participant") },
+                                ]}
+                                disabled={disabled}
+                            />
+                        </Group>
+                    ))}
+                </Stack>
             </Card>
 
             <Card withBorder radius="sm">
@@ -121,26 +235,31 @@ export default function ActivityForm({ value, onChange, slugLocked, disabled }: 
                 <Title order={5} mb="sm">{t("Modules")}</Title>
                 <Group gap="lg" wrap="wrap">
                     <Switch
-                        label={t("Ranking")}
-                        checked={value.modules.ranking}
-                        onChange={e => set({ modules: { ...value.modules, ranking: e.currentTarget.checked } })}
-                        disabled={disabled}
-                    />
-                    <Switch
                         label={t("Questions and announcements")}
                         checked={value.modules.questions}
                         onChange={e => set({ modules: { ...value.modules, questions: e.currentTarget.checked } })}
                         disabled={disabled}
                     />
-                    <Switch
-                        label={t("Rules")}
-                        checked={value.modules.rules}
-                        onChange={e => set({ modules: { ...value.modules, rules: e.currentTarget.checked } })}
-                        disabled={disabled}
-                    />
                 </Group>
                 <Text size="sm" c="dimmed" mt="xs">
                     {t("A disabled module leaves the participant's sidebar entirely.")}
+                </Text>
+                <Text size="sm" c="dimmed">
+                    {t("The ranking follows who sees scores, below.")}
+                </Text>
+                <Switch
+                    mt="sm"
+                    label={t("Hide the problems of finished series")}
+                    description={t("Off, a finished round stays readable: it is over, not secret.")}
+                    checked={value.hideEndedSeriesProblems}
+                    onChange={e => set({ hideEndedSeriesProblems: e.currentTarget.checked })}
+                    disabled={disabled}
+                />
+                {/* The rules used to be a switch here. They are a document now,
+                    and whether there are any is whether one is published — one
+                    answer rather than a flag that can be on over nothing. */}
+                <Text size="sm" c="dimmed">
+                    {t("Rules appear once you publish them under Documents.")}
                 </Text>
             </Card>
 
@@ -148,8 +267,12 @@ export default function ActivityForm({ value, onChange, slugLocked, disabled }: 
                 <Title order={5} mb="sm">{t("Visibility and enrolment")}</Title>
                 <Grid>
                     <Grid.Col span={{ base: 12, sm: 4 }}>
+                        {/* One setting, because it is one question. A ranking
+                            switched on where nobody may see a score shows
+                            nothing, and switched off where everybody may see
+                            them withholds what is already public. */}
                         <Select
-                            label={t("Who sees scores")}
+                            label={t("Who sees scores and the ranking")}
                             data={[
                                 { value: "everyone", label: t("scoreVisibility.everyone") },
                                 { value: "participantOnly", label: t("scoreVisibility.participantOnly") },
@@ -157,36 +280,65 @@ export default function ActivityForm({ value, onChange, slugLocked, disabled }: 
                             ]}
                             value={value.scoreVisibility}
                             onChange={v => v && set({ scoreVisibility: v as ScoreVisibility })}
-                            disabled={disabled}
-                        />
-                    </Grid.Col>
-                    <Grid.Col span={{ base: 12, sm: 4 }}>
-                        <Select
-                            label={t("Who sees the evaluation log")}
-                            description={t("Compiler output and the judge's messages")}
-                            data={[
-                                { value: "managersOnly", label: t("logVisibility.managersOnly") },
-                                { value: "participant", label: t("logVisibility.participant") },
-                            ]}
-                            value={value.logVisibility}
-                            onChange={v => v && set({ logVisibility: v as LogVisibility })}
+                            allowDeselect={false}
                             disabled={disabled}
                         />
                     </Grid.Col>
                     <Grid.Col span={{ base: 12, sm: 4 }}>
                         <Select
                             label={t("Who may join")}
+                            description={t("A manager may always enrol somebody by hand")}
                             data={[
                                 { value: "closed", label: t("joinPolicy.closed") },
-                                { value: "invitation", label: t("joinPolicy.invitation") },
+                                { value: "password", label: t("joinPolicy.password") },
                                 { value: "open", label: t("joinPolicy.open") },
                             ]}
                             value={value.joinPolicy}
                             onChange={v => v && set({ joinPolicy: v as JoinPolicy })}
+                            allowDeselect={false}
                             disabled={disabled}
                         />
                     </Grid.Col>
+                    <Grid.Col span={{ base: 12, sm: 8 }}>
+                        <Switch
+                            mt="xl"
+                            label={t("Hide from the activity list of people who are not enrolled")}
+                            description={value.joinPolicy === "closed"
+                                ? t("A closed activity is hidden either way: nobody enrols themselves.")
+                                : t("It stays reachable by its address, which is how a link works.")}
+                            // Forced on where the policy already means it, rather
+                            // than left switchable and quietly ignored.
+                            checked={value.joinPolicy === "closed" || value.unlisted}
+                            onChange={e => set({ unlisted: e.currentTarget.checked })}
+                            disabled={disabled || value.joinPolicy === "closed"}
+                        />
+                    </Grid.Col>
                 </Grid>
+
+                {/* Both policies that admit self-enrolment get the link. Only
+                    `closed` has nobody to give it to. */}
+                {value.joinPolicy !== "closed" && (
+                    <Grid mt="sm">
+                        {value.joinPolicy === "password" && (
+                            <Grid.Col span={{ base: 12, sm: 5 }}>
+                                <TextInput
+                                    label={t("Join password")}
+                                    description={t("A join code for the activity, not anybody's password")}
+                                    value={value.joinPassword ?? ""}
+                                    onChange={e => set({ joinPassword: e.currentTarget.value })}
+                                    disabled={disabled}
+                                />
+                            </Grid.Col>
+                        )}
+                        <Grid.Col span={{ base: 12, sm: value.joinPolicy === "password" ? 7 : 12 }}>
+                            <ShareLink
+                                slug={value.slug}
+                                password={value.joinPassword}
+                                withPassword={value.joinPolicy === "password"}
+                            />
+                        </Grid.Col>
+                    </Grid>
+                )}
             </Card>
 
             <Card withBorder radius="sm">

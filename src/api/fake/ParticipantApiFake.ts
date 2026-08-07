@@ -2,7 +2,9 @@ import { ParticipantEventDispatcherImpl } from "../impl/ParticipantEventDispatch
 import {
     Activity,
     ActivityFilter,
+    ActivityResults,
     AskQuestionInput,
+    EnrolInput,
     JobState,
     Page,
     ParticipantApi,
@@ -12,10 +14,22 @@ import {
     Series,
     SubmissionDetail,
     SubmissionFilter,
+    SeriesChange,
     SubmissionSummary,
     SubmitPayload,
+    SUBMISSION_SOURCE,
 } from "../ParticipantApi";
+import { FakeActivities, SeriesRelay } from "./FakeActivities";
+import { FakeAccess } from "./FakeAccess";
+import { AttachmentRule } from "../ManagerApi";
+import { maySubmit, mayReadProblems } from "../seriesState";
+import { FakeFiles } from "./FileApiFake";
 import { createDataset, Dataset, OPENING_SERIES_DELAY } from "./fixtures";
+import { activityResults, resultOf } from "./fixtures/results";
+import { attemptFiles, readableBy } from "./fixtures/attachments";
+import { attemptId, meOf, SeedAttempt, SeedSeries } from "./fixtures/world";
+import { rankingWindow } from "../rankingWindow";
+import { ForbiddenError } from "../ApiError";
 import { Utils } from "./Utils";
 import { sha256 } from "../../utils/sha256";
 
@@ -54,11 +68,21 @@ const notFound = (what: string): never => Utils.throwError(`${what} does not exi
  * discover a bug in it.
  */
 class FakeParticipantState {
-    private readonly data: Dataset = createDataset();
+    private readonly data: Dataset;
+    private readonly shared: FakeActivities;
     private readonly timers: ReturnType<typeof setTimeout>[] = [];
     private started = false;
 
-    constructor(private readonly events: ParticipantEventDispatcherImpl) {}
+    constructor(
+        private readonly events: ParticipantEventDispatcherImpl,
+        private readonly files: FakeFiles,
+        shared: FakeActivities,
+        private readonly access: FakeAccess,
+    ) {
+        this.data = createDataset(files);
+        this.shared = shared;
+        shared.onSeriesChanged(relay => this.applyRelay(relay));
+    }
 
     dataset(): Dataset {
         this.start();
@@ -72,20 +96,52 @@ class FakeParticipantState {
 
         const contest = this.data.activities[0];
 
-        // A queued submission works its way through the states.
-        this.after(6000, () => this.setSubmissionState(contest.id, "sub-1", "running"));
-        this.after(15000, () => this.completeSubmission(contest.id, "sub-1", 100, "Accepted"));
-        this.after(9000, () => this.completeSubmission(contest.id, "sub-2", 65, "Partially accepted"));
+        // A queued submission works its way through the states, and a running one
+        // finishes. Found by their state rather than named: the ids come from
+        // where an attempt sits in the seed, and a screen watching a hard-coded
+        // one would go quiet the day somebody reorders a round.
+        const unfinished = (state: JobState) =>
+            this.data.submissions.get(contest.id)?.find(s => s.state === state)?.id;
+        const queued = unfinished("queued");
+        const running = unfinished("running");
+
+        if (queued) {
+            this.after(6000, () => this.setSubmissionState(contest.id, queued, "running"));
+            this.after(15000, () => this.completeSubmission(contest.id, queued, 100, "Accepted"));
+        }
+        if (running) {
+            this.after(9000, () => this.completeSubmission(contest.id, running, 65, "Partially accepted"));
+        }
 
         // The closed round reaches its start and reveals what it was holding.
         this.after(OPENING_SERIES_DELAY, () => this.openSeries(contest.id, "series-r2"));
 
         // A pending question is answered.
         this.after(20000, () => this.answerQuestion(contest.id, "q-3"));
+
+        // Each round's two ranking instants, wired from the dates it actually
+        // holds. A contest's freeze lifts when the round ends and a window opens
+        // when the organiser said, so in this seed neither lands inside a short
+        // visit — the timers exist so the path is real, not so it can be watched.
+        for (const activity of this.data.activities) {
+            for (const seed of this.data.seeds.get(activity.id)?.series ?? []) {
+                this.at(seed.rankingRevealAt, () =>
+                    this.announceRanking(activity.id, seed.id, "unfrozen"));
+                this.at(seed.rankingVisibleFrom, () =>
+                    this.announceRanking(activity.id, seed.id, "windowOpened"));
+            }
+        }
     }
 
     private after(ms: number, f: () => void): void {
         this.timers.push(setTimeout(f, ms));
+    }
+
+    /** The same, at an instant. Anything already past has nothing to announce. */
+    private at(when: string | undefined, f: () => void): void {
+        if (when === undefined) return;
+        const delay = Date.parse(when) - Date.now();
+        if (delay > 0) this.after(delay, f);
     }
 
     private setSubmissionState(activityId: string, submissionId: string, state: JobState): void {
@@ -124,40 +180,98 @@ class FakeParticipantState {
             verdict,
             score,
         };
-        detail.detail = {
-            kind: "standard-io",
-            version: 1,
-            limits: { timeMs: 1000, memoryMb: 256 },
-            tests: Array.from({ length: 4 }, (_, i) => ({
-                no: i + 1,
-                status: score === 100 || i === 0 ? "OK" : "ERROR",
-                timeMs: 20 + i * 5,
-                memoryMb: 12,
-                score: score === 100 || i === 0 ? 10 : 0,
-                maxScore: 10,
-                note: score === 100 || i === 0 ? "" : "Zła odpowiedź",
-            })),
-        };
+        // What the Runner attached, filtered as it leaves. The activity's table
+        // decides which names reach a participant, and this is one.
+        // Stored whole; what a participant may read is decided where it leaves.
+        const judged = this.attemptOf(activityId, submissionId);
+        if (judged) {
+            detail.attempts[0].files = attemptFiles(this.files, judged.series,
+                { ...judged.attempt, state: "completed", score, verdict });
+        }
 
         this.events.dispatchEvent({
             type: "submissionStateChanged",
             data: { activityId, submission: { ...summary } },
         });
         this.updateProblemStatus(activityId, summary.problemSlug, score);
-        this.events.dispatchEvent({ type: "rankingChanged", data: { activityId } });
+
+        // The verdict goes back into the seed, so the feed and the board agree
+        // with the submissions list rather than merely being told about it.
+        const seeded = this.attemptOf(activityId, submissionId);
+        if (seeded) {
+            seeded.attempt.state = "completed";
+            seeded.attempt.score = score;
+            seeded.attempt.verdict = verdict;
+        }
+        this.announceResult(activityId, submissionId);
     }
 
-    private updateProblemStatus(activityId: string, problemSlug: string, score: number): void {
+    /**
+     * Pushes one result, filtered exactly as the feed is.
+     *
+     * A result inside a freeze goes out **withheld**, not omitted: the socket
+     * cannot be a way around the rule the endpoint applies, and a board still
+     * has to learn that somebody submitted.
+     */
+    private announceResult(activityId: string, submissionId: string): void {
+        const seeded = this.attemptOf(activityId, submissionId);
+        const activity = this.data.activities.find(a => a.id === activityId);
+        if (!seeded || !activity) return;
+
+        const live = (this.data.series.get(activityId) ?? []).find(s => s.id === seeded.series.id);
+        // A round whose window is shut says nothing at all — there is no board
+        // for this to be a change to.
+        if (!live || !rankingWindow(live).visible) return;
+        if (activity.scoreVisibility === "managersOnly") return;
+
+        // Filtered exactly as the endpoint filters: the socket must not be a
+        // way around the rule the feed applies.
+        const result = resultOf(seeded.series, seeded.attempt, Date.now(),
+            this.access.holds("ranking:read:unfrozen", activityId));
+        if (!result) return;
+        this.events.dispatchEvent({
+            type: "rankingChanged",
+            data: { activityId, change: "result", seriesId: seeded.series.id, result },
+        });
+    }
+
+    /**
+     * A freeze ends, or a round's board opens.
+     *
+     * Neither carries data: they mean "what you hold is now incomplete", and
+     * only the Server knows what it was withholding. The screen refetches.
+     */
+    private announceRanking(activityId: string, seriesId: string, change: "unfrozen" | "windowOpened"): void {
+        this.events.dispatchEvent({
+            type: "rankingChanged",
+            data: { activityId, change, seriesId },
+        });
+    }
+
+    /**
+     * What a problem's standing becomes, from a result that just arrived.
+     *
+     * `score` absent means nothing has been judged yet — a submission was only
+     * made. **The attempt is counted here, on the submission**, not when the
+     * judging finishes: an attempt is something somebody did, and counting it on
+     * the verdict left the badge saying two while the list held three, and
+     * counted a seeded submission a second time the moment its Runner replied.
+     */
+    private updateProblemStatus(activityId: string, problemSlug: string, score?: number): void {
         for (const s of this.data.series.get(activityId) ?? []) {
             const problem = s.problems?.find(p => p.slug === problemSlug);
             if (!problem) continue;
-            problem.attempts += 1;
-            if (problem.bestScore === undefined || score > problem.bestScore) {
+            if (score === undefined) {
+                problem.attempts += 1;
+                if (problem.status === "untouched") problem.status = "attempted";
+            } else if (problem.bestScore === undefined || score > problem.bestScore) {
                 problem.bestScore = score;
             }
-            problem.status = problem.bestScore === 0 ? "attempted"
-                : problem.bestScore >= (problem.maxScore ?? 100) ? "solved"
-                : "partial";
+            if (problem.bestScore !== undefined) {
+                problem.status = problem.bestScore === 0 ? "attempted"
+                    : problem.bestScore >= (problem.maxScore ?? 100) ? "solved"
+                    : "partial";
+            }
 
             // The detail carries the same standing as the summary, so it has to
             // move with it or the statement screen shows a stale badge.
@@ -182,9 +296,42 @@ class FakeParticipantState {
         target.isOpen = true;
         target.problems = this.data.withheld.get(seriesId) ?? [];
         this.data.withheld.delete(seriesId);
+        this.announce(activityId, target, "opened");
+    }
+
+    /**
+     * What a manager did to a series, arriving from the other half of the fake.
+     *
+     * The Server has one series and one socket and needs none of this; here the
+     * two halves keep their own view of a series, so what crosses is the few
+     * fields that moved.
+     */
+    applyRelay(relay: SeriesRelay): void {
+        const target = this.data.series.get(relay.activityId)?.find(s => s.id === relay.seriesId);
+        if (!target) return;
+        if (relay.startDate !== undefined) target.startDate = relay.startDate;
+        if (relay.endDate !== undefined) target.endDate = relay.endDate;
+        if (relay.name !== undefined) target.name = relay.name;
+        if (relay.pausedAt !== undefined) target.pausedAt = relay.pausedAt ?? undefined;
+        if (relay.isOpen !== undefined) {
+            target.isOpen = relay.isOpen;
+            // A closed series discloses nothing, which is what makes hiding the
+            // statements during a pause work without a field of its own.
+            if (!relay.isOpen) {
+                this.data.withheld.set(target.id, target.problems ?? []);
+                target.problems = undefined;
+            } else {
+                target.problems = this.data.withheld.get(target.id) ?? target.problems ?? [];
+                this.data.withheld.delete(target.id);
+            }
+        }
+        this.announce(relay.activityId, target, relay.change);
+    }
+
+    private announce(activityId: string, series: Series, change: SeriesChange): void {
         this.events.dispatchEvent({
-            type: "sectionOpened",
-            data: { activityId, series: { ...target } },
+            type: "seriesChanged",
+            data: { activityId, series: { ...series }, change },
         });
     }
 
@@ -204,6 +351,85 @@ class FakeParticipantState {
         });
     }
 
+    /**
+     * Records that somebody tried a problem, before anything has judged it.
+     *
+     * Counted on the submission rather than on the verdict, which is where it
+     * used to be: a badge saying two beside a list holding three, and a seeded
+     * submission counted a second time the moment its Runner replied.
+     *
+     * Written **into the seed**, because the seed is what the results feed is
+     * built from. A submission recorded only in the submissions list would show
+     * on the panel, move the board once by the pushed event, and then vanish
+     * from it on the next refetch.
+     */
+    countAttempt(activityId: string, seriesId: string, problemSlug: string, language: string): string {
+        this.updateProblemStatus(activityId, problemSlug);
+
+        const seed = this.data.seeds.get(activityId);
+        const series = seed?.series.find(s => s.id === seriesId);
+        const me = seed ? meOf(seed) : undefined;
+        if (!series || !me) return `sub-${Math.random().toString(36).slice(2, 10)}`;
+
+        const attempt: SeedAttempt = {
+            contestant: me.id,
+            problem: problemSlug,
+            // Minutes since the round started, which is how every attempt states
+            // its time — so this one is counted for a penalty like any other.
+            at: series.startDate === undefined
+                ? 0
+                : Math.max(0, Math.round((Date.now() - Date.parse(series.startDate)) / 60000)),
+            language,
+            state: "queued",
+        };
+        series.attempts = [...(series.attempts ?? []), attempt];
+        return attemptId(series.id, attempt);
+    }
+
+    /** The seeded attempt behind a submission, so a verdict can be written back. */
+    private attemptOf(activityId: string, submissionId: string): {
+        series: SeedSeries; attempt: SeedAttempt;
+    } | undefined {
+        const seed = this.data.seeds.get(activityId);
+        for (const series of seed?.series ?? []) {
+            const attempt = (series.attempts ?? []).find(a => attemptId(series.id, a) === submissionId);
+            if (attempt) return { series, attempt };
+        }
+        return undefined;
+    }
+
+    /**
+     * Which attachment names a participant may read here.
+     *
+     * Whatever a manager last saved beats the seed — the same arrangement the
+     * other participant-visible settings have, and for the same reason: a table
+     * saved in the panel that never crossed is a table that looks like it did
+     * nothing.
+     */
+    /**
+     * What this activity accepts, with whatever a manager last saved winning.
+     *
+     * The same arrangement as the attachment table beside it: a narrowing saved
+     * in the panel that never crossed would leave the submit form offering a
+     * language the Server now refuses.
+     */
+    languagesFor(activityId: string): string[] {
+        return this.shared.settingsOf(activityId)?.languages
+            ?? this.data.seeds.get(activityId)?.languages
+            ?? [];
+    }
+
+    rulesFor(activityId: string): AttachmentRule[] {
+        return this.shared.settingsOf(activityId)?.attachmentVisibility
+            ?? this.data.seeds.get(activityId)?.attachmentVisibility
+            ?? [];
+    }
+
+    /** Stores bytes in the same store every other file lives in. */
+    store(name: string, mimeType: string, text: string) {
+        return this.files.seedText(name, mimeType, text);
+    }
+
     /** Puts a freshly submitted solution through the same lifecycle. */
     scheduleEvaluation(activityId: string, submissionId: string): void {
         this.after(2500, () => this.setSubmissionState(activityId, submissionId, "running"));
@@ -211,39 +437,139 @@ class FakeParticipantState {
     }
 }
 
+/**
+ * The ranking as somebody who may see only their own score receives it: their
+ * row alone, and no place on it.
+ *
+ * The payload is opaque to everything but the renderer, so this touches the two
+ * fields every format shares — `rows` and the `me` marker in them — and leaves
+ * the rest as it is.
+ */
+
 export class ParticipantApiFake implements ParticipantApi {
     readonly eventDispatcher: ParticipantEventDispatcherImpl = new ParticipantEventDispatcherImpl();
-    private readonly state = new FakeParticipantState(this.eventDispatcher);
+    private readonly state: FakeParticipantState;
 
-    constructor(private sleepMs: number = 300) {}
+    constructor(
+        files: FakeFiles,
+        /** Shared with the manager fake: one owner for what an activity publishes. */
+        private readonly shared: FakeActivities,
+        /** And one owner for the grants, so this feed can enforce them. */
+        private readonly access: FakeAccess,
+        private sleepMs: number = 300,
+    ) {
+        this.state = new FakeParticipantState(this.eventDispatcher, files, shared, access);
+    }
 
     async getActivities(filter: ActivityFilter, signal: AbortSignal): Promise<Page<Activity>> {
         await this.settle(signal);
         const { activities } = this.state.dataset();
         const states = filter.states ?? [];
         const types = filter.types ?? [];
-        const matched = activities.filter(a =>
-            (states.length === 0 || states.includes(a.state)) &&
-            (types.length === 0 || types.includes(a.type.split("@")[0])));
-        return copy(paginate(matched, filter.page, filter.pageSize));
+        const matched = activities
+            // What the Server withholds, the fake withholds: an activity that is
+            // closed, or hidden from people who are not in it, is not in the
+            // answer at all. Filtering it in a screen would be a rule anybody
+            // could turn off with the developer tools.
+            .filter(a => this.shared.isListed(a.id, this.isMember(a)))
+            .filter(a =>
+                (states.length === 0 || states.includes(a.state)) &&
+                (types.length === 0 || types.includes(a.type.split("@")[0])));
+        return copy(paginate(matched.map(a => this.dressed(a)), filter.page, filter.pageSize));
     }
 
     async getActivity(idOrSlug: string, signal: AbortSignal): Promise<Activity> {
         await this.settle(signal);
         const { activities } = this.state.dataset();
         const activity = activities.find(a => a.id === idOrSlug || a.slug === idOrSlug);
-        return activity ? copy(activity) : notFound("Activity");
+        // Answered even when the reader is not in it: the activity's own page is
+        // how somebody decides whether to join, and it needs the welcome
+        // document and the policy to draw the form.
+        return activity ? copy(this.dressed(activity)) : notFound("Activity");
+    }
+
+    async enroll(idOrSlug: string, input: EnrolInput, signal: AbortSignal): Promise<Activity> {
+        await this.settle(signal);
+        const { activities } = this.state.dataset();
+        const activity = activities.find(a => a.id === idOrSlug || a.slug === idOrSlug);
+        if (!activity) return notFound("Activity");
+        // Throws exactly as the Server will, and the form tells a wrong password
+        // from a refusal by the code on the error.
+        this.shared.join(activity.id, input.password);
+        const joined = this.dressed(activity);
+        // Being in an activity changes what every screen showing it may draw —
+        // the sidebar most of all — so it is announced rather than left for the
+        // one screen that asked to notice.
+        this.eventDispatcher.dispatchEvent({
+            type: "activityUpdated",
+            data: { activity: copy(joined) },
+        });
+        return copy(joined);
+    }
+
+    /**
+     * The activity as it leaves the fake: its documents and its join policy come
+     * from the shared store, so publishing one in the manager screen shows up
+     * here without a reload.
+     */
+    private dressed(activity: Activity): Activity {
+        // Whatever a manager last saved wins over what the fixtures said: the
+        // two halves keep their own activity, and a setting that never crossed
+        // is a setting that looks like it did nothing.
+        const settings = this.shared.settingsOf(activity.id);
+        return {
+            ...activity,
+            ...settings,
+            membership: this.isMember(activity) ? "enrolled" : activity.membership,
+            joinPolicy: this.shared.enrolmentOf(activity.id).policy,
+            documents: this.shared.documentsOf(activity.id),
+        };
+    }
+
+    /**
+     * The activity **as it leaves the fake**, with whatever a manager saved on
+     * top of it. Reading the fixture directly was the bug this exists to
+     * prevent: a setting saved in the panel had no effect on the rule that
+     * decides what a participant may read.
+     */
+    private activityOf(activityId: string): Activity | undefined {
+        const found = this.state.dataset().activities.find(a => a.id === activityId);
+        return found ? this.dressed(found) : undefined;
+    }
+
+    private isMember(activity: Activity): boolean {
+        return activity.membership === "enrolled" || this.shared.hasJoined(activity.id);
     }
 
     async getSeries(activityId: string, signal: AbortSignal): Promise<Series[]> {
         await this.settle(signal);
-        return copy(this.state.dataset().series.get(activityId) ?? []);
+        const activity = this.activityOf(activityId);
+        // The rule is applied **here**, where the Server applies it. It used to
+        // be the fixtures' business — a series was withheld by having no
+        // problems written on it — so a setting that withholds them, like an
+        // activity closing its finished rounds, had nowhere to take effect.
+        return copy((this.state.dataset().series.get(activityId) ?? []).map(series =>
+            mayReadProblems(series, activity ?? {})
+                ? series
+                : { ...series, problems: undefined }));
     }
 
     async getProblem(activityId: string, problemSlug: string, signal: AbortSignal): Promise<ProblemDetail> {
         await this.settle(signal);
         const problem = this.state.dataset().problems.get(`${activityId}/${problemSlug}`);
-        return problem ? copy(problem) : notFound("Problem");
+        if (!problem) return notFound("Problem");
+        // Read here rather than baked in when the dataset was built, so a
+        // manager narrowing the list changes what the form offers next.
+        const languages = this.state.languagesFor(activityId);
+        // The address of a problem is guessable and gets shared, so the series
+        // is asked here and not only where the list is drawn. A series whose
+        // problems are withheld withholds them from everybody who types the
+        // address too — which is the whole of what hiding them means.
+        const activity = this.activityOf(activityId);
+        const series = this.state.dataset().series.get(activityId)
+            ?.find(s => s.id === problem.seriesId);
+        if (series && !mayReadProblems(series, activity ?? {})) return notFound("Problem");
+        return copy({ ...problem, languages });
     }
 
     async getSubmissions(activityId: string, filter: SubmissionFilter, signal: AbortSignal): Promise<Page<SubmissionSummary>> {
@@ -259,10 +585,23 @@ export class ParticipantApiFake implements ParticipantApi {
 
     // The activity is part of the route and of the real endpoint's authorisation,
     // but the fake keeps submissions in one map keyed by id, so it goes unused.
-    async getSubmission(_activityId: string, submissionId: string, signal: AbortSignal): Promise<SubmissionDetail> {
+    async getSubmission(activityId: string, submissionId: string, signal: AbortSignal): Promise<SubmissionDetail> {
         await this.settle(signal);
         const detail = this.state.dataset().submissionDetails.get(submissionId);
-        return detail ? copy(detail) : notFound("Submission");
+        if (!detail) return notFound("Submission");
+        // **Here**, where it leaves. The activity says which names a participant
+        // may read; a name it does not name is theirs to see only if somebody
+        // said so. Filtering when the dataset was built would have frozen
+        // yesterday's submissions against today's setting.
+        const rules = this.state.rulesFor(activityId);
+        return copy({
+            ...detail,
+            files: readableBy(rules, detail.files, false),
+            attempts: detail.attempts.map(attempt => ({
+                ...attempt,
+                files: readableBy(rules, attempt.files, false),
+            })),
+        });
     }
 
     async getSubmissionFile(_activityId: string, submissionId: string, name: string, signal: AbortSignal): Promise<string> {
@@ -275,6 +614,24 @@ export class ParticipantApiFake implements ParticipantApi {
         const data = this.state.dataset();
         const problem = data.problems.get(`${activityId}/${problemSlug}`) ?? notFound("Problem");
 
+        // Refused here as the Server refuses it: a series that has not started,
+        // has been stopped, or has ended takes nothing, whatever a screen let
+        // somebody press.
+        const series = data.series.get(activityId)?.find(s => s.id === problem.seriesId);
+        if (series && !maySubmit(series)) {
+            throw new ForbiddenError(
+                "This series is not accepting submissions", "series.closed");
+        }
+
+        // Refused here as the Server refuses it. The form offers only what the
+        // activity allows, but a rule only a form applies is not a rule — and
+        // this address is reachable without one.
+        const allowed = this.state.languagesFor(activityId);
+        if (payload.language !== undefined && !allowed.includes(payload.language)) {
+            throw new ForbiddenError(
+                `This activity does not accept ${payload.language}`, "submission.language");
+        }
+
         // Same rule as every other upload: the Server recomputes and refuses a
         // mismatch rather than storing a claim about the bytes.
         const bytes = payload.file ?? new TextEncoder().encode(payload.code ?? "");
@@ -282,7 +639,10 @@ export class ParticipantApiFake implements ParticipantApi {
             Utils.throwError("The submission does not match its checksum and was not accepted");
         }
 
-        const id = `sub-${Math.random().toString(36).slice(2, 10)}`;
+        // Recorded in the seed first, because that is what the results feed and
+        // every count are built from — and the id comes from where it landed, so
+        // the submissions list and the board name the same submission.
+        const id = this.state.countAttempt(activityId, problem.seriesId, problem.slug, payload.language ?? "");
         const fileName = payload.file?.name ?? `solution.${payload.language ?? "txt"}`;
         const summary: SubmissionSummary = {
             id,
@@ -300,11 +660,26 @@ export class ParticipantApiFake implements ParticipantApi {
             ...summary,
             problemType: problem.type,
             authorName: "Amy Horsefighter",
-            attempts: [{ id: `${id}-job-1`, attempt: 1, startedAt: summary.submittedAt, state: "queued" }],
-            detail: { kind: "standard-io", version: 1, tests: [] },
-            files: [{ name: fileName, language: payload.language }],
+            // Nothing has judged it, so the attempt has attached nothing.
+            attempts: [{
+                id: `${id}-job-1`, attempt: 1,
+                startedAt: summary.submittedAt, state: "queued", files: [],
+            }],
+            // The source is stored like every other file, so the screen reads it
+            // by id rather than through an endpoint of its own.
+            files: [(() => {
+                const stored = this.state.store(
+                    `${id}/${fileName}`, "text/plain", payload.code ?? "// wysłano jako plik");
+                return {
+                    name: SUBMISSION_SOURCE,
+                    fileName,
+                    language: payload.language,
+                    fileId: stored.id,
+                    sha256: stored.sha256,
+                    sizeBytes: stored.sizeBytes,
+                };
+            })()],
         });
-        data.submissionFiles.set(id, new Map([[fileName, payload.code ?? "// wysłano jako plik"]]));
 
         this.eventDispatcher.dispatchEvent({
             type: "submissionStateChanged",
@@ -314,10 +689,28 @@ export class ParticipantApiFake implements ParticipantApi {
         return copy(summary);
     }
 
-    async getRanking(activityId: string, signal: AbortSignal): Promise<unknown> {
+    async getResults(activityId: string, seriesId: string | undefined, signal: AbortSignal): Promise<ActivityResults> {
         await this.settle(signal);
-        const ranking = this.state.dataset().rankings.get(activityId);
-        return ranking !== undefined ? copy(ranking) : notFound("Ranking");
+        const data = this.state.dataset();
+        const seed = data.seeds.get(activityId);
+        if (seed === undefined) return notFound("Results");
+
+        // Assembled on the call, not prepared at load: what may leave depends on
+        // the clock — a window that opens at six, a freeze that ends at seven —
+        // and the timing comes from the **live** series, so a round a manager
+        // just moved is counted from where it now starts.
+        const activity = this.activityOf(activityId);
+        return copy(activityResults({
+            seed,
+            live: data.series.get(activityId) ?? [],
+            seriesId,
+            scoreVisibility: activity?.scoreVisibility ?? "managersOnly",
+            // Decided here because the Server decides it here. It used to be the
+            // screen's, which drew a board out of a feed it had been sent none
+            // of: five rows, no columns, everybody on nought.
+            unfrozen: this.access.holds("ranking:read:unfrozen", activityId),
+            now: Date.now(),
+        }));
     }
 
     async getQuestions(activityId: string, filter: QuestionFilter, signal: AbortSignal): Promise<Page<Question>> {
@@ -377,12 +770,6 @@ export class ParticipantApiFake implements ParticipantApi {
         await this.settle(signal);
         const question = this.state.dataset().questions.get(activityId)?.find(q => q.id === questionId);
         if (question) question.isRead = true;
-    }
-
-    async getRules(activityId: string, signal: AbortSignal): Promise<unknown> {
-        await this.settle(signal);
-        const rules = this.state.dataset().rules.get(activityId);
-        return rules !== undefined ? copy(rules) : notFound("Rules");
     }
 
     /** Latency, then the abort check — so a cancelled view never sees a result. */

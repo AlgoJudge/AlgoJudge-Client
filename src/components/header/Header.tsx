@@ -42,6 +42,11 @@ function Header() {
         }
     ] : [
         { link: '/', label: t('Home') },
+        // Offered only where it leads anywhere. An installation that takes no
+        // sign-ups shows no entry, and one that does must show it here: the
+        // sign-in screen carried the only link to it, so anybody landing on the
+        // front page had no way to an account at all.
+        ...(instance.localRegistrationEnabled ? [{ link: '/register', label: t('Register') }] : []),
         { link: '/login', label: t('Login') },
     ];
 
@@ -71,7 +76,7 @@ function Header() {
         }
 
         return (
-            <Link to={link.link} className={classes.link}>
+            <Link key={link.link} to={link.link} className={classes.link}>
                 {link.label}
             </Link>
         );

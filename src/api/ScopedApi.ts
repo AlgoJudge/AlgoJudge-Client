@@ -1,5 +1,6 @@
 import { Api } from "./Api";
-import { FileApi, UploadedFile } from "./FileApi";
+import { FileApi, StatementRef, UploadedFile } from "./FileApi";
+import { InstanceDocumentKind, InstanceDocumentRef } from "./CoreApi";
 import {
     CoreApi,
     CoreEvent,
@@ -54,25 +55,33 @@ import {
     ProblemChangedEvent,
     QuestionChangedEvent,
     SeriesChangedEvent,
-    StatementVariant,
     SubmissionChangedEvent,
     RunnerChangedEvent,
+    PauseInput,
+    ResumeInput,
     SeriesInput,
     SeriesProblemInput,
     UserChangedEvent,
     UserInput,
+    InstanceLogoInput,
+    InstanceSettingsInput,
+    NewStatement,
     UserSession,
     UserUpdateInput,
 } from "./ManagerApi";
 import {
     Activity,
+    ActivityResults,
     ActivityCreatedEvent,
     ActivityDeletedEvent,
+    ActivityDocumentKind,
+    ActivityDocumentRef,
     ActivityFilter,
     ActivityTimesChangedEvent,
     ActivityUpdatedEvent,
     AnnouncementPublishedEvent,
     AskQuestionInput,
+    EnrolInput,
     Page,
     ParticipantApi,
     ParticipantEvent,
@@ -85,7 +94,9 @@ import {
     QuestionFilter,
     QuestionPublishedEvent,
     RankingChangedEvent,
-    SectionOpenedEvent,
+    // Both APIs have one, and they are different events: the manager's carries a
+    // `ManagedSeries` and the participant's carries what changed.
+    SeriesChangedEvent as ParticipantSeriesChangedEvent,
     Series,
     SubmissionDetail,
     SubmissionFilter,
@@ -200,7 +211,7 @@ export class ScopedParticipantEventDispatcher {
     addEventListener(type: "activityUpdated", listener: (evt: ActivityUpdatedEvent) => void): void;
     addEventListener(type: "activityDeleted", listener: (evt: ActivityDeletedEvent) => void): void;
     addEventListener(type: "activityTimesChanged", listener: (evt: ActivityTimesChangedEvent) => void): void;
-    addEventListener(type: "sectionOpened", listener: (evt: SectionOpenedEvent) => void): void;
+    addEventListener(type: "seriesChanged", listener: (evt: ParticipantSeriesChangedEvent) => void): void;
     addEventListener(type: "problemStatusChanged", listener: (evt: ProblemStatusChangedEvent) => void): void;
     addEventListener(type: "submissionStateChanged", listener: (evt: SubmissionStateChangedEvent) => void): void;
     addEventListener(type: "rankingChanged", listener: (evt: RankingChangedEvent) => void): void;
@@ -224,6 +235,9 @@ export class ScopedParticipantApi {
     getActivity(idOrSlug: string): Promise<Activity> {
         return this.participantApi.getActivity(idOrSlug, this.signal);
     }
+    enroll(idOrSlug: string, input: EnrolInput = {}): Promise<Activity> {
+        return this.participantApi.enroll(idOrSlug, input, this.signal);
+    }
 
     getSeries(activityId: string): Promise<Series[]> {
         return this.participantApi.getSeries(activityId, this.signal);
@@ -238,15 +252,12 @@ export class ScopedParticipantApi {
     getSubmission(activityId: string, submissionId: string): Promise<SubmissionDetail> {
         return this.participantApi.getSubmission(activityId, submissionId, this.signal);
     }
-    getSubmissionFile(activityId: string, submissionId: string, name: string): Promise<string> {
-        return this.participantApi.getSubmissionFile(activityId, submissionId, name, this.signal);
-    }
     submit(activityId: string, problemSlug: string, payload: SubmitPayload): Promise<SubmissionSummary> {
         return this.participantApi.submit(activityId, problemSlug, payload, this.signal);
     }
 
-    getRanking(activityId: string): Promise<unknown> {
-        return this.participantApi.getRanking(activityId, this.signal);
+    getResults(activityId: string, seriesId?: string): Promise<ActivityResults> {
+        return this.participantApi.getResults(activityId, seriesId, this.signal);
     }
 
     getQuestions(activityId: string, filter: QuestionFilter = {}): Promise<Page<Question>> {
@@ -257,10 +268,6 @@ export class ScopedParticipantApi {
     }
     markQuestionRead(activityId: string, questionId: string): Promise<void> {
         return this.participantApi.markQuestionRead(activityId, questionId, this.signal);
-    }
-
-    getRules(activityId: string): Promise<unknown> {
-        return this.participantApi.getRules(activityId, this.signal);
     }
 }
 
@@ -369,6 +376,21 @@ export class ScopedManagerApi {
     getManagedActivities(): Promise<ManagedActivitySummary[]> {
         return this.managerApi.getManagedActivities(this.signal);
     }
+    updateInstanceSettings(input: InstanceSettingsInput): Promise<InstanceInfo> {
+        return this.managerApi.updateInstanceSettings(input, this.signal);
+    }
+    setInstanceLogo(input: InstanceLogoInput): Promise<InstanceInfo> {
+        return this.managerApi.setInstanceLogo(input, this.signal);
+    }
+    publishInstanceDocument(kind: InstanceDocumentKind, statements: NewStatement[]): Promise<InstanceInfo> {
+        return this.managerApi.publishInstanceDocument(kind, statements, this.signal);
+    }
+    unpublishInstanceDocument(kind: InstanceDocumentKind): Promise<InstanceInfo> {
+        return this.managerApi.unpublishInstanceDocument(kind, this.signal);
+    }
+    getInstanceDocumentHistory(kind: InstanceDocumentKind): Promise<InstanceDocumentRef[]> {
+        return this.managerApi.getInstanceDocumentHistory(kind, this.signal);
+    }
 
     getActivities(filter: ManagedActivityFilter = {}): Promise<Page<ManagedActivity>> {
         return this.managerApi.getActivities(filter, this.signal);
@@ -389,6 +411,16 @@ export class ScopedManagerApi {
         return this.managerApi.deleteActivity(id, this.signal);
     }
 
+    publishActivityDocument(activityId: string, kind: ActivityDocumentKind, statements: NewStatement[]): Promise<ManagedActivity> {
+        return this.managerApi.publishActivityDocument(activityId, kind, statements, this.signal);
+    }
+    unpublishActivityDocument(activityId: string, kind: ActivityDocumentKind): Promise<ManagedActivity> {
+        return this.managerApi.unpublishActivityDocument(activityId, kind, this.signal);
+    }
+    getActivityDocumentHistory(activityId: string, kind: ActivityDocumentKind): Promise<ActivityDocumentRef[]> {
+        return this.managerApi.getActivityDocumentHistory(activityId, kind, this.signal);
+    }
+
     getSeries(activityId: string): Promise<ManagedSeries[]> {
         return this.managerApi.getSeries(activityId, this.signal);
     }
@@ -400,6 +432,15 @@ export class ScopedManagerApi {
     }
     deleteSeries(seriesId: string): Promise<void> {
         return this.managerApi.deleteSeries(seriesId, this.signal);
+    }
+    shiftSeries(seriesId: string, minutes: number): Promise<ManagedSeries> {
+        return this.managerApi.shiftSeries(seriesId, minutes, this.signal);
+    }
+    pauseSeries(seriesId: string, input: PauseInput): Promise<ManagedSeries> {
+        return this.managerApi.pauseSeries(seriesId, input, this.signal);
+    }
+    resumeSeries(seriesId: string, input: ResumeInput): Promise<ManagedSeries> {
+        return this.managerApi.resumeSeries(seriesId, input, this.signal);
     }
     reorderSeries(activityId: string, orderedIds: string[]): Promise<ManagedSeries[]> {
         return this.managerApi.reorderSeries(activityId, orderedIds, this.signal);
@@ -439,9 +480,6 @@ export class ScopedManagerApi {
     }
     getSubmission(id: string): Promise<ManagedSubmissionDetail> {
         return this.managerApi.getSubmission(id, this.signal);
-    }
-    getSubmissionFile(id: string, name: string): Promise<string> {
-        return this.managerApi.getSubmissionFile(id, name, this.signal);
     }
     rejudgeSubmission(id: string): Promise<ManagedSubmission> {
         return this.managerApi.rejudgeSubmission(id, this.signal);
@@ -484,7 +522,7 @@ export class ScopedManagerApi {
     getProblemVersions(problemId: string): Promise<ManagedProblemVersion[]> {
         return this.managerApi.getProblemVersions(problemId, this.signal);
     }
-    getProblemContent(problemId: string, versionId: string): Promise<StatementVariant[]> {
+    getProblemContent(problemId: string, versionId: string): Promise<StatementRef[]> {
         return this.managerApi.getProblemContent(problemId, versionId, this.signal);
     }
     createProblemVersion(problemId: string, input: ProblemVersionInput): Promise<ManagedProblemVersion> {

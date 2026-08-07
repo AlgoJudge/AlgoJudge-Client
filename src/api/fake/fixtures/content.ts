@@ -232,3 +232,81 @@ version: 1
 Zadania z każdych zajęć należy oddać przed terminem podanym przy sekcji.
 Zgłoszenia po terminie nie są przyjmowane.
 `;
+
+export const courseRulesEn = `---
+version: 1
+---
+
+# Terms of assessment
+
+The problems for each class are due before the deadline shown on the section.
+Submissions after the deadline are not accepted.
+`;
+
+/**
+ * What somebody **not enrolled** reads on an activity's own page: enough to
+ * decide whether they are in the right place, and nothing that being enrolled
+ * would have given them.
+ */
+export const courseWelcome = `---
+version: 1
+---
+
+# Programowanie 1 — grupa LA
+
+Zajęcia z podstaw programowania dla pierwszego roku. Rozwiązania oddaje się
+w tym serwisie; ocena z zajęć jest sumą punktów z zadań.
+
+Jeżeli jesteś w tej grupie, zapisz się poniżej hasłem, które dostałeś na
+zajęciach.
+`;
+
+export const courseWelcomeEn = `---
+version: 1
+---
+
+# Programming 1 — group LA
+
+An introduction to programming for first-year students. Solutions are handed in
+here, and the mark for the course is the sum of the problems' scores.
+
+If you are in this group, enrol below with the password you were given in class.
+`;
+
+/** And what a participant reads there instead, once they are in. */
+export const courseHome = `---
+version: 1
+---
+
+# Witamy na zajęciach
+
+Zadania z bieżących zajęć znajdziesz w sekcji **Zadania**. Terminy są podane
+przy każdej sekcji i po ich upływie zgłoszenia nie są przyjmowane.
+
+Pytania zadawaj przez **Pytania i ogłoszenia** — odpowiedź trafia do wszystkich,
+jeżeli dotyczy całej grupy.
+`;
+
+export const courseHomeEn = `---
+version: 1
+---
+
+# Welcome to the course
+
+The problems for the current class are under **Problems**. Each section carries
+its own deadline, and nothing is accepted after it.
+
+Ask through **Questions and announcements** — an answer that concerns the whole
+group is published to it.
+`;
+
+/** An open activity anybody may join, so its page is mostly an invitation. */
+export const practiceWelcome = `---
+version: 1
+---
+
+# Trening otwarty
+
+Zbiór zadań archiwalnych, otwarty dla wszystkich. Zapisz się i rozwiązuj we
+własnym tempie — nie ma terminów ani limitu zgłoszeń.
+`;

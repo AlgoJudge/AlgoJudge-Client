@@ -13,6 +13,8 @@ import {
 } from "../../../../api/ManagerApi";
 import ZonedDateTimeInput from "../../../../components/time/ZonedDateTimeInput";
 import { useApiCall } from "../../../../provider/apiContext";
+import PauseSeriesModal, { PauseIntent } from "./PauseSeriesModal";
+import ShiftSeries from "./ShiftSeries";
 
 /**
  * Series and what is attached to them.
@@ -35,6 +37,8 @@ const toSeriesInput = (series: ManagedSeries): SeriesInput => ({
     revealProblemCount: series.revealProblemCount,
     rankingFreezeAt: series.rankingFreezeAt,
     rankingRevealAt: series.rankingRevealAt,
+    rankingVisibleFrom: series.rankingVisibleFrom,
+    rankingVisibleTo: series.rankingVisibleTo,
 });
 
 const toAssignmentInput = (assignment: ManagedSeriesProblem): SeriesProblemInput => ({
@@ -43,6 +47,7 @@ const toAssignmentInput = (assignment: ManagedSeriesProblem): SeriesProblemInput
     name: assignment.name,
     pinnedProblemVersionId: assignment.pinnedProblemVersionId,
     config: assignment.config,
+    maxPoints: assignment.maxPoints,
     maxUploadBytes: assignment.maxUploadBytes,
     maxAttachments: assignment.maxAttachments,
     maxSubmissions: assignment.maxSubmissions,
@@ -67,6 +72,8 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
     const [attachment, setAttachment] = useState<SeriesProblemInput | undefined>(undefined);
     const [editing, setEditing] = useState<ManagedSeriesProblem | undefined>(undefined);
     const [versions, setVersions] = useState<ManagedProblemVersion[]>([]);
+    /** Which series is being stopped or started again, and which of the two it is. */
+    const [pausing, setPausing] = useState<PauseIntent | undefined>(undefined);
 
     const locked = activity.archivedAt !== undefined;
 
@@ -154,9 +161,24 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                 <Alert color="blue">{t("No series yet. An activity holds its problems in series.")}</Alert>
             )}
 
+            {series.length > 0 && (
+                <ShiftSeries
+                    series={series}
+                    timeZone={activity.timeZone}
+                    disabled={locked}
+                    busy={busy}
+                    onShift={(seriesId, minutes) =>
+                        run(() => call(api => api.managerApi.shiftSeries(seriesId, minutes)))}
+                />
+            )}
+
             <Accordion variant="separated" multiple defaultValue={series.map(s => s.id)}>
                 {series.map((s, index) => (
                     <Accordion.Item key={s.id} value={s.id}>
+                        {/* The button sits **beside** the control, not inside
+                            it: a button within a button is invalid, and giving
+                            it a div instead would take it off the keyboard. */}
+                        <Group wrap="nowrap" gap="xs" pr="md">
                         <Accordion.Control>
                             <Group justify="space-between" wrap="wrap" pr="md">
                                 <Group gap="xs">
@@ -171,9 +193,26 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                                     {!s.revealProblemCount && (
                                         <Badge variant="light" color="gray" size="sm">{t("Count hidden")}</Badge>
                                     )}
+                                    {s.pausedAt ? (
+                                        <Badge variant="filled" color="orange" size="sm">{t("Paused")}</Badge>
+                                    ) : s.isOpen ? (
+                                        <Badge variant="light" color="teal" size="sm">{t("Running")}</Badge>
+                                    ) : null}
                                 </Group>
                             </Group>
                         </Accordion.Control>
+                        {/* One click from the list: stopping a round should not
+                            need the series opened first. */}
+                        <Button
+                            variant={s.pausedAt ? "filled" : "light"}
+                            color={s.pausedAt ? "teal" : "orange"}
+                            size="compact-sm"
+                            disabled={locked}
+                            onClick={() => setPausing({ series: s, resuming: s.pausedAt !== undefined })}
+                        >
+                            {s.pausedAt ? t("Resume") : t("Pause")}
+                        </Button>
+                        </Group>
                         <Accordion.Panel>
                             <Stack gap="md">
                                 <Card withBorder radius="sm">
@@ -209,6 +248,31 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                                                 value={draftFor(s).endDate}
                                                 timeZone={activity.timeZone}
                                                 onChange={endDate => setDraft(s, { endDate })}
+                                                disabled={locked}
+                                            />
+                                        </Grid.Col>
+                                        {/* Four instants on one round, so each
+                                            says what it does rather than when:
+                                            the freeze hides late results within
+                                            a board, the window decides whether
+                                            there is a board at all. */}
+                                        <Grid.Col span={{ base: 12, sm: 6 }}>
+                                            <ZonedDateTimeInput
+                                                label={t("Ranking visible from")}
+                                                description={t("Empty means from this series' own start")}
+                                                value={draftFor(s).rankingVisibleFrom}
+                                                timeZone={activity.timeZone}
+                                                onChange={rankingVisibleFrom => setDraft(s, { rankingVisibleFrom })}
+                                                disabled={locked}
+                                            />
+                                        </Grid.Col>
+                                        <Grid.Col span={{ base: 12, sm: 6 }}>
+                                            <ZonedDateTimeInput
+                                                label={t("Ranking visible until")}
+                                                description={t("Empty means for ever")}
+                                                value={draftFor(s).rankingVisibleTo}
+                                                timeZone={activity.timeZone}
+                                                onChange={rankingVisibleTo => setDraft(s, { rankingVisibleTo })}
                                                 disabled={locked}
                                             />
                                         </Grid.Col>
@@ -344,6 +408,7 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                                                                 ? `${Math.round(assignment.maxUploadBytes / MB)} MB`
                                                                 : t("inherited")}
                                                             {assignment.maxSubmissions !== undefined && ` · ${assignment.maxSubmissions}×`}
+                                                            {assignment.maxPoints !== undefined && ` · ${assignment.maxPoints} ${t("pts")}`}
                                                         </Text>
                                                     </Table.Td>
                                                     <Table.Td><Text size="sm">{assignment.submissionCount}</Text></Table.Td>
@@ -484,7 +549,19 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                             onChange={v => setAttachment({ ...attachment, pinnedProblemVersionId: v || undefined })}
                         />
                         <Grid>
-                            <Grid.Col span={{ base: 12, sm: 4 }}>
+                            <Grid.Col span={{ base: 12, sm: 3 }}>
+                                <NumberInput
+                                    label={t("Worth")}
+                                    description={t("Points here, empty keeps the problem's own")}
+                                    min={1}
+                                    value={attachment.maxPoints ?? ""}
+                                    onChange={v => setAttachment({
+                                        ...attachment,
+                                        maxPoints: typeof v === "number" ? v : undefined,
+                                    })}
+                                />
+                            </Grid.Col>
+                            <Grid.Col span={{ base: 12, sm: 3 }}>
                                 <NumberInput
                                     label={t("Maximum upload")}
                                     description={t("MB, empty inherits")}
@@ -496,7 +573,7 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                                     })}
                                 />
                             </Grid.Col>
-                            <Grid.Col span={{ base: 12, sm: 4 }}>
+                            <Grid.Col span={{ base: 12, sm: 3 }}>
                                 <NumberInput
                                     label={t("Files per submission")}
                                     description={t("Empty inherits")}
@@ -508,7 +585,7 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                                     })}
                                 />
                             </Grid.Col>
-                            <Grid.Col span={{ base: 12, sm: 4 }}>
+                            <Grid.Col span={{ base: 12, sm: 3 }}>
                                 <NumberInput
                                     label={t("Submissions")}
                                     description={t("Empty inherits")}
@@ -533,6 +610,20 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                     </Stack>
                 )}
             </Modal>
+
+            <PauseSeriesModal
+                intent={pausing}
+                busy={busy}
+                onClose={() => setPausing(undefined)}
+                onPause={(seriesId, hideProblems) => {
+                    setPausing(undefined);
+                    run(() => call(api => api.managerApi.pauseSeries(seriesId, { hideProblems })));
+                }}
+                onResume={(seriesId, extendEnd) => {
+                    setPausing(undefined);
+                    run(() => call(api => api.managerApi.resumeSeries(seriesId, { extendEnd })));
+                }}
+            />
         </Stack>
     );
 }

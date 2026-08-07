@@ -58,15 +58,16 @@ export default function LegalPage() {
 
     if (content === undefined) return <LoadState error={error} loading={!error} />;
 
+    // An instance that publishes no such document links to it from nowhere — not
+    // from the footer, not from the navigation — so whoever is here typed the
+    // address or kept a bookmark from before it was withdrawn. One sentence and
+    // a way out is what that person needs; the operator is not their problem.
     if (content === null || !ref) {
         return (
             <Container size={720}>
                 <Paper withBorder p="xl" radius="md">
                     <Stack gap="sm">
-                        <Title order={3}>{t(`legal.${kind}`)}</Title>
-                        <Text size="sm" c="dimmed">
-                            {t("This instance publishes no such document. Ask whoever runs it.")}
-                        </Text>
+                        <Title order={3}>{t("There is no such page here")}</Title>
                         <Anchor component={Link} to="/">{t("Home")}</Anchor>
                     </Stack>
                 </Paper>

@@ -88,6 +88,8 @@ const heard = { core: [], participant: [], manager: [] };
 const forever = new AbortController().signal;
 core.addEventListener("systemMessage", evt => heard.core.push(evt), forever);
 participant.addEventListener("submissionStateChanged", evt => heard.participant.push(evt), forever);
+const series = [];
+participant.addEventListener("seriesChanged", evt => series.push(evt), forever);
 manager.addEventListener("runnerChanged", evt => heard.manager.push(evt), forever);
 
 const events = new WebSocketEvents("wss://example/api/v1/ws", core, participant, manager);
@@ -106,24 +108,65 @@ check(heard.participant.length === 1 && heard.participant[0].data.activityId ===
 check(heard.manager.length === 1 && heard.manager[0].data.runner.id === "r1",
     "a manager event reaches the manager dispatcher");
 
+// Everything that happens to a series arrives as one type carrying what changed,
+// so the routing has to hand the whole payload over rather than a flag.
+socket.deliver({
+    type: "seriesChanged",
+    data: { activityId: "a1", series: { id: "r1", name: "Runda 1" }, change: "paused" },
+});
+check(series.length === 1 && series[0].data.change === "paused",
+    "a series change reaches the participant dispatcher, with what changed");
+socket.deliver({
+    type: "seriesChanged",
+    data: { activityId: "a1", series: { id: "r1" }, change: "somethingNewerThanThisBuild" },
+});
+check(series.length === 2 && series[1].data.change === "somethingNewerThanThisBuild",
+    "and a kind of change this build has never heard of is still delivered, not dropped");
+
 // 3 — what a newer Server or a broken one might send.
 socket.deliver({ type: "somethingThisBuildHasNeverHeardOf", data: {} });
 socket.deliver("{ not json");
 socket.deliver({ data: { withoutAType: true } });
-check(heard.core.length + heard.participant.length + heard.manager.length === 3,
+check(heard.core.length + heard.participant.length + heard.manager.length + series.length === 5,
     "an unknown type, a malformed frame and a typeless one are all ignored");
 
 // 4 — a dropped connection comes back, and a stopped one does not.
+//     Coming back is what the screens have to hear about: nothing was replayed
+//     while it was down, so whoever is showing something asks again.
+let restored = 0;
+const unsubscribe = events.onRestored(() => restored++);
+
+socket.emit("open", {});
+check(restored === 0, "a first connection is not a return, and notifies nobody");
+
 socket.emit("close", {});
 check(StubSocket.opened.length === 1, "a dropped connection is not reopened at once");
 await wait(1300);
 check(StubSocket.opened.length === 2, "it is reopened after backing off");
 
-events.stop();
-const stopped = StubSocket.opened.length;
+StubSocket.opened[1].emit("open", {});
+check(restored === 1, "coming back notifies exactly once");
+
+unsubscribe();
 StubSocket.opened[1].emit("close", {});
 await wait(1300);
-check(StubSocket.opened.length === stopped, "and a connection stopped on purpose stays shut");
+StubSocket.opened[2]?.emit("open", {});
+check(restored === 1, "and an unsubscribed listener hears nothing further");
+
+events.stop();
+const stopped = StubSocket.opened.length;
+StubSocket.opened[stopped - 1].emit("close", {});
+await wait(1300);
+check(StubSocket.opened.length === stopped, "a connection stopped on purpose stays shut");
+
+// Starting again after a deliberate stop is a first connection, not a return:
+// the screens were not left showing anything stale by a stop they asked for.
+let afterStop = 0;
+events.onRestored(() => afterStop++);
+events.start();
+StubSocket.opened[StubSocket.opened.length - 1].emit("open", {});
+check(afterStop === 0, "and starting again afterwards is a first connection, not a return");
+events.stop();
 
 console.log(failed ? `\nFAILED: ${failed}` : "\nevent check passed");
 process.exitCode = failed ? 1 : 0;

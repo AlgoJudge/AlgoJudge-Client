@@ -1,8 +1,5 @@
-import {
-    Alert, Badge, Button, Card, Center, Code, Group, Loader, Modal, NumberInput, Pagination, Select,
-    Stack, Switch, Table, Tabs, TagsInput, Text, Textarea, TextInput, Title, Tooltip,
-} from "@mantine/core";
-import { IconDownload, IconKey, IconLock, IconLockOpen, IconPlus, IconSearch, IconUsersPlus } from "@tabler/icons-react";
+import { Alert, Badge, Button, Card, Center, Group, Loader, Modal, Pagination, Stack, Switch, Table, Tabs, TagsInput, Text, Textarea, TextInput, Title, Tooltip } from "@mantine/core";
+import { IconKey, IconLock, IconLockOpen, IconPlus, IconSearch, IconUsersPlus } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -11,8 +8,10 @@ import {
 import { displayName } from "../../../api/displayName";
 import LoadState from "../../../components/LoadState";
 import ActivityTime from "../../../components/time/ActivityTime";
-import ZonedDateTimeInput from "../../../components/time/ZonedDateTimeInput";
+import CredentialsModal from "../../../components/users/CredentialsModal";
+import TemporaryAccountsModal from "../../../components/users/TemporaryAccountsModal";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
+import { useInstance } from "../../../provider/instanceContext";
 
 const PAGE_SIZE = 20;
 
@@ -32,13 +31,10 @@ const stateOf = (user: ManagedUser): "blocked" | "expired" | "pending" | "active
 
 const STATE_COLOUR = { blocked: "red", expired: "gray", pending: "orange", active: "teal" } as const;
 
-/** The handout a manager prints or pastes into a spreadsheet. */
-const credentialsCsv = (credentials: CreatedCredential[]) =>
-    ["username,password", ...credentials.map(c => `${c.username},${c.password}`)].join("\n");
-
 export default function UsersPage() {
     const { t } = useTranslation();
     const call = useApiCall();
+    const { instance } = useInstance();
 
     const [items, setItems] = useState<ManagedUser[] | undefined>(undefined);
     const [total, setTotal] = useState(0);
@@ -61,9 +57,8 @@ export default function UsersPage() {
 
     const [creating, setCreating] = useState(false);
     const [draft, setDraft] = useState({ username: "", firstName: "", lastName: "", email: "" });
-    const [bulk, setBulk] = useState<{
-        open: boolean; prefix: string; count: number; expiresAt?: string; activityId: string; template: string;
-    }>({ open: false, prefix: "", count: 20, activityId: "", template: "" });
+    const [bulk, setBulk] = useState({ open: false });
+    /** Handed over once, by creating an account or resetting a password. */
     const [credentials, setCredentials] = useState<CreatedCredential[] | undefined>(undefined);
 
     const [error, setError] = useState<string | undefined>(undefined);
@@ -142,14 +137,12 @@ export default function UsersPage() {
         }
     };
 
-    const download = (created: CreatedCredential[]) => {
-        const blob = new Blob([credentialsCsv(created)], { type: "text/csv" });
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download = "accounts.csv";
-        anchor.click();
-        URL.revokeObjectURL(url);
+
+    // Accounts made here are not tied to one activity, so the slip points at the
+    // installation's front page and names the installation.
+    const handout = {
+        url: window.location.origin + "/",
+        title: instance.name ?? "AlgoJudge",
     };
 
     if (!items) return <LoadState error={loadError} loading={!loadError} />;
@@ -167,7 +160,7 @@ export default function UsersPage() {
                     <Button
                         variant="light"
                         leftSection={<IconUsersPlus size={16} />}
-                        onClick={() => setBulk({ ...bulk, open: true })}
+                        onClick={() => setBulk({ open: true })}
                     >
                         {t("Temporary accounts")}
                     </Button>
@@ -623,110 +616,22 @@ export default function UsersPage() {
                 </Stack>
             </Modal>
 
-            <Modal
-                opened={bulk.open}
-                onClose={() => setBulk({ ...bulk, open: false })}
-                title={<Title order={4}>{t("Temporary accounts")}</Title>}
-                centered
-            >
-                <Stack gap="sm">
-                    <Group grow>
-                        <TextInput
-                            label={t("Prefix")}
-                            description={t("contest gives contest-001, contest-002, …")}
-                            value={bulk.prefix}
-                            onChange={e => setBulk({ ...bulk, prefix: e.currentTarget.value })}
-                            required
-                        />
-                        <NumberInput
-                            label={t("How many")}
-                            min={1}
-                            max={500}
-                            value={bulk.count}
-                            onChange={v => setBulk({ ...bulk, count: typeof v === "number" ? v : 1 })}
-                        />
-                    </Group>
-                    <ZonedDateTimeInput
-                        label={t("Expires")}
-                        description={t("After this they stop signing in. Empty means never.")}
-                        value={bulk.expiresAt}
-                        timeZone="Europe/Warsaw"
-                        onChange={expiresAt => setBulk({ ...bulk, expiresAt })}
-                    />
-                    <Select
-                        label={t("Enrol into")}
-                        description={t("Accounts with nowhere to submit are of no use")}
-                        data={activities.map(a => ({ value: a.id, label: a.name }))}
-                        value={bulk.activityId || null}
-                        onChange={v => setBulk({ ...bulk, activityId: v ?? "" })}
-                        clearable
-                        searchable
-                    />
-                    <Select
-                        label={t("With the permissions of")}
-                        data={templates.map(template => ({ value: template.name, label: template.name }))}
-                        value={bulk.template || null}
-                        onChange={v => setBulk({ ...bulk, template: v ?? "" })}
-                        disabled={!bulk.activityId}
-                        clearable
-                    />
-                    <Group justify="space-between">
-                        <Button variant="default" onClick={() => setBulk({ ...bulk, open: false })}>{t("Back")}</Button>
-                        <Button
-                            loading={busy}
-                            disabled={!bulk.prefix.trim()}
-                            onClick={() => run(async () => {
-                                const template = templates.find(x => x.name === bulk.template);
-                                const created = await call(api => api.managerApi.createTemporaryUsers({
-                                    prefix: bulk.prefix.trim(),
-                                    count: bulk.count,
-                                    expiresAt: bulk.expiresAt,
-                                    activityId: bulk.activityId || undefined,
-                                    permissions: template?.permissions,
-                                }));
-                                setBulk({ ...bulk, open: false, prefix: "" });
-                                setCredentials(created);
-                            })}
-                        >
-                            {t("Create")}
-                        </Button>
-                    </Group>
-                </Stack>
-            </Modal>
-
-            {/* Shown once. There is nowhere to read these back from, which is the
-                point — the Server keeps a hash. */}
-            <Modal
-                opened={credentials !== undefined}
+            <CredentialsModal
+                credentials={credentials}
                 onClose={() => setCredentials(undefined)}
-                title={<Title order={4}>{t("Credentials")}</Title>}
-                size="lg"
-                centered
-            >
-                {credentials && (
-                    <Stack gap="sm">
-                        <Alert color="orange">
-                            {t("This is the only time these passwords can be read. Save or print them now.")}
-                        </Alert>
-                        <Code block style={{ maxHeight: 320, overflow: "auto" }}>
-                            {credentialsCsv(credentials)}
-                        </Code>
-                        <Group justify="space-between">
-                            <Button
-                                variant="light"
-                                leftSection={<IconDownload size={16} />}
-                                onClick={() => download(credentials)}
-                            >
-                                {t("Download CSV")}
-                            </Button>
-                            <Group gap="xs">
-                                <Button variant="default" onClick={() => window.print()}>{t("Print")}</Button>
-                                <Button onClick={() => setCredentials(undefined)}>{t("Done")}</Button>
-                            </Group>
-                        </Group>
-                    </Stack>
-                )}
-            </Modal>
+                handout={handout}
+            />
+
+            <TemporaryAccountsModal
+                opened={bulk.open}
+                onClose={() => setBulk({ open: false })}
+                activities={activities}
+                templates={templates}
+                run={run}
+                busy={busy}
+                onCreated={() => setReload(n => n + 1)}
+                handout={handout}
+            />
         </Stack>
     );
 }

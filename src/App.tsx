@@ -14,6 +14,7 @@ import RegisterPage from './pages/register/RegisterPage';
 import AppLayout from './layouts/app/AppLayout';
 import SessionShell from './layouts/SessionShell';
 import ActivitiesPage from './pages/activities/ActivitiesPage';
+import ActivityPage from './pages/activities/activity_id/ActivityPage';
 import ProblemsPage from './pages/activities/activity_id/problems/ProblemsPage';
 import SubmitPage from './pages/activities/activity_id/submit/SubmitPage';
 import SubmissionsPage from './pages/activities/activity_id/submissions/SubmissionsPage';
@@ -49,6 +50,7 @@ const ManagerProblemPage = lazy(() => import('./pages/manager/problems/problem_i
 const ManagerSubmissionsPage = lazy(() => import('./pages/manager/submissions/ManagerSubmissionsPage'));
 const ManagerSubmissionPage = lazy(() => import('./pages/manager/submissions/submission_id/ManagerSubmissionPage'));
 const ManagerQuestionsPage = lazy(() => import('./pages/manager/questions/ManagerQuestionsPage'));
+const ManagerInstancePage = lazy(() => import('./pages/manager/instance/ManagerInstancePage'));
 
 function App() {
 
@@ -133,6 +135,13 @@ function App() {
                     element: <ActivitiesPage />
                 },
                 {
+                    // The activity's own page: what its organiser wrote, or the
+                    // form to enrol for somebody who is not in it yet. Exact, so
+                    // it does not swallow the screens below it.
+                    path: "/activities/:activityId",
+                    element: <ActivityPage />
+                },
+                {
                     path: "/activities/:activityId/problems",
                     element: <ProblemsPage />
                 },
@@ -179,7 +188,8 @@ function App() {
                 managerRoute("/manager/questions", <ManagerQuestionsPage />),
                 managerRoute("/manager/grants", <GrantsPage />),
                 managerRoute("/manager/permission-templates", <PermissionTemplatesPage />),
-                managerRoute("/manager/runners", <RunnersPage />)
+                managerRoute("/manager/runners", <RunnersPage />),
+                managerRoute("/manager/instance", <ManagerInstancePage />)
             ]
         }
     ], { basename: import.meta.env.BASE_URL });
@@ -197,7 +207,12 @@ function App() {
                                     authenticated by it and lives exactly as
                                     long. */}
                                 <EventsProvider>
-                                    <Notifications />
+                                    {/* Bottom **left**: the right-hand corner
+                                        is the submissions panel's, and the
+                                        right-hand edge above it is the
+                                        navigation a notification was landing
+                                        on. */}
+                                    <Notifications position="bottom-left" />
                                     <RouterProvider router={router} />
                                 </EventsProvider>
                             </PermissionsProvider>
