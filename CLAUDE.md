@@ -102,6 +102,12 @@ appends the path. `/` means the origin the application itself came from, which i
 the case the rule exists for: one domain serving both. Do not make the path
 configurable again.
 
+**There is a Server now, and it does not agree with this repository everywhere.**
+`SERVER_CONTRACT.md` records the places where the two cannot both be right —
+three manager reads whose paths carry two different response shapes, a bug in
+`check:api`, and what the Server serves today. Nothing in it has been applied:
+they are proposals. Read it before changing anything under `src/api/http/`.
+
 ### The fake's fixtures (2026-08-07)
 
 `src/api/fake/fixtures/world.ts` states **every activity once** — its rounds,
