@@ -480,11 +480,9 @@ export default function AppLayout() {
                 screens — so nothing is announced twice and nothing is missed. */}
             <ActivityNotifications activityId={activity?.id} slug={activity?.slug} />
             {/* Beside them, in the other corner, and only inside an activity. */}
-            <ActivitySubmissions
-                activityId={activity?.id}
-                slug={activity?.slug}
-                timeZone={activity?.timeZone}
-            />
+            {/* The shell already holds both, and the panel's modal needs the
+                rounds to offer a problem — so nothing is fetched twice. */}
+            <ActivitySubmissions activity={activity} series={series} />
         </AppShell>
     );
 }

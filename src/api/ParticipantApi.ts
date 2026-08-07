@@ -485,6 +485,23 @@ export interface ContestantResult {
     /** Absent alongside `points`, for the same two reasons. */
     state?: JobState,
     /**
+     * Whatever else the problem type wants a board to have — cycles used, peak
+     * memory, a domain measure. Filled by the Runner, stored by the Server
+     * without being read, shaped by the problem type.
+     *
+     * **Public by construction.** Everyone who may see the board is sent this,
+     * so nothing goes in it that is not meant to be seen. It is not a way back
+     * in for the Runner's per-test document, which is kept out of the feed both
+     * for its size and because per-test rows of everybody's submissions publish
+     * how other people's solutions behave — that stays on the submission, with
+     * its own access rule.
+     *
+     * Untyped for the same reason `SubmissionDetail.detail` is: a ranking type
+     * that needs a metric must not need a Server release to carry it. Whoever
+     * reads it guards the shape, as the result renderers already do.
+     */
+    extra?: unknown,
+    /**
      * Its outcome is withheld: that it happened is all that is disclosed.
      *
      * This is what a freeze looks like on the wire. Omitting the result instead

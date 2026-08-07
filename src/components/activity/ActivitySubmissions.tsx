@@ -1,12 +1,13 @@
-import { ActionIcon, Group, Paper, ScrollArea, Stack, Text, UnstyledButton } from "@mantine/core";
-import { IconChevronDown, IconChevronUp, IconBox } from "@tabler/icons-react";
+import { ActionIcon, Button, Group, Paper, ScrollArea, Stack, Text, UnstyledButton } from "@mantine/core";
+import { IconChevronDown, IconChevronUp, IconBox, IconSend } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
-import { SubmissionSummary } from "../../api/ParticipantApi";
+import { useMatch, useNavigate } from "react-router-dom";
+import { Activity, Series, SubmissionSummary } from "../../api/ParticipantApi";
 import StateBadge from "../submission/StateBadge";
 import ActivityTime from "../time/ActivityTime";
 import { useApiEffect } from "../../provider/apiContext";
+import SubmitModal from "./SubmitModal";
 import classes from "./ActivitySubmissions.module.css";
 
 /**
@@ -31,16 +32,30 @@ const isToday = (value: string): boolean =>
 
 export interface ActivitySubmissionsProps {
     /** Absent outside an activity, where there is nothing to show. */
-    activityId?: string;
-    slug?: string;
-    timeZone?: string;
+    activity?: Activity;
+    /** The rounds, for the problem picker in the modal. Already held by the shell. */
+    series?: Series[];
 }
 
-export default function ActivitySubmissions({ activityId, slug, timeZone }: ActivitySubmissionsProps) {
+export default function ActivitySubmissions({ activity, series }: ActivitySubmissionsProps) {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    // Which problem the reader is on, where they are on one, so sending from a
+    // statement opens on that problem rather than on an empty picker.
+    //
+    // Matched rather than read from `useParams`: the panel is mounted by the
+    // shell, outside the `Outlet`, so its params are the layout route's and hold
+    // no problem however deep the child route goes.
+    const onProblem = useMatch("/activities/:activityId/problems/:problemId");
+    const onSubmit = useMatch("/activities/:activityId/submit/:problemId");
+    const problemId = onProblem?.params.problemId ?? onSubmit?.params.problemId;
     const [open, setOpen] = useState(() => sessionStorage.getItem(OPEN_KEY) === "true");
+    const [sending, setSending] = useState(false);
     const [items, setItems] = useState<SubmissionSummary[]>([]);
+
+    const activityId = activity?.id;
+    const slug = activity?.slug;
+    const timeZone = activity?.timeZone;
 
     useApiEffect(async (api) => {
         if (!activityId) return;
@@ -58,7 +73,7 @@ export default function ActivitySubmissions({ activityId, slug, timeZone }: Acti
         });
     }, [activityId]);
 
-    if (!activityId || !slug) return null;
+    if (!activity || !activityId || !slug) return null;
 
     const toggle = () => {
         setOpen(current => {
@@ -69,16 +84,40 @@ export default function ActivitySubmissions({ activityId, slug, timeZone }: Acti
 
     return (
         <Paper withBorder shadow="md" radius="md" className={classes.panel}>
-            <UnstyledButton onClick={toggle} className={classes.bar} aria-expanded={open}>
-                <Group gap="xs" wrap="nowrap">
-                    <IconBox size={16} />
-                    <Text size="sm" fw={500}>{t("My submissions")}</Text>
-                    <Text size="sm" c="dimmed">{items.length}</Text>
-                </Group>
-                <ActionIcon component="div" variant="subtle" size="sm" aria-hidden>
-                    {open ? <IconChevronDown size={16} /> : <IconChevronUp size={16} />}
-                </ActionIcon>
-            </UnstyledButton>
+            {/* Two controls side by side, not one inside the other. The bar used
+                to be a single button wrapping everything, and a button inside a
+                button is invalid — the trap that cost the series pause control
+                its keyboard access before it was moved out of its own row. */}
+            <div className={classes.bar}>
+                <UnstyledButton onClick={toggle} className={classes.toggle} aria-expanded={open}>
+                    <Group gap="xs" wrap="nowrap">
+                        <IconBox size={16} />
+                        <Text size="sm" fw={500}>{t("My submissions")}</Text>
+                        <Text size="sm" c="dimmed">{items.length}</Text>
+                    </Group>
+                </UnstyledButton>
+                <Button
+                    size="compact-xs"
+                    variant="light"
+                    leftSection={<IconSend size={14} />}
+                    onClick={() => setSending(true)}
+                >
+                    {t("Send")}
+                </Button>
+                <UnstyledButton onClick={toggle} tabIndex={-1} aria-hidden className={classes.chevron}>
+                    <ActionIcon component="div" variant="subtle" size="sm" aria-hidden>
+                        {open ? <IconChevronDown size={16} /> : <IconChevronUp size={16} />}
+                    </ActionIcon>
+                </UnstyledButton>
+            </div>
+
+            <SubmitModal
+                activity={activity}
+                series={series ?? []}
+                opened={sending}
+                onClose={() => setSending(false)}
+                initialSlug={problemId}
+            />
 
             {open && (
                 <ScrollArea.Autosize mah={320} type="auto">

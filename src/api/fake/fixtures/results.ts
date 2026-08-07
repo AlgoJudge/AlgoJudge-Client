@@ -77,8 +77,10 @@ export const resultOf = (
         problemSlug: assignment.slug,
         submittedAt: attemptTime(seed, attempt),
     };
+    // `extra` goes with the outcome, not beside it: it is measured from the same
+    // run, so a metric that survived a freeze would leak what the freeze hides.
     if (withheld(seed, attempt, now, unfrozen)) return { ...base, frozen: true };
-    return { ...base, points: attempt.score, state: attempt.state };
+    return { ...base, points: attempt.score, state: attempt.state, extra: attempt.extra };
 };
 
 const seriesOf = (seed: SeedSeries, live: Series, now: number, unfrozen: boolean): ResultSeries => ({

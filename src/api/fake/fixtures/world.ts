@@ -138,6 +138,14 @@ export interface SeedAttempt {
     history?: { verdict: string; score: number }[];
     /** Compiler output or the judge's message. Managers always see it. */
     log?: string;
+    /**
+     * What the Runner measured beyond the score, for a board that wants it.
+     *
+     * Public: it reaches everybody who may see the ranking. Only a few attempts
+     * carry one, because that is the real case — a field every row filled in
+     * would never show what an absent one does to a renderer.
+     */
+    extra?: unknown;
 }
 
 export interface SeedSeries {
@@ -315,17 +323,17 @@ const ROUND_1: SeedSeries = {
         { contestant: "team-7", problem: "A", at: 57, language: "cpp", state: "failed", verdict: "Compilation error", log: "main.cpp:7:5: error: 'cout' was not declared in this scope" },
         { contestant: "team-7", problem: "C", at: 72, language: "python", state: "completed", verdict: "Time limit exceeded", score: 0 },
         { contestant: "team-7", problem: "B", at: 85, language: "cpp", state: "completed", verdict: "Wrong answer", score: 40 },
-        { contestant: "team-7", problem: "A", at: 98, language: "cpp", state: "completed", verdict: "Accepted", score: 100 },
+        { contestant: "team-7", problem: "A", at: 98, language: "cpp", state: "completed", verdict: "Accepted", score: 100, extra: { cyclesUsed: 4_120_000, peakMemoryMb: 38 } },
         { contestant: "team-7", problem: "B", at: 111, language: "cpp", state: "running" },
         { contestant: "team-7", problem: "A", at: 116, language: "cpp", state: "queued" },
 
-        { contestant: "team-1", problem: "A", at: 12, language: "cpp", state: "completed", verdict: "Accepted", score: 100 },
+        { contestant: "team-1", problem: "A", at: 12, language: "cpp", state: "completed", verdict: "Accepted", score: 100, extra: { cyclesUsed: 2_980_000, peakMemoryMb: 24 } },
         { contestant: "team-1", problem: "B", at: 33, language: "cpp", state: "completed", verdict: "Wrong answer", score: 30 },
         { contestant: "team-1", problem: "B", at: 54, language: "cpp", state: "completed", verdict: "Accepted", score: 100 },
         { contestant: "team-1", problem: "C", at: 88, language: "cpp", state: "completed", verdict: "Accepted", score: 100 },
 
         { contestant: "team-2", problem: "A", at: 9, language: "python", state: "completed", verdict: "Accepted", score: 100, history: [{ verdict: "Wrong answer", score: 0 }] },
-        { contestant: "team-2", problem: "B", at: 61, language: "python", state: "completed", verdict: "Accepted", score: 100 },
+        { contestant: "team-2", problem: "B", at: 61, language: "python", state: "completed", verdict: "Accepted", score: 100, extra: { cyclesUsed: 9_450_000, peakMemoryMb: 61 } },
         { contestant: "team-2", problem: "C", at: 25, language: "python", state: "completed", verdict: "Wrong answer", score: 10 },
         { contestant: "team-2", problem: "C", at: 40, language: "python", state: "completed", verdict: "Wrong answer", score: 10 },
         { contestant: "team-2", problem: "C", at: 55, language: "python", state: "completed", verdict: "Wrong answer", score: 30 },
@@ -543,13 +551,35 @@ export const WORLD: SeedActivity[] = [
         props: [],
         membership: "invited",
         managed: true,
-        contestants: [],
+        // With results, so the unsupported-ranking fallback has something to
+        // fall back on. It prints the raw feed, which is the one place `extra`
+        // is visible — nothing else renders it, because no ranking type here
+        // needs it yet.
+        contestants: [
+            { id: "guesser-1", name: "Anna Nowak", userId: "user-nowak", userName: "Anna Nowak" },
+            { id: "guesser-me", name: "Amy Horsefighter", userId: ME, userName: "Amy Horsefighter", isMe: true },
+        ],
         series: [
             {
                 id: "series-u1", slug: "etap-1", name: "Etap 1", order: 1,
                 startDate: at(-hours(1)), endDate: at(hours(4)),
                 revealProblemCount: true,
                 assignments: [{ problem: GUESS, slug: "guess", name: "Zgadywanka" }],
+                attempts: [
+                    // The metric an elimination board would rank on, which is
+                    // exactly the case `extra` exists for: no Server field, no
+                    // Server release.
+                    {
+                        contestant: "guesser-1", problem: "guess", at: 12, language: "python",
+                        state: "completed", verdict: "Accepted", score: 100,
+                        extra: { guesses: 7, bestRound: 3 },
+                    },
+                    {
+                        contestant: "guesser-me", problem: "guess", at: 25, language: "python",
+                        state: "completed", verdict: "Partially accepted", score: 40,
+                        extra: { guesses: 19, bestRound: 5 },
+                    },
+                ],
             },
         ],
     },

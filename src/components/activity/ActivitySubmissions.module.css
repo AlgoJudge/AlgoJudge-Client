@@ -18,13 +18,28 @@
     background: var(--mantine-color-body);
 }
 
+/*
+ * A row of siblings, not one button wrapping the rest: the send button lives
+ * here too, and a button inside a button is invalid markup.
+ */
 .bar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: var(--mantine-spacing-xs);
     width: 100%;
     padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+}
+
+/* Takes the slack, so the whole width of the name still toggles the panel. */
+.toggle {
+    flex: 1;
+    min-width: 0;
+}
+
+.chevron {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
 }
 
 .bar:hover {
