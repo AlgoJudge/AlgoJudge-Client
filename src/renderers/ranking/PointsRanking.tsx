@@ -1,9 +1,10 @@
-import { Alert, Stack, Table, Text, UnstyledButton } from "@mantine/core";
+import { Alert, Stack, Table, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import { IconChevronDown, IconChevronRight, IconInfoCircle } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FindMeButton, FreezeBanner } from "./common";
-import { asArray, asNumber, asString, isRecord, RankingProps } from "./parse";
+import { RankingProps } from "./parse";
+import { freezeOf, pointsBoard, PointsCell } from "./scoreboard";
 import { useFindMe } from "./useFindMe";
 import classes from "./PointsRanking.module.css";
 
@@ -13,94 +14,51 @@ import classes from "./PointsRanking.module.css";
  * Neither submission time nor execution time is considered — only points, whole
  * or partial according to how the activity is configured. The series that is
  * currently running starts expanded, because that is the one being watched.
+ *
+ * **The Server computes none of this**, as in the ICPC board beside it: it sends
+ * the results a reader may see and `scoreboard.ts` works out the totals.
  */
 
-interface ProblemColumn {
-    slug: string;
-    name: string;
-    maxScore: number | undefined;
-}
-
-interface SeriesColumn {
-    id: string;
-    name: string;
-    problems: ProblemColumn[];
-}
-
-interface Row {
-    rank?: number;
-    id?: string;
-    name?: string;
-    solved?: number;
-    total?: number;
-    bySeries: Record<string, { total?: number; byProblem: Record<string, number> }>;
-}
-
-const parseSeries = (raw: unknown): SeriesColumn | undefined => {
-    if (!isRecord(raw)) return undefined;
-    const id = asString(raw.id);
-    if (!id) return undefined;
-    return {
-        id,
-        name: asString(raw.name) ?? id,
-        problems: asArray(raw.problems)
-            .map((p): ProblemColumn | undefined => isRecord(p)
-                ? { slug: asString(p.slug) ?? "", name: asString(p.name) ?? "", maxScore: asNumber(p.maxScore) }
-                : undefined)
-            .filter((p): p is ProblemColumn => !!p && p.slug !== ""),
-    };
-};
-
-const parseRow = (raw: unknown): Row | undefined => {
-    if (!isRecord(raw)) return undefined;
-    const bySeries: Row["bySeries"] = {};
-    if (isRecord(raw.bySeries)) {
-        for (const [seriesId, value] of Object.entries(raw.bySeries)) {
-            const byProblem: Record<string, number> = {};
-            if (isRecord(value) && isRecord(value.byProblem)) {
-                for (const [slug, score] of Object.entries(value.byProblem)) {
-                    const n = asNumber(score);
-                    if (n !== undefined) byProblem[slug] = n;
-                }
-            }
-            bySeries[seriesId] = {
-                total: isRecord(value) ? asNumber(value.total) : undefined,
-                byProblem,
-            };
-        }
+/** A cell whose result is withheld says so rather than reading as a zero. */
+const CellView = ({ cell }: { cell: PointsCell | undefined }) => {
+    const { t } = useTranslation();
+    if (cell === undefined) return <>—</>;
+    if (cell.points === undefined) {
+        return (
+            <Tooltip label={t("Submitted during the freeze")}>
+                <span>?</span>
+            </Tooltip>
+        );
     }
-    return {
-        rank: asNumber(raw.rank),
-        id: asString(raw.id),
-        name: asString(raw.name),
-        solved: asNumber(raw.solved),
-        total: asNumber(raw.total),
-        bySeries,
-    };
+    return (
+        <>
+            {cell.points}
+            {cell.pending && <Text component="span" c="dimmed"> ?</Text>}
+        </>
+    );
 };
 
-export default function PointsRanking({ ranking, timeZone }: RankingProps) {
+export default function PointsRanking({ results, timeZone, ranked }: RankingProps) {
     const { t } = useTranslation();
     const [myRow, findMe] = useFindMe();
 
-    const document = isRecord(ranking) ? ranking : {};
-    const series = asArray(document.series).map(parseSeries).filter((s): s is SeriesColumn => !!s);
-    const rows = asArray(document.rows).map(parseRow).filter((r): r is Row => !!r);
+    const rows = pointsBoard(results, ranked);
+    const { frozen, revealAt } = freezeOf(results);
 
-    // Whether anybody has a place. Under `participantOnly` the Server sends the
-    // reader's row alone and omits `rank`, because a standing among people whose
-    // scores you may not see is not a standing — and a blank column under a "#"
-    // reads as a bug rather than as a deliberate omission.
+    // Whether anybody has a place. Under `participantOnly` the reader is sent
+    // their own results and nobody else's, so there is no standing to be in —
+    // and a blank column under a "#" reads as a bug rather than as a deliberate
+    // omission.
     const placed = rows.some(row => row.rank !== undefined);
     const nameLeft = { left: placed ? "3.5rem" : 0 };
-    const me = asString(document.me);
 
-
-    // The series being worked on right now opens by default; the rest stay
-    // collapsed so the table is readable at a glance.
-    const [expanded, setExpanded] = useState<string | undefined>(() => asString(document.activeSeriesId));
-
+    // The round being worked on right now opens by default; a course watches the
+    // current week, not the first one. The last is the fallback, because a course
+    // whose rounds have all finished is looking at the most recent.
+    const [expanded, setExpanded] = useState<string | undefined>(() =>
+        results.series[results.series.length - 1]?.id);
     const toggle = (id: string) => setExpanded(current => current === id ? undefined : id);
+
     // A board with nobody on it is a normal state — an activity that has not
     // started, or one where nothing has been solved yet. It is not an error and
     // must not read as one.
@@ -114,12 +72,11 @@ export default function PointsRanking({ ranking, timeZone }: RankingProps) {
 
     return (
         <Stack gap="sm">
-            <FreezeBanner
-                frozen={document.frozen === true}
-                revealAt={asString(document.revealAt)}
-                timeZone={timeZone}
+            <FreezeBanner frozen={frozen} revealAt={revealAt} timeZone={timeZone} />
+            <FindMeButton
+                onClick={findMe}
+                disabled={!results.me || !rows.some(r => r.contestantId === results.me)}
             />
-            <FindMeButton onClick={findMe} disabled={!me || !rows.some(r => r.id === me)} />
 
             <Table.ScrollContainer minWidth={640}>
                 <Table stickyHeader striped highlightOnHover withColumnBorders tabularNums>
@@ -131,18 +88,22 @@ export default function PointsRanking({ ranking, timeZone }: RankingProps) {
                             </Table.Th>
                             <Table.Th>{t("Solved")}</Table.Th>
                             <Table.Th>{t("Sum")}</Table.Th>
-                            {series.map(s => {
+                            {results.series.map(s => {
                                 const open = expanded === s.id;
                                 return [
                                     <Table.Th key={s.id}>
                                         <UnstyledButton onClick={() => toggle(s.id)} className={classes.seriesHeader}>
                                             {open ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
-                                            <span>{s.name}</span>
+                                            {/* Frozen rounds carry an asterisk, as
+                                                the ICPC columns do: a total that
+                                                is still moving must not read as a
+                                                settled one. */}
+                                            <span>{s.name}{s.frozen ? "*" : ""}</span>
                                         </UnstyledButton>
                                     </Table.Th>,
                                     ...(open ? s.problems.map(p => (
                                         <Table.Th key={`${s.id}-${p.slug}`} className={classes.problemHeader}>
-                                            {p.slug}
+                                            {p.slug}{s.frozen ? "*" : ""}
                                         </Table.Th>
                                     )) : []),
                                 ];
@@ -152,22 +113,22 @@ export default function PointsRanking({ ranking, timeZone }: RankingProps) {
                     <Table.Tbody>
                         {rows.map(row => (
                             <Table.Tr
-                                key={row.id ?? row.rank}
-                                ref={row.id === me ? myRow : undefined}
-                                className={row.id === me ? classes.me : undefined}
+                                key={row.contestantId}
+                                ref={row.contestantId === results.me ? myRow : undefined}
+                                className={row.contestantId === results.me ? classes.me : undefined}
                             >
                                 {placed && <Table.Td className={classes.stickyPlace}>{row.rank}</Table.Td>}
                                 <Table.Td className={classes.stickyName} style={nameLeft}>{row.name}</Table.Td>
                                 <Table.Td>{row.solved}</Table.Td>
                                 <Table.Td><Text fw={600}>{row.total}</Text></Table.Td>
-                                {series.map(s => {
+                                {results.series.map(s => {
                                     const cell = row.bySeries[s.id];
                                     const open = expanded === s.id;
                                     return [
                                         <Table.Td key={s.id}>{cell?.total ?? 0}</Table.Td>,
                                         ...(open ? s.problems.map(p => (
                                             <Table.Td key={`${s.id}-${p.slug}`} className={classes.problemCell}>
-                                                {cell?.byProblem[p.slug] ?? "—"}
+                                                <CellView cell={cell?.byProblem[p.slug]} />
                                             </Table.Td>
                                         )) : []),
                                     ];

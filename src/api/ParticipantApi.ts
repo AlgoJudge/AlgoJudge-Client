@@ -415,6 +415,96 @@ export interface SubmitPayload {
     sha256?: string,
 }
 
+/* ── Results, from which every ranking is computed ─────────────────────────── */
+
+/**
+ * Somebody with a row on the board.
+ *
+ * A **contestant**, not a user: an ICPC row is a team and three people submit
+ * for it. Who typed a particular solution is the submissions screen's business
+ * and is not disclosed here.
+ */
+export interface Contestant {
+    id: string,
+    name: string,
+}
+
+/** A problem as a board's column: what it is called and what it is worth. */
+export interface ResultProblem {
+    id: string,
+    /** Unique across the whole activity, which is why cells key on it. */
+    slug: string,
+    name: string,
+    maxPoints: number,
+}
+
+/**
+ * One round the results cover.
+ *
+ * Carried even where nobody has attempted anything in it, because a board's
+ * columns are the problems that exist, not the problems somebody has solved.
+ */
+export interface ResultSeries {
+    id: string,
+    name: string,
+    /** What a penalty minute is counted from. Absent in an untimed activity. */
+    startDate?: string,
+    /**
+     * The board is frozen right now: outcomes after the freeze arrive withheld.
+     *
+     * Renderers mark a frozen round's columns, because a combined board that
+     * mixed settled and withheld columns without saying so would read as a
+     * standing when it is not one.
+     */
+    frozen: boolean,
+    /** When the organiser said it comes back. Absent means they did not say. */
+    revealAt?: string,
+    problems: ResultProblem[],
+}
+
+/**
+ * One submission, reduced to what a board needs.
+ *
+ * Deliberately not `SubmissionSummary`: the verdict text, the language and the
+ * Runner's per-test document say more about somebody's solution than a
+ * scoreboard has any business publishing, and the per-test document would also
+ * be most of the payload.
+ */
+export interface ContestantResult {
+    id: string,
+    contestantId: string,
+    seriesId: string,
+    problemId: string,
+    problemSlug: string,
+    submittedAt: string,
+    /**
+     * Absent while `frozen`, and while nothing has judged it yet. Absent is not
+     * zero: a board must not score what it has not been told.
+     */
+    points?: number,
+    /** Absent alongside `points`, for the same two reasons. */
+    state?: JobState,
+    /**
+     * Its outcome is withheld: that it happened is all that is disclosed.
+     *
+     * This is what a freeze looks like on the wire. Omitting the result instead
+     * would leave a board unable to tell "did not try" from "tried, and you may
+     * not know yet" — and the second is what the `?` cell of an ICPC board is.
+     */
+    frozen?: boolean,
+}
+
+/** Everything a board is computed from. */
+export interface ActivityResults {
+    /** In the order the rounds run. */
+    series: ResultSeries[],
+    /** Everyone with a row, including those who have sent nothing. */
+    contestants: Contestant[],
+    results: ContestantResult[],
+    /** Which contestant the reader is, where they are one. */
+    me?: string,
+}
+
 export type QuestionKind = "question" | "announcement";
 
 export interface QuestionAnswer {
@@ -549,8 +639,36 @@ export type SubmissionStateChangedEvent = ParticipantEvent<"submissionStateChang
     submission: SubmissionSummary;
 }>;
 
+/**
+ * What happened to the results, on the same footing as `SeriesChange`.
+ *
+ * One event with a discriminator rather than three types carrying the same
+ * payload: every listener wants the same thing, which is to end up drawing the
+ * right board.
+ */
+export type RankingChange =
+    /** A submission was judged. `result` carries it, already filtered. */
+    | "result"
+    /** A freeze ended. Everything it withheld is now readable. */
+    | "unfrozen"
+    /** A round's ranking window opened. There is a board that was not there. */
+    | "windowOpened";
+
 export type RankingChangedEvent = ParticipantEvent<"rankingChanged", {
     activityId: string;
+    change: RankingChange;
+    /** Which round it concerns, where it concerns one. */
+    seriesId?: string;
+    /**
+     * The result itself, on `change: "result"` — pushed rather than fetched
+     * because it is small and a scoreboard is watched.
+     *
+     * A screen may merge it, but **the feed remains the source of state**: a
+     * dropped message would otherwise leave a board quietly wrong with nothing
+     * to notice it by, so a reconnection refetches. The other two changes carry
+     * nothing precisely because they mean "what you hold is now incomplete".
+     */
+    result?: ContestantResult;
 }>;
 
 export type QuestionAnsweredEvent = ParticipantEvent<"questionAnswered", {
@@ -624,15 +742,28 @@ export interface ParticipantApi {
     submit(activityId: string, problemSlug: string, payload: SubmitPayload, signal: AbortSignal): Promise<SubmissionSummary>;
 
     /**
-     * The ranking document, shaped by `Activity.rankingType` and rendered from it.
+     * Every result the reader may see, from which a board is computed.
      *
-     * Without a series it is the combined board; with one it is that round's own
-     * standing. **The Server assembles both**: a round's standing has its own
-     * ordering, and a Client filtering rows it was handed would produce places
-     * that are not places — the same reason a freeze happens where the data
-     * leaves.
+     * The Server sends **results, not a ranking**: which board they add up to is
+     * the activity's `rankingType`, and that is a renderer's business — a Server
+     * computing an ICPC penalty would be encoding the semantics of one ranking
+     * type, which is the thing it is not supposed to know.
+     *
+     * What stays the Server's is not arithmetic but disclosure, and none of it
+     * is optional:
+     *
+     * - the **window** decides whether there is an answer at all,
+     * - the **freeze** withholds outcomes — see `ContestantResult.frozen`,
+     * - `scoreVisibility` decides whose results are in it.
+     *
+     * A board is assembled in the Client, so anything sent has already been
+     * disclosed. Filtering has to happen where the data leaves.
+     *
+     * `seriesId` narrows the feed to one round. The ranking screen does not use
+     * it: the combined board already carries every round the reader may see, so
+     * it asks once and slices what it was given.
      */
-    getRanking(activityId: string, seriesId: string | undefined, signal: AbortSignal): Promise<unknown>;
+    getResults(activityId: string, seriesId: string | undefined, signal: AbortSignal): Promise<ActivityResults>;
 
     getQuestions(activityId: string, filter: QuestionFilter, signal: AbortSignal): Promise<Page<Question>>;
     askQuestion(activityId: string, input: AskQuestionInput, signal: AbortSignal): Promise<Question>;

@@ -284,11 +284,13 @@ const ROUND_0: SeedSeries = {
 };
 
 /**
- * The round being fought.
+ * The round being fought, with its board live and frozen for the last half hour
+ * — the ICPC convention.
  *
- * Its board is held back until it ends, while Runda 0's is already published —
- * one activity, two windows, which is what the per-round window is for. It also
- * freezes for its last half hour, the ICPC convention.
+ * Its window is open, so it is on the combined board; it is frozen, so its
+ * columns carry an asterisk there and its late results arrive withheld. That
+ * pairing is the whole of what the asterisk is for, and no other round in the
+ * seed is in it.
  */
 const ROUND_1: SeedSeries = {
     id: "series-r1", slug: "runda-1", name: "Runda 1", order: 1,
@@ -296,7 +298,6 @@ const ROUND_1: SeedSeries = {
     revealProblemCount: true,
     rankingFreezeAt: at(-minutes(30)),
     rankingRevealAt: at(hours(1)),
-    rankingVisibleFrom: at(hours(1)),
     assignments: [
         // Pinned: a contest must not have its statement change underneath it,
         // even though the library has moved on to v3.
@@ -348,6 +349,10 @@ const ROUND_2: SeedSeries = {
     // Closed, but the manager allows the count to be shown. The problems
     // themselves stay withheld — a closed round does not disclose what it holds.
     revealProblemCount: true,
+    // Its board is held back until it ends, while Runda 0's is published and
+    // Runda 1's is live-but-frozen: one activity, three windows, which is what
+    // the per-round window is for.
+    rankingVisibleFrom: at(OPENING_SERIES_DELAY + hours(3)),
     assignments: [
         { problem: GRAPH, slug: "E", name: "Maksymalny przepływ" },
         { problem: DIJKSTRA, slug: "F", name: "Drzewo przedziałowe" },

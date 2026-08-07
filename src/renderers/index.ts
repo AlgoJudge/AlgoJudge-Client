@@ -6,6 +6,7 @@ import UnsupportedResult from "./results/UnsupportedResult";
 import IcpcRanking from "./ranking/IcpcRanking";
 import PointsRanking from "./ranking/PointsRanking";
 import UnsupportedRanking from "./ranking/UnsupportedRanking";
+import { RankingProps } from "./ranking/parse";
 import { TypeRegistry } from "./TypeRegistry";
 
 // KaTeX and the block renderers are only needed on a statement or the rules
@@ -72,7 +73,7 @@ export const resultRenderers = new TypeRegistry<ResultRenderer>(UnsupportedResul
  * it is, and ICPC is a different table from the points board rather than a
  * different sort of the same one.
  */
-export type RankingRenderer = ComponentType<{ ranking: unknown; timeZone: string }>;
+export type RankingRenderer = ComponentType<RankingProps>;
 
 export const rankingRenderers = new TypeRegistry<RankingRenderer>(UnsupportedRanking)
     .register("icpc", IcpcRanking)

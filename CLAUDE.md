@@ -91,7 +91,7 @@ configurable again.
 its problem assignments, who competes in it, and every attempt they made.
 Everything else is projected from it: `fixtures/activities.ts` for the manager,
 `fixtures/index.ts` for the participant, `fixtures/submissions.ts` for the
-submissions list, and `fixtures/scoreboard.ts` for the standings.
+submissions list, and `fixtures/results.ts` for the results feed.
 
 Do not state on one side what the other side also has. Two hand-written sets
 disagreed about the same contest — its name, four rounds against two, which
@@ -99,6 +99,19 @@ problems were in them — and every "the manager changed it and the participant
 never saw it" defect came from that. Anything one side derives is derived:
 a problem's status and best score, `submissionCount`, `attachedCount`, and every
 board.
+
+### Rankings are computed here (2026-08-07)
+
+The Server sends **results, not a board**: `GET /activities/{id}/results` answers
+with the rounds, the contestants and one entry per submission, and
+`src/renderers/ranking/scoreboard.ts` works out what they add up to. A Server
+computing an ICPC penalty would encode one ranking type's semantics, which is
+what "adding a type does not require a Server change" forbids.
+
+What the Server still owns is **disclosure**: the ranking window decides whether
+there is an answer, the freeze withholds outcomes, and `scoreVisibility` decides
+whose results are in it. A board is assembled here, so anything sent has already
+been disclosed — never add a field to the feed without asking who may read it.
 
 Not implemented yet: no renderer registry and no `typeId`/`typeVersion`
 selection, and no WebSocket — the event dispatchers exist and are shaped for one,

@@ -2,6 +2,7 @@ import { ParticipantEventDispatcherImpl } from "../impl/ParticipantEventDispatch
 import {
     Activity,
     ActivityFilter,
+    ActivityResults,
     AskQuestionInput,
     EnrolInput,
     JobState,
@@ -21,7 +22,9 @@ import { FakeActivities, SeriesRelay } from "./FakeActivities";
 import { maySubmit, mayReadProblems } from "../seriesState";
 import { FakeFiles } from "./FileApiFake";
 import { createDataset, Dataset, OPENING_SERIES_DELAY } from "./fixtures";
-import { board, BoardPart } from "./fixtures/scoreboard";
+import { activityResults, resultOf } from "./fixtures/results";
+import { attemptId, meOf, SeedAttempt, SeedSeries } from "./fixtures/world";
+import { rankingWindow } from "../rankingWindow";
 import { ForbiddenError } from "../ApiError";
 import { Utils } from "./Utils";
 import { sha256 } from "../../utils/sha256";
@@ -108,10 +111,30 @@ class FakeParticipantState {
 
         // A pending question is answered.
         this.after(20000, () => this.answerQuestion(contest.id, "q-3"));
+
+        // Each round's two ranking instants, wired from the dates it actually
+        // holds. A contest's freeze lifts when the round ends and a window opens
+        // when the organiser said, so in this seed neither lands inside a short
+        // visit — the timers exist so the path is real, not so it can be watched.
+        for (const activity of this.data.activities) {
+            for (const seed of this.data.seeds.get(activity.id)?.series ?? []) {
+                this.at(seed.rankingRevealAt, () =>
+                    this.announceRanking(activity.id, seed.id, "unfrozen"));
+                this.at(seed.rankingVisibleFrom, () =>
+                    this.announceRanking(activity.id, seed.id, "windowOpened"));
+            }
+        }
     }
 
     private after(ms: number, f: () => void): void {
         this.timers.push(setTimeout(f, ms));
+    }
+
+    /** The same, at an instant. Anything already past has nothing to announce. */
+    private at(when: string | undefined, f: () => void): void {
+        if (when === undefined) return;
+        const delay = Date.parse(when) - Date.now();
+        if (delay > 0) this.after(delay, f);
     }
 
     private setSubmissionState(activityId: string, submissionId: string, state: JobState): void {
@@ -170,7 +193,55 @@ class FakeParticipantState {
             data: { activityId, submission: { ...summary } },
         });
         this.updateProblemStatus(activityId, summary.problemSlug, score);
-        this.events.dispatchEvent({ type: "rankingChanged", data: { activityId } });
+
+        // The verdict goes back into the seed, so the feed and the board agree
+        // with the submissions list rather than merely being told about it.
+        const seeded = this.attemptOf(activityId, submissionId);
+        if (seeded) {
+            seeded.attempt.state = "completed";
+            seeded.attempt.score = score;
+            seeded.attempt.verdict = verdict;
+        }
+        this.announceResult(activityId, submissionId);
+    }
+
+    /**
+     * Pushes one result, filtered exactly as the feed is.
+     *
+     * A result inside a freeze goes out **withheld**, not omitted: the socket
+     * cannot be a way around the rule the endpoint applies, and a board still
+     * has to learn that somebody submitted.
+     */
+    private announceResult(activityId: string, submissionId: string): void {
+        const seeded = this.attemptOf(activityId, submissionId);
+        const activity = this.data.activities.find(a => a.id === activityId);
+        if (!seeded || !activity) return;
+
+        const live = (this.data.series.get(activityId) ?? []).find(s => s.id === seeded.series.id);
+        // A round whose window is shut says nothing at all — there is no board
+        // for this to be a change to.
+        if (!live || !rankingWindow(live).visible) return;
+        if (activity.scoreVisibility === "managersOnly") return;
+
+        const result = resultOf(seeded.series, seeded.attempt, Date.now());
+        if (!result) return;
+        this.events.dispatchEvent({
+            type: "rankingChanged",
+            data: { activityId, change: "result", seriesId: seeded.series.id, result },
+        });
+    }
+
+    /**
+     * A freeze ends, or a round's board opens.
+     *
+     * Neither carries data: they mean "what you hold is now incomplete", and
+     * only the Server knows what it was withholding. The screen refetches.
+     */
+    private announceRanking(activityId: string, seriesId: string, change: "unfrozen" | "windowOpened"): void {
+        this.events.dispatchEvent({
+            type: "rankingChanged",
+            data: { activityId, change, seriesId },
+        });
     }
 
     /**
@@ -282,9 +353,45 @@ class FakeParticipantState {
      * Counted on the submission rather than on the verdict, which is where it
      * used to be: a badge saying two beside a list holding three, and a seeded
      * submission counted a second time the moment its Runner replied.
+     *
+     * Written **into the seed**, because the seed is what the results feed is
+     * built from. A submission recorded only in the submissions list would show
+     * on the panel, move the board once by the pushed event, and then vanish
+     * from it on the next refetch.
      */
-    countAttempt(activityId: string, problemSlug: string): void {
+    countAttempt(activityId: string, seriesId: string, problemSlug: string, language: string): string {
         this.updateProblemStatus(activityId, problemSlug);
+
+        const seed = this.data.seeds.get(activityId);
+        const series = seed?.series.find(s => s.id === seriesId);
+        const me = seed ? meOf(seed) : undefined;
+        if (!series || !me) return `sub-${Math.random().toString(36).slice(2, 10)}`;
+
+        const attempt: SeedAttempt = {
+            contestant: me.id,
+            problem: problemSlug,
+            // Minutes since the round started, which is how every attempt states
+            // its time — so this one is counted for a penalty like any other.
+            at: series.startDate === undefined
+                ? 0
+                : Math.max(0, Math.round((Date.now() - Date.parse(series.startDate)) / 60000)),
+            language,
+            state: "queued",
+        };
+        series.attempts = [...(series.attempts ?? []), attempt];
+        return attemptId(series.id, attempt);
+    }
+
+    /** The seeded attempt behind a submission, so a verdict can be written back. */
+    private attemptOf(activityId: string, submissionId: string): {
+        series: SeedSeries; attempt: SeedAttempt;
+    } | undefined {
+        const seed = this.data.seeds.get(activityId);
+        for (const series of seed?.series ?? []) {
+            const attempt = (series.attempts ?? []).find(a => attemptId(series.id, a) === submissionId);
+            if (attempt) return { series, attempt };
+        }
+        return undefined;
     }
 
     /** Puts a freshly submitted solution through the same lifecycle. */
@@ -302,21 +409,6 @@ class FakeParticipantState {
  * fields every format shares — `rows` and the `me` marker in them — and leaves
  * the rest as it is.
  */
-const onlyMyRow = (ranking: unknown): unknown => {
-    if (typeof ranking !== "object" || ranking === null) return ranking;
-    const document = ranking as { rows?: unknown, me?: unknown };
-    if (!Array.isArray(document.rows)) return ranking;
-    const mine = document.rows.filter(row =>
-        typeof row === "object" && row !== null && (row as { id?: unknown }).id === document.me);
-    return {
-        ...document,
-        rows: mine.map(row => {
-            const { rank, ...rest } = row as { rank?: unknown };
-            void rank;
-            return rest;
-        }),
-    };
-};
 
 export class ParticipantApiFake implements ParticipantApi {
     readonly eventDispatcher: ParticipantEventDispatcherImpl = new ParticipantEventDispatcherImpl();
@@ -484,7 +576,10 @@ export class ParticipantApiFake implements ParticipantApi {
             Utils.throwError("The submission does not match its checksum and was not accepted");
         }
 
-        const id = `sub-${Math.random().toString(36).slice(2, 10)}`;
+        // Recorded in the seed first, because that is what the results feed and
+        // every count are built from — and the id comes from where it landed, so
+        // the submissions list and the board name the same submission.
+        const id = this.state.countAttempt(activityId, problem.seriesId, problem.slug, payload.language ?? "");
         const fileName = payload.file?.name ?? `solution.${payload.language ?? "txt"}`;
         const summary: SubmissionSummary = {
             id,
@@ -508,10 +603,6 @@ export class ParticipantApiFake implements ParticipantApi {
         });
         data.submissionFiles.set(id, new Map([[fileName, payload.code ?? "// wysłano jako plik"]]));
 
-        // Counted now, because that is when it happened. The verdict changes
-        // what the problem is worth, not how many times it was tried.
-        this.state.countAttempt(activityId, problem.slug);
-
         this.eventDispatcher.dispatchEvent({
             type: "submissionStateChanged",
             data: { activityId, submission: { ...summary } },
@@ -520,36 +611,24 @@ export class ParticipantApiFake implements ParticipantApi {
         return copy(summary);
     }
 
-    async getRanking(activityId: string, seriesId: string | undefined, signal: AbortSignal): Promise<unknown> {
+    async getResults(activityId: string, seriesId: string | undefined, signal: AbortSignal): Promise<ActivityResults> {
         await this.settle(signal);
         const data = this.state.dataset();
         const seed = data.seeds.get(activityId);
-        if (seed === undefined) return notFound("Ranking");
+        if (seed === undefined) return notFound("Results");
 
-        // Computed on the call, not prepared at load. The combined board is the
-        // rounds whose window is open, and one assembled this morning would still
-        // not hold the round whose window opens at six — which is exactly the
-        // sort of thing a prepared board got wrong. The timing comes from the
-        // **live** series, so a round a manager just moved is counted from where
-        // it now starts.
-        const parts: BoardPart[] = seed.series
-            .map(part => ({
-                seed: part,
-                live: (data.series.get(activityId) ?? []).find(s => s.id === part.id),
-            }))
-            .filter((part): part is BoardPart => part.live !== undefined);
-        const ranking = board(seed, parts, seriesId, Date.now());
-
-        const activity = data.activities.find(a => a.id === activityId);
-        // Reduced here because the Server reduces it there. Under
-        // `participantOnly` the reader gets their own row and no place: a
-        // standing among people whose scores they may not see is not a standing,
-        // and sending the whole board with the places stripped would disclose
-        // exactly what the setting withholds.
-        if (activity?.scoreVisibility === "participantOnly") {
-            return copy(onlyMyRow(ranking));
-        }
-        return copy(ranking);
+        // Assembled on the call, not prepared at load: what may leave depends on
+        // the clock — a window that opens at six, a freeze that ends at seven —
+        // and the timing comes from the **live** series, so a round a manager
+        // just moved is counted from where it now starts.
+        const activity = this.activityOf(activityId);
+        return copy(activityResults({
+            seed,
+            live: data.series.get(activityId) ?? [],
+            seriesId,
+            scoreVisibility: activity?.scoreVisibility ?? "managersOnly",
+            now: Date.now(),
+        }));
     }
 
     async getQuestions(activityId: string, filter: QuestionFilter, signal: AbortSignal): Promise<Page<Question>> {

@@ -1,5 +1,6 @@
 import {
     Activity,
+    ActivityResults,
     ActivityFilter,
     AskQuestionInput,
     EnrolInput,
@@ -112,12 +113,15 @@ export class ParticipantApiHttp implements ParticipantApi {
             "POST", { signal, body: form });
     }
 
-    getRanking(activityId: string, seriesId: string | undefined, signal: AbortSignal): Promise<unknown> {
-        // Absent means the combined board, which is what the screen opens on.
-        return this.http.request<unknown>(`/activities/${encodeURIComponent(activityId)}/ranking`, "GET", {
-            signal,
-            query: query({ seriesId }),
-        });
+    getResults(activityId: string, seriesId: string | undefined, signal: AbortSignal): Promise<ActivityResults> {
+        // Absent asks for every round the reader may see, which is what the
+        // ranking screen wants: it computes the combined board and each round's
+        // own from one answer rather than asking again per tab.
+        return this.http.request<ActivityResults>(
+            `/activities/${encodeURIComponent(activityId)}/results`, "GET", {
+                signal,
+                query: query({ seriesId }),
+            });
     }
 
     getQuestions(activityId: string, filter: QuestionFilter, signal: AbortSignal): Promise<Page<Question>> {

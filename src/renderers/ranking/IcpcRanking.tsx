@@ -2,8 +2,9 @@ import { Alert, Stack, Table, Text, Tooltip } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { FindMeButton, FreezeBanner } from "./common";
-import { asArray, asNumber, asString, isRecord, RankingProps } from "./parse";
+import { RankingProps } from "./parse";
 import { minutesAsClock } from "../../components/time/format";
+import { columnsOf, freezeOf, icpcBoard, IcpcCell } from "./scoreboard";
 import { useFindMe } from "./useFindMe";
 import classes from "./IcpcRanking.module.css";
 
@@ -16,55 +17,14 @@ import classes from "./IcpcRanking.module.css";
  * twenty minutes for each rejected attempt before it. Unsolved problems
  * contribute nothing.
  *
- * The Server computes none of this. It arrives in the document the Runner
- * attached, reduced to what the ranking needs.
+ * **The Server computes none of this.** It sends the results a reader may see
+ * and this works out what they add up to — see `scoreboard.ts`. A Server
+ * computing a penalty would be encoding one ranking type's semantics.
  */
 
-interface Cell {
-    attempts?: number;
-    /** Minutes from the start of the series, at the first accepted submission. */
-    acceptedAt?: number;
-    /** Submitted during the freeze: counted later, shown as unresolved now. */
-    pending?: boolean;
-}
-
-interface Row {
-    rank?: number;
-    id?: string;
-    name?: string;
-    solved?: number;
-    penalty?: number;
-    cells: Record<string, Cell>;
-}
-
-const parseCell = (raw: unknown): Cell => {
-    if (!isRecord(raw)) return {};
-    return {
-        attempts: asNumber(raw.attempts),
-        acceptedAt: asNumber(raw.acceptedAt),
-        pending: raw.pending === true,
-    };
-};
-
-const parseRow = (raw: unknown): Row | undefined => {
-    if (!isRecord(raw)) return undefined;
-    const cells: Record<string, Cell> = {};
-    if (isRecord(raw.cells)) {
-        for (const [slug, cell] of Object.entries(raw.cells)) cells[slug] = parseCell(cell);
-    }
-    return {
-        rank: asNumber(raw.rank),
-        id: asString(raw.id),
-        name: asString(raw.name),
-        solved: asNumber(raw.solved),
-        penalty: asNumber(raw.penalty),
-        cells,
-    };
-};
-
-const CellView = ({ cell }: { cell: Cell }) => {
+const CellView = ({ cell }: { cell: IcpcCell }) => {
     const { t } = useTranslation();
-    const attempts = cell.attempts ?? 0;
+    const { attempts } = cell;
 
     if (cell.pending) {
         return (
@@ -96,26 +56,22 @@ const CellView = ({ cell }: { cell: Cell }) => {
     return <div className={classes.untouched} />;
 };
 
-export default function IcpcRanking({ ranking, timeZone }: RankingProps) {
+export default function IcpcRanking({ results, timeZone, ranked }: RankingProps) {
     const { t } = useTranslation();
     const [myRow, findMe] = useFindMe();
 
-    if (!isRecord(ranking)) return null;
-
-    const problems = asArray(ranking.problems)
-        .map(p => isRecord(p) ? { slug: asString(p.slug) ?? "", name: asString(p.name) ?? "" } : undefined)
-        .filter((p): p is { slug: string; name: string } => !!p);
-    const rows = asArray(ranking.rows).map(parseRow).filter((r): r is Row => !!r);
+    const columns = columnsOf(results);
+    const rows = icpcBoard(results, ranked);
+    const { frozen, revealAt } = freezeOf(results);
 
     // Whether anybody has a place. Under `participantOnly` the Server sends the
-    // reader's row alone and omits `rank`, because a standing among people whose
-    // scores you may not see is not a standing — and a blank column under a "#"
-    // reads as a bug rather than as a deliberate omission.
+    // reader's results and nobody else's, so there is no standing to be in — and
+    // a blank column under a "#" reads as a bug rather than as a deliberate
+    // omission.
     const placed = rows.some(row => row.rank !== undefined);
     // The name column starts where the place column ends, and at zero when there
     // is no place column to sit beside.
     const nameLeft = { left: placed ? "3.5rem" : 0 };
-    const me = asString(ranking.me);
 
     // A board with nobody on it is a normal state — an activity that has not
     // started, or one where nothing has been solved yet. It is not an error and
@@ -130,12 +86,11 @@ export default function IcpcRanking({ ranking, timeZone }: RankingProps) {
 
     return (
         <Stack gap="sm">
-            <FreezeBanner
-                frozen={ranking.frozen === true}
-                revealAt={asString(ranking.revealAt)}
-                timeZone={timeZone}
+            <FreezeBanner frozen={frozen} revealAt={revealAt} timeZone={timeZone} />
+            <FindMeButton
+                onClick={findMe}
+                disabled={!results.me || !rows.some(r => r.contestantId === results.me)}
             />
-            <FindMeButton onClick={findMe} disabled={!me || !rows.some(r => r.id === me)} />
 
             <Table.ScrollContainer minWidth={640}>
                 <Table stickyHeader striped highlightOnHover withColumnBorders tabularNums>
@@ -147,9 +102,18 @@ export default function IcpcRanking({ ranking, timeZone }: RankingProps) {
                             </Table.Th>
                             <Table.Th>{t("Solved")}</Table.Th>
                             <Table.Th>{t("Penalty")}</Table.Th>
-                            {problems.map(p => (
-                                <Table.Th key={p.slug}>
-                                    <Tooltip label={p.name}><span>{p.slug}</span></Tooltip>
+                            {columns.map(column => (
+                                <Table.Th key={column.slug}>
+                                    {/* A frozen round's columns carry an asterisk.
+                                        The combined board mixes rounds, and one
+                                        that put withheld columns beside settled
+                                        ones without saying so would read as a
+                                        standing when it is not one. */}
+                                    <Tooltip label={column.frozen
+                                        ? `${column.name} — ${t("this round's ranking is frozen")}`
+                                        : column.name}>
+                                        <span>{column.slug}{column.frozen ? "*" : ""}</span>
+                                    </Tooltip>
                                 </Table.Th>
                             ))}
                         </Table.Tr>
@@ -157,19 +121,17 @@ export default function IcpcRanking({ ranking, timeZone }: RankingProps) {
                     <Table.Tbody>
                         {rows.map(row => (
                             <Table.Tr
-                                key={row.id ?? row.rank}
-                                ref={row.id === me ? myRow : undefined}
-                                className={row.id === me ? classes.me : undefined}
+                                key={row.contestantId}
+                                ref={row.contestantId === results.me ? myRow : undefined}
+                                className={row.contestantId === results.me ? classes.me : undefined}
                             >
                                 {placed && <Table.Td className={classes.stickyPlace}>{row.rank}</Table.Td>}
                                 <Table.Td className={classes.stickyName} style={nameLeft}>{row.name}</Table.Td>
                                 <Table.Td>{row.solved}</Table.Td>
-                                <Table.Td>
-                                    {row.penalty === undefined ? "" : minutesAsClock(row.penalty)}
-                                </Table.Td>
-                                {problems.map(p => (
-                                    <Table.Td key={p.slug} className={classes.cell}>
-                                        <CellView cell={row.cells[p.slug] ?? {}} />
+                                <Table.Td>{minutesAsClock(row.penalty)}</Table.Td>
+                                {columns.map(column => (
+                                    <Table.Td key={column.slug} className={classes.cell}>
+                                        <CellView cell={row.cells[column.slug] ?? { attempts: 0 }} />
                                     </Table.Td>
                                 ))}
                             </Table.Tr>

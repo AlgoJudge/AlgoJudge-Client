@@ -71,6 +71,7 @@ import {
 } from "./ManagerApi";
 import {
     Activity,
+    ActivityResults,
     ActivityCreatedEvent,
     ActivityDeletedEvent,
     ActivityDocumentKind,
@@ -258,8 +259,8 @@ export class ScopedParticipantApi {
         return this.participantApi.submit(activityId, problemSlug, payload, this.signal);
     }
 
-    getRanking(activityId: string, seriesId?: string): Promise<unknown> {
-        return this.participantApi.getRanking(activityId, seriesId, this.signal);
+    getResults(activityId: string, seriesId?: string): Promise<ActivityResults> {
+        return this.participantApi.getResults(activityId, seriesId, this.signal);
     }
 
     getQuestions(activityId: string, filter: QuestionFilter = {}): Promise<Page<Question>> {
