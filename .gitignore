@@ -30,3 +30,6 @@ dist-ssr
 .content-check/
 # Output of `npm run check:events`.
 .events-check/
+
+# Screenshots and the browser profile from `npm run check:ui`.
+scripts/verify/out/

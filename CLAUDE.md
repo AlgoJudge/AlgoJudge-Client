@@ -32,6 +32,7 @@ verified as outdated and removed there.
 | `npm run check:content` | parses and validates every `content.md` fixture |
 | `npm run check:events` | drives the event socket against a stub `WebSocket` |
 | `npm run check:api` | lists every endpoint the HTTP layer calls; checks it against an OpenAPI document when given one |
+| `npm run check:ui` | drives a real browser over the screens, against the fake API |
 
 There is no test runner. Lint, `lint:deps`, typecheck and build are the gate and
 all four must exit 0 before anything is merged; the `check:` scripts cover what
@@ -42,6 +43,22 @@ the Client owns and are run when it changes — the two formats
 only checks them when handed an OpenAPI document —
 `npm run check:api -- openapi.json`. It becomes a gate the day the Server
 publishes one.
+
+`check:ui` is not a gate either, and CI does not run it. It drives a real Chrome
+over the screens against the fake, so it needs a dev server and a browser, takes
+minutes, and matches on Polish interface text. It is what catches the defects the
+gate structurally cannot see — a rule applied by a screen instead of by the API,
+a control that stopped reaching the keyboard, two halves of the fake disagreeing.
+Run it when a screen changes. `scripts/verify/README.md` says how, and carries
+the traps the scripts encode.
+
+**The dev server does not serve the fake by default.** `npm run dev` uses the
+real HTTP client, so every call 404s and the application sits on the login
+screen. For anything driven against the fake:
+
+```
+VITE_APP_USE_FAKE_API=true npm run dev -- --port 5180 --strictPort
+```
 
 **Lint is silent.** Not "nine known warnings", not two — nothing. It reported
 nine until 2026-08-05 and two until 2026-08-06. A warning in the output means

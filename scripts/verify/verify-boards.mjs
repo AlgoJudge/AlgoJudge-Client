@@ -1,0 +1,110 @@
+// The window per round, the combined board's columns, the clock, and the panel.
+import { open, results } from "./cdp.mjs";
+
+const APP = process.env.APP ?? "http://localhost:5180";
+const { evaluate, wait, shot, go, visit, click, tab, close } = await open({ out: process.env.OUT ?? "." });
+const { check, report } = results();
+
+const body = () => evaluate(`return document.body.innerText;`);
+const heads = () => evaluate(`
+    return [...document.querySelectorAll("th")].map(h => h.textContent.trim());
+`);
+const pick = (label) => click(`[...document.querySelectorAll("[class*=SegmentedControl] label")]
+    .find(l => l.textContent.trim() === ${JSON.stringify(label)})`);
+
+// ── 1. One activity, two windows ────────────────────────────────────────────
+// anowak holds a participant's set and nothing more; amy carries
+// `ranking:read:unfrozen` and reads past a window on purpose.
+await go(`${APP}/activities/AMMPZ-2019/ranking?fakeUser=anowak`, `document.body.innerText.includes("Ranking")`);
+await wait(2500);
+// Runda 2 opens 45 s after load and its board is held back until it ends. It is
+// the round with a shut window now that Runda 1's is open and merely frozen.
+for (let i = 0; i < 25; i++) {
+    const tabs = await evaluate(`
+        return [...document.querySelectorAll("[class*=SegmentedControl] label")].map(l => l.textContent.trim());
+    `);
+    if (tabs.includes("Runda 2")) break;
+    await wait(3000);
+}
+await pick("Runda 2");
+await wait(2500);
+check(/będzie dostępny od/.test(await body()),
+    "a round whose board is held back says from when");
+check(await evaluate(`return document.querySelectorAll("tbody tr").length === 0;`),
+    "and draws none");
+await shot("brd-held");
+
+await pick("Runda 0 — rozgrzewkowa");
+await wait(2500);
+check(await evaluate(`return document.querySelectorAll("tbody tr").length > 0;`),
+    "while another round of the same activity shows its board");
+check(!/będzie dostępny od/.test(await body()),
+    "and says nothing about waiting");
+
+// ── 2. The combined board carries the open rounds' problems ─────────────────
+await pick("Zbiorczy");
+await wait(2500);
+const combined = await heads();
+check(combined.includes("R") && combined.includes("S"),
+    `the combined board carries the settled round's problems (${combined.join(" ")})`);
+// The round being fought is on it too, because its window is open — its columns
+// carry an asterisk because it is frozen, which is the whole point of the mark.
+check(combined.includes("A*") && combined.includes("B*"),
+    "and the frozen round's, marked");
+check(!combined.includes("A") && !combined.includes("R*"),
+    "with the mark on exactly the frozen ones");
+await shot("brd-combined");
+
+// ── 3. The clock ────────────────────────────────────────────────────────────
+const cells = await evaluate(`
+    return [...document.querySelectorAll("tbody td")].map(c => c.textContent.trim()).filter(Boolean);
+`);
+check(cells.some(c => /^\d+:\d{2}/.test(c)),
+    `times read as a clock (${cells.slice(0, 8).join(" | ")})`);
+check(!cells.some(c => /^(118|312|331|74|96)$/.test(c)),
+    "and no raw minute count is left");
+
+// ── The leading columns stay put while the board scrolls sideways ───────────
+const stuck = await evaluate(`
+    const container = document.querySelector("[class*=ScrollContainer], [class*=Table-scrollContainer]")
+        ?? document.querySelector("[data-scrollable], .mantine-ScrollArea-viewport");
+    const nameCell = [...document.querySelectorAll("tbody td")]
+        .find(c => /Uniwersytet|Politechnika/.test(c.textContent));
+    if (!nameCell) return null;
+    return getComputedStyle(nameCell).position;
+`);
+check(stuck === "sticky", `the contestant column is sticky (${stuck})`);
+
+// ── 4. The submissions panel ────────────────────────────────────────────────
+await visit("/activities/AMMPZ-2019/problems", `document.body.innerText.includes("Runda 1")`);
+await wait(1500);
+// What the problems screen calls each problem, so the panel can be checked
+// against the application rather than against a name written down here — an
+// assignment carries the name its manager gave it, and that name may change.
+const named = await evaluate(`
+    return [...document.querySelectorAll("[class*=Card-root], tbody tr")]
+        .map(c => c.innerText.replace(/\\s+/g, " ").trim())
+        .filter(Boolean);
+`);
+await click(`[...document.querySelectorAll("[class*=Paper-root] button")]
+    .find(b => /Moje zgłoszenia/.test(b.textContent))`);
+await wait(1500);
+const row = await evaluate(`
+    const panel = [...document.querySelectorAll("[class*=Paper-root]")]
+        .find(p => /Moje zgłoszenia/.test(p.innerText) && getComputedStyle(p).position === "fixed");
+    const first = panel?.querySelector("[class*=row]");
+    return first ? first.innerText.replace(/\\s+/g, " ").trim() : null;
+`);
+check(row !== null && /^\d{2}:\d{2}/.test(row), `the row starts with the hour (${row})`);
+check(row !== null && /\[[A-Z]\]/.test(row), "carries the slug");
+// The name the row gives has to be the name the problems screen gives.
+const slug = row?.match(/\[([A-Z])\]/)?.[1];
+const rowName = row?.split(/\[[A-Z]\]\s*/)[1]?.replace(/\s+\d+ \/ \d+.*$/, "").trim();
+check(rowName !== undefined && rowName.length > 0
+    && named.some(entry => entry.includes(rowName)),
+    `and the same name the problems screen gives ${slug} (${rowName})`);
+check(row !== null && /\d+ \/ \d+/.test(row), "with the score beside the state");
+await shot("brd-panel");
+
+report();
+close();
