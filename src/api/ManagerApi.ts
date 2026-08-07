@@ -210,6 +210,15 @@ export interface ManagedActivity {
      * contest, which is an activity's decision and nobody else's.
      */
     attachmentVisibility: AttachmentRule[];
+    /**
+     * The languages a solution may be written in here.
+     *
+     * The activity's answer, and the only one: nothing declares a problem's own
+     * languages yet, so this is what the submit form offers and what the Server
+     * accepts. Narrowing it **leaves what has already been sent alone** — a
+     * result belongs to what it was judged against.
+     */
+    languages: string[];
     joinPolicy: JoinPolicy;
     /**
      * Hidden from the activity list of anybody not enrolled — reachable by its
@@ -266,6 +275,7 @@ export interface ActivityInput {
     modules: { questions: boolean };
     scoreVisibility: ScoreVisibility;
     attachmentVisibility: AttachmentRule[];
+    languages: string[];
     joinPolicy: JoinPolicy;
     unlisted: boolean;
     /** Absent or empty removes it. Meaningful only under `joinPolicy: "password"`. */
@@ -397,6 +407,23 @@ export interface ManagedSeriesProblem {
      * a scalar or an array.
      */
     config?: unknown;
+    /**
+     * What this problem is worth **here**.
+     *
+     * The Server rescales what the Runner gave into it —
+     * `round(score / scoreMax × maxPoints)` — wherever it reports a number: the
+     * submission, the problem's standing, the results feed. Absent keeps the
+     * problem's own scale, which is what an assignment that says nothing has.
+     *
+     * On the assignment rather than on the problem, so the same library problem
+     * may be attached twice in one activity and be worth different amounts —
+     * a warm-up in one round and the hard one in another.
+     *
+     * An **ICPC** board is unaffected: it counts solves and penalty minutes, and
+     * a point value has nowhere to land in it. This moves a points board, the
+     * problem list and the submission's own numbers.
+     */
+    maxPoints?: number;
     /** Narrow the activity's ceilings. Absent inherits. */
     maxUploadBytes?: number;
     maxAttachments?: number;
@@ -410,6 +437,8 @@ export interface SeriesProblemInput {
     pinnedProblemVersionId?: string;
     /** Absent leaves the assignment with none. */
     config?: unknown;
+    /** Absent keeps the problem's own scale. */
+    maxPoints?: number;
     maxUploadBytes?: number;
     maxAttachments?: number;
     maxSubmissions?: number;

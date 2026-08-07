@@ -47,6 +47,7 @@ const toAssignmentInput = (assignment: ManagedSeriesProblem): SeriesProblemInput
     name: assignment.name,
     pinnedProblemVersionId: assignment.pinnedProblemVersionId,
     config: assignment.config,
+    maxPoints: assignment.maxPoints,
     maxUploadBytes: assignment.maxUploadBytes,
     maxAttachments: assignment.maxAttachments,
     maxSubmissions: assignment.maxSubmissions,
@@ -407,6 +408,7 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                                                                 ? `${Math.round(assignment.maxUploadBytes / MB)} MB`
                                                                 : t("inherited")}
                                                             {assignment.maxSubmissions !== undefined && ` · ${assignment.maxSubmissions}×`}
+                                                            {assignment.maxPoints !== undefined && ` · ${assignment.maxPoints} ${t("pts")}`}
                                                         </Text>
                                                     </Table.Td>
                                                     <Table.Td><Text size="sm">{assignment.submissionCount}</Text></Table.Td>
@@ -547,7 +549,19 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                             onChange={v => setAttachment({ ...attachment, pinnedProblemVersionId: v || undefined })}
                         />
                         <Grid>
-                            <Grid.Col span={{ base: 12, sm: 4 }}>
+                            <Grid.Col span={{ base: 12, sm: 3 }}>
+                                <NumberInput
+                                    label={t("Worth")}
+                                    description={t("Points here, empty keeps the problem's own")}
+                                    min={1}
+                                    value={attachment.maxPoints ?? ""}
+                                    onChange={v => setAttachment({
+                                        ...attachment,
+                                        maxPoints: typeof v === "number" ? v : undefined,
+                                    })}
+                                />
+                            </Grid.Col>
+                            <Grid.Col span={{ base: 12, sm: 3 }}>
                                 <NumberInput
                                     label={t("Maximum upload")}
                                     description={t("MB, empty inherits")}
@@ -559,7 +573,7 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                                     })}
                                 />
                             </Grid.Col>
-                            <Grid.Col span={{ base: 12, sm: 4 }}>
+                            <Grid.Col span={{ base: 12, sm: 3 }}>
                                 <NumberInput
                                     label={t("Files per submission")}
                                     description={t("Empty inherits")}
@@ -571,7 +585,7 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                                     })}
                                 />
                             </Grid.Col>
-                            <Grid.Col span={{ base: 12, sm: 4 }}>
+                            <Grid.Col span={{ base: 12, sm: 3 }}>
                                 <NumberInput
                                     label={t("Submissions")}
                                     description={t("Empty inherits")}

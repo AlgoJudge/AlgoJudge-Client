@@ -36,6 +36,8 @@ export interface ParticipantSettings {
      * moved here.
      */
     attachmentVisibility: AttachmentRule[];
+    /** What a solution may be written in. Narrowing must reach the submit form. */
+    languages: string[];
 }
 
 export interface SeriesRelay {

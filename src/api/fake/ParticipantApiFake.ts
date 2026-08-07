@@ -406,6 +406,19 @@ class FakeParticipantState {
      * saved in the panel that never crossed is a table that looks like it did
      * nothing.
      */
+    /**
+     * What this activity accepts, with whatever a manager last saved winning.
+     *
+     * The same arrangement as the attachment table beside it: a narrowing saved
+     * in the panel that never crossed would leave the submit form offering a
+     * language the Server now refuses.
+     */
+    languagesFor(activityId: string): string[] {
+        return this.shared.settingsOf(activityId)?.languages
+            ?? this.data.seeds.get(activityId)?.languages
+            ?? [];
+    }
+
     rulesFor(activityId: string): AttachmentRule[] {
         return this.shared.settingsOf(activityId)?.attachmentVisibility
             ?? this.data.seeds.get(activityId)?.attachmentVisibility
@@ -545,6 +558,9 @@ export class ParticipantApiFake implements ParticipantApi {
         await this.settle(signal);
         const problem = this.state.dataset().problems.get(`${activityId}/${problemSlug}`);
         if (!problem) return notFound("Problem");
+        // Read here rather than baked in when the dataset was built, so a
+        // manager narrowing the list changes what the form offers next.
+        const languages = this.state.languagesFor(activityId);
         // The address of a problem is guessable and gets shared, so the series
         // is asked here and not only where the list is drawn. A series whose
         // problems are withheld withholds them from everybody who types the
@@ -553,7 +569,7 @@ export class ParticipantApiFake implements ParticipantApi {
         const series = this.state.dataset().series.get(activityId)
             ?.find(s => s.id === problem.seriesId);
         if (series && !mayReadProblems(series, activity ?? {})) return notFound("Problem");
-        return copy(problem);
+        return copy({ ...problem, languages });
     }
 
     async getSubmissions(activityId: string, filter: SubmissionFilter, signal: AbortSignal): Promise<Page<SubmissionSummary>> {
@@ -605,6 +621,15 @@ export class ParticipantApiFake implements ParticipantApi {
         if (series && !maySubmit(series)) {
             throw new ForbiddenError(
                 "This series is not accepting submissions", "series.closed");
+        }
+
+        // Refused here as the Server refuses it. The form offers only what the
+        // activity allows, but a rule only a form applies is not a rule — and
+        // this address is reachable without one.
+        const allowed = this.state.languagesFor(activityId);
+        if (payload.language !== undefined && !allowed.includes(payload.language)) {
+            throw new ForbiddenError(
+                `This activity does not accept ${payload.language}`, "submission.language");
         }
 
         // Same rule as every other upload: the Server recomputes and refuses a

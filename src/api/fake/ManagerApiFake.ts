@@ -405,6 +405,7 @@ export class ManagerApiFake implements ManagerApi {
             hideEndedSeriesProblems: input.hideEndedSeriesProblems,
             scoreVisibility: input.scoreVisibility,
             attachmentVisibility: input.attachmentVisibility,
+            languages: input.languages,
         });
         return this.announceActivity(record.activity);
     }

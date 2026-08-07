@@ -3,8 +3,8 @@ import {
 } from "../../ParticipantApi";
 import { rankingWindow } from "../../rankingWindow";
 import {
-    SeedActivity, SeedAssignment, SeedAttempt, SeedSeries,
-    attemptId, attemptTime, displayName, meOf,
+    SeedActivity, SeedAttempt, SeedSeries,
+    attemptId, attemptTime, displayName, maxPointsOf, meOf, pointsOf,
 } from "./world";
 
 /**
@@ -25,14 +25,13 @@ import {
  */
 
 /**
- * What a problem is worth where its assignment does not say otherwise.
+ * The feed says `points` where the rest of the model says `score`.
  *
- * The feed says `points` where the rest of the model says `score`: the two are
- * the same number, and the mapping is here so nothing else has to know that.
+ * They are the same number on the **assignment's** scale — what the problem is
+ * worth in its round, which is what a board adds up. The rescaling is `world.ts`'s
+ * so that the submissions list, the problem list and the board cannot disagree
+ * about what a run was worth.
  */
-const MAX_POINTS = 100;
-
-const maxPointsOf = (assignment: SeedAssignment): number => assignment.maxScore ?? MAX_POINTS;
 
 /**
  * Whether a round's board is inside its freeze, for this caller.
@@ -80,7 +79,7 @@ export const resultOf = (
     // `extra` goes with the outcome, not beside it: it is measured from the same
     // run, so a metric that survived a freeze would leak what the freeze hides.
     if (withheld(seed, attempt, now, unfrozen)) return { ...base, frozen: true };
-    return { ...base, points: attempt.score, state: attempt.state, extra: attempt.extra };
+    return { ...base, points: pointsOf(assignment, attempt.score), state: attempt.state, extra: attempt.extra };
 };
 
 const seriesOf = (seed: SeedSeries, live: Series, now: number, unfrozen: boolean): ResultSeries => ({

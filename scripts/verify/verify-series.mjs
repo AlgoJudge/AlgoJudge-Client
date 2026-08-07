@@ -29,10 +29,29 @@ const pressIn = (name, text) => click(
 const shiftCard = `[...document.querySelectorAll("[class*=Card-root]")]
     .find(c => c.innerText.includes("Przesuń trwanie serii"))`;
 
-const preview = () => evaluate(`
+const readPreview = () => evaluate(`
     const card = ${shiftCard};
     return card ? card.innerText.replace(/\\s+/g, " ").trim() : null;
 `);
+
+/**
+ * The preview, once it has stopped moving.
+ *
+ * Read straight after choosing a round it can be torn — the "from" span still
+ * the old round's while the "to" span is already the new one — and the check
+ * below then measures a shift between two different rounds. Two equal reads mean
+ * the component has settled. It failed about one full run in four before this.
+ */
+const preview = async () => {
+    let last = await readPreview();
+    for (let i = 0; i < 10; i++) {
+        await wait(400);
+        const now = await readPreview();
+        if (now === last) return now;
+        last = now;
+    }
+    return last;
+};
 
 /** Points the shift card at one round. It opens on the first, which is Runda 0. */
 const chooseRound = async (name) => {

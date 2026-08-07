@@ -18,7 +18,7 @@ import { attemptFiles, sourceFiles } from "./attachments";
 import { fakeSha } from "./problems";
 import {
     SeedActivity, SeedAssignment, SeedAttempt, SeedSeries, WORLD,
-    attemptId, attemptTime, displayName, meOf,
+    attemptId, attemptTime, displayName, maxPointsOf, meOf, pointsOf, RUNNER_SCALE,
 } from "./world";
 
 export { OPENING_SERIES_DELAY } from "./world";
@@ -66,16 +66,16 @@ export interface Dataset {
     seeds: Map<string, SeedActivity>;
 }
 
-/** What a problem is worth where its assignment does not say otherwise. */
-const MAX_SCORE = 100;
-
-const maxScoreOf = (assignment: SeedAssignment): number => assignment.maxScore ?? MAX_SCORE;
-
-/** What the reader made of one problem, from what they sent at it. */
-const statusOf = (attempts: SeedAttempt[], maxScore: number): ProblemStatus => {
+/**
+ * What the reader made of one problem, from what they sent at it.
+ *
+ * Judged on the Runner's scale — full marks is full marks whatever the problem
+ * counts for — and only the numbers beside it are rescaled.
+ */
+const statusOf = (attempts: SeedAttempt[]): ProblemStatus => {
     if (attempts.length === 0) return "untouched";
     const best = Math.max(...attempts.map(attempt => attempt.score ?? 0));
-    if (best >= maxScore) return "solved";
+    if (best >= RUNNER_SCALE) return "solved";
     return best > 0 ? "partial" : "attempted";
 };
 
@@ -159,9 +159,11 @@ export const createDataset = (files: FakeFiles): Dataset => {
                     id: `problem-${assignment.slug}`,
                     slug: assignment.slug,
                     name: displayName(assignment),
-                    status: statusOf(mine, maxScoreOf(assignment)),
-                    bestScore: bestOf(mine),
-                    maxScore: maxScoreOf(assignment),
+                    status: statusOf(mine),
+                    // On the assignment's scale: 80 out of the Runner's hundred
+                    // is 40 where the problem is worth 50.
+                    bestScore: pointsOf(assignment, bestOf(mine)),
+                    maxScore: maxPointsOf(assignment),
                     attempts: mine.length,
                 };
             });
@@ -214,7 +216,9 @@ export const createDataset = (files: FakeFiles): Dataset => {
                     // must render rather than print "undefined".
                     limits: assignment.problem.limits ?? { timeMs: 1000, memoryMb: 256 },
                     samples: assignment.problem.samples,
-                    languages: ["cpp", "python", "java"],
+                    // The activity's answer, and the only one: nothing declares
+                    // a problem's own languages yet.
+                    languages: activity.languages,
                     maxUploadBytes: assignment.maxUploadBytes ?? activity.maxUploadBytes,
                     // What is left, not what the ceiling is: counted off the same
                     // attempts the list is built from.
@@ -246,8 +250,8 @@ export const createDataset = (files: FakeFiles): Dataset => {
                     language: attempt.language,
                     state: attempt.state,
                     verdict: attempt.verdict,
-                    score: attempt.score,
-                    maxScore: attempt.score === undefined ? undefined : maxScoreOf(assignment),
+                    score: pointsOf(assignment, attempt.score),
+                    maxScore: attempt.score === undefined ? undefined : maxPointsOf(assignment),
                 };
                 mine.push(summary);
 

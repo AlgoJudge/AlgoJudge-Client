@@ -49,6 +49,7 @@ const problemsOf = (series: SeedSeries): ManagedSeriesProblem[] =>
         // above zero**, so a number that disagreed with the submissions would
         // refuse a detach nothing justifies, or allow one that orphans a result.
         submissionCount: submissionCountOf(series, assignment.slug),
+        maxPoints: assignment.maxPoints,
         maxUploadBytes: assignment.maxUploadBytes,
         maxSubmissions: assignment.maxSubmissions,
     }));
@@ -96,6 +97,7 @@ const activityOf = (activity: SeedActivity): ManagedActivity => ({
     hideEndedSeriesProblems: activity.hideEndedSeriesProblems,
     maxUploadBytes: activity.maxUploadBytes,
     maxAttachments: activity.maxAttachments,
+    languages: activity.languages,
     maxSubmissionsPerProblem: activity.maxSubmissionsPerProblem,
     archivedAt: activity.archivedAt,
     // All three are recomputed by the fake — from the series it holds and from

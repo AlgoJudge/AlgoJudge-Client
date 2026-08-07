@@ -1,6 +1,6 @@
 import {
-    ActionIcon, Alert, Card, Grid, Group, NumberInput, SegmentedControl, Select,
-    Stack, Switch, Text, TextInput, Title, Tooltip,
+    ActionIcon, Alert, Card, Grid, Group, MultiSelect, NumberInput, SegmentedControl,
+    Select, Stack, Switch, Text, TextInput, Title, Tooltip,
 } from "@mantine/core";
 import { useClipboard } from "@mantine/hooks";
 import { IconCheck, IconCopy, IconInfoCircle } from "@tabler/icons-react";
@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { ActivityInput, AttachmentVisibility, JoinPolicy, ScoreVisibility } from "../../api/ManagerApi";
 import ZonedDateTimeInput from "../time/ZonedDateTimeInput";
 import { MB } from "./activityInput";
+import { LANGUAGES } from "../editor/languages";
 import { activityTypes } from "../../renderers";
 
 /**
@@ -154,6 +155,18 @@ export default function ActivityForm({ value, onChange, slugLocked, disabled }: 
                             onChange={v => v && set({ timeZone: v })}
                             searchable
                             disabled={disabled}
+                        />
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 12, sm: 8 }}>
+                        <MultiSelect
+                            label={t("Languages accepted")}
+                            description={t("Narrowing this leaves what has already been sent alone")}
+                            data={LANGUAGES}
+                            value={value.languages}
+                            onChange={languages => set({ languages })}
+                            disabled={disabled}
+                            searchable
+                            clearable
                         />
                     </Grid.Col>
                 </Grid>

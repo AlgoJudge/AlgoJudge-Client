@@ -23,6 +23,7 @@ export const emptyActivity = (): ActivityInput => ({
         { name: "details", visibility: "participant" },
         { name: "log", visibility: "managersOnly" },
     ],
+    languages: ["cpp", "python", "java"],
     joinPolicy: "closed",
     unlisted: true,
     // A finished round stays readable unless somebody says otherwise.
@@ -42,6 +43,7 @@ export const toInput = (activity: ManagedActivity): ActivityInput => ({
     modules: { ...activity.modules },
     scoreVisibility: activity.scoreVisibility,
     attachmentVisibility: activity.attachmentVisibility.map(rule => ({ ...rule })),
+    languages: [...activity.languages],
     joinPolicy: activity.joinPolicy,
     unlisted: activity.unlisted,
     joinPassword: activity.joinPassword,

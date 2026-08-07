@@ -79,6 +79,17 @@ const COURSE_ATTACHMENTS: AttachmentRule[] = [
     { name: "log", visibility: "participant" },
 ];
 
+/**
+ * What each activity accepts.
+ *
+ * The course takes Python alone, which is what a first-year course does — and it
+ * is the case worth having in the seed, because `student-3` sent C++ to it
+ * before the narrowing. That submission and its result stay: a result belongs to
+ * what it was judged against.
+ */
+const CONTEST_LANGUAGES = ["cpp", "python", "java"];
+const COURSE_LANGUAGES = ["python"];
+
 export const COURSE_JOIN_PASSWORD = "PROG1-LA";
 
 // ───────────────────────────────────────────────────────────── the shapes
@@ -122,7 +133,13 @@ export interface SeedAssignment {
     /** Pins the content version, so a running round cannot shift underneath it. */
     pinnedProblemVersionId?: string;
     pinnedVersion?: number;
-    maxScore?: number;
+    /**
+     * What the problem is worth **here**. Absent keeps its own scale.
+     *
+     * On the assignment, so one library problem attached twice in an activity
+     * may be worth different amounts in each round.
+     */
+    maxPoints?: number;
 }
 
 /**
@@ -207,6 +224,8 @@ export interface SeedActivity {
     maxUploadBytes: number;
     maxAttachments: number;
     maxSubmissionsPerProblem?: number;
+    /** What a solution may be written in here. */
+    languages: string[];
     archivedAt?: string;
     /** Free display metadata on the participant's side. Never queried. */
     props?: { key: string; value: string }[];
@@ -337,7 +356,7 @@ const ROUND_1: SeedSeries = {
             pinnedProblemVersionId: "v-graf-2", pinnedVersion: 2,
         },
         { problem: DIJKSTRA, slug: "B", maxSubmissions: 10 },
-        { problem: TOPO, slug: "C" },
+        { problem: TOPO, slug: "C", maxPoints: 50 },
         { problem: TOPO, slug: "D", name: "Kolorowanie grafu" },
     ],
     attempts: [
@@ -432,6 +451,7 @@ export const WORLD: SeedActivity[] = [
         hideEndedSeriesProblems: false,
         maxUploadBytes: 8 * 1024 * 1024,
         maxAttachments: 1,
+        languages: CONTEST_LANGUAGES,
         maxSubmissionsPerProblem: 20,
         props: [{ key: "Organizator", value: "Politechnika Poznańska" }],
         membership: "enrolled",
@@ -461,6 +481,7 @@ export const WORLD: SeedActivity[] = [
         hideEndedSeriesProblems: false,
         maxUploadBytes: 4 * 1024 * 1024,
         maxAttachments: 3,
+        languages: COURSE_LANGUAGES,
         props: [
             { key: "Prowadzący", value: "Jan Kowalski" },
             { key: "Grupa", value: "LA" },
@@ -477,7 +498,7 @@ export const WORLD: SeedActivity[] = [
                     { problem: LOOPS, slug: "petle" },
                     // Attached from an archived library entry: it keeps working
                     // where it was already used, which is the point of archiving.
-                    { problem: ARRAYS, slug: "tablice", maxUploadBytes: 1024 * 1024 },
+                    { problem: ARRAYS, slug: "tablice", maxUploadBytes: 1024 * 1024, maxPoints: 200 },
                 ],
                 attempts: [
                     { contestant: "student-me", problem: "petle", at: 1200, language: "python", state: "completed", verdict: "Wrong answer", score: 60 },
@@ -500,7 +521,7 @@ export const WORLD: SeedActivity[] = [
                 startDate: at(-days(7)), endDate: at(days(3)),
                 revealProblemCount: true,
                 assignments: [
-                    { problem: LOOPS, slug: "rekurencja", name: "Rekurencja — rozgrzewka" },
+                    { problem: LOOPS, slug: "rekurencja", name: "Rekurencja — rozgrzewka", maxPoints: 50 },
                     { problem: ARRAYS, slug: "sortowanie", name: "Sortowanie" },
                 ],
                 attempts: [
@@ -537,6 +558,7 @@ export const WORLD: SeedActivity[] = [
         hideEndedSeriesProblems: false,
         maxUploadBytes: 8 * 1024 * 1024,
         maxAttachments: 1,
+        languages: CONTEST_LANGUAGES,
         props: [],
         // Joinable, not joined. The list is also how somebody finds this.
         membership: "open",
@@ -571,6 +593,7 @@ export const WORLD: SeedActivity[] = [
         hideEndedSeriesProblems: false,
         maxUploadBytes: 8 * 1024 * 1024,
         maxAttachments: 1,
+        languages: CONTEST_LANGUAGES,
         props: [],
         membership: "invited",
         managed: true,
@@ -623,6 +646,7 @@ export const WORLD: SeedActivity[] = [
         hideEndedSeriesProblems: false,
         maxUploadBytes: 8 * 1024 * 1024,
         maxAttachments: 1,
+        languages: CONTEST_LANGUAGES,
         // Still readable, accepting nothing new. The state the manager list's
         // "include archived" control exists for.
         archivedAt: at(-days(380)),
@@ -649,6 +673,7 @@ export const WORLD: SeedActivity[] = [
         hideEndedSeriesProblems: false,
         maxUploadBytes: 8 * 1024 * 1024,
         maxAttachments: 1,
+        languages: CONTEST_LANGUAGES,
         props: [{ key: "Miejsce", value: "12 / 64" }],
         membership: "enrolled",
         // Somebody else's contest from last year: the reader competed in it and
@@ -700,6 +725,7 @@ export const WORLD: SeedActivity[] = [
         hideEndedSeriesProblems: false,
         maxUploadBytes: 4 * 1024 * 1024,
         maxAttachments: 3,
+        languages: CONTEST_LANGUAGES,
         props: [{ key: "Prowadzący", value: "Jan Kowalski" }],
         // Not in it. This is the one the enrolment form is for.
         membership: "open",
@@ -732,6 +758,7 @@ export const WORLD: SeedActivity[] = [
         hideEndedSeriesProblems: false,
         maxUploadBytes: 8 * 1024 * 1024,
         maxAttachments: 1,
+        languages: CONTEST_LANGUAGES,
         props: [],
         membership: "enrolled",
         managed: false,
@@ -791,6 +818,22 @@ export const attemptsOf = (activity: SeedActivity): { series: SeedSeries; attemp
  */
 export const attemptTime = (series: SeedSeries, attempt: SeedAttempt): string =>
     new Date(Date.parse(series.startDate ?? at(0)) + attempt.at * 60000).toISOString();
+
+/**
+ * What a problem is worth here, and what a score becomes on that scale.
+ *
+ * The Runner reports on the package's own scale — a hundred in this seed — and
+ * the assignment says what the problem counts for in its round. The Server
+ * rescales between the two wherever it reports a number; the Runner's document
+ * keeps its own arithmetic, because it is the Runner's.
+ */
+export const RUNNER_SCALE = 100;
+
+export const maxPointsOf = (assignment: SeedAssignment): number =>
+    assignment.maxPoints ?? RUNNER_SCALE;
+
+export const pointsOf = (assignment: SeedAssignment, score: number | undefined): number | undefined =>
+    score === undefined ? undefined : Math.round(score / RUNNER_SCALE * maxPointsOf(assignment));
 
 /** The reader, where the activity has one. */
 export const meOf = (activity: SeedActivity): SeedContestant | undefined =>
