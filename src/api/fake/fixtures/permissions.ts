@@ -1,5 +1,6 @@
 import { Grant, ManagedActivitySummary, ManagedUserSummary, PermissionDefinition, PermissionTemplate } from "../../ManagerApi";
 import { isStaffGrant } from "../../permissions";
+import { CONTEST_ID, COURSE_ID, WORKSHOP_ID, WORLD } from "./world";
 
 /**
  * The permission catalogue and the shipped templates.
@@ -163,6 +164,16 @@ const named = (grant: Omit<Grant, "userName" | "userLogin" | "isSystem">): Grant
     };
 };
 
+/**
+ * What an activity is called, read from the seed.
+ *
+ * A grant carries the name so the list can be read without a second request.
+ * Written out here it was a copy that went stale the moment the activity was
+ * renamed — and it had: the contest was two different names in two files.
+ */
+const nameOf = (activityId: string): string =>
+    WORLD.find(activity => activity.id === activityId)?.name ?? activityId;
+
 export const createGrants = (): Grant[] => [
     named({
         id: "018f2c00-0000-7000-8000-0000000000b1",
@@ -175,8 +186,8 @@ export const createGrants = (): Grant[] => [
     named({
         id: "018f2c00-0000-7000-8000-0000000000b2",
         userId: "user-kowalski",
-        activityId: "018f2c00-0000-7000-8000-000000000002",
-        activityName: "Programowanie 1 — grupa LA",
+        activityId: COURSE_ID,
+        activityName: nameOf(COURSE_ID),
         permissions: [...MANAGER],
         createdFromTemplate: "manager",
         state: "active",
@@ -187,8 +198,8 @@ export const createGrants = (): Grant[] => [
         // role in a model that unioned them, and is one edited set here.
         id: "018f2c00-0000-7000-8000-0000000000b3",
         userId: "user-wisniewski",
-        activityId: "018f2c00-0000-7000-8000-000000000001",
-        activityName: "Akademickie Mistrzostwa Polski 2019",
+        activityId: CONTEST_ID,
+        activityName: nameOf(CONTEST_ID),
         permissions: MANAGER.filter(p => p !== "activity:update"),
         createdFromTemplate: "manager",
         state: "active",
@@ -197,8 +208,8 @@ export const createGrants = (): Grant[] => [
     named({
         id: "018f2c00-0000-7000-8000-0000000000b4",
         userId: "user-me",
-        activityId: "018f2c00-0000-7000-8000-000000000001",
-        activityName: "Akademickie Mistrzostwa Polski 2019",
+        activityId: CONTEST_ID,
+        activityName: nameOf(CONTEST_ID),
         permissions: [...PARTICIPANT],
         createdFromTemplate: "participant",
         state: "active",
@@ -211,8 +222,8 @@ export const createGrants = (): Grant[] => [
         // permission, so nobody holds it from the system scope.
         id: "018f2c00-0000-7000-8000-0000000000b6",
         userId: "user-me",
-        activityId: "018f2c00-0000-7000-8000-000000000002",
-        activityName: "Programowanie 1 — grupa LA",
+        activityId: COURSE_ID,
+        activityName: nameOf(COURSE_ID),
         permissions: [...MANAGER],
         createdFromTemplate: "manager",
         state: "active",
@@ -221,8 +232,8 @@ export const createGrants = (): Grant[] => [
     named({
         id: "018f2c00-0000-7000-8000-0000000000b5",
         userId: "user-nowak",
-        activityId: "018f2c00-0000-7000-8000-000000000005",
-        activityName: "Warsztat interaktywny",
+        activityId: WORKSHOP_ID,
+        activityName: nameOf(WORKSHOP_ID),
         permissions: [...PARTICIPANT],
         createdFromTemplate: "participant",
         state: "invited",

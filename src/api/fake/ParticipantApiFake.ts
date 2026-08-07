@@ -21,6 +21,7 @@ import { FakeActivities, SeriesRelay } from "./FakeActivities";
 import { maySubmit, mayReadProblems } from "../seriesState";
 import { FakeFiles } from "./FileApiFake";
 import { createDataset, Dataset, OPENING_SERIES_DELAY } from "./fixtures";
+import { board, BoardPart } from "./fixtures/scoreboard";
 import { ForbiddenError } from "../ApiError";
 import { Utils } from "./Utils";
 import { sha256 } from "../../utils/sha256";
@@ -85,10 +86,22 @@ class FakeParticipantState {
 
         const contest = this.data.activities[0];
 
-        // A queued submission works its way through the states.
-        this.after(6000, () => this.setSubmissionState(contest.id, "sub-1", "running"));
-        this.after(15000, () => this.completeSubmission(contest.id, "sub-1", 100, "Accepted"));
-        this.after(9000, () => this.completeSubmission(contest.id, "sub-2", 65, "Partially accepted"));
+        // A queued submission works its way through the states, and a running one
+        // finishes. Found by their state rather than named: the ids come from
+        // where an attempt sits in the seed, and a screen watching a hard-coded
+        // one would go quiet the day somebody reorders a round.
+        const unfinished = (state: JobState) =>
+            this.data.submissions.get(contest.id)?.find(s => s.state === state)?.id;
+        const queued = unfinished("queued");
+        const running = unfinished("running");
+
+        if (queued) {
+            this.after(6000, () => this.setSubmissionState(contest.id, queued, "running"));
+            this.after(15000, () => this.completeSubmission(contest.id, queued, 100, "Accepted"));
+        }
+        if (running) {
+            this.after(9000, () => this.completeSubmission(contest.id, running, 65, "Partially accepted"));
+        }
 
         // The closed round reaches its start and reveals what it was holding.
         this.after(OPENING_SERIES_DELAY, () => this.openSeries(contest.id, "series-r2"));
@@ -160,17 +173,30 @@ class FakeParticipantState {
         this.events.dispatchEvent({ type: "rankingChanged", data: { activityId } });
     }
 
-    private updateProblemStatus(activityId: string, problemSlug: string, score: number): void {
+    /**
+     * What a problem's standing becomes, from a result that just arrived.
+     *
+     * `score` absent means nothing has been judged yet — a submission was only
+     * made. **The attempt is counted here, on the submission**, not when the
+     * judging finishes: an attempt is something somebody did, and counting it on
+     * the verdict left the badge saying two while the list held three, and
+     * counted a seeded submission a second time the moment its Runner replied.
+     */
+    private updateProblemStatus(activityId: string, problemSlug: string, score?: number): void {
         for (const s of this.data.series.get(activityId) ?? []) {
             const problem = s.problems?.find(p => p.slug === problemSlug);
             if (!problem) continue;
-            problem.attempts += 1;
-            if (problem.bestScore === undefined || score > problem.bestScore) {
+            if (score === undefined) {
+                problem.attempts += 1;
+                if (problem.status === "untouched") problem.status = "attempted";
+            } else if (problem.bestScore === undefined || score > problem.bestScore) {
                 problem.bestScore = score;
             }
-            problem.status = problem.bestScore === 0 ? "attempted"
-                : problem.bestScore >= (problem.maxScore ?? 100) ? "solved"
-                : "partial";
+            if (problem.bestScore !== undefined) {
+                problem.status = problem.bestScore === 0 ? "attempted"
+                    : problem.bestScore >= (problem.maxScore ?? 100) ? "solved"
+                    : "partial";
+            }
 
             // The detail carries the same standing as the summary, so it has to
             // move with it or the statement screen shows a stale badge.
@@ -248,6 +274,17 @@ class FakeParticipantState {
             type: "questionAnswered",
             data: { activityId, question: { ...question } },
         });
+    }
+
+    /**
+     * Records that somebody tried a problem, before anything has judged it.
+     *
+     * Counted on the submission rather than on the verdict, which is where it
+     * used to be: a badge saying two beside a list holding three, and a seeded
+     * submission counted a second time the moment its Runner replied.
+     */
+    countAttempt(activityId: string, problemSlug: string): void {
+        this.updateProblemStatus(activityId, problemSlug);
     }
 
     /** Puts a freshly submitted solution through the same lifecycle. */
@@ -471,6 +508,10 @@ export class ParticipantApiFake implements ParticipantApi {
         });
         data.submissionFiles.set(id, new Map([[fileName, payload.code ?? "// wysłano jako plik"]]));
 
+        // Counted now, because that is when it happened. The verdict changes
+        // what the problem is worth, not how many times it was tried.
+        this.state.countAttempt(activityId, problem.slug);
+
         this.eventDispatcher.dispatchEvent({
             type: "submissionStateChanged",
             data: { activityId, submission: { ...summary } },
@@ -481,14 +522,25 @@ export class ParticipantApiFake implements ParticipantApi {
 
     async getRanking(activityId: string, seriesId: string | undefined, signal: AbortSignal): Promise<unknown> {
         await this.settle(signal);
-        // A round's own standing, or the combined one. Kept apart in the dataset
-        // because the Server assembles them apart: a round's places are its own.
-        const ranking = seriesId === undefined
-            ? this.state.dataset().rankings.get(activityId)
-            : this.state.dataset().seriesRankings.get(seriesId);
-        if (ranking === undefined) return notFound("Ranking");
+        const data = this.state.dataset();
+        const seed = data.seeds.get(activityId);
+        if (seed === undefined) return notFound("Ranking");
 
-        const activity = this.state.dataset().activities.find(a => a.id === activityId);
+        // Computed on the call, not prepared at load. The combined board is the
+        // rounds whose window is open, and one assembled this morning would still
+        // not hold the round whose window opens at six — which is exactly the
+        // sort of thing a prepared board got wrong. The timing comes from the
+        // **live** series, so a round a manager just moved is counted from where
+        // it now starts.
+        const parts: BoardPart[] = seed.series
+            .map(part => ({
+                seed: part,
+                live: (data.series.get(activityId) ?? []).find(s => s.id === part.id),
+            }))
+            .filter((part): part is BoardPart => part.live !== undefined);
+        const ranking = board(seed, parts, seriesId, Date.now());
+
+        const activity = data.activities.find(a => a.id === activityId);
         // Reduced here because the Server reduces it there. Under
         // `participantOnly` the reader gets their own row and no place: a
         // standing among people whose scores they may not see is not a standing,

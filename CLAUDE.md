@@ -85,6 +85,21 @@ appends the path. `/` means the origin the application itself came from, which i
 the case the rule exists for: one domain serving both. Do not make the path
 configurable again.
 
+### The fake's fixtures (2026-08-07)
+
+`src/api/fake/fixtures/world.ts` states **every activity once** — its rounds,
+its problem assignments, who competes in it, and every attempt they made.
+Everything else is projected from it: `fixtures/activities.ts` for the manager,
+`fixtures/index.ts` for the participant, `fixtures/submissions.ts` for the
+submissions list, and `fixtures/scoreboard.ts` for the standings.
+
+Do not state on one side what the other side also has. Two hand-written sets
+disagreed about the same contest — its name, four rounds against two, which
+problems were in them — and every "the manager changed it and the participant
+never saw it" defect came from that. Anything one side derives is derived:
+a problem's status and best score, `submissionCount`, `attachedCount`, and every
+board.
+
 Not implemented yet: no renderer registry and no `typeId`/`typeVersion`
 selection, and no WebSocket — the event dispatchers exist and are shaped for one,
 but nothing dispatches over the network.

@@ -140,6 +140,16 @@ export class ManagerApiFake implements ManagerApi {
         private sleepMs: number = 300,
     ) {
         this.library = createProblemLibrary(files);
+        // Counted from the assignments that exist, not stated beside them. It is
+        // what **refuses a delete**, so a number of its own could refuse one that
+        // nothing justifies — or allow one that orphans a series.
+        for (const record of this.library) {
+            record.problem.attachedCount = this.activities
+                .flatMap(activity => activity.series)
+                .flatMap(series => series.problems)
+                .filter(problem => problem.problemId === record.problem.id)
+                .length;
+        }
     }
 
     async updateInstanceSettings(input: InstanceSettingsInput, signal: AbortSignal): Promise<InstanceInfo> {

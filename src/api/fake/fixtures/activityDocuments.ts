@@ -16,12 +16,14 @@ import {
  * participants, and activities publishing nothing at all.
  */
 
-export const CONTEST_ID = "018f2c00-0000-7000-8000-000000000001";
-export const COURSE_ID = "018f2c00-0000-7000-8000-000000000002";
-export const FINISHED_ID = "018f2c00-0000-7000-8000-000000000003";
-export const OPEN_ID = "018f2c00-0000-7000-8000-000000000004";
-/** The one somebody reaches from a link and enrols in themselves. */
-export const INVITED_COURSE_ID = "018f2c00-0000-7000-8000-000000000006";
+// Re-exported from the seed rather than repeated: which activities exist is
+// stated once, in `world.ts`, and an id written out again here is an id that can
+// come to name something else.
+export { CONTEST_ID, COURSE_ID, FINISHED_ID, INVITED_COURSE_ID } from "./world";
+import { CONTEST_ID, COURSE_ID, FINISHED_ID, INVITED_COURSE_ID, PRACTICE_ID } from "./world";
+
+/** The one anybody may join, which publishes a page for outsiders. */
+export const OPEN_ID = PRACTICE_ID;
 
 interface Written {
     kind: ActivityDocumentKind;

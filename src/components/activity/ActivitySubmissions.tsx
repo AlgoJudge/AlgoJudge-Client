@@ -25,6 +25,10 @@ import classes from "./ActivitySubmissions.module.css";
 const HOW_MANY = 12;
 const OPEN_KEY = "algojudge.submissions.open";
 
+/** Whether an instant falls on the reader's own today. */
+const isToday = (value: string): boolean =>
+    new Date(value).toDateString() === new Date().toDateString();
+
 export interface ActivitySubmissionsProps {
     /** Absent outside an activity, where there is nothing to show. */
     activityId?: string;
@@ -89,34 +93,34 @@ export default function ActivitySubmissions({ activityId, slug, timeZone }: Acti
                                 className={classes.row}
                                 onClick={() => navigate(`/activities/${slug}/submissions/${submission.id}`)}
                             >
-                                <Group justify="space-between" wrap="nowrap" gap="xs" align="flex-start">
-                                    <Stack gap={0} style={{ minWidth: 0 }}>
-                                        <Group gap={6} wrap="nowrap" style={{ minWidth: 0 }}>
-                                            <Text size="xs" c="dimmed" ff="monospace">
-                                                <ActivityTime
-                                                    value={submission.submittedAt}
-                                                    timeZone={timeZone ?? "Europe/Warsaw"}
-                                                    format="time"
-                                                    hideZone
-                                                />
-                                            </Text>
-                                            {/* The slug leads: it is what somebody
-                                                scanning for their own submission
-                                                looks at, and the name is what
-                                                tells them which problem it was. */}
-                                            <Text size="sm" fw={500}>[{submission.problemSlug}]</Text>
-                                            <Text size="sm" lineClamp={1} c="dimmed">
-                                                {submission.problemName}
-                                            </Text>
-                                        </Group>
-                                    </Stack>
-                                    <Stack gap={2} align="flex-end" style={{ flexShrink: 0 }}>
-                                        <StateBadge
-                                            state={submission.state}
-                                            verdict={submission.verdict}
-                                            score={submission.score}
-                                            maxScore={submission.maxScore}
+                                {/* One line. The name is the only part that may
+                                    be cut, because it is the only part somebody
+                                    can already infer from the slug beside it. */}
+                                <Group wrap="nowrap" gap={6}>
+                                    {/* The hour alone for today, the date as well
+                                        for anything older: an activity runs over
+                                        several rounds on several days, and
+                                        `03:36` above `02:34` reads as out of
+                                        order until it says which day it is. */}
+                                    <Text size="xs" c="dimmed" ff="monospace" style={{ flexShrink: 0 }}>
+                                        <ActivityTime
+                                            value={submission.submittedAt}
+                                            timeZone={timeZone ?? "Europe/Warsaw"}
+                                            format={isToday(submission.submittedAt) ? "time" : "datetime"}
+                                            hideZone
                                         />
+                                    </Text>
+                                    {/* The slug leads: it is what somebody
+                                        scanning for their own submission looks
+                                        at, and the name is what tells them which
+                                        problem it was. */}
+                                    <Text size="sm" fw={500} style={{ flexShrink: 0 }}>
+                                        [{submission.problemSlug}]
+                                    </Text>
+                                    <Text size="sm" lineClamp={1} c="dimmed" style={{ minWidth: 0 }}>
+                                        {submission.problemName}
+                                    </Text>
+                                    <Group wrap="nowrap" gap={6} ml="auto" style={{ flexShrink: 0 }}>
                                         {/* Beside the verdict rather than inside
                                             it: `12/100` and `Wrong answer` are
                                             two facts, and the badge carries one. */}
@@ -125,7 +129,13 @@ export default function ActivitySubmissions({ activityId, slug, timeZone }: Acti
                                                 {submission.score} / {submission.maxScore ?? "?"}
                                             </Text>
                                         )}
-                                    </Stack>
+                                        <StateBadge
+                                            state={submission.state}
+                                            verdict={submission.verdict}
+                                            score={submission.score}
+                                            maxScore={submission.maxScore}
+                                        />
+                                    </Group>
                                 </Group>
                             </UnstyledButton>
                         ))}
