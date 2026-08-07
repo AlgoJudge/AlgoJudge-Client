@@ -6,11 +6,18 @@ import { StatementRef } from "./FileApi";
  *
  * They mirror the Server entities in
  * `AlgoJudge-Server/AlgoJudge.Server/Database/Models/`, reduced to what a
- * participant may see. Two fields are deliberately `unknown` — the ranking
- * payload and a submission's evaluation detail. Both are documents the Runner
- * produces and the Server stores without parsing, rendered here by a renderer
- * chosen from the type. Typing them would put back into the Client exactly the
- * coupling the Server was freed from.
+ * participant may see. Two fields are deliberately `unknown` — a submission's
+ * evaluation `detail` and a result's `extra`. Both are documents the Runner
+ * produces and the Server stores without parsing, rendered or reckoned with here
+ * by whatever the problem type calls for. Typing them would put back into the
+ * Client exactly the coupling the Server was freed from.
+ *
+ * The ranking payload used to be a third. It is not one any more: the Server
+ * sends results and the board is computed here, so the feed has one shape for
+ * every ranking type and there is nothing left to guess at.
+ *
+ * Both are **optional, and absent means none** — `docs/specs/OPAQUE_DOCUMENTS.md`
+ * carries the rule and the ceilings the Server holds them to.
  *
  * Every identifier is a string holding a UUID. A `slug` is a human-readable
  * alias used in URLs and never a reference: nothing points at anything by slug.
@@ -386,8 +393,16 @@ export interface SubmissionDetail extends SubmissionSummary {
     authorName: string,
     /** Newest first. */
     attempts: EvaluationAttempt[],
-    /** The Runner's result document. Rendered by the problem type's renderer. */
-    detail: unknown,
+    /**
+     * The Runner's result document, rendered by the problem type's renderer.
+     *
+     * **Absent until something has judged it.** A queued or running submission
+     * has no result, and an empty document standing in for one says "a result
+     * with nothing in it" where the truth is "nothing has looked at this yet".
+     * Opaque to the Server; an object or absent — see
+     * `docs/specs/OPAQUE_DOCUMENTS.md`.
+     */
+    detail?: unknown,
     /** Present only when the activity's log visibility permits it. */
     log?: string,
     files: SubmissionFile[],
@@ -499,6 +514,11 @@ export interface ContestantResult {
      * Untyped for the same reason `SubmissionDetail.detail` is: a ranking type
      * that needs a metric must not need a Server release to carry it. Whoever
      * reads it guards the shape, as the result renderers already do.
+     *
+     * An object or absent. **Kept small** — it rides in a list, so it is
+     * multiplied by every submission of every contestant, which is why its
+     * ceiling is a hundredth of the result document's. See
+     * `docs/specs/OPAQUE_DOCUMENTS.md`.
      */
     extra?: unknown,
     /**

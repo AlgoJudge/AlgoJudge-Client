@@ -56,6 +56,25 @@ picture usually says why faster than the assertion does.
 | `verify-sync` | the two halves of the fake agreeing about the same activity |
 | `verify-systemic` | systemic users: not counted, not ranked, still able to submit |
 
+## A single failure is worth re-running
+
+These drive a real browser, so they race. The pattern found on 2026-08-07, in
+three different scripts over four full runs: a `go(url, …)` whose condition is
+satisfied **before the page has decided anything** — `document.body !== null` is
+true while the session is still resolving, and `innerText.length > 0` is true
+while `RequirePermission` is still drawing its spinner. The assertion then reads
+a page mid-flight and fails on something that is right.
+
+Each was fixed by waiting for the **decision** rather than for its outcome: for
+the spinner to go, or for either branch to be on screen — then asserting which.
+That is not the same as waiting for what is asserted, which would be a check that
+can never fail.
+
+Some residue remains. One red script in an otherwise green run is more likely a
+race than a regression: re-run it on its own —
+`npm run check:ui -- <name>` — before believing it. Two failures in a row, or the
+same assertion twice, is a defect.
+
 ## What they do not cover
 
 Left out on purpose when the suite was collected on 2026-08-07, so the gaps are

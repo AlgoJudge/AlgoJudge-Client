@@ -40,11 +40,37 @@ const shot = async (name) => {
     const reply = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true });
     writeFileSync(`${OUT}/${name}.png`, Buffer.from(reply.result.data, "base64"));
 };
+/**
+ * Every assertion here reads something derived from the signed-in person's
+ * permissions, and those arrive after the shell does. So a page is not "loaded"
+ * when it has text — `RequirePermission` is still drawing a spinner, and the
+ * navigation entry a manager gets is still absent because `has` answers false
+ * until the answer is in.
+ *
+ * Waiting for the spinner to go is not waiting for what is asserted: it waits
+ * for the decision to be **made**, and the checks below say what it should have
+ * been. Without it this script failed a different assertion on each run.
+ */
+const settled = async (tries = 40) => {
+    for (let i = 0; i < tries; i++) {
+        const busy = await evaluate(`
+            return document.querySelector("[class*=Loader-root]") !== null;
+        `);
+        if (!busy) return;
+        await wait(500);
+    }
+};
 const go = async (url, waitFor, tries = 40) => {
     await send("Page.navigate", { url });
     await wait(2500);
     for (let i = 0; i < tries; i++) {
-        if (await evaluate(`return ${waitFor};`)) return;
+        if (await evaluate(`return ${waitFor};`)) {
+            await settled();
+            // The permissions land a tick after the spinner goes: the provider
+            // sets them, and the shell redraws on the next render.
+            await wait(600);
+            return;
+        }
         await wait(500);
     }
     throw new Error(`timed out on ${url}`);

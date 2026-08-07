@@ -117,6 +117,18 @@ never saw it" defect came from that. Anything one side derives is derived:
 a problem's status and best score, `submissionCount`, `attachedCount`, and every
 board.
 
+### Values the Server never reads (2026-08-07)
+
+Seven of them: `config` on a problem version and on an assignment, `detail` on an
+attempt and on a submission, `extra` on a result. Each exists so that adding a
+problem or ranking type needs no Server release.
+
+One rule for all of them: **optional, and absent means none** — never `{}` beside
+`undefined`, which is two ways of saying the same nothing. An object or absent,
+never a scalar or an array, so the `isRecord` guard every reader writes matches
+what can arrive. `docs/specs/OPAQUE_DOCUMENTS.md` carries the rule and the two
+ceilings the Server holds them to; the Client enforces neither and authors none.
+
 ### Rankings are computed here (2026-08-07)
 
 The Server sends **results, not a board**: `GET /activities/{id}/results` answers

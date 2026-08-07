@@ -49,7 +49,6 @@ const problemsOf = (series: SeedSeries): ManagedSeriesProblem[] =>
         // above zero**, so a number that disagreed with the submissions would
         // refuse a detach nothing justifies, or allow one that orphans a result.
         submissionCount: submissionCountOf(series, assignment.slug),
-        config: {},
         maxUploadBytes: assignment.maxUploadBytes,
         maxSubmissions: assignment.maxSubmissions,
     }));

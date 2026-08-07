@@ -338,9 +338,11 @@ export const createDataset = (files: FakeFiles): Dataset => {
                     // Derived from the score so the table agrees with the verdict
                     // above it. A fixture that says 100/100 next to three failed
                     // tests reads as a rendering bug.
-                    detail: finished
-                        ? standardIoDetail(testsFor(summary.score))
-                        : { kind: "standard-io", version: 1, tests: [] },
+                    //
+                    // **Absent while nothing has judged it.** This used to be an
+                    // empty standard-io document, which asserts "a result with
+                    // no tests" where the truth is "nothing has looked at it".
+                    detail: finished ? standardIoDetail(testsFor(summary.score)) : undefined,
                     files: [{ name: `solution.${EXTENSION[attempt.language] ?? "txt"}`, language: attempt.language }],
                 });
                 submissionFiles.set(summary.id, new Map([

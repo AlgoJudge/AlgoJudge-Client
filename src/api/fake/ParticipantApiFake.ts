@@ -605,7 +605,8 @@ export class ParticipantApiFake implements ParticipantApi {
             problemType: problem.type,
             authorName: "Amy Horsefighter",
             attempts: [{ id: `${id}-job-1`, attempt: 1, startedAt: summary.submittedAt, state: "queued" }],
-            detail: { kind: "standard-io", version: 1, tests: [] },
+            // Nothing has judged it yet, so it carries no result document.
+            detail: undefined,
             files: [{ name: fileName, language: payload.language }],
         });
         data.submissionFiles.set(id, new Map([[fileName, payload.code ?? "// wysłano jako plik"]]));

@@ -35,6 +35,13 @@ check(shape !== null && shape.labels.some(l => /Wyślij/.test(l)),
 check(shape !== null && shape.focusable >= 2,
     `and both it and the toggle are reachable by keyboard (${shape?.focusable})`);
 
+// Expanded up front: step 5b has to click a row within seconds of sending, and
+// the toggle would spend them. The check below compares before with after, so it
+// holds either way.
+await click(`[...document.querySelectorAll("[class*=Paper-root] button")]
+    .find(b => /Moje zgłoszenia/.test(b.textContent))`);
+await wait(1200);
+
 // ── 2. Sending does not toggle the panel ────────────────────────────────────
 const wasOpen = await evaluate(`return (${bar})?.querySelectorAll("[class*=row]").length > 0;`);
 await click(sendButton);
@@ -111,6 +118,32 @@ const countAfter = await evaluate(`
 check(countBefore !== null && countAfter === countBefore + 1,
     `the panel picks the new submission up on its own (${countBefore} → ${countAfter})`);
 await shot("mod-sent");
+
+// ── 5b. Nothing has judged it yet, so it carries no result document ─────────
+// Checked **here**, seconds after sending, because that is the only moment one
+// is unjudged: the fake finishes a submission about seven seconds in, and the
+// seeded queued and running ones are done within fifteen.
+//
+// It used to carry an empty standard-io document, which asserts "a result with
+// no tests" where the truth is "nothing has looked at this". The screen never
+// wanted one: waiting is a state of its own there, drawn instead of the result,
+// so the absent document is never even handed to a renderer.
+await click(`(${bar})?.querySelector("[class*=row]")`);
+await wait(1200);
+const unjudged = await evaluate(`
+    const main = document.querySelector("[class*=AppShell-main]");
+    return {
+        path: location.pathname,
+        waiting: /sprawdza to zgłoszenie|Runner|czeka/i.test(main?.innerText ?? ""),
+        table: main?.querySelectorAll("tbody tr").length ?? 0,
+    };
+`);
+check(/\/submissions\//.test(unjudged.path),
+    `the newest submission opens from the panel (${unjudged.path})`);
+check(unjudged.waiting && unjudged.table === 0,
+    `and an unjudged one draws the waiting state rather than an empty result table`
+    + ` (${unjudged.table} rows)`);
+await shot("mod-unjudged");
 
 // ── 6. Opening from a problem's page starts on that problem ─────────────────
 await visit("/activities/AMMPZ-2019/problems/C", `/Sortowanie|topologiczne/i.test(document.body.innerText)`);

@@ -169,7 +169,12 @@ await shot("s-navbar-collapsed");
 
 // 6 — the sign-in screen. Signed in it is not a screen at all: it sends the
 //     reader on, which is why this has to be asked with the session gone.
-await go(`${APP}/login`, `document.body !== null`);
+// Waits for the decision, not for its outcome: either the redirect has happened
+// or the form is on screen. `document.body !== null` was true before the session
+// had resolved, so this read the address mid-flight and failed about one run in
+// four.
+await go(`${APP}/login`,
+    `location.pathname !== "/login" || document.querySelector("input[type=password]") !== null`);
 check(await evaluate(`return location.pathname;`) !== "/login",
     "somebody already signed in is sent away from the sign-in screen");
 

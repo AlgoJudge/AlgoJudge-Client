@@ -358,8 +358,12 @@ export interface ManagedSeriesProblem {
      * removing the assignment would orphan it.
      */
     submissionCount: number;
-    /** Per-assignment configuration. Opaque to the Server. */
-    config: unknown;
+    /**
+     * Per-assignment configuration. Opaque to the Server, and **absent means
+     * none** — see `docs/specs/OPAQUE_DOCUMENTS.md`. An object or absent, never
+     * a scalar or an array.
+     */
+    config?: unknown;
     /** Narrow the activity's ceilings. Absent inherits. */
     maxUploadBytes?: number;
     maxAttachments?: number;
@@ -371,6 +375,7 @@ export interface SeriesProblemInput {
     slug: string;
     name?: string;
     pinnedProblemVersionId?: string;
+    /** Absent leaves the assignment with none. */
     config?: unknown;
     maxUploadBytes?: number;
     maxAttachments?: number;
@@ -418,8 +423,12 @@ export interface ManagedProblemVersion {
     createdByName?: string;
     /** What changed, for the manager reading the history later. */
     note?: string;
-    /** Limits and scoring for this version. Opaque to the Server. */
-    config: unknown;
+    /**
+     * Limits and scoring for this version. Opaque to the Server, and **absent
+     * means none** — see `docs/specs/OPAQUE_DOCUMENTS.md`. An object or absent,
+     * never a scalar or an array.
+     */
+    config?: unknown;
     /** Whether a Runner package has been uploaded for this version. */
     hasPackage: boolean;
     files: ProblemFile[];
@@ -587,7 +596,12 @@ export interface ManagedAttempt {
     finishedAt?: string;
     /** Which Runner claimed it, once one has. */
     runnerName?: string;
-    /** The Runner's result document, rendered by the problem type. */
+    /**
+     * The Runner's result document, rendered by the problem type.
+     *
+     * Absent until something has judged this attempt, which is most of what a
+     * queued one is. Opaque to the Server; an object or absent.
+     */
     detail?: unknown;
     /** Compiler output and the judge's messages. Managers always see it. */
     log?: string;
