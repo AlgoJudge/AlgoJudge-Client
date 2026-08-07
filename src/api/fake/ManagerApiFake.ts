@@ -48,16 +48,15 @@ import {
 import { Page } from "../ParticipantApi";
 import { displayName } from "../displayName";
 import {
-    createGrants,
     createTemplates,
     MANAGED_ACTIVITIES,
     MANAGED_USERS,
-    MY_SYSTEM_PERMISSIONS,
     PERMISSION_CATALOGUE,
 } from "./fixtures/permissions";
 import { StatementRef } from "../FileApi";
 import { ActivityDocumentKind, ActivityDocumentRef } from "../ParticipantApi";
 import { FakeActivities } from "./FakeActivities";
+import { FakeAccess } from "./FakeAccess";
 import { systemicByDefault } from "../permissions";
 import { ActivityRecord, createActivityLibrary } from "./fixtures/activities";
 import { signedInUserId } from "./CoreApiFake";
@@ -118,7 +117,6 @@ export class ManagerApiFake implements ManagerApi {
     readonly eventDispatcher = new ManagerEventDispatcherImpl();
 
     private templates = createTemplates();
-    private grants = createGrants();
     private library: ProblemRecord[];
     private activities: ActivityRecord[] = createActivityLibrary();
     private submissions: ManagedSubmissionDetail[] = createSubmissions();
@@ -137,6 +135,8 @@ export class ManagerApiFake implements ManagerApi {
         private readonly instance: FakeInstance,
         /** Shared with the participant fake: one owner for what an activity publishes. */
         private readonly shared: FakeActivities,
+        /** And one owner for the grants, because the feeds have to enforce them. */
+        private readonly access: FakeAccess,
         private sleepMs: number = 300,
     ) {
         this.library = createProblemLibrary(files);
@@ -215,7 +215,7 @@ export class ManagerApiFake implements ManagerApi {
     async getMyPermissions(activityId: string | undefined, signal: AbortSignal): Promise<string[]> {
         await this.settle(signal);
         const me = signedInUserId() ?? ME;
-        const own = this.grants.find(g => g.userId === me && g.activityId === activityId);
+        const own = this.access.grants.find(g => g.userId === me && g.activityId === activityId);
         const system = this.systemPermissions(me);
         // Scoped to an activity, what counts is the grant held **there** — a
         // manager of one course does not manage another. An administrator is the
@@ -224,7 +224,7 @@ export class ManagerApiFake implements ManagerApi {
         // grant they were never given would tell them they may do nothing in
         // the very activities they administer.
         const inherited = activityId === undefined
-            || this.grants.some(g => g.userId === me && g.activityId === undefined
+            || this.access.grants.some(g => g.userId === me && g.activityId === undefined
                 && g.permissions.includes("system:administrator"))
             ? system
             : [];
@@ -236,22 +236,15 @@ export class ManagerApiFake implements ManagerApi {
         const me = signedInUserId() ?? ME;
         // Everywhere, unioned: the question a menu asks. A manager of one
         // activity and nothing else still needs the panel that activity is in.
-        const everywhere = this.grants
+        const everywhere = this.access.grants
             .filter(g => g.userId === me)
             .flatMap(g => g.permissions);
         return copy([...new Set([...this.systemPermissions(me), ...everywhere])]);
     }
 
-    /** What a user holds at system scope, before any activity grant. */
+    /** What a user holds at system scope. The rule is `FakeAccess`'s, and shared. */
     private systemPermissions(userId: string): string[] {
-        if (userId === ME) return MY_SYSTEM_PERMISSIONS;
-        const global = this.grants.find(g => g.userId === userId && g.activityId === undefined);
-        if (!global) return [];
-        // An administrator holds the catalogue; there is no list to keep in step
-        // with it, which is the point of the permission being what it is.
-        return global.permissions.includes("system:administrator")
-            ? PERMISSION_CATALOGUE.map(definition => definition.key)
-            : global.permissions;
+        return this.access.systemPermissions(userId);
     }
 
     async getPermissionTemplates(signal: AbortSignal): Promise<PermissionTemplate[]> {
@@ -292,7 +285,7 @@ export class ManagerApiFake implements ManagerApi {
 
     async getGrants(filter: GrantFilter, signal: AbortSignal): Promise<Page<Grant>> {
         await this.settle(signal);
-        const matched = this.grants.filter(g =>
+        const matched = this.access.grants.filter(g =>
             (!filter.userId || g.userId === filter.userId) &&
             (!filter.activityId || g.activityId === filter.activityId) &&
             (!filter.scope
@@ -321,7 +314,7 @@ export class ManagerApiFake implements ManagerApi {
         // felt like sending.
         const isSystem = systemicByDefault(input.permissions, PERMISSION_CATALOGUE, input.isSystem);
 
-        const existing = this.grants.find(g => g.userId === input.userId && g.activityId === input.activityId);
+        const existing = this.access.grants.find(g => g.userId === input.userId && g.activityId === input.activityId);
         const grant: Grant = existing
             ? { ...existing, ...input, isSystem, permissions: [...input.permissions] }
             : {
@@ -335,16 +328,16 @@ export class ManagerApiFake implements ManagerApi {
                 isSystem,
                 permissions: [...input.permissions],
             };
-        this.grants = existing
-            ? this.grants.map(g => g.id === grant.id ? grant : g)
-            : [...this.grants, grant];
+        this.access.grants = existing
+            ? this.access.grants.map(g => g.id === grant.id ? grant : g)
+            : [...this.access.grants, grant];
         this.eventDispatcher.dispatchEvent({ type: "grantChanged", data: { grant: copy(grant) } });
         return copy(grant);
     }
 
     async revokeGrant(id: string, signal: AbortSignal): Promise<void> {
         await this.settle(signal);
-        this.grants = this.grants.filter(g => g.id !== id);
+        this.access.grants = this.access.grants.filter(g => g.id !== id);
         this.eventDispatcher.dispatchEvent({ type: "grantChanged", data: { deletedId: id } });
     }
 
@@ -823,7 +816,7 @@ export class ManagerApiFake implements ManagerApi {
             if (input.activityId) {
                 // Enrolled as they are created: a hundred accounts nobody is in
                 // an activity with are a hundred accounts that cannot submit.
-                this.grants = [...this.grants, {
+                this.access.grants = [...this.access.grants, {
                     id: newId(),
                     userId: user.id,
                     userName: displayName(user),
@@ -1386,7 +1379,7 @@ export class ManagerApiFake implements ManagerApi {
 
     /** Read from the grants rather than stored, for the same reason as elsewhere. */
     private withGrantCount(user: ManagedUser): ManagedUser {
-        return { ...user, grantCount: this.grants.filter(g => g.userId === user.id).length };
+        return { ...user, grantCount: this.access.grants.filter(g => g.userId === user.id).length };
     }
 
     private announceUser(user: ManagedUser): void {
@@ -1545,7 +1538,7 @@ export class ManagerApiFake implements ManagerApi {
             ...activity,
             // Whoever runs the activity is not competing in it, so the number
             // beside "Participants" is the number of people actually taking part.
-            participantCount: this.grants
+            participantCount: this.access.grants
                 .filter(g => g.activityId === activity.id && !g.isSystem).length,
             documents: this.shared.documentsOf(activity.id),
             joinPolicy: enrolment.policy,

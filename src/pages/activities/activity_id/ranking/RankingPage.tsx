@@ -7,7 +7,6 @@ import { Activity, ActivityResults, Series } from "../../../../api/ParticipantAp
 import { rankingWindow } from "../../../../api/rankingWindow";
 import { seriesState } from "../../../../api/seriesState";
 import { useApiEffect } from "../../../../provider/apiContext";
-import { usePermissions } from "../../../../provider/permissionsContext";
 import ActivityTime from "../../../../components/time/ActivityTime";
 import LoadState from "../../../../components/LoadState";
 import { rankingRenderers } from "../../../../renderers";
@@ -30,7 +29,6 @@ const COMBINED = "*";
 export default function RankingPage() {
     const { t } = useTranslation();
     const { activityId } = useParams();
-    const { has } = usePermissions();
 
     const [activity, setActivity] = useState<Activity | undefined>(undefined);
     const [series, setSeries] = useState<Series[]>([]);
@@ -82,19 +80,25 @@ export default function RankingPage() {
     if (!activity || !results) return <LoadState error={error} loading={!error} />;
 
     const started = series.filter(s => seriesState(s) !== "upcoming");
-
-    // The window belongs to the round. The combined board is a combination of
-    // the rounds whose windows are open, so it is there while **any** of them
-    // is — and says when the earliest one opens while none is.
     const chosenSeries = started.find(s => s.id === chosen);
+
+    // **What was sent decides.** Whether a board exists is the Server's answer,
+    // not a rule the screen re-derives: it applies the window, the freeze and
+    // `scoreVisibility`, and whoever holds `ranking:read:unfrozen` is sent the
+    // rounds those would have withheld. Working it out here as well produced a
+    // board drawn out of a feed that carried none of it — five contestants, no
+    // columns, everybody on nought — because the screen let a reader past a
+    // window the feed had already closed.
+    const withheld = chosenSeries
+        ? !results.series.some(s => s.id === chosenSeries.id)
+        : results.series.length === 0;
+
+    // Only for the wording. The round says when its own board opens; the
+    // combined one says when the earliest of them does.
     const windows = started.map(s => rankingWindow(s));
     const window = chosenSeries
         ? rankingWindow(chosenSeries)
-        : windows.find(w => w.visible) ?? windows[0] ?? { visible: started.length === 0 };
-
-    // Whoever may read a frozen board may read one outside its window: the
-    // window is what an organiser tells participants, not an access rule.
-    const withheld = !window.visible && !has("ranking:read:unfrozen");
+        : windows.find(w => w.from !== undefined) ?? windows[0] ?? { visible: false };
 
     // Chosen by the activity's ranking type, not by its activity type: ICPC and
     // a points board are different tables, not different sorts of one table.

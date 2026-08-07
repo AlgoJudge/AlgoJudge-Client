@@ -19,6 +19,7 @@ import {
     SubmitPayload,
 } from "../ParticipantApi";
 import { FakeActivities, SeriesRelay } from "./FakeActivities";
+import { FakeAccess } from "./FakeAccess";
 import { maySubmit, mayReadProblems } from "../seriesState";
 import { FakeFiles } from "./FileApiFake";
 import { createDataset, Dataset, OPENING_SERIES_DELAY } from "./fixtures";
@@ -72,6 +73,7 @@ class FakeParticipantState {
         private readonly events: ParticipantEventDispatcherImpl,
         files: FakeFiles,
         shared: FakeActivities,
+        private readonly access: FakeAccess,
     ) {
         this.data = createDataset(files);
         shared.onSeriesChanged(relay => this.applyRelay(relay));
@@ -223,7 +225,10 @@ class FakeParticipantState {
         if (!live || !rankingWindow(live).visible) return;
         if (activity.scoreVisibility === "managersOnly") return;
 
-        const result = resultOf(seeded.series, seeded.attempt, Date.now());
+        // Filtered exactly as the endpoint filters: the socket must not be a
+        // way around the rule the feed applies.
+        const result = resultOf(seeded.series, seeded.attempt, Date.now(),
+            this.access.holds("ranking:read:unfrozen", activityId));
         if (!result) return;
         this.events.dispatchEvent({
             type: "rankingChanged",
@@ -418,9 +423,11 @@ export class ParticipantApiFake implements ParticipantApi {
         files: FakeFiles,
         /** Shared with the manager fake: one owner for what an activity publishes. */
         private readonly shared: FakeActivities,
+        /** And one owner for the grants, so this feed can enforce them. */
+        private readonly access: FakeAccess,
         private sleepMs: number = 300,
     ) {
-        this.state = new FakeParticipantState(this.eventDispatcher, files, shared);
+        this.state = new FakeParticipantState(this.eventDispatcher, files, shared, access);
     }
 
     async getActivities(filter: ActivityFilter, signal: AbortSignal): Promise<Page<Activity>> {
@@ -627,6 +634,10 @@ export class ParticipantApiFake implements ParticipantApi {
             live: data.series.get(activityId) ?? [],
             seriesId,
             scoreVisibility: activity?.scoreVisibility ?? "managersOnly",
+            // Decided here because the Server decides it here. It used to be the
+            // screen's, which drew a board out of a feed it had been sent none
+            // of: five rows, no columns, everybody on nought.
+            unfrozen: this.access.holds("ranking:read:unfrozen", activityId),
             now: Date.now(),
         }));
     }
