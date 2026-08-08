@@ -1,5 +1,5 @@
 import { ManagedActivity, ManagedSeries, ManagedSeriesProblem } from "../../ManagerApi";
-import { seriesState } from "../../seriesState";
+import { openByClock } from "../../seriesState";
 import {
     SeedActivity, SeedSeries, WORLD,
     assignmentId, submissionCountOf,
@@ -64,11 +64,15 @@ const seriesOf = (activity: SeedActivity, series: SeedSeries): ManagedSeries => 
     endDate: series.endDate,
     // The **Server** owns this: a scheduler opens a series when its start passes
     // and closes it when its end does. The seed states the dates and this works
-    // out what that scheduler would have done by now, by the same rule the
-    // screens read — rather than a flag somebody keeps in step by hand.
-    // `isOpen: false` is what the rule is being asked about, not an answer: a
-    // seed series is never paused, so the state falls out of the dates alone.
-    isOpen: seriesState({ ...series, isOpen: false }) === "open",
+    // out what that scheduler would have done by now — rather than a flag
+    // somebody keeps in step by hand.
+    //
+    // `openByClock` rather than `seriesState`, because since 2026-08-08 the
+    // state is read from this flag instead of computed beside it, and asking
+    // the reader to produce what it consumes would be circular.
+    isOpen: openByClock(series),
+    // No seed round is paused, so nothing was hidden by one.
+    hideProblemsWhilePaused: false,
     revealProblemCount: series.revealProblemCount,
     rankingFreezeAt: series.rankingFreezeAt,
     rankingRevealAt: series.rankingRevealAt,

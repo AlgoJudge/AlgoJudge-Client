@@ -38,13 +38,10 @@ export default function SubmitModal({ activity, series, opened, onClose, initial
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | undefined>(undefined);
 
-    // Only rounds that **accept** something. `maySubmit` rather than `isOpen`,
-    // because that is the rule the Server applies: a round that has ended is
-    // still readable and takes nothing, and offering its problems here would be
-    // offering a form that is refused.
-    // Called with the series alone. Point-free here would hand `filter`'s index
-    // to `maySubmit`'s second parameter, which is `now` — every round is then
-    // judged against 1970 and none of them has started.
+    // Only rounds that **accept** something. `maySubmit` rather than `isOpen`
+    // alone, because that is the rule the Server applies: a round that has ended
+    // is still readable and takes nothing, and offering its problems here would
+    // be offering a form that is refused.
     const offered = series
         .filter(s => maySubmit(s))
         .map(s => ({

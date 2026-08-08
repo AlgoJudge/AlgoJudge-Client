@@ -19,7 +19,39 @@ export interface SeriesTiming {
     isOpen: boolean;
     /** Since when a manager has it stopped. */
     pausedAt?: string;
+    /**
+     * Whether the pause took the statements with it.
+     *
+     * Only the fake supplies this, from its seed: no response carries it,
+     * because the Server does not need the Client's help to withhold — it
+     * simply leaves `problems` out. See {@link mayReadProblems}.
+     */
+    hideProblemsWhilePaused?: boolean;
 }
+
+/**
+ * What the scheduler would decide from the clock alone.
+ *
+ * **Not for screens.** A screen reads {@link seriesState}, which trusts the
+ * stored answer. This is the rule that *produces* that answer, and it exists so
+ * the fake can stand in for the scheduler when it builds a series from a seed
+ * that states dates and no flag.
+ *
+ * Mirrors the Server's `ManagerWriteService.Reconcile`, including its treatment
+ * of a series with no start: an untimed activity is running, not pending, and
+ * the forms accept one rather than demanding a date.
+ */
+export const openByClock = (
+    series: Pick<SeriesTiming, "startDate" | "endDate" | "pausedAt">,
+    now = Date.now(),
+): boolean => {
+    // A paused round is shut by the pause, whatever the clock says.
+    if (series.pausedAt !== undefined) return false;
+
+    const started = series.startDate === undefined || Date.parse(series.startDate) <= now;
+    const ended = series.endDate !== undefined && Date.parse(series.endDate) <= now;
+    return started && !ended;
+};
 
 export type SeriesState =
     /** Its start has not passed. Nothing about it is disclosed. */
@@ -31,37 +63,65 @@ export type SeriesState =
     /** Its end has passed. Readable for ever; accepting nothing. */
     | "ended";
 
+/**
+ * Whether a round is running is a fact the Server **holds**, not one its dates
+ * imply (decided 2026-08-08). `Workers/SeriesScheduler.cs` owns every
+ * transition, so between a deadline passing and the scheduler's next pass the
+ * stored answer is the true one — and recomputing it here would disagree with
+ * the Server in exactly the minute that matters, offering a Submit button to a
+ * round that has closed or withholding one from a round that has opened.
+ *
+ * The dates are still read, but only to say **which kind of shut** a shut round
+ * is, which is a label rather than a permission.
+ */
 export const seriesState = (series: SeriesTiming, now = Date.now()): SeriesState => {
-    if (series.endDate !== undefined && Date.parse(series.endDate) <= now) return "ended";
+    // A pause is asked about first. The Server closes a round as it pauses it,
+    // so the two can only disagree if something upstream broke that rule — and
+    // then "paused" is the safer of the two answers, because it offers nothing.
     if (series.pausedAt !== undefined) return "paused";
-    if (series.startDate !== undefined && Date.parse(series.startDate) > now) return "upcoming";
-    return "open";
+    if (series.isOpen) return "open";
+    if (series.endDate !== undefined && Date.parse(series.endDate) <= now) return "ended";
+    return "upcoming";
 };
 
 /**
  * Whether the problems may be read.
  *
- * Withheld before the start, and while a pause that took them away is in force —
- * which is `isOpen` gone false on a paused series, and the whole of what "hide
- * the statements" means.
+ * **The fake's rule, not a screen's.** No screen calls this and none should: the
+ * Server withholds by leaving `problems` out of the response, so a screen that
+ * asked this question would be second-guessing an answer it already has. The
+ * fake calls it because the fake is standing in for the Server.
  *
- * An ended series stays readable by default: it is over, not secret, and a
- * competitor goes back to what they were solving. An activity may say otherwise
- * — a course reusing its problems next year — and then a finished round closes
- * with them.
+ * Mirrors `Services/SeriesGate.cs`. An ended series stays readable by default —
+ * it is over, not secret, and a competitor goes back to what they were solving —
+ * and an activity may say otherwise for a course reusing its problems next year.
+ * A pause hides them only when the manager said so as they paused.
  */
 export const mayReadProblems = (
     series: SeriesTiming,
     activity: { hideEndedSeriesProblems?: boolean } = {},
     now = Date.now(),
 ): boolean => {
-    const state = seriesState(series, now);
-    if (state === "upcoming") return false;
-    if (state === "paused" && !series.isOpen) return false;
-    if (state === "ended" && activity.hideEndedSeriesProblems === true) return false;
-    return true;
+    if (series.isOpen) return true;
+
+    if (series.pausedAt !== undefined) return series.hideProblemsWhilePaused !== true;
+    if (series.endDate !== undefined && Date.parse(series.endDate) <= now) {
+        return activity.hideEndedSeriesProblems !== true;
+    }
+    // Never opened: a series that has not started does not disclose what it holds.
+    return false;
 };
 
-/** Whether anything may be submitted. Only while it is actually running. */
-export const maySubmit = (series: SeriesTiming, now = Date.now()): boolean =>
-    seriesState(series, now) === "open";
+/**
+ * Whether anything may be submitted.
+ *
+ * Mirrors `SeriesGate.MaySubmit` — `isOpen && pausedAt is null` — rather than
+ * asking {@link seriesState}. The two agree today because a pause closes the
+ * round, and stating it the Server's way means they keep agreeing if that ever
+ * stops being true.
+ *
+ * Takes no `now`: it reads a stored answer, so there is no clock to read it
+ * against.
+ */
+export const maySubmit = (series: SeriesTiming): boolean =>
+    series.isOpen && series.pausedAt === undefined;
