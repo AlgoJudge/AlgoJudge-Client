@@ -195,7 +195,7 @@ export class ManagerApiHttp implements ManagerApi {
     }
 
     getManagedActivities(signal: AbortSignal): Promise<ManagedActivitySummary[]> {
-        return this.http.request<ManagedActivitySummary[]>("/manager/activities", "GET", { signal });
+        return this.http.request<ManagedActivitySummary[]>("/manager/activities/summary", "GET", { signal });
     }
 
     updateInstanceSettings(input: InstanceSettingsInput, signal: AbortSignal): Promise<InstanceInfo> {
@@ -227,11 +227,12 @@ export class ManagerApiHttp implements ManagerApi {
         if (filter.pageSize !== undefined) query.pageSize = filter.pageSize;
         if (filter.search) query.search = filter.search;
         if (filter.includeArchived) query.includeArchived = true;
-        return this.http.request<Page<ManagedActivity>>("/activities", "GET", { signal, query });
+        return this.http.request<Page<ManagedActivity>>("/manager/activities", "GET", { signal, query });
     }
 
     getActivity(idOrSlug: string, signal: AbortSignal): Promise<ManagedActivity> {
-        return this.http.request<ManagedActivity>(`/activities/${encodeURIComponent(idOrSlug)}`, "GET", { signal });
+        return this.http.request<ManagedActivity>(
+            `/manager/activities/${encodeURIComponent(idOrSlug)}`, "GET", { signal });
     }
 
     createActivity(input: ActivityInput, signal: AbortSignal): Promise<ManagedActivity> {
@@ -272,7 +273,7 @@ export class ManagerApiHttp implements ManagerApi {
 
     getSeries(activityId: string, signal: AbortSignal): Promise<ManagedSeries[]> {
         return this.http.request<ManagedSeries[]>(
-            `/activities/${encodeURIComponent(activityId)}/series`, "GET", { signal });
+            `/manager/activities/${encodeURIComponent(activityId)}/series`, "GET", { signal });
     }
 
     createSeries(activityId: string, input: SeriesInput, signal: AbortSignal): Promise<ManagedSeries> {

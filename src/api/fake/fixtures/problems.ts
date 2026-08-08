@@ -41,12 +41,27 @@ export const fakeSha = (seed: string): string => {
 
 export const ME = "user-me";
 
-/** Limits and scoring for a version. Opaque to the Server; the shape is the type's. */
+/**
+ * Limits and scoring for a version. Opaque to the Server; the shape is the
+ * type's.
+ *
+ * **The package's shape, and deliberately so.** The chain decided 2026-08-04 is
+ * "the defaults inside the package, then `ProblemVersion.config`, then
+ * `SeriesProblem.config`, each overriding the one before" — and a layer that
+ * overrides another has to name the same fields, or there is nothing to
+ * override. This stated `kind`, `limits.memoryMb` and `scoring.groups` against
+ * `docs/specs/PACKAGE_FORMAT.md`'s `format`, `limits.memoryKib` and top-level
+ * `groups` until 2026-08-08, and a hand-written translation in
+ * `ManagerApiFake` stood between them.
+ *
+ * Kibibytes rather than megabytes because that is what the format speaks; a
+ * screen showing megabytes divides where it shows them.
+ */
 const standardIoConfig = (timeMs: number, memoryMb: number, groups: number[]) => ({
-    kind: "standard-io",
+    format: "standard-io",
     version: 1,
-    limits: { timeMs, memoryMb },
-    scoring: { groups: groups.map((points, i) => ({ group: i + 1, points })) },
+    limits: { timeMs, memoryKib: memoryMb * 1024 },
+    groups: groups.map((points, i) => ({ group: i + 1, points })),
 });
 
 export interface ProblemRecord {

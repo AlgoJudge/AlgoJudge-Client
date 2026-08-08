@@ -10,7 +10,7 @@ import {
     SubmissionDetail,
     SubmissionSummary,
 } from "../../ParticipantApi";
-import { seriesState } from "../../seriesState";
+import { openByClock, seriesState } from "../../seriesState";
 // Type-only, as `documents.ts` does it: the fixtures say what is stored and are
 // handed the store rather than reaching for one of their own.
 import type { FakeFiles } from "../FileApiFake";
@@ -151,7 +151,12 @@ export const createDataset = (files: FakeFiles): Dataset => {
         // ─────────────────────────────────────────────────────────── series
         const list: Series[] = [];
         for (const seed of activity.series) {
-            const state = seriesState({ ...seed, isOpen: false }, now);
+            // Two steps, in the Server's order: the scheduler decides whether
+            // the round is open, and everything else reads that decision. One
+            // step computing the state from the dates would be the Client
+            // deciding for itself what the Server stores.
+            const isOpen = openByClock(seed, now);
+            const state = seriesState({ ...seed, isOpen }, now);
             const summaries = seed.assignments.map((assignment): ProblemSummary => {
                 const mine = (seed.attempts ?? []).filter(attempt =>
                     attempt.contestant === me?.id && attempt.problem === assignment.slug);
@@ -180,7 +185,7 @@ export const createDataset = (files: FakeFiles): Dataset => {
                 name: seed.name,
                 startDate: seed.startDate,
                 endDate: seed.endDate,
-                isOpen: state === "open",
+                isOpen,
                 // The window travels; the freeze does not. Telling a participant
                 // when the board stopped moving would announce exactly what the
                 // freeze is hiding, so the Server keeps that instant.

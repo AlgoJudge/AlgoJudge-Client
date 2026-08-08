@@ -14,7 +14,8 @@
     "check:content": "node scripts/check-content.mjs",
     "check:events": "node scripts/check-events.mjs",
     "check:api": "node scripts/check-api.mjs",
-    "check:ui": "node scripts/verify/run.mjs"
+    "check:ui": "node scripts/verify/run.mjs",
+    "check:e2e": "playwright test"
   },
   "dependencies": {
     "@mantine/code-highlight": "^7.17.3",
@@ -44,6 +45,7 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^9.6.0",
+    "@playwright/test": "^1.62.1",
     "@types/markdown-it": "^14.1.2",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",

@@ -313,6 +313,15 @@ export interface ManagedSeries {
     isOpen: boolean;
     /** Since when a manager has it stopped. Absent means it is not paused. */
     pausedAt?: string;
+    /**
+     * Whether the pause in force took the statements with it.
+     *
+     * Answered as the round is paused, and reported back only here: the
+     * participant's `Series` has no counterpart, because the Server withholds by
+     * leaving `problems` out rather than by asking the reader to. Without it a
+     * manager who reloads cannot see what they chose.
+     */
+    hideProblemsWhilePaused: boolean;
     /** Whether a closed series admits how many problems it holds. */
     revealProblemCount: boolean;
     /**
@@ -1012,7 +1021,7 @@ export interface InstanceLogoInput {
 }
 
 export type ManagerEventType = "permissionTemplateChanged" | "grantChanged" | "problemChanged"
-    | "activityChanged" | "seriesChanged" | "submissionChanged" | "questionChanged" | "userChanged"
+    | "activityChanged" | "managerSeriesChanged" | "submissionChanged" | "questionChanged" | "userChanged"
     | "runnerChanged" | "instanceChanged";
 export type ManagerEvent<T extends ManagerEventType, V> = Event<T, V>;
 
@@ -1036,8 +1045,16 @@ export type ActivityChangedEvent = ManagerEvent<"activityChanged", {
     deletedId?: string;
 }>;
 
-/** Carries the whole series, assignments included: they are edited together. */
-export type SeriesChangedEvent = ManagerEvent<"seriesChanged", {
+/**
+ * Carries the whole series, assignments included: they are edited together.
+ *
+ * `managerSeriesChanged` on the wire, not `seriesChanged`. The participant event
+ * of that name carries a different shape — it requires `series` and `change`,
+ * this one has neither and may carry `deletedId` — and the envelope has no
+ * scope member to tell them apart. Sharing the name meant this one could never
+ * be routed here at all: the transport tests the participant record first.
+ */
+export type SeriesChangedEvent = ManagerEvent<"managerSeriesChanged", {
     activityId: string;
     series?: ManagedSeries;
     deletedId?: string;
@@ -1077,7 +1094,7 @@ export interface ManagerEventDispatcher {
     addEventListener(type: "grantChanged", listener: (evt: GrantChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "problemChanged", listener: (evt: ProblemChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "activityChanged", listener: (evt: ActivityChangedEvent) => void, signal: AbortSignal): void;
-    addEventListener(type: "seriesChanged", listener: (evt: SeriesChangedEvent) => void, signal: AbortSignal): void;
+    addEventListener(type: "managerSeriesChanged", listener: (evt: SeriesChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "submissionChanged", listener: (evt: SubmissionChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "questionChanged", listener: (evt: QuestionChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "userChanged", listener: (evt: UserChangedEvent) => void, signal: AbortSignal): void;

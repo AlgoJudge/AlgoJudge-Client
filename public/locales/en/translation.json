@@ -814,5 +814,7 @@
   "The ranking was available until": "The ranking was available until",
   "The ranking is not available.": "The ranking is not available.",
   "Nothing sent yet": "Nothing sent yet",
-  "Empty means from this series' own start": "Empty means from this series' own start"
+  "Empty means from this series' own start": "Empty means from this series' own start",
+  "Judged against v{{pinned}}; the problem is now at v{{current}}": "Judged against v{{pinned}}; the problem is now at v{{current}}",
+  "Judged against the newest version": "Judged against the newest version"
 }

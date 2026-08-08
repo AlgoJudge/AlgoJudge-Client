@@ -61,7 +61,7 @@ import { systemicByDefault } from "../permissions";
 import { ActivityRecord, createActivityLibrary } from "./fixtures/activities";
 import { signedInUserId } from "./CoreApiFake";
 import { buildPackage } from "../../package/build";
-import { emptyConfig, isPackageFile, PACKAGE_ARCHIVE, SAMPLES_ARCHIVE } from "../../package/types";
+import { emptyConfig, isPackageFile, PackageConfig, PACKAGE_ARCHIVE, SAMPLES_ARCHIVE } from "../../package/types";
 import { isStatementName, statementFileName } from "../../content/types";
 import { createProblemLibrary, ME, ProblemRecord } from "./fixtures/problems";
 import { createQuestions } from "./fixtures/questions";
@@ -74,6 +74,7 @@ import { InstanceDocumentKind, InstanceDocumentRef, InstanceInfo } from "../Core
 import { createSubmissions } from "./fixtures/submissions";
 import { sha256 } from "../../utils/sha256";
 import { Utils } from "./Utils";
+import { conflict, forbidden, invalid, notFound } from "./refuse";
 
 const copy = <T>(value: T): T => structuredClone(value);
 
@@ -82,7 +83,7 @@ const paginate = <T>(items: T[], page = 1, pageSize = 20): Page<T> => {
     return { items: items.slice(first, first + pageSize), total: items.length, page, pageSize };
 };
 
-const notFound = (what: string): never => Utils.throwError(`${what} does not exist`);
+
 
 /** Given order first, anything the caller forgot after it, in its old order. */
 const sortByGiven = <T extends { id: string }>(items: T[], orderedIds: string[]): T[] => [
@@ -161,7 +162,7 @@ export class ManagerApiFake implements ManagerApi {
     async setInstanceLogo(input: InstanceLogoInput, signal: AbortSignal): Promise<InstanceInfo> {
         await this.settle(signal);
         if (input.fileId !== undefined && !this.files.has(input.fileId)) {
-            Utils.throwError("That file is not stored");
+            invalid("That file is not stored", "file.missing");
         }
         return this.announceInstance(this.instance.logo(input.fileId, input.language));
     }
@@ -173,7 +174,7 @@ export class ManagerApiFake implements ManagerApi {
     ): Promise<InstanceInfo> {
         await this.settle(signal);
         for (const statement of statements) {
-            if (!this.files.has(statement.fileId)) Utils.throwError("That file is not stored");
+            if (!this.files.has(statement.fileId)) invalid("That file is not stored", "file.missing");
         }
         return this.announceInstance(this.instance.publish(kind, statements));
     }
@@ -278,7 +279,7 @@ export class ManagerApiFake implements ManagerApi {
         if (existing.isBuiltIn) {
             // The three shipped templates are what a fresh installation grants
             // from. Deleting one leaves nothing to start from.
-            Utils.throwError("A built-in template cannot be deleted");
+            conflict("A built-in template cannot be deleted");
         }
         this.templates = this.templates.filter(t => t.id !== id);
         this.eventDispatcher.dispatchEvent({ type: "permissionTemplateChanged", data: { deletedId: id } });
@@ -305,7 +306,7 @@ export class ManagerApiFake implements ManagerApi {
         if (!mine.includes("system:administrator")) {
             const excess = input.permissions.filter(p => !mine.includes(p));
             if (excess.length > 0) {
-                Utils.throwError(`Cannot grant permissions you do not hold: ${excess.join(", ")}`);
+                forbidden(`Cannot grant permissions you do not hold: ${excess.join(", ")}`, "grant.excess");
             }
         }
 
@@ -419,7 +420,7 @@ export class ManagerApiFake implements ManagerApi {
         await this.settle(signal);
         const record = this.findActivity(activityId);
         for (const statement of statements) {
-            if (!this.files.has(statement.fileId)) Utils.throwError("That file is not stored");
+            if (!this.files.has(statement.fileId)) invalid("That file is not stored", "file.missing");
         }
         this.shared.publish(record.activity.id, kind, statements);
         return this.announceActivity(this.withCounts(record.activity));
@@ -459,7 +460,7 @@ export class ManagerApiFake implements ManagerApi {
         // Deleting destroys submissions people may still want to look back at,
         // so it is refused for anything that ran. Archiving is the ordinary act.
         if (record.series.some(s => s.problems.some(p => p.submissionCount > 0))) {
-            Utils.throwError("This activity holds submissions. Archive it instead of deleting it.");
+            conflict("This activity holds submissions. Archive it instead of deleting it.", "activity.hasSubmissions");
         }
         for (const series of record.series) {
             for (const assignment of series.problems) this.countAttachment(assignment.problemId, -1);
@@ -482,6 +483,8 @@ export class ManagerApiFake implements ManagerApi {
             id: newId(),
             activityId: record.activity.id,
             order: record.series.length + 1,
+            // A round nobody has paused has hidden nothing.
+            hideProblemsWhilePaused: false,
             problems: [],
             // The Server's scheduler opens it when its start passes; a series
             // created with a start already behind it is running from the moment
@@ -544,18 +547,22 @@ export class ManagerApiFake implements ManagerApi {
         await this.settle(signal);
         const { record, series } = this.findSeries(seriesId);
         this.assertNotArchived(record);
-        if (series.pausedAt) Utils.throwError("That series is already paused");
+        if (series.pausedAt) conflict("That series is already paused", "series.alreadyPaused");
         series.pausedAt = new Date().toISOString();
-        // Hiding the statements is `isOpen` going false: what a participant may
-        // see is what that field has always answered.
-        if (input.hideProblems) series.isOpen = false;
+        // A pause takes no submission, so the round shuts — always, as the
+        // Server's `ManagerWriteService.PauseAsync` does it. Whether the
+        // statements go with it is a separate answer, given at this moment and
+        // travelling as its own field.
+        series.isOpen = false;
+        series.hideProblemsWhilePaused = input.hideProblems === true;
         this.announceSeries(record, series);
         this.shared.announceSeries({
             activityId: record.activity.id,
             seriesId: series.id,
             change: "paused",
             pausedAt: series.pausedAt,
-            isOpen: series.isOpen,
+            isOpen: false,
+            hideProblems: input.hideProblems === true,
         });
         return copy(series);
     }
@@ -563,7 +570,7 @@ export class ManagerApiFake implements ManagerApi {
     async resumeSeries(seriesId: string, input: ResumeInput, signal: AbortSignal): Promise<ManagedSeries> {
         await this.settle(signal);
         const { record, series } = this.findSeries(seriesId);
-        if (!series.pausedAt) Utils.throwError("That series is not paused");
+        if (!series.pausedAt) conflict("That series is not paused", "series.notPaused");
         const paused = Date.now() - Date.parse(series.pausedAt);
         series.pausedAt = undefined;
         // Given back only if asked for. The arithmetic is the Server's; this is
@@ -575,6 +582,7 @@ export class ManagerApiFake implements ManagerApi {
         const ended = series.endDate !== undefined && Date.parse(series.endDate) <= Date.now();
         const started = series.startDate === undefined || Date.parse(series.startDate) <= Date.now();
         series.isOpen = started && !ended;
+        series.hideProblemsWhilePaused = false;
         this.announceSeries(record, series);
         this.shared.announceSeries({
             activityId: record.activity.id,
@@ -591,13 +599,13 @@ export class ManagerApiFake implements ManagerApi {
         await this.settle(signal);
         const { record, series } = this.findSeries(seriesId);
         if (series.problems.some(p => p.submissionCount > 0)) {
-            Utils.throwError("This series holds submissions and cannot be deleted");
+            conflict("This series holds submissions and cannot be deleted", "series.hasSubmissions");
         }
         for (const assignment of series.problems) this.countAttachment(assignment.problemId, -1);
         record.series = record.series.filter(s => s.id !== seriesId).map((s, i) => ({ ...s, order: i + 1 }));
         this.recount(record);
         this.eventDispatcher.dispatchEvent({
-            type: "seriesChanged",
+            type: "managerSeriesChanged",
             data: { activityId: record.activity.id, deletedId: seriesId },
         });
     }
@@ -619,7 +627,7 @@ export class ManagerApiFake implements ManagerApi {
         if (source.problem.archivedAt) {
             // Archived leaves the picker: existing assignments keep working, new
             // ones are not made.
-            Utils.throwError("An archived problem cannot be attached");
+            conflict("An archived problem cannot be attached", "problem.archived");
         }
         const version = input.pinnedProblemVersionId
             ? source.versions.find(v => v.id === input.pinnedProblemVersionId)
@@ -666,7 +674,7 @@ export class ManagerApiFake implements ManagerApi {
         if (assignment.submissionCount > 0) {
             // A result belongs to what it was judged against; detaching would
             // leave it pointing at nothing.
-            Utils.throwError("Something has already been submitted here. The assignment cannot be removed.");
+            conflict("Something has already been submitted here. The assignment cannot be removed.", "assignment.hasSubmissions");
         }
         series.problems = series.problems
             .filter(p => p.id !== seriesProblemId)
@@ -704,7 +712,7 @@ export class ManagerApiFake implements ManagerApi {
         if (runner.state === "revoked") {
             // A revoked key stays revoked. The Runner comes back as a new
             // identity, which is the point of never rotating a key.
-            Utils.throwError("A revoked Runner cannot be approved; it must register again");
+            conflict("A revoked Runner cannot be approved; it must register again", "runner.revoked");
         }
         runner.state = "approved";
         runner.approvedAt = new Date().toISOString();
@@ -742,7 +750,7 @@ export class ManagerApiFake implements ManagerApi {
         await this.settle(signal);
         const runner = this.findRunner(id);
         if (runner.state !== "revoked") {
-            Utils.throwError("Revoke it before forgetting it");
+            conflict("Revoke it before forgetting it", "runner.notRevoked");
         }
         this.runners = this.runners.filter(r => r.id !== id);
         this.eventDispatcher.dispatchEvent({ type: "runnerChanged", data: { runner: copy(runner) } });
@@ -789,13 +797,13 @@ export class ManagerApiFake implements ManagerApi {
     async createTemporaryUsers(input: BulkUserInput, signal: AbortSignal): Promise<CreatedCredential[]> {
         await this.settle(signal);
         if (input.count < 1 || input.count > 500) {
-            Utils.throwError("Create between 1 and 500 accounts at a time");
+            invalid("Create between 1 and 500 accounts at a time");
         }
         const prefix = input.prefix.trim();
         if (!/^[a-z0-9][a-z0-9-]*$/i.test(prefix)) {
             // The prefix becomes a username, and a username someone has to type
             // in a hurry at a workstation cannot hold spaces or punctuation.
-            Utils.throwError("The prefix may hold letters, digits and dashes only");
+            invalid("The prefix may hold letters, digits and dashes only");
         }
 
         const created: CreatedCredential[] = [];
@@ -912,7 +920,7 @@ export class ManagerApiFake implements ManagerApi {
         await this.settle(signal);
         const question = this.findQuestion(id);
         if (question.kind === "announcement") {
-            Utils.throwError("An announcement has no question to answer");
+            conflict("An announcement has no question to answer", "question.isAnnouncement");
         }
         question.answer = {
             body: input.body,
@@ -932,7 +940,7 @@ export class ManagerApiFake implements ManagerApi {
         if (published && question.kind === "question" && question.answer === undefined) {
             // Publishing an unanswered question shows everyone the doubt without
             // the answer, which is the opposite of what publishing is for.
-            Utils.throwError("Answer it before publishing it");
+            conflict("Answer it before publishing it", "question.unanswered");
         }
         question.isPublished = published;
         this.announceQuestion(question);
@@ -971,7 +979,7 @@ export class ManagerApiFake implements ManagerApi {
         const question = this.findQuestion(id);
         if (question.kind !== "announcement") {
             // A participant's question is theirs. Staff answer it or leave it.
-            Utils.throwError("A question cannot be deleted");
+            conflict("A question cannot be deleted", "question.notAnnouncement");
         }
         this.questions = this.questions.filter(q => q.id !== id);
         this.eventDispatcher.dispatchEvent({ type: "questionChanged", data: { deletedId: id } });
@@ -1030,7 +1038,7 @@ export class ManagerApiFake implements ManagerApi {
         if (attempt.state === "completed" || attempt.state === "failed") {
             // A finished job is history. Cancelling one would rewrite a result
             // that a participant has already been shown.
-            Utils.throwError("This attempt has already finished and cannot be cancelled");
+            conflict("This attempt has already finished and cannot be cancelled", "attempt.finished");
         }
         attempt.state = "cancelled";
         attempt.finishedAt = new Date().toISOString();
@@ -1145,7 +1153,7 @@ export class ManagerApiFake implements ManagerApi {
         const record = this.find(id);
         if (record.problem.attachedCount > 0) {
             // Retiring a problem must not break an activity that ran with it.
-            Utils.throwError("This problem is attached to an activity. Archive it instead of deleting it.");
+            conflict("This problem is attached to an activity. Archive it instead of deleting it.", "problem.attached");
         }
         this.library = this.library.filter(r => r.problem.id !== id);
         this.eventDispatcher.dispatchEvent({ type: "problemChanged", data: { deletedId: id } });
@@ -1165,7 +1173,7 @@ export class ManagerApiFake implements ManagerApi {
         await this.settle(signal);
         const record = this.find(problemId);
         if (record.problem.archivedAt) {
-            Utils.throwError("An archived problem takes no new versions");
+            conflict("An archived problem takes no new versions", "problem.archived");
         }
         const previous = record.versions[0];
 
@@ -1186,30 +1194,30 @@ export class ManagerApiFake implements ManagerApi {
         // is left to refuse here is what a *version* may not hold.
         for (const entry of staged) {
             if (!this.files.has(entry.fileId)) {
-                Utils.throwError(`No such file: ${entry.name}`);
+                invalid(`No such file: ${entry.name}`, "file.missing");
             }
             if (isStatementName(entry.name)) {
                 // `content.md` and its translations are the statement, written in
                 // the editor. Attaching one here would put a second answer beside
                 // the one published.
-                Utils.throwError("content.* is the statement; edit it in the Statement tab");
+                invalid("content.* is the statement; edit it in the Statement tab");
             }
             if (isPackageFile(entry.name)) {
                 // Both are derived from the package and written by publishing it.
-                Utils.throwError("The package is built in the Package tab");
+                invalid("The package is built in the Package tab");
             }
             if (carried.some(f => f.name === entry.name)
                 || staged.filter(s => s.name === entry.name).length > 1) {
                 // Refused rather than replaced: a statement referring to the name
                 // must not change meaning because somebody attached a new file.
-                Utils.throwError(`This version already has a file called ${entry.name}`);
+                conflict(`This version already has a file called ${entry.name}`);
             }
         }
         if (input.package && !this.files.has(input.package.fileId)) {
-            Utils.throwError("The package file is not stored");
+            invalid("The package file is not stored", "file.missing");
         }
         if (input.package?.samplesFileId && !this.files.has(input.package.samplesFileId)) {
-            Utils.throwError("The examples file is not stored");
+            invalid("The examples file is not stored", "file.missing");
         }
 
         const version: ManagedProblemVersion = {
@@ -1327,27 +1335,27 @@ export class ManagerApiFake implements ManagerApi {
         // assembles one — with the same builder the manager screen uses, so what
         // comes back opens.
         //
-        // `ProblemVersion.Config` is **not** a package configuration: it is the
-        // opaque chain the Client and the Runner read, and it carries `scoring`
-        // where a package carries `groups`. Conflating the two is what produced
-        // an archive whose `config.yml` had no groups at all.
-        const versionConfig = version.config as {
-            limits?: { timeMs?: number; memoryMb?: number };
-            scoring?: { groups?: { group: number; points: number }[] };
-        } | undefined;
-        const config = {
-            ...emptyConfig(),
-            limits: {
-                timeMs: versionConfig?.limits?.timeMs ?? 1000,
-                // The version's chain speaks megabytes, because that is what a
-                // participant is shown; the package speaks kibibytes, because
-                // that is what `sinolpack` speaks. The conversion happens here,
-                // once, at the boundary between the two.
-                memoryKib: (versionConfig?.limits?.memoryMb ?? 256) * 1024,
-            },
+        // `ProblemVersion.config` is a **layer of the same document** the package
+        // carries, not a different one: the chain decided 2026-08-04 is package,
+        // then version, then assignment, each overriding the one before, and
+        // overriding needs one set of field names. A hand-written translation
+        // stood here until 2026-08-08, converting `scoring.groups` to `groups`
+        // and megabytes to kibibytes, because the fixture and
+        // `docs/specs/PACKAGE_FORMAT.md` had drifted apart.
+        //
+        // What is left is the layering itself, which is real: a version states
+        // what it changes, and the defaults fill the rest.
+        const versionConfig = version.config as Partial<PackageConfig> | undefined;
+        const defaults = emptyConfig();
+        const config: PackageConfig = {
+            ...defaults,
+            ...versionConfig,
+            limits: { ...defaults.limits, ...versionConfig?.limits },
+            // Group 0 is the examples, which no version states and every package
+            // has.
             groups: [
                 { group: 0, points: 0, examples: true },
-                ...(versionConfig?.scoring?.groups ?? [{ group: 1, points: 100 }]),
+                ...(versionConfig?.groups ?? [{ group: 1, points: 100 }]),
             ],
         };
         const archive = await buildPackage({
@@ -1388,7 +1396,7 @@ export class ManagerApiFake implements ManagerApi {
 
     private assertUsernameFree(username: string): void {
         if (this.users.some(u => u.username.toLowerCase() === username.trim().toLowerCase())) {
-            Utils.throwError("That username is taken");
+            conflict("That username is taken", "account.username.taken");
         }
     }
 
@@ -1496,18 +1504,18 @@ export class ManagerApiFake implements ManagerApi {
     }
 
     private assertNotArchived(record: ActivityRecord): void {
-        if (record.activity.archivedAt) Utils.throwError("An archived activity accepts no changes");
+        if (record.activity.archivedAt) conflict("An archived activity accepts no changes", "activity.archived");
     }
 
     private assertActivitySlugFree(slug: string, exceptId?: string): void {
         if (this.activities.some(r => r.activity.slug.toLowerCase() === slug.trim().toLowerCase() && r.activity.id !== exceptId)) {
-            Utils.throwError("An activity with that slug already exists");
+            conflict("An activity with that slug already exists", "activity.slug.taken");
         }
     }
 
     private assertSeriesSlugFree(record: ActivityRecord, slug: string, exceptId?: string): void {
         if (record.series.some(s => s.slug.toLowerCase() === slug.trim().toLowerCase() && s.id !== exceptId)) {
-            Utils.throwError("A series with that slug already exists in this activity");
+            conflict("A series with that slug already exists in this activity", "series.slug.taken");
         }
     }
 
@@ -1516,7 +1524,7 @@ export class ManagerApiFake implements ManagerApi {
         const taken = record.series
             .flatMap(s => s.problems)
             .some(p => p.slug.toLowerCase() === slug.trim().toLowerCase() && p.id !== exceptId);
-        if (taken) Utils.throwError("That problem slug is already used in this activity");
+        if (taken) conflict("That problem slug is already used in this activity", "assignment.slug.taken");
     }
 
     /** Membership is the grants, so the count is read from them, never stored. */
@@ -1555,7 +1563,7 @@ export class ManagerApiFake implements ManagerApi {
 
     private announceSeries(record: ActivityRecord, series: ManagedSeries): void {
         this.eventDispatcher.dispatchEvent({
-            type: "seriesChanged",
+            type: "managerSeriesChanged",
             data: { activityId: record.activity.id, series: copy(series) },
         });
     }
@@ -1570,13 +1578,13 @@ export class ManagerApiFake implements ManagerApi {
 
     private assertSlugFree(slug: string, exceptId?: string): void {
         if (this.library.some(r => r.problem.slug.toLowerCase() === slug.trim().toLowerCase() && r.problem.id !== exceptId)) {
-            Utils.throwError("A problem with that slug already exists");
+            conflict("A problem with that slug already exists", "problem.slug.taken");
         }
     }
 
     private assertNameFree(name: string, exceptId?: string): void {
         if (this.templates.some(t => t.name.toLowerCase() === name.trim().toLowerCase() && t.id !== exceptId)) {
-            Utils.throwError(`A template named "${name}" already exists`);
+            conflict(`A template named "${name}" already exists`);
         }
     }
 

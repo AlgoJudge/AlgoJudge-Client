@@ -57,6 +57,7 @@ import {
     SeriesChangedEvent,
     SubmissionChangedEvent,
     RunnerChangedEvent,
+    InstanceChangedEvent,
     PauseInput,
     ResumeInput,
     SeriesInput,
@@ -277,11 +278,16 @@ export class ScopedManagerEventDispatcher {
     addEventListener(type: "grantChanged", listener: (evt: GrantChangedEvent) => void): void;
     addEventListener(type: "problemChanged", listener: (evt: ProblemChangedEvent) => void): void;
     addEventListener(type: "activityChanged", listener: (evt: ActivityChangedEvent) => void): void;
-    addEventListener(type: "seriesChanged", listener: (evt: SeriesChangedEvent) => void): void;
+    addEventListener(type: "managerSeriesChanged", listener: (evt: SeriesChangedEvent) => void): void;
     addEventListener(type: "submissionChanged", listener: (evt: SubmissionChangedEvent) => void): void;
     addEventListener(type: "questionChanged", listener: (evt: QuestionChangedEvent) => void): void;
     addEventListener(type: "userChanged", listener: (evt: UserChangedEvent) => void): void;
     addEventListener(type: "runnerChanged", listener: (evt: RunnerChangedEvent) => void): void;
+    // The implementation signature below is not one a caller can pick, so every
+    // member of the union needs a line of its own here. `instanceChanged` had
+    // none, which made it unreachable through a scoped dispatcher — the same
+    // shape of defect as the one that hid `managerSeriesChanged`.
+    addEventListener(type: "instanceChanged", listener: (evt: InstanceChangedEvent) => void): void;
     addEventListener<T extends ManagerEventType, V>(type: T, listener: (evt: ManagerEvent<T, V>) => void): void {
         this.eventDispatcher.addEventListener(type, listener, this.signal);
     }

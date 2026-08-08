@@ -22,7 +22,7 @@ import {
 import { FakeActivities, SeriesRelay } from "./FakeActivities";
 import { FakeAccess } from "./FakeAccess";
 import { AttachmentRule } from "../ManagerApi";
-import { maySubmit, mayReadProblems } from "../seriesState";
+import { maySubmit, mayReadProblems, SeriesTiming } from "../seriesState";
 import { FakeFiles } from "./FileApiFake";
 import { createDataset, Dataset, OPENING_SERIES_DELAY } from "./fixtures";
 import { activityResults, resultOf } from "./fixtures/results";
@@ -32,6 +32,7 @@ import { rankingWindow } from "../rankingWindow";
 import { ForbiddenError } from "../ApiError";
 import { Utils } from "./Utils";
 import { sha256 } from "../../utils/sha256";
+import { checksumMismatch, notFound } from "./refuse";
 
 const DEFAULT_PAGE_SIZE = 5;
 
@@ -57,7 +58,7 @@ const paginate = <T>(items: T[], page = 1, pageSize = DEFAULT_PAGE_SIZE): Page<T
  */
 const copy = <T>(value: T): T => structuredClone(value);
 
-const notFound = (what: string): never => Utils.throwError(`${what} does not exist`);
+
 
 /**
  * Holds the fake state and runs a small scripted timeline over it.
@@ -71,6 +72,14 @@ class FakeParticipantState {
     private readonly data: Dataset;
     private readonly shared: FakeActivities;
     private readonly timers: ReturnType<typeof setTimeout>[] = [];
+    /**
+     * Rounds whose pause took the statements with it.
+     *
+     * Held here rather than on the series, because no response carries it: the
+     * Server withholds by leaving `problems` out, and a field invented here
+     * would be the fake serving something the real transport never does.
+     */
+    private readonly hidden = new Set<string>();
     private started = false;
 
     constructor(
@@ -313,19 +322,37 @@ class FakeParticipantState {
         if (relay.endDate !== undefined) target.endDate = relay.endDate;
         if (relay.name !== undefined) target.name = relay.name;
         if (relay.pausedAt !== undefined) target.pausedAt = relay.pausedAt ?? undefined;
+        if (relay.pausedAt === null) this.hidden.delete(target.id);
+        if (relay.hideProblems === true) this.hidden.add(target.id);
+
         if (relay.isOpen !== undefined) {
             target.isOpen = relay.isOpen;
-            // A closed series discloses nothing, which is what makes hiding the
-            // statements during a pause work without a field of its own.
-            if (!relay.isOpen) {
+
+            // Shutting a round no longer means hiding what is in it: a pause
+            // shuts every round, and only the ones the manager asked about lose
+            // their statements. An ended round keeps them — it is over, not
+            // secret — so the statements go only where they were asked to.
+            const conceal = !relay.isOpen && (relay.hideProblems === true || this.isUpcoming(target));
+
+            if (conceal) {
                 this.data.withheld.set(target.id, target.problems ?? []);
                 target.problems = undefined;
-            } else {
+            } else if (relay.isOpen || !this.hidden.has(target.id)) {
                 target.problems = this.data.withheld.get(target.id) ?? target.problems ?? [];
                 this.data.withheld.delete(target.id);
             }
         }
         this.announce(relay.activityId, target, relay.change);
+    }
+
+    /** A round whose start has not arrived discloses nothing that is in it. */
+    private isUpcoming(series: Series): boolean {
+        return series.startDate !== undefined && Date.parse(series.startDate) > Date.now();
+    }
+
+    /** Whether the pause in force over this round took its statements with it. */
+    hidesProblems(seriesId: string): boolean {
+        return this.hidden.has(seriesId);
     }
 
     private announce(activityId: string, series: Series, change: SeriesChange): void {
@@ -541,6 +568,17 @@ export class ParticipantApiFake implements ParticipantApi {
         return activity.membership === "enrolled" || this.shared.hasJoined(activity.id);
     }
 
+    /**
+     * A series as the disclosure rule needs it.
+     *
+     * The one thing the wire does not carry is whether the pause hid the
+     * statements; the fake knows, because it is standing in for the Server that
+     * decides. Everything else comes off the series itself.
+     */
+    private timingOf(series: Series): SeriesTiming {
+        return { ...series, hideProblemsWhilePaused: this.state.hidesProblems(series.id) };
+    }
+
     async getSeries(activityId: string, signal: AbortSignal): Promise<Series[]> {
         await this.settle(signal);
         const activity = this.activityOf(activityId);
@@ -549,7 +587,7 @@ export class ParticipantApiFake implements ParticipantApi {
         // problems written on it — so a setting that withholds them, like an
         // activity closing its finished rounds, had nowhere to take effect.
         return copy((this.state.dataset().series.get(activityId) ?? []).map(series =>
-            mayReadProblems(series, activity ?? {})
+            mayReadProblems(this.timingOf(series), activity ?? {})
                 ? series
                 : { ...series, problems: undefined }));
     }
@@ -568,7 +606,7 @@ export class ParticipantApiFake implements ParticipantApi {
         const activity = this.activityOf(activityId);
         const series = this.state.dataset().series.get(activityId)
             ?.find(s => s.id === problem.seriesId);
-        if (series && !mayReadProblems(series, activity ?? {})) return notFound("Problem");
+        if (series && !mayReadProblems(this.timingOf(series), activity ?? {})) return notFound("Problem");
         return copy({ ...problem, languages });
     }
 
@@ -636,7 +674,7 @@ export class ParticipantApiFake implements ParticipantApi {
         // mismatch rather than storing a claim about the bytes.
         const bytes = payload.file ?? new TextEncoder().encode(payload.code ?? "");
         if (payload.sha256 !== undefined && await sha256(bytes) !== payload.sha256) {
-            Utils.throwError("The submission does not match its checksum and was not accepted");
+            checksumMismatch("The submission does not match its checksum and was not accepted");
         }
 
         // Recorded in the seed first, because that is what the results feed and

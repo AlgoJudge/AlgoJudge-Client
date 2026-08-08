@@ -385,8 +385,29 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                                                     </Table.Td>
                                                     <Table.Td>
                                                         <Group gap={4} wrap="nowrap">
+                                                            {/* Attaching pins the version that was current at
+                                                                the time (2026-08-08), so a pin is the ordinary
+                                                                case and "follows the current one" is the rare
+                                                                one. What matters is when the two have parted:
+                                                                the library moved on and this round did not,
+                                                                which is the whole reason to pin — and a badge
+                                                                saying only "v2" leaves a manager unable to
+                                                                tell that from "v2 is the newest". */}
                                                             {assignment.pinnedVersion
-                                                                ? <Badge variant="light" size="sm">v{assignment.pinnedVersion}</Badge>
+                                                                ? <Tooltip
+                                                                    label={assignment.pinnedVersion === assignment.currentVersion
+                                                                        ? t("Judged against the newest version")
+                                                                        : t("Judged against v{{pinned}}; the problem is now at v{{current}}",
+                                                                            { pinned: assignment.pinnedVersion, current: assignment.currentVersion })}>
+                                                                    <Badge
+                                                                        variant="light"
+                                                                        size="sm"
+                                                                        color={assignment.pinnedVersion === assignment.currentVersion ? undefined : "orange"}>
+                                                                        v{assignment.pinnedVersion}
+                                                                        {assignment.pinnedVersion !== assignment.currentVersion
+                                                                            && ` / v${assignment.currentVersion}`}
+                                                                    </Badge>
+                                                                </Tooltip>
                                                                 : <Badge variant="outline" color="gray" size="sm">
                                                                     {t("current")} (v{assignment.currentVersion})
                                                                 </Badge>}

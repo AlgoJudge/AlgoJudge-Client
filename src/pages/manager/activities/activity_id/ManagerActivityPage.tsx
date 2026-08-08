@@ -48,7 +48,7 @@ export default function ManagerActivityPage() {
         setSeries(loadedSeries);
         setProblems(library.items);
 
-        api.managerApi.eventDispatcher.addEventListener("seriesChanged", evt => {
+        api.managerApi.eventDispatcher.addEventListener("managerSeriesChanged", evt => {
             if (evt.data.activityId === loaded.id) setReload(n => n + 1);
         });
     }, [activityId, reload]);

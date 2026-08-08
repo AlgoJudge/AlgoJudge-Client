@@ -6,7 +6,7 @@ import { AttachmentRule } from "../ManagerApi";
 import { COURSE_JOIN_PASSWORD } from "./fixtures/activities";
 import { seedActivityDocuments, COURSE_ID, INVITED_COURSE_ID, OPEN_ID } from "./fixtures/activityDocuments";
 import { FakeFiles } from "./FileApiFake";
-import { Utils } from "./Utils";
+import { invalid } from "./refuse";
 
 interface Enrolment {
     policy: JoinPolicy;
@@ -51,6 +51,15 @@ export interface SeriesRelay {
     name?: string;
     /** Null clears it, as JSON has no way to say "remove this field". */
     pausedAt?: string | null;
+    /**
+     * Whether this pause took the statements with it.
+     *
+     * Its own field since 2026-08-08. A pause always shuts the round — the
+     * Server's `ManagerWriteService` sets `IsOpen = false` whatever the manager
+     * chose — so `isOpen` can no longer double as the answer to "and were the
+     * statements hidden too", which is what it used to do here.
+     */
+    hideProblems?: boolean;
 }
 
 /**
@@ -117,7 +126,7 @@ export class FakeActivities {
         statements: { language?: string, fileId: string }[],
     ): ActivityDocumentRef[] {
         if (statements.length === 0) {
-            Utils.throwError("A document with no text is a document nobody can read");
+            invalid("A document with no text is a document nobody can read", "document.empty");
         }
         const validFrom = new Date().toISOString();
         const published: ActivityDocumentRef[] = statements.map(statement => {
