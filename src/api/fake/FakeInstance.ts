@@ -1,7 +1,7 @@
 import { InstanceDocumentKind, InstanceDocumentRef, InstanceInfo, LocalisedLogo } from "../CoreApi";
 import { seedInstanceDocuments } from "./fixtures/documents";
 import { FakeFiles } from "./FileApiFake";
-import { Utils } from "./Utils";
+import { invalid } from "./refuse";
 
 const INSTANCE_KEY = "algojudge.fake.instance";
 
@@ -81,7 +81,7 @@ export class FakeInstance {
      */
     publish(kind: InstanceDocumentKind, statements: { language?: string; fileId: string }[]): InstanceInfo {
         if (statements.length === 0) {
-            Utils.throwError("A document with no text is a document nobody can read");
+            invalid("A document with no text is a document nobody can read", "document.empty");
         }
         const validFrom = new Date().toISOString();
         const published: InstanceDocumentRef[] = statements.map(statement => {

@@ -1,6 +1,6 @@
 import { FileApi, UploadedFile } from "../FileApi";
 import { sha256 } from "../../utils/sha256";
-import { Utils } from "./Utils";
+import { checksumMismatch, notFound } from "./refuse";
 
 /**
  * One store of bytes, shared by everything in the fake that keeps a file.
@@ -32,13 +32,13 @@ export class FakeFiles {
 
     meta(id: string): UploadedFile {
         const entry = this.files.get(id);
-        if (!entry) Utils.throwError(`No such file: ${id}`);
+        if (!entry) notFound(`File ${id}`);
         return { ...entry.meta };
     }
 
     blob(id: string): Blob {
         const entry = this.files.get(id);
-        if (!entry) Utils.throwError(`No such file: ${id}`);
+        if (!entry) notFound(`File ${id}`);
         return entry.bytes;
     }
 
@@ -93,7 +93,7 @@ export class FileApiFake implements FileApi {
         // upload into a failure instead of a stored file whose contents are
         // wrong.
         if (await sha256(file) !== checksum) {
-            Utils.throwError(`The file did not match its checksum and was not stored: ${name}`);
+            checksumMismatch(`The file did not match its checksum and was not stored: ${name}`);
         }
         return this.files.put(
             `file-${crypto.randomUUID()}`,

@@ -9,6 +9,7 @@ import {
 import { CoreEventDispatcherImpl } from "../impl/CoreEventDispatcherImpl";
 import { FakeInstance } from "./FakeInstance";
 import { Utils } from "./Utils";
+import { conflict, forbidden, invalid, unauthenticated } from "./refuse";
 
 /**
  * Signing in, without a Server.
@@ -168,11 +169,11 @@ export class CoreApiFake implements CoreApi {
         if (!account) throw new UnauthorizedError();
 
         if (this.instance.read().requireConfirmedEmail && !account.emailConfirmed) {
-            Utils.throwError("Confirm the address before signing in");
+            unauthenticated("Confirm the address before signing in");
         }
 
         if (account.lockedUntil && account.lockedUntil > Date.now()) {
-            Utils.throwError("Too many attempts. The account is locked for an hour.");
+            unauthenticated("Too many attempts. The account is locked for an hour.");
         }
 
         if (account.password !== password) {
@@ -180,7 +181,7 @@ export class CoreApiFake implements CoreApi {
             if (account.failedAttempts >= MAX_ATTEMPTS) {
                 account.lockedUntil = Date.now() + LOCKOUT_MS;
                 account.failedAttempts = 0;
-                Utils.throwError("Too many attempts. The account is locked for an hour.");
+                unauthenticated("Too many attempts. The account is locked for an hour.");
             }
             throw new UnauthorizedError();
         }
@@ -203,21 +204,21 @@ export class CoreApiFake implements CoreApi {
         if (!this.instance.read().localRegistrationEnabled) {
             // Refused whatever the form sends: an instance that takes no sign-ups
             // must refuse them at the door, not only in the screen that draws it.
-            Utils.throwError("This instance does not accept sign-ups");
+            forbidden("This instance does not accept sign-ups", "registration.closed");
         }
 
         const username = (input.username ?? "").trim();
-        if (username.length === 0) Utils.throwError("A login is required");
+        if (username.length === 0) invalid("A login is required", "account.username.required");
         if (this.accounts.some(a => a.username.toLowerCase() === username.toLowerCase())) {
-            Utils.throwError("That login is taken");
+            conflict("That login is taken", "account.username.taken");
         }
         if (this.instance.read().requireEmail && !(input.email ?? "").trim()) {
-            Utils.throwError("This instance requires an email address");
+            invalid("This instance requires an email address");
         }
         if (input.password.length < MIN_PASSWORD) {
-            Utils.throwError(`A password needs at least ${MIN_PASSWORD} characters`);
+            invalid(`A password needs at least ${MIN_PASSWORD} characters`, "account.password");
         }
-        if (!input.acceptedTerms) Utils.throwError("The terms have to be accepted");
+        if (!input.acceptedTerms) invalid("The terms have to be accepted");
 
         this.accounts = [...this.accounts, {
             userId: `user-${username}`,
@@ -242,10 +243,10 @@ export class CoreApiFake implements CoreApi {
 
         if (input.username !== undefined) {
             const username = input.username.trim();
-            if (username.length === 0) Utils.throwError("A login is required");
+            if (username.length === 0) invalid("A login is required", "account.username.required");
             if (this.accounts.some(a => a.userId !== account.userId
                 && a.username.toLowerCase() === username.toLowerCase())) {
-                Utils.throwError("That login is taken");
+                conflict("That login is taken", "account.username.taken");
             }
             account.username = username;
         }
@@ -266,10 +267,10 @@ export class CoreApiFake implements CoreApi {
         const account = this.requireAccount();
         this.assertLocal(account);
         if (account.password !== currentPassword) {
-            Utils.throwError("The current password is wrong");
+            invalid("The current password is wrong", "account.password.wrong");
         }
         if (newPassword.length < 12) {
-            Utils.throwError("A password needs at least 12 characters");
+            invalid("A password needs at least 12 characters", "account.password");
         }
         account.password = newPassword;
     }
@@ -292,7 +293,7 @@ export class CoreApiFake implements CoreApi {
         const account = this.requireAccount();
         this.assertLocal(account);
         if (account.password !== password) {
-            Utils.throwError("The password is wrong");
+            invalid("The password is wrong", "account.password.wrong");
         }
         // Anonymized rather than removed: results stay attached to a row that no
         // longer names anybody.
@@ -313,7 +314,7 @@ export class CoreApiFake implements CoreApi {
 
     private assertLocal(account: Account): void {
         if (!account.isLocal) {
-            Utils.throwError("This account is managed by the identity provider");
+            forbidden("This account is managed by the identity provider");
         }
     }
 
