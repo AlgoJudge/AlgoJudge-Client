@@ -57,7 +57,7 @@ class StubSocket {
 }
 globalThis.WebSocket = StubSocket;
 
-const { WebSocketEvents, eventUrl } = await import(`../${OUT}/api/ws/WebSocketEvents.js`);
+const { WebSocketEvents, eventUrl, CORE, PARTICIPANT, MANAGER } = await import(`../${OUT}/api/ws/WebSocketEvents.js`);
 const { CoreEventDispatcherImpl } = await import(`../${OUT}/api/impl/CoreEventDispatcherImpl.js`);
 const { ParticipantEventDispatcherImpl } = await import(`../${OUT}/api/impl/ParticipantEventDispatcher.js`);
 const { ManagerEventDispatcherImpl } = await import(`../${OUT}/api/impl/ManagerEventDispatcher.js`);
@@ -123,6 +123,23 @@ socket.deliver({
 check(series.length === 2 && series[1].data.change === "somethingNewerThanThisBuild",
     "and a kind of change this build has never heard of is still delivered, not dropped");
 
+// The manager's series event is a **different name** on the wire, not the same
+// one carrying a different payload. It shared `seriesChanged` until 2026-08-08,
+// and because routing is an if/else-if chain that tests the participant record
+// first, the manager dispatcher could never be reached: this listener was dead
+// code and no check could see it. The envelope carries no scope, so the only
+// thing that can tell the two apart is the name.
+const managerSeries = [];
+manager.addEventListener("managerSeriesChanged", evt => managerSeries.push(evt), forever);
+socket.deliver({
+    type: "managerSeriesChanged",
+    data: { activityId: "a1", series: { id: "r1", name: "Runda 1", order: 1 } },
+});
+check(managerSeries.length === 1 && managerSeries[0].data.series.order === 1,
+    "the manager's series event reaches the manager dispatcher, carrying its own shape");
+check(series.length === 2,
+    "and does not also land on the participant one, which would read `series.change` off it");
+
 // 3 — what a newer Server or a broken one might send.
 socket.deliver({ type: "somethingThisBuildHasNeverHeardOf", data: {} });
 socket.deliver("{ not json");
@@ -167,6 +184,47 @@ events.start();
 StubSocket.opened[StubSocket.opened.length - 1].emit("open", {});
 check(afterStop === 0, "and starting again afterwards is a first connection, not a return");
 events.stop();
+
+// ── 5 — the two sides name the same things ──────────────────────────────────
+//
+// Everything above proves the transport carries a frame to the right place. It
+// cannot see the failure that actually happened: the Server declaring a name
+// this Client has never heard of, or listening for one the Server never sends.
+// Fourteen of those were live at once on 2026-08-08, each with a screen waiting
+// on a frame no code path produced, and nothing failed a build.
+//
+// The Server commits its catalogue beside `openapi.json`, for the same reason
+// and read the same way. Given one, this diffs against it; given none, it says
+// so rather than passing quietly.
+const catalogue = process.argv[2];
+if (catalogue) {
+    const { events: served, transport = [] } =
+        JSON.parse(readFileSync(catalogue, "utf8"));
+
+    const known = [...new Set([...Object.keys(CORE), ...Object.keys(PARTICIPANT), ...Object.keys(MANAGER)])];
+
+    const unheard = served.filter(name => !known.includes(name));
+    const unsent = known.filter(name => !served.includes(name));
+
+    console.log("");
+    check(unheard.length === 0,
+        `every name the Server sends has a dispatcher here${unheard.length ? `: ${unheard.join(", ")}` : ""}`);
+    check(unsent.length === 0,
+        `and every name this Client listens for is one the Server sends${unsent.length ? `: ${unsent.join(", ")}` : ""}`);
+
+    // The keep-alive is deliberately outside the event union — nothing
+    // subscribes to it — so it must be dropped rather than routed.
+    for (const frame of transport) {
+        const before = heard.core.length + heard.participant.length + heard.manager.length;
+        StubSocket.opened[StubSocket.opened.length - 1]?.deliver?.({ type: frame, data: {} });
+        const after = heard.core.length + heard.participant.length + heard.manager.length;
+        check(before === after, `the ${frame} frame is dropped rather than dispatched`);
+    }
+} else {
+    console.log("\nNo event catalogue given, so the two sides were not compared.");
+    console.log("The Server commits one at AlgoJudge-Server/events.json:");
+    console.log("    npm run check:events -- ../AlgoJudge-Server/events.json");
+}
 
 console.log(failed ? `\nFAILED: ${failed}` : "\nevent check passed");
 process.exitCode = failed ? 1 : 0;
