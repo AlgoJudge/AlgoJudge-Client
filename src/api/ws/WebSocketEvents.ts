@@ -12,13 +12,18 @@ import { ParticipantEventType } from "../ParticipantApi";
  * Written out as records rather than arrays so the compiler checks them: adding
  * a type to one of the unions and forgetting it here fails to build, instead of
  * producing an event that arrives and is silently dropped.
+ *
+ * Exported because they are this Client's answer to "which names do we know",
+ * and `scripts/check-events.mjs` diffs that answer against the catalogue the
+ * Server commits. The compiler can see a name missing from a record; only a
+ * diff can see a name missing from the other side of the wire.
  */
-const CORE: Record<CoreEventType, true> = {
+export const CORE: Record<CoreEventType, true> = {
     systemMessage: true,
     sessionExpired: true,
 };
 
-const PARTICIPANT: Record<ParticipantEventType, true> = {
+export const PARTICIPANT: Record<ParticipantEventType, true> = {
     activityCreated: true,
     activityUpdated: true,
     activityDeleted: true,
@@ -32,12 +37,12 @@ const PARTICIPANT: Record<ParticipantEventType, true> = {
     announcementPublished: true,
 };
 
-const MANAGER: Record<ManagerEventType, true> = {
+export const MANAGER: Record<ManagerEventType, true> = {
     permissionTemplateChanged: true,
     grantChanged: true,
     problemChanged: true,
     activityChanged: true,
-    seriesChanged: true,
+    managerSeriesChanged: true,
     submissionChanged: true,
     questionChanged: true,
     userChanged: true,
