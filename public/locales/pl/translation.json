@@ -814,5 +814,7 @@
   "The ranking was available until": "Ranking był dostępny do",
   "The ranking is not available.": "Ranking nie jest dostępny.",
   "Nothing sent yet": "Nic jeszcze nie wysłano",
-  "Empty means from this series' own start": "Puste oznacza: od startu tej serii"
+  "Empty means from this series' own start": "Puste oznacza: od startu tej serii",
+  "Judged against v{{pinned}}; the problem is now at v{{current}}": "Sądzone przeciw v{{pinned}}; zadanie jest już w wersji v{{current}}",
+  "Judged against the newest version": "Sądzone przeciw najnowszej wersji"
 }
