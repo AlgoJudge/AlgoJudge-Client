@@ -33,3 +33,7 @@ dist-ssr
 
 # Screenshots and the browser profile from `npm run check:ui`.
 scripts/verify/out/
+
+# Playwright writes these on a failure; the run itself is the record.
+test-results/
+playwright-report/
