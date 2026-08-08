@@ -5,6 +5,22 @@
     <link rel="icon" type="image/x-icon" href="/algojudge.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AlgoJudge</title>
+
+    <!--
+      Where an installation says which Server it talks to.
+
+      Vite inlines `import.meta.env` at build time, so a value given there is
+      baked into the bundle and the image is bound to whatever URL it was built
+      with. The decision of 2026-08-03 is one image per installation, configured
+      when the container starts — so the value is read from here, and the
+      container's entrypoint rewrites this line with `envsubst` before nginx
+      serves it.
+
+      Left as an empty object in the repository on purpose: `npm run dev` never
+      goes through the entrypoint, and reads `import.meta.env` as it always did.
+      Nothing here may hold a secret — it arrives in every browser.
+    -->
+    <script>window.__ALGOJUDGE__ = {};</script>
   </head>
   <body>
     <div id="root"></div>
