@@ -6,7 +6,9 @@ import {
     CoreEvent,
     CoreEventDispatcher,
     CoreEventType,
+    Health,
     InstanceInfo,
+    MaintenanceChangedEvent,
     ProfileInput,
     RegisterInput,
     Session,
@@ -169,6 +171,7 @@ export class ScopedCoreEventDispatcher {
     constructor(private eventDispatcher: CoreEventDispatcher, private signal: AbortSignal) {}
     addEventListener(type: "systemMessage", listener: (evt: SystemMessageEvent) => void): void;
     addEventListener(type: "sessionExpired", listener: (evt: SessionExpiredEvent) => void): void;
+    addEventListener(type: "maintenanceChanged", listener: (evt: MaintenanceChangedEvent) => void): void;
     addEventListener<T extends CoreEventType, V>(type: T, listener: (evt: CoreEvent<T, V>) => void): void {
         return this.eventDispatcher.addEventListener(type, listener, this.signal);
     }
@@ -181,6 +184,9 @@ export class ScopedCoreApi {
     }
     getInstanceInfo(): Promise<InstanceInfo> {
         return this.coreApi.getInstanceInfo(this.signal);
+    }
+    getHealth(): Promise<Health> {
+        return this.coreApi.getHealth(this.signal);
     }
     getSession(): Promise<Session | undefined> {
         return this.coreApi.getSession(this.signal);

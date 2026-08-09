@@ -830,5 +830,10 @@
   "Rule violation": "Naruszenie regulaminu",
   "Compilation error": "Błąd kompilacji",
   "permission.trial:run": "Uruchamia próby",
-  "Measuring runs in an activity, and a problem in the library is not in one yet.": "Pomiar wykonuje się w aktywności, a zadanie w bibliotece jeszcze do żadnej nie należy."
+  "Measuring runs in an activity, and a problem in the library is not in one yet.": "Pomiar wykonuje się w aktywności, a zadanie w bibliotece jeszcze do żadnej nie należy.",
+  "The Server is under maintenance": "Trwa przerwa techniczna",
+  "The Server is not answering": "Serwer nie odpowiada",
+  "Somebody is working on this installation. Nothing you sent has been lost, and this page returns on its own when the work is finished.": "Ktoś pracuje nad tą instalacją. Nic, co wysłałeś, nie zginęło, a ta strona wróci sama, gdy prace się skończą.",
+  "This installation cannot be reached from here. It may be starting, or the connection may be down; this page returns on its own once it answers.": "Nie można się tu połączyć z tą instalacją. Może się uruchamiać albo połączenie może być zerwane; ta strona wróci sama, gdy serwer odpowie.",
+  "Waiting for the Server": "Czekamy na serwer"
 }

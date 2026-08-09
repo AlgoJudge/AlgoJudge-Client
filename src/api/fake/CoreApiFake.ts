@@ -1,6 +1,7 @@
 import { UnauthorizedError } from "../ApiError";
 import {
     CoreApi,
+    Health,
     InstanceInfo,
     ProfileInput,
     RegisterInput,
@@ -149,6 +150,21 @@ export class CoreApiFake implements CoreApi {
     async getInstanceInfo(signal: AbortSignal): Promise<InstanceInfo> {
         await this.settle(signal);
         return this.instance.read();
+    }
+
+    /**
+     * Open, and settable so a screen can be driven through a window.
+     *
+     * `?fakeMaintenance=draining` puts the fake into one, the same way
+     * `?fakeUser=` signs somebody in — which is how `check:ui` reaches the
+     * maintenance page at all. It lives in the fake and nowhere else.
+     */
+    async getHealth(signal: AbortSignal): Promise<Health> {
+        await this.settle(signal);
+        const level = new URLSearchParams(window.location.search).get("fakeMaintenance");
+        return level && level !== "open"
+            ? { status: "ok", maintenance: { level, reason: "A fake maintenance window" } }
+            : { status: "ok" };
     }
 
     async getSession(signal: AbortSignal): Promise<Session | undefined> {

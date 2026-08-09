@@ -830,5 +830,10 @@
   "Rule violation": "Rule violation",
   "Compilation error": "Compilation error",
   "permission.trial:run": "Runs trials",
-  "Measuring runs in an activity, and a problem in the library is not in one yet.": "Measuring runs in an activity, and a problem in the library is not in one yet."
+  "Measuring runs in an activity, and a problem in the library is not in one yet.": "Measuring runs in an activity, and a problem in the library is not in one yet.",
+  "The Server is under maintenance": "The Server is under maintenance",
+  "The Server is not answering": "The Server is not answering",
+  "Somebody is working on this installation. Nothing you sent has been lost, and this page returns on its own when the work is finished.": "Somebody is working on this installation. Nothing you sent has been lost, and this page returns on its own when the work is finished.",
+  "This installation cannot be reached from here. It may be starting, or the connection may be down; this page returns on its own once it answers.": "This installation cannot be reached from here. It may be starting, or the connection may be down; this page returns on its own once it answers.",
+  "Waiting for the Server": "Waiting for the Server"
 }

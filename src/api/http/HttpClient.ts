@@ -1,4 +1,11 @@
-import { ApiError, ProblemDocument, toApiError, UnauthorizedError } from "../ApiError";
+import {
+    ApiError,
+    ProblemDocument,
+    ServiceUnavailableError,
+    toApiError,
+    UnauthorizedError,
+    UnreachableError,
+} from "../ApiError";
 
 export type SystemMessageType = "success" | "info" | "warning" | "error";
 
@@ -33,7 +40,16 @@ export class HttpClient {
          * provider drops the session and the route guard does the rest — without
          * it a session that expires mid-visit leaves every screen spinning.
          */
-        private readonly onUnauthorized: () => void = () => { }
+        private readonly onUnauthorized: () => void = () => { },
+        /**
+         * Called when the Server is away rather than refusing.
+         *
+         * Its own callback beside `report`, because showing "Server responded
+         * with status 503" in a toast is the wrong answer to an outage: nothing
+         * the person did caused it and nothing they can do fixes it. The gate
+         * above the router acts on this instead.
+         */
+        private readonly onUnavailable: (error: ServiceUnavailableError) => void = () => { }
     ) { }
 
     public async request<T>(
@@ -53,7 +69,7 @@ export class HttpClient {
         // upload, and the browser has to set the multipart boundary itself.
         const isForm = options.body instanceof FormData;
 
-        const response = await fetch(url, {
+        const response = await this.send(url, {
             method,
             body: options.body === undefined
                 ? undefined
@@ -74,9 +90,33 @@ export class HttpClient {
     /** For endpoints answering with a file rather than a document. */
     public async download(path: string, signal?: AbortSignal): Promise<Blob> {
         signal?.throwIfAborted();
-        const response = await fetch(this.baseUrl + path, { credentials: "include", signal });
+        const response = await this.send(this.baseUrl + path, { credentials: "include", signal });
         if (!response.ok) throw await this.fail(response);
         return await response.blob();
+    }
+
+    /**
+     * `fetch`, with the case that never produces a response.
+     *
+     * **A dead proxy rejects rather than answering**, so it never reaches
+     * `fail` and never became an `ApiError` at all — it surfaced as a raw
+     * `TypeError: Failed to fetch` at whichever screen happened to be asking.
+     * That is the shape a whole-installation outage actually has, and it was the
+     * one case the transport could not see.
+     *
+     * An aborted request is not an outage and is rethrown untouched: a screen
+     * that unmounted mid-request must not put the interface behind a
+     * maintenance page.
+     */
+    private async send(url: string, init: RequestInit): Promise<Response> {
+        try {
+            return await fetch(url, init);
+        } catch (cause) {
+            if (init.signal?.aborted) throw cause;
+            const error = new UnreachableError(undefined, cause);
+            this.onUnavailable(error);
+            throw error;
+        }
     }
 
     /**
@@ -89,9 +129,14 @@ export class HttpClient {
      */
     private async fail(response: Response): Promise<ApiError> {
         const problem = await readProblem(response);
-        const error = toApiError(response.status, problem);
+        const error = toApiError(response.status, problem, retryAfter(response));
 
-        if (error instanceof UnauthorizedError) {
+        if (error instanceof ServiceUnavailableError) {
+            // Not a message to show either: an outage is not something the
+            // person asking did, and a toast saying so would be one more thing
+            // on a screen that is about to be replaced anyway.
+            this.onUnavailable(error);
+        } else if (error instanceof UnauthorizedError) {
             // Not a message to show; a session that ended, which the provider
             // has to hear about.
             this.onUnauthorized();
@@ -101,6 +146,22 @@ export class HttpClient {
         return error;
     }
 }
+
+/**
+ * `Retry-After`, seconds form only.
+ *
+ * The header may also carry an HTTP date, which is deliberately not read: acting
+ * on one means trusting the browser's clock and the Server's to agree, and the
+ * difference between them is unbounded. Absent means "the Server did not say",
+ * which falls back to the Client's own backoff — the safe direction, because the
+ * fallback waits rather than spinning.
+ */
+const retryAfter = (response: Response): number | undefined => {
+    const header = response.headers.get("retry-after");
+    if (!header) return undefined;
+    const seconds = Number(header.trim());
+    return Number.isFinite(seconds) && seconds >= 0 ? seconds : undefined;
+};
 
 const readProblem = async (response: Response): Promise<ProblemDocument | undefined> => {
     const type = response.headers.get("content-type") ?? "";

@@ -21,6 +21,7 @@ import { ParticipantEventType } from "../ParticipantApi";
 export const CORE: Record<CoreEventType, true> = {
     systemMessage: true,
     sessionExpired: true,
+    maintenanceChanged: true,
 };
 
 export const PARTICIPANT: Record<ParticipantEventType, true> = {
@@ -68,9 +69,15 @@ const MAX_RETRY_MS = 30000;
 /**
  * The one socket, feeding the three dispatchers.
  *
- * **The Server does not serve this yet.** Until it does, the socket fails its
- * handshake, backs off and retries, and every screen carries on reading REST —
- * which is the arrangement every other contract in this repository already has.
+ * This said **"the Server does not serve this yet"** until 2026-08-09, and by
+ * then it had not been true for some time: the Server maps `/ws` and
+ * authenticates it with the same cookie as everything else.
+ *
+ * What the comment described is still what happens when the socket cannot be
+ * opened — a failed handshake backs off and retries, and every screen carries on
+ * reading REST, because **REST is the reproducible source of state and this only
+ * accelerates it**. That is a property worth keeping rather than a stage on the
+ * way somewhere.
  */
 export class WebSocketEvents implements EventConnection {
     private socket: WebSocket | undefined;

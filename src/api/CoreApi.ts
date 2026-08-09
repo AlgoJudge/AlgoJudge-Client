@@ -181,7 +181,37 @@ export interface RegisterInput extends ProfileInput {
     acceptedTerms: boolean,
 }
 
-export type CoreEventType = "systemMessage" | "sessionExpired";
+/**
+ * How far the Server has withdrawn from service.
+ *
+ * `level` is a **string, not a union of the three words**, and read by
+ * comparison rather than by exhaustive match. A level a newer Server invents
+ * must not break a Client that has never heard of it, and the safe reading of an
+ * unknown one is "not open" — which is what every reader here does.
+ */
+export interface Maintenance {
+    /** `open` | `draining` | `closed`, today. */
+    level: string;
+    /** When the operator asked. Shown, never computed with. */
+    since?: string;
+    /** What the operator typed, shown to whoever is looking at the page. */
+    reason?: string;
+}
+
+/**
+ * What `/health` answers — **at every level, always 200**.
+ *
+ * It is the one endpoint that keeps answering while the rest of the Server
+ * refuses, which is what makes a window escapable: this is what the Client polls
+ * to learn it may come back.
+ */
+export interface Health {
+    status: string;
+    /** Absent while the Server is open, which is the ordinary case. */
+    maintenance?: Maintenance;
+}
+
+export type CoreEventType = "systemMessage" | "sessionExpired" | "maintenanceChanged";
 export type CoreEvent<T extends CoreEventType, V> = Event<T, V>;
 
 export type SystemMessageEvent = Event<"systemMessage", {
@@ -196,9 +226,23 @@ export type SystemMessageEvent = Event<"systemMessage", {
  */
 export type SessionExpiredEvent = Event<"sessionExpired", Record<string, never>>;
 
+/**
+ * An operator threw the maintenance switch, either way.
+ *
+ * Sent to everybody, because a window is not scoped by any permission. **Both
+ * directions travel on it**: a Client told only that the Server was going away
+ * would sit on a maintenance page until somebody reloaded it.
+ *
+ * It is an accelerator, not the source: the poll against `/health` is what a
+ * Client that was not connected relies on, and the two agree because they carry
+ * the same document.
+ */
+export type MaintenanceChangedEvent = Event<"maintenanceChanged", { maintenance: Maintenance }>;
+
 export interface CoreEventDispatcher {
     addEventListener(type: "systemMessage", listener: (evt: SystemMessageEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "sessionExpired", listener: (evt: SessionExpiredEvent) => void, signal: AbortSignal): void;
+    addEventListener(type: "maintenanceChanged", listener: (evt: MaintenanceChangedEvent) => void, signal: AbortSignal): void;
     addEventListener<T extends CoreEventType, V>(type: T, listener: (evt: CoreEvent<T, V>) => void, signal: AbortSignal): void;
 }
 
@@ -207,6 +251,16 @@ export interface CoreApi {
 
     /** What the installation admits to a screen nobody has signed in to. */
     getInstanceInfo(signal: AbortSignal): Promise<InstanceInfo>;
+
+    /**
+     * Whether the Server is serving, and if not, how far it has withdrawn.
+     *
+     * **Anonymous, and the only call that keeps working during a window.** It is
+     * how a Client that has been put behind the maintenance page finds out it
+     * may come back — so it must never be routed through anything that needs a
+     * session, and it must never be the thing a window blocks.
+     */
+    getHealth(signal: AbortSignal): Promise<Health>;
 
     /**
      * The session the browser already holds, or undefined when there is none.

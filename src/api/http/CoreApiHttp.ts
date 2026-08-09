@@ -1,5 +1,7 @@
+import { ForbiddenError, UnauthorizedError } from "../ApiError";
 import {
     CoreApi,
+    Health,
     InstanceInfo,
     ProfileInput,
     RegisterInput,
@@ -26,13 +28,25 @@ export class CoreApiHttp implements CoreApi {
         return this.http.request<InstanceInfo>("/instance", "GET", { signal });
     }
 
+    getHealth(signal: AbortSignal): Promise<Health> {
+        return this.http.request<Health>("/health", "GET", { signal });
+    }
+
     async getSession(signal: AbortSignal): Promise<Session | undefined> {
         try {
             return await this.http.request<Session>("/account", "GET", { signal });
-        } catch {
-            // Having no session is not a failure; it is the answer to the
-            // question this method asks.
-            return undefined;
+        } catch (error) {
+            // **Only a refusal means "nobody is signed in".**
+            //
+            // This swallowed everything until 2026-08-09, so a Server that was
+            // down answered the question "who is signed in" with "nobody" — and
+            // the guard above sent a signed-in person to the login screen, where
+            // signing in also failed. An outage looked like a sign-out, which is
+            // the worst reading of it available.
+            if (error instanceof UnauthorizedError || error instanceof ForbiddenError) {
+                return undefined;
+            }
+            throw error;
         }
     }
 
