@@ -104,6 +104,12 @@ export const PERMISSION_CATALOGUE: PermissionDefinition[] = [
     // installation it lives in.
     definition("instance:update", "instance", "global"),
 
+    // Its own group rather than folded into `instance`: naming the installation
+    // and deciding which external directory may hand out permissions in it are
+    // not the same job, and grouping them invites giving away the second while
+    // meaning the first.
+    definition("provider:manage", "provider", "global"),
+
     definition("system:administrator", "system", "global"),
 ];
 
