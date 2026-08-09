@@ -54,6 +54,8 @@ export type StatementRenderer = ComponentType<{ content: unknown; attachments: A
 
 export const statementRenderers = new TypeRegistry<StatementRenderer>(UnsupportedContent)
     .register("standard-io@*", ContentView)
+    // A statement is a statement whatever the type does with the answer.
+    .register("output-only@*", ContentView)
     // The rules page has no problem type of its own; it uses the same format.
     .register("rules@*", ContentView);
 
@@ -65,7 +67,53 @@ export const statementRenderers = new TypeRegistry<StatementRenderer>(Unsupporte
 export type ResultRenderer = ComponentType<{ detail: unknown }>;
 
 export const resultRenderers = new TypeRegistry<ResultRenderer>(UnsupportedResult)
-    .register("standard-io@*", StandardIoResult);
+    .register("standard-io@*", StandardIoResult)
+    // The same document: a per-test table is a per-test table, and the schema
+    // differs only in its `kind`. Sharing the renderer is the point — had the
+    // model been wrong, it would not have shared.
+    .register("output-only@*", StandardIoResult);
+
+/**
+ * What a problem type asks a participant for.
+ *
+ * The Server sends a `submitFields` list too, and it is a **constant** — the
+ * same `code` and `file` pair for every type, because the Server is not allowed
+ * to understand a type's semantics and so cannot vary it. That leaves the
+ * descriptor wrong for at least one type: an `output-only@1` problem wants a
+ * file of answers and must not offer an editor to paste source into.
+ *
+ * So it is resolved here, beside the renderers, which is where every other
+ * type-specific decision already lives. The Server's list is the fallback for a
+ * type this build does not know, so an unknown type still renders something a
+ * participant can use rather than nothing.
+ */
+export interface SubmitRenderer {
+    /** Offer the editor. */
+    code: boolean;
+    /** Offer a file field, and what it accepts. */
+    file: false | { accept: string[]; label: string; description: string };
+    /** Whether a language has to be chosen — an answer file is in no language. */
+    language: boolean;
+}
+
+export const submitRenderers = new TypeRegistry<SubmitRenderer | null>(null)
+    .register("standard-io@*", {
+        code: true,
+        file: { accept: [".cpp", ".cc", ".py", ".txt"], label: "Solution file", description: "" },
+        language: true,
+    })
+    .register("output-only@*", {
+        code: false,
+        file: {
+            accept: [".zip", ".out", ".txt"],
+            label: "Answer file",
+            description: "One archive with an answer per test, or a single file for a problem with one test",
+        },
+        // Nothing is compiled and nothing is run, so there is no language to
+        // choose and asking for one would be asking about a program that does
+        // not exist.
+        language: false,
+    });
 
 /**
  * Draws the ranking. Keyed by `Activity.rankingType`, **not** by the activity
@@ -102,6 +150,13 @@ const PROBLEM_TYPE_CATALOGUE: ProblemTypeOption[] = [
         label: "Standard input and output",
         description: "The solution reads standard input and writes standard output. "
             + "The package carries the tests, the limits and the scoring.",
+    },
+    {
+        id: "output-only@1",
+        label: "Answers only",
+        description: "The participant sends the answers rather than a program — one archive with "
+            + "a file per test. Nothing is compiled and nothing is run, so a solution may be "
+            + "worked out by any means at all.",
     },
 ];
 
