@@ -44,6 +44,8 @@ import {
     SeriesProblemInput,
     UserInput,
     UserUpdateInput,
+    NewTrial,
+    Trial,
 } from "../ManagerApi";
 import { Page } from "../ParticipantApi";
 import { displayName } from "../displayName";
@@ -1319,6 +1321,60 @@ export class ManagerApiFake implements ManagerApi {
         record.problem.versionCount = record.versions.length;
         this.announce(record.problem);
         return copy(version);
+    }
+
+    /**
+     * Trials the fake has been asked for, by id.
+     *
+     * Kept rather than answered inline because a trial is **asynchronous by
+     * nature**: the screen asks, then polls. A fake that answered `completed`
+     * on the first call would let a broken polling loop pass.
+     */
+    private readonly trials = new Map<string, Trial>();
+
+    async requestTrial(input: NewTrial, signal: AbortSignal): Promise<Trial> {
+        await this.settle(signal);
+
+        const trial: Trial = {
+            id: `trial-${this.trials.size + 1}`,
+            activityId: input.activityIdOrSlug,
+            state: "queued",
+            problemType: input.problemType,
+            createdAt: new Date().toISOString(),
+            hasPackage: true,
+        };
+        this.trials.set(trial.id, trial);
+        return { ...trial };
+    }
+
+    async getTrial(trialId: string, signal: AbortSignal): Promise<Trial> {
+        await this.settle(signal);
+
+        const held = this.trials.get(trialId) ?? notFound("Trial");
+        if (held.state === "queued") {
+            // Settles on the second look, so a screen that asks once and stops
+            // shows a trial that never finished — which is what it would do
+            // against a real Runner.
+            held.state = "running";
+            return { ...held };
+        }
+
+        if (held.state === "running") {
+            held.state = "completed";
+            held.finishedAt = new Date().toISOString();
+            held.hasPackage = false;
+            // Two languages and two groups, so the screen has something to fold:
+            // the suggestion for a group comes from the slower of them.
+            held.measurement = JSON.stringify({
+                measured: [
+                    { group: 1, language: "cpp", timeMs: 240, memoryBytes: 31744000 },
+                    { group: 1, language: "python", timeMs: 900, memoryBytes: 52428800 },
+                    { group: 2, language: "cpp", timeMs: 100, memoryBytes: 20971520 },
+                    { group: 2, language: "python", timeMs: 410, memoryBytes: 33554432 },
+                ],
+            });
+        }
+        return { ...held };
     }
 
     async getProblemPackage(problemId: string, versionId: string, signal: AbortSignal): Promise<Blob | undefined> {

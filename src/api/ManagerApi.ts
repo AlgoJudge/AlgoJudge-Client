@@ -1349,4 +1349,44 @@ export interface ManagerApi {
      * starts from the package that is live, not from an empty form.
      */
     getProblemPackage(problemId: string, versionId: string, signal: AbortSignal): Promise<Blob | undefined>;
+
+    /**
+     * Asks for a package to be timed, attached to no problem.
+     *
+     * **Not a submission**: it produces timings rather than a verdict, belongs
+     * to nobody's standing and appears on no board. `activityIdOrSlug` says
+     * where permission is asked for; **absent means the library**, which is
+     * what a manager calibrating a problem before it is attached anywhere
+     * needs (D-16).
+     */
+    requestTrial(input: NewTrial, signal: AbortSignal): Promise<Trial>;
+
+    /** One trial, as it stands. Polled until it settles. */
+    getTrial(trialId: string, signal: AbortSignal): Promise<Trial>;
+}
+
+export interface NewTrial {
+    problemType: string;
+    packageFileId: string;
+    activityIdOrSlug?: string;
+}
+
+export interface Trial {
+    id: string;
+    /** Absent when it was asked for against the library. */
+    activityId?: string;
+    state: JobState;
+    problemType: string;
+    createdAt: string;
+    finishedAt?: string;
+    /** Why it failed, where it did. **Never a verdict.** */
+    failureReason?: string;
+    /**
+     * What was measured, as the problem type states it — a JSON document the
+     * Server stores without reading. Parsed by whoever knows the type, and by
+     * nobody else.
+     */
+    measurement?: string;
+    /** False once it finishes: the bytes do not survive the trial (D-12). */
+    hasPackage: boolean;
 }

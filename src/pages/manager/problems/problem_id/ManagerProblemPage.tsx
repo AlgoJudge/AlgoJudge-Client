@@ -13,7 +13,7 @@ import { Attachment } from "../../../../api/ParticipantApi";
 import LanguageTabs, { DEFAULT_LANGUAGE } from "../../../../components/content/LanguageTabs";
 import ContentEditor from "../../../../components/content/ContentEditor";
 import PackageBuilder, { PackageDraft } from "../../../../components/package/PackageBuilder";
-import { isPackageFile, PACKAGE_ARCHIVE, SAMPLES_ARCHIVE } from "../../../../package/types";
+import { isPackageFile, PACKAGE_ARCHIVE, PackageMeasurement, SAMPLES_ARCHIVE } from "../../../../package/types";
 import LoadState from "../../../../components/LoadState";
 import { CopyButton } from "../../../../components/buttons";
 import ActivityTime from "../../../../components/time/ActivityTime";
@@ -116,6 +116,54 @@ export default function ManagerProblemPage() {
 
     // Stable, so reporting the draft does not re-run the builder's effect.
     const handleDraft = useCallback((draft: PackageDraft | undefined) => setPackageDraft(draft), []);
+
+    /**
+     * Times what is on screen, and answers with what was measured.
+     *
+     * **Against the library**, with no activity named: this screen edits a
+     * problem that belongs to no activity, and `trial:run` is then asked for at
+     * the global scope (D-16).
+     *
+     * Polled rather than awaited, because a trial is a Runner's work and the
+     * Server answers as soon as it is queued. The ceiling is what stops this
+     * being a way to occupy every Runner, and it lives on the Server — a screen
+     * that enforced it would be a screen somebody could skip.
+     */
+    const measure = useCallback(async (archive: Blob): Promise<PackageMeasurement[] | undefined> => {
+        const checksum = await sha256(archive);
+        const stored = await call(api => api.fileApi.upload(archive, "package.zip", checksum));
+
+        const started = await call(api => api.managerApi.requestTrial({
+            problemType: problem?.type ?? "standard-io@1",
+            packageFileId: stored.id,
+        }));
+
+        // Two minutes at a second apart. A trial that has not finished by then
+        // is not lost — it is on the Server and can be read again — so this
+        // gives up on waiting rather than on the trial.
+        for (let attempt = 0; attempt < 120; attempt++) {
+            const seen = await call(api => api.managerApi.getTrial(started.id));
+
+            if (seen.state === "completed") {
+                // The measurement is opaque to the Server and arrives as text.
+                // Guarded rather than cast: a document this screen does not
+                // recognise is an ordinary case, not a crash.
+                const parsed = JSON.parse(seen.measurement ?? "{}") as { measured?: unknown };
+                const rows = Array.isArray(parsed.measured)
+                    ? parsed.measured as PackageMeasurement[]
+                    : undefined;
+                if (!rows?.length) throw new Error(t("The trial finished but measured nothing"));
+                return rows;
+            }
+            if (seen.state === "failed" || seen.state === "cancelled") {
+                // The Runner's own words, which are the only thing that says
+                // what went wrong with somebody's package.
+                throw new Error(seen.failureReason ?? t("The trial did not finish"));
+            }
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        throw new Error(t("The trial is taking longer than expected; look at it again in a moment"));
+    }, [call, problem?.type, t]);
 
     const publish = () => run(async () => {
         if (!problemId) return;
@@ -586,6 +634,7 @@ export default function ManagerProblemPage() {
                             ? () => call(api => api.managerApi.getProblemPackage(problem.id, selected.id))
                             : undefined}
                         onDraftChange={handleDraft}
+                        onMeasure={measure}
                     />
                 </Tabs.Panel>
 

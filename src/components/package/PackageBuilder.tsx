@@ -15,7 +15,8 @@ import {
     suggestedForGroup,
 } from "../../package/calibration";
 import {
-    BYTES_PER_KIB, BYTES_PER_MIB, CalibrationRule, emptyConfig, PackageConfig, PackageGroup, PackageLimits, TestFile,
+    BYTES_PER_KIB, BYTES_PER_MIB, CalibrationRule, emptyConfig, PackageConfig, PackageGroup, PackageLimits,
+    PackageMeasurement, TestFile,
 } from "../../package/types";
 import { hasErrors, validatePackage } from "../../package/validate";
 import { CopyButton, DownloadButton } from "../buttons";
@@ -43,6 +44,18 @@ export interface PackageBuilderProps {
     onOpenStored?: () => Promise<Blob | undefined>;
     /** Reports the draft, or undefined while the screen matches what is stored. */
     onDraftChange?: (draft: PackageDraft | undefined) => void;
+    /**
+     * Runs a trial on what is on screen, and answers with what it measured.
+     *
+     * The builder assembles the archive and knows nothing else: uploading it,
+     * asking for the trial and waiting for it are the page's, because this
+     * component has no API and adding one would make a form that draws limits
+     * into a form that talks to a Server.
+     *
+     * Undefined leaves the button disabled, which is what a screen with no
+     * activity and no library permission should show.
+     */
+    onMeasure?: (archive: Blob) => Promise<PackageMeasurement[] | undefined>;
     disabled?: boolean;
 }
 
@@ -174,7 +187,9 @@ interface PreviewFile {
     language?: string;
 }
 
-export default function PackageBuilder({ stored, onOpenStored, onDraftChange, disabled }: PackageBuilderProps) {
+export default function PackageBuilder(
+    { stored, onOpenStored, onDraftChange, onMeasure, disabled }: PackageBuilderProps,
+) {
     const { t } = useTranslation();
     const filesInput = useRef<HTMLInputElement>(null);
     const packageInput = useRef<HTMLInputElement>(null);
@@ -189,6 +204,7 @@ export default function PackageBuilder({ stored, onOpenStored, onDraftChange, di
     const [config, setConfig] = useState<PackageConfig>(emptyConfig());
     const [error, setError] = useState<string | undefined>(undefined);
     const [busy, setBusy] = useState(false);
+    const [measuring, setMeasuring] = useState(false);
     // Whether the screen still says what is stored. Publishing sends the package
     // only when it does not, so republishing a statement does not rebuild an
     // archive nobody touched.
@@ -889,11 +905,35 @@ export default function PackageBuilder({ stored, onOpenStored, onDraftChange, di
                             activity. The old label said there was no Runner,
                             which stopped being true and would have sent
                             somebody looking in the wrong place. */}
-                        <Tooltip label={t("Measuring runs in an activity, and a problem in the library is not in one yet.")}>
-                            <Button variant="light" size="compact-sm" disabled leftSection={<IconGauge size={14} />}>
-                                {t("Measure the model solution")}
-                            </Button>
-                        </Tooltip>
+                        <Button
+                            variant="light"
+                            size="compact-sm"
+                            leftSection={<IconGauge size={14} />}
+                            loading={measuring}
+                            disabled={disabled || !onMeasure || measuring || config.modelSolution === undefined}
+                            onClick={async () => {
+                                if (!onMeasure) return;
+                                setMeasuring(true);
+                                try {
+                                    const measured = await onMeasure(await build());
+                                    // **Written into the package, not into the
+                                    // limits.** Applying is the next click and
+                                    // stays a decision: the measurement is a
+                                    // fact, the limit is a choice.
+                                    if (measured) {
+                                        setTouched(true);
+                                        setConfig(c => ({
+                                            ...c,
+                                            calibration: { ...c.calibration, measured },
+                                        }));
+                                    }
+                                } finally {
+                                    setMeasuring(false);
+                                }
+                            }}
+                        >
+                            {t("Measure the model solution")}
+                        </Button>
                         {measuredGroups(config.calibration).length > 0 && (
                             <Button
                                 variant="light"
