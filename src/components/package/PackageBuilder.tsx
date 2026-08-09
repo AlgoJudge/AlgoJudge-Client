@@ -877,10 +877,19 @@ export default function PackageBuilder({ stored, onOpenStored, onDraftChange, di
                         </Table.Tbody>
                     </Table>
                     <Group justify="space-between" mt="sm" wrap="wrap">
-                        {/* Measuring needs a Runner, and there is none yet. Shown
-                            disabled rather than hidden: the rule above is only
-                            legible next to the thing that will apply it. */}
-                        <Tooltip label={t("A calibration job needs a Runner. There is none yet.")}>
+                        {/* Still disabled, and **for a different reason than it
+                            used to be**. The measuring itself works end to end:
+                            a trial is requested, a Runner claims it, measures
+                            every model solution and reports per group.
+
+                            What is missing is where to run it from. A trial is
+                            asked for in an **activity**, because that is where
+                            `trial:run` is granted — and this screen edits a
+                            problem in the **library**, which belongs to no
+                            activity. The old label said there was no Runner,
+                            which stopped being true and would have sent
+                            somebody looking in the wrong place. */}
+                        <Tooltip label={t("Measuring runs in an activity, and a problem in the library is not in one yet.")}>
                             <Button variant="light" size="compact-sm" disabled leftSection={<IconGauge size={14} />}>
                                 {t("Measure the model solution")}
                             </Button>

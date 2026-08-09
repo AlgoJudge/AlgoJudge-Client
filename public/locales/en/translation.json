@@ -660,7 +660,6 @@
   "Example": "Example",
   "at": "at",
   "measured": "measured",
-  "A calibration job needs a Runner. There is none yet.": "A calibration job needs a Runner. There is none yet.",
   "Measure the model solution": "Measure the model solution",
   "Apply to the default limits": "Apply to the default limits",
   "The tests in the groups marked as examples are published for the participant as examples.zip.": "The tests in the groups marked as examples are published for the participant as examples.zip.",
@@ -830,5 +829,6 @@
   "Runtime error": "Runtime error",
   "Rule violation": "Rule violation",
   "Compilation error": "Compilation error",
-  "permission.trial:run": "Runs trials"
+  "permission.trial:run": "Runs trials",
+  "Measuring runs in an activity, and a problem in the library is not in one yet.": "Measuring runs in an activity, and a problem in the library is not in one yet."
 }
