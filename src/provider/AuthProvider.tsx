@@ -1,4 +1,5 @@
 import { FC, ReactNode, useEffect, useState } from "react";
+import { ServiceUnavailableError } from "../api/ApiError";
 import { Session } from "../api/CoreApi";
 import { useApi } from "./apiContext";
 import { AuthContext, AuthStatus } from "./authContext";
@@ -23,8 +24,15 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
                 setSessionState(restored);
                 setStatus(restored ? "authenticated" : "anonymous");
             })
-            .catch(() => {
+            .catch((error: unknown) => {
                 if (controller.signal.aborted) return;
+                // **An outage is not a sign-out.** `getSession` answers
+                // `undefined` when nobody is signed in; a Server that is away
+                // answers nothing at all, and calling that "anonymous" sends a
+                // signed-in person to a login form that cannot work either.
+                // The gate above has already replaced the screen, and this
+                // provider mounts again — and asks again — when it lifts.
+                if (error instanceof ServiceUnavailableError) return;
                 setSessionState(undefined);
                 setStatus("anonymous");
             });

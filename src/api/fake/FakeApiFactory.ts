@@ -1,4 +1,5 @@
 import { Api } from "../Api";
+import { NoAvailabilitySignal } from "../Availability";
 import { NullEventConnection } from "../EventConnection";
 import { CoreApiFake } from "./CoreApiFake";
 import { FakeActivities } from "./FakeActivities";
@@ -34,6 +35,9 @@ export class FakeApiFactory {
             // The fake dispatches its own events as it changes things, so there
             // is no connection to open and nothing to pretend about.
             events: new NullEventConnection(),
+            // Nothing to lose: the fake is in this browser. A window is reached
+            // through `?fakeMaintenance=`, which its health call answers.
+            availability: new NoAvailabilitySignal(),
         }
     }
 }

@@ -1,3 +1,4 @@
+import { Availability } from "./Availability";
 import { CoreApi } from "./CoreApi";
 import { EventConnection } from "./EventConnection";
 import { FileApi } from "./FileApi";
@@ -21,4 +22,9 @@ export interface Api {
      * and never touch this.
      */
     events: EventConnection,
+    /**
+     * Told when the Server stops answering. Read by the gate above the router
+     * and by nothing else — a screen does not handle an outage, the shell does.
+     */
+    availability: Availability,
 }

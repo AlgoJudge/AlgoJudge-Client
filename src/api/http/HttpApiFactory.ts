@@ -1,4 +1,5 @@
 import { Api } from "../Api";
+import { AvailabilitySignal } from "../Availability";
 import { CoreEventDispatcherImpl } from "../impl/CoreEventDispatcherImpl";
 import { CoreApiHttp } from "./CoreApiHttp";
 import { FileApiHttp } from "./FileApiHttp";
@@ -10,6 +11,7 @@ import { eventUrl, WebSocketEvents } from "../ws/WebSocketEvents";
 export class HttpApiFactory {
     public static create(baseUrl: string): Api {
         const coreEventDispatcher = new CoreEventDispatcherImpl();
+        const availability = new AvailabilitySignal();
         const http = new HttpClient(
             baseUrl,
             (message, type) => coreEventDispatcher.dispatchEvent({
@@ -19,6 +21,9 @@ export class HttpApiFactory {
             // A 401 is not a message to show; it is a session that ended, and the
             // provider has to hear about it.
             () => coreEventDispatcher.dispatchEvent({ type: "sessionExpired", data: {} }),
+            // And a 503 is neither: it is the whole installation being away,
+            // which the shell answers and no screen does.
+            error => availability.report(error),
         );
         const participantApi = new ParticipantApiHttp(http);
         const managerApi = new ManagerApiHttp(http);
@@ -35,6 +40,7 @@ export class HttpApiFactory {
                 participantApi.eventDispatcher,
                 managerApi.eventDispatcher,
             ),
+            availability,
         };
     }
 }

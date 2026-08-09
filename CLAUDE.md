@@ -161,8 +161,35 @@ whose results are in it. A board is assembled here, so anything sent has already
 been disclosed — never add a field to the feed without asking who may read it.
 
 Not implemented yet: no renderer registry and no `typeId`/`typeVersion`
-selection, and no WebSocket — the event dispatchers exist and are shaped for one,
-but nothing dispatches over the network.
+selection.
+
+### The socket is live (corrected 2026-08-09)
+
+This section claimed there was no WebSocket and that nothing dispatched over the
+network. **Both halves are wrong.** `WebSocketEvents` opens one socket per tab at
+`/ws`, the Server serves it (`Program.cs`), and it feeds the three dispatchers —
+`scripts/check-events.mjs` drives the real class and diffs the names against the
+catalogue the Server commits, which is what caught fourteen names that reached
+nobody.
+
+### When the Server is away (2026-08-09)
+
+Three pieces that are easy to reach for the wrong one:
+
+- **`api.availability`**, not an event on a dispatcher. The three dispatchers
+  carry what the *Server* said, and their names are diffed against its
+  catalogue; a proxy refusing a connection is not something the Server
+  announced, so it does not travel as one.
+- **`MaintenanceProvider` sits above `AuthProvider`** and *replaces* the tree
+  rather than covering it. An outage breaks the login screen too, so a gate
+  below the session would bounce somebody to a form that also fails. Replacing
+  is also what makes recovery work: the screens mount fresh and ask again, so
+  nothing has to be told to refetch.
+- **`getSession` answers `undefined` only for a refusal.** It swallowed every
+  failure until 2026-08-09, which answered "who is signed in" with "nobody"
+  whenever the Server was down.
+
+`docs/specs/MAINTENANCE.md` in the workspace owns the whole of it.
 
 ## Decisions in force (2026-08-02)
 

@@ -27,6 +27,7 @@ import CodePage from './pages/activities/activity_id/submissions/submission_id/c
 
 import { ApiProvider } from './provider/ApiProvider';
 import { AuthProvider } from './provider/AuthProvider';
+import { MaintenanceProvider } from './provider/MaintenanceProvider';
 import { EventsProvider } from './provider/EventsProvider';
 import { InstanceProvider } from './provider/InstanceProvider';
 import { PermissionsProvider } from './provider/PermissionsProvider';
@@ -197,6 +198,13 @@ function App() {
     return (
             <MantineProvider>
                 <ApiProvider>
+                    {/* Above the session, because an outage breaks the login
+                        screen too: a Server that cannot answer `/account`
+                        cannot answer `/identity/login` either. While it is
+                        away this replaces everything below, which is also
+                        what makes coming back refetch — the screens mount
+                        fresh rather than showing what was true before. */}
+                    <MaintenanceProvider>
                     {/* Above the router, so the application shell sees the same
                         session as the public one. Permissions sit inside the
                         session, because they are a property of it. */}
@@ -218,6 +226,7 @@ function App() {
                             </PermissionsProvider>
                         </InstanceProvider>
                     </AuthProvider>
+                    </MaintenanceProvider>
                 </ApiProvider>
             </MantineProvider>
     );
