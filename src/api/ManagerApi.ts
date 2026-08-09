@@ -34,15 +34,21 @@ export interface PermissionDefinition {
     /** Grouping for the editor: `activity`, `problem`, `submission`, and so on. */
     group: string;
     /**
-     * Whether an ordinary participant holds it.
-     *
-     * Everything else is staff, and a grant carrying any of it is a membership
-     * that **runs** the activity rather than takes part in it — which is what
-     * decides whether it counts among the competitors. The catalogue says so
-     * because the Server owns the catalogue: a rule the Client kept its own copy
-     * of would be a rule the Server could not enforce.
+     * Whether the participant template grants it by default — what the editor
+     * starts a new participant with.
      */
     participant: boolean;
+    /**
+     * Whether a grant carrying it is a membership that **runs** the activity
+     * rather than takes part in it, and so leaves the participant count and the
+     * ranking.
+     *
+     * Published by the Server rather than worked out here, because the Server is
+     * what enforces it: a rule the Client kept its own copy of would be a rule
+     * the Server could not enforce. It was worked out here — as "anything not in
+     * the participant template" — until `trial:run` showed the two apart.
+     */
+    systemic: boolean;
 }
 
 export interface PermissionTemplate {
