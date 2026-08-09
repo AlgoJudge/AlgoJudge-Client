@@ -16,7 +16,7 @@ interface StandardIoTest {
     no: number;
     status?: string;
     timeMs?: number;
-    memoryMb?: number;
+    memoryBytes?: number;
     score?: number;
     maxScore?: number;
     note?: string;
@@ -25,7 +25,7 @@ interface StandardIoTest {
 interface StandardIoDocument {
     kind?: string;
     version?: number;
-    limits?: { timeMs?: number; memoryMb?: number };
+    limits?: { timeMs?: number; memoryBytes?: number };
     tests?: StandardIoTest[];
 }
 
@@ -85,7 +85,18 @@ export default function StandardIoResult({ detail }: { detail: unknown }) {
     }
 
     const timeLimit = document.limits?.timeMs;
-    const memoryLimit = document.limits?.memoryMb;
+    const memoryLimit = document.limits?.memoryBytes;
+
+    /**
+     * Bytes on the wire, mebibytes on the screen.
+     *
+     * The document states bytes because that is what the Runner measured and no
+     * conversion should happen between the two — but `268435456` is not a limit
+     * anybody reads, so the rounding happens here, at the last possible moment,
+     * and never in stored data.
+     */
+    const mib = (bytes: number | undefined): string =>
+        bytes === undefined ? "—" : Math.round(bytes / (1024 * 1024)).toString();
 
     return (
         <Table withTableBorder withColumnBorders striped>
@@ -107,8 +118,8 @@ export default function StandardIoResult({ detail }: { detail: unknown }) {
                         <Table.Td className={usageClass(test.timeMs, timeLimit)}>
                             {seconds(test.timeMs)}{timeLimit !== undefined ? ` / ${seconds(timeLimit)}` : ""}
                         </Table.Td>
-                        <Table.Td className={usageClass(test.memoryMb, memoryLimit)}>
-                            {test.memoryMb ?? "—"}{memoryLimit !== undefined ? ` / ${memoryLimit}` : ""} MB
+                        <Table.Td className={usageClass(test.memoryBytes, memoryLimit)}>
+                            {mib(test.memoryBytes)}{memoryLimit !== undefined ? ` / ${mib(memoryLimit)}` : ""} MiB
                         </Table.Td>
                         <Table.Td>
                             {test.score ?? "—"}{test.maxScore !== undefined ? ` / ${test.maxScore}` : ""}

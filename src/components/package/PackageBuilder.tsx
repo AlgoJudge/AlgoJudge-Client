@@ -11,10 +11,10 @@ import { useTranslation } from "react-i18next";
 import { buildPackage, buildSampleArchive, ExtraFile, readPackage } from "../../package/build";
 import { groupsOf, intakeFiles } from "../../package/intake";
 import {
-    applyCalibration, calibratedLimits, calibrationRule, EXAMPLE_MEMORY_KIB, EXAMPLE_TIME_MS,
+    applyCalibration, calibratedLimits, calibrationRule, EXAMPLE_MEMORY_BYTES, EXAMPLE_TIME_MS,
 } from "../../package/calibration";
 import {
-    CalibrationRule, emptyConfig, KIB_PER_MIB, PackageConfig, PackageGroup, PackageLimits, TestFile,
+    BYTES_PER_KIB, BYTES_PER_MIB, CalibrationRule, emptyConfig, PackageConfig, PackageGroup, PackageLimits, TestFile,
 } from "../../package/types";
 import { hasErrors, validatePackage } from "../../package/validate";
 import { CopyButton, DownloadButton } from "../buttons";
@@ -71,11 +71,15 @@ interface UnitOption {
     factor: number;
 }
 
-// Coarsest last. `config.yml` holds milliseconds and kibibytes — the units
+// Coarsest last. `config.yml` holds milliseconds and bytes — the units
 // `sinolpack` holds, so an import is a copy rather than a division with a
 // rounding rule — but nobody says "262144 kibibytes" or "1000 milliseconds".
 const TIME_UNITS: UnitOption[] = [{ label: "ms", factor: 1 }, { label: "s", factor: 1000 }];
-const MEMORY_UNITS: UnitOption[] = [{ label: "KiB", factor: 1 }, { label: "MiB", factor: KIB_PER_MIB }];
+const MEMORY_UNITS: UnitOption[] = [
+    { label: "B", factor: 1 },
+    { label: "KiB", factor: BYTES_PER_KIB },
+    { label: "MiB", factor: BYTES_PER_MIB },
+];
 
 /** The coarsest unit the value is a whole number of. */
 const fittingUnit = (units: UnitOption[], value: number | undefined): UnitOption =>
@@ -565,9 +569,9 @@ export default function PackageBuilder({ stored, onOpenStored, onDraftChange, di
                     <UnitInput
                         label={t("Memory limit")}
                         units={MEMORY_UNITS}
-                        value={config.limits.memoryKib}
+                        value={config.limits.memoryBytes}
                         w={160}
-                        onChange={kib => setLimit("memoryKib", kib)}
+                        onChange={kib => setLimit("memoryBytes", kib)}
                     />
                 </Group>
                 <Text size="xs" c="dimmed" mt="xs">
@@ -727,9 +731,9 @@ export default function PackageBuilder({ stored, onOpenStored, onDraftChange, di
                                     <Table.Td>
                                         <UnitInput
                                             units={MEMORY_UNITS}
-                                            value={group.limits?.memoryKib}
-                                            placeholder={config.limits.memoryKib}
-                                            onChange={kib => setGroupLimit(group.group, "memoryKib", kib)}
+                                            value={group.limits?.memoryBytes}
+                                            placeholder={config.limits.memoryBytes}
+                                            onChange={kib => setGroupLimit(group.group, "memoryBytes", kib)}
                                         />
                                     </Table.Td>
                                     <Table.Td>
@@ -804,8 +808,8 @@ export default function PackageBuilder({ stored, onOpenStored, onDraftChange, di
                                     field: "memory" as const,
                                     label: t("Memory limit"),
                                     units: MEMORY_UNITS,
-                                    measured: config.calibration?.measured?.memoryKib,
-                                    example: EXAMPLE_MEMORY_KIB,
+                                    measured: config.calibration?.measured?.memoryBytes,
+                                    example: EXAMPLE_MEMORY_BYTES,
                                 },
                             ]).map(row => {
                                 const rule = calibrationRule(config.calibration, row.field);
@@ -871,7 +875,7 @@ export default function PackageBuilder({ stored, onOpenStored, onDraftChange, di
                                         ...c,
                                         limits: {
                                             timeMs: limits.timeMs ?? c.limits.timeMs,
-                                            memoryKib: limits.memoryKib ?? c.limits.memoryKib,
+                                            memoryBytes: limits.memoryBytes ?? c.limits.memoryBytes,
                                         },
                                     }));
                                 }}

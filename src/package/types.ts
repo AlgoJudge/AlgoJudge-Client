@@ -28,17 +28,18 @@ export const isPackageFile = (name: string): boolean =>
 /**
  * Limits as `config.yml` states them.
  *
- * Memory is in **kibibytes** — 1024 bytes — which is the unit `sinolpack` uses,
+ * Memory is in **bytes**, everywhere in the product: the unit the kernel
  * so importing one is a copy rather than a division with a rounding rule. What a
  * person types is another matter: the builder offers KiB or MiB and converts, so
  * nobody has to write 262144 to mean 256 MiB.
  */
 export interface PackageLimits {
     timeMs: number;
-    memoryKib: number;
+    memoryBytes: number;
 }
 
-export const KIB_PER_MIB = 1024;
+export const BYTES_PER_KIB = 1024;
+export const BYTES_PER_MIB = 1024 * 1024;
 
 export interface PackageGroup {
     group: number;
@@ -58,7 +59,7 @@ export interface PackageProgram {
  * How a measurement of the model solution becomes a limit.
  *
  * `measured × factor + add`, rounded **up** to `roundTo`, all in the field's own
- * unit — milliseconds for time, kibibytes for memory. Rounded up rather than to
+ * unit — milliseconds for time, bytes for memory. Rounded up rather than to
  * nearest, because a limit that lands below the measurement it came from fails
  * the solution it was derived from.
  */
@@ -83,7 +84,7 @@ export interface PackageCalibration {
     /** What was measured, and where. Written by the calibration job. */
     measured?: {
         timeMs?: number;
-        memoryKib?: number;
+        memoryBytes?: number;
         at?: string;
         runner?: string;
     };
@@ -97,7 +98,7 @@ export const DEFAULT_CALIBRATION: { time: CalibrationRule; memory: CalibrationRu
     time: { factor: 3, add: 0, roundTo: 100 },
     // Memory does not scale with a slower language the way time does; what a
     // weaker solution needs is headroom, not a multiple.
-    memory: { factor: 1, add: 16 * KIB_PER_MIB, roundTo: KIB_PER_MIB },
+    memory: { factor: 1, add: 16 * BYTES_PER_MIB, roundTo: BYTES_PER_MIB },
 };
 
 export interface PackageConfig {
@@ -147,7 +148,7 @@ export interface PackageIssue {
 export const emptyConfig = (): PackageConfig => ({
     format: PACKAGE_FORMAT,
     version: PACKAGE_VERSION,
-    limits: { timeMs: 1000, memoryKib: 256 * KIB_PER_MIB },
+    limits: { timeMs: 1000, memoryBytes: 256 * BYTES_PER_MIB },
     groups: [],
 });
 

@@ -94,7 +94,7 @@ export const createRunners = (): ManagedRunner[] => [
         lastSeenAt: minutesAgo(0),
         registeredAt: daysAgo(120),
         approvedAt: daysAgo(120),
-        machine: { os: "Debian 12", cpu: "AMD Ryzen 7 5800X", cores: 16, memoryMb: 32768 },
+        machine: { os: "Debian 12", cpu: "AMD Ryzen 7 5800X", cores: 16, memoryBytes: 32768 * 1024 * 1024 },
         currentSubmissionId: "msub-4",
         completedJobs: 8421,
         attachments: [
@@ -118,7 +118,7 @@ export const createRunners = (): ManagedRunner[] => [
         lastSeenAt: minutesAgo(1),
         registeredAt: daysAgo(90),
         approvedAt: daysAgo(90),
-        machine: { os: "Ubuntu 24.04", cpu: "Intel Core i5-12400", cores: 12, memoryMb: 16384 },
+        machine: { os: "Ubuntu 24.04", cpu: "Intel Core i5-12400", cores: 12, memoryBytes: 16384 * 1024 * 1024 },
         completedJobs: 2140,
         attachments: [
             attach("7a1c0f52", "lscpu.txt", minutesAgo(1), LSCPU),
@@ -142,7 +142,7 @@ export const createRunners = (): ManagedRunner[] => [
         lastSeenAt: daysAgo(3),
         registeredAt: daysAgo(60),
         approvedAt: daysAgo(60),
-        machine: { os: "Alpine 3.20", cpu: "Intel Xeon E5-2680", cores: 8, memoryMb: 8192 },
+        machine: { os: "Alpine 3.20", cpu: "Intel Xeon E5-2680", cores: 8, memoryBytes: 8192 * 1024 * 1024 },
         completedJobs: 317,
         // Offline for three days: the report is what it uploaded when it last
         // connected, and is shown as such rather than hidden.
@@ -164,7 +164,7 @@ export const createRunners = (): ManagedRunner[] => [
         isConnected: true,
         lastSeenAt: minutesAgo(2),
         registeredAt: minutesAgo(6),
-        machine: { os: "Debian 12", cpu: "AMD EPYC 7302P", cores: 32, memoryMb: 65536 },
+        machine: { os: "Debian 12", cpu: "AMD EPYC 7302P", cores: 32, memoryBytes: 65536 * 1024 * 1024 },
         completedJobs: 0,
         attachments: [
             attach("6c31f9ad", "lscpu.txt", minutesAgo(6), LSCPU),
@@ -188,7 +188,7 @@ export const createRunners = (): ManagedRunner[] => [
         approvedAt: daysAgo(400),
         revokedAt: daysAgo(200),
         revokedReason: "Maszyna wycofana z eksploatacji",
-        machine: { os: "Debian 11", cpu: "Intel Core i7-8700", cores: 12, memoryMb: 16384 },
+        machine: { os: "Debian 11", cpu: "Intel Core i7-8700", cores: 12, memoryBytes: 16384 * 1024 * 1024 },
         completedJobs: 5233,
         // Revoked: nothing was uploaded after it stopped connecting, and the
         // panel shows a Runner with no tabs rather than empty ones.

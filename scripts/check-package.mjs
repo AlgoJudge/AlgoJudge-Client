@@ -44,7 +44,7 @@ const tests = [
 
 const config = {
     ...emptyConfig(),
-    limits: { timeMs: 1500, memoryKib: 256 * 1024 },
+    limits: { timeMs: 1500, memoryBytes: 256 * 1024 * 1024 },
     groups: [
         { group: 0, points: 0, examples: true },
         { group: 1, points: 40 },
@@ -76,7 +76,7 @@ if (JSON.stringify(entries) !== JSON.stringify(expected)) {
 }
 
 const back = await readPackage(archive);
-if (back.config.limits.timeMs !== 1500 || back.config.limits.memoryKib !== 256 * 1024) fail("limits did not survive");
+if (back.config.limits.timeMs !== 1500 || back.config.limits.memoryBytes !== 256 * 1024 * 1024) fail("limits did not survive");
 else ok("limits survived the round trip");
 
 if (back.config.groups.length !== 3 || back.config.groups[2].points !== 60) fail("groups did not survive");
@@ -134,14 +134,14 @@ if (JSON.stringify(sampleEntries) !== JSON.stringify(["0a.in", "0a.out"])) {
         groups: [
             { group: 0, points: 0, examples: true },
             { group: 1, points: 40, limits: { timeMs: 3000 } },
-            { group: 2, points: 60, limits: { timeMs: 5000, memoryKib: 512 * 1024 } },
+            { group: 2, points: 60, limits: { timeMs: 5000, memoryBytes: 512 * 1024 * 1024 } },
         ],
     };
     const archive = await buildPackage({ config: withGroupLimits, tests, checker });
     const back = await readPackage(archive);
     const second = back.config.groups.find(g => g.group === 2);
     if (back.config.groups.find(g => g.group === 1)?.limits?.timeMs !== 3000) fail("a group time limit was lost");
-    else if (second?.limits?.memoryKib !== 512 * 1024) fail("a group memory limit was lost");
+    else if (second?.limits?.memoryBytes !== 512 * 1024 * 1024) fail("a group memory limit was lost");
     else if (back.config.groups.find(g => g.group === 0)?.limits !== undefined) fail("a group without limits gained one");
     else ok("per-group limits round-trip");
 
@@ -171,8 +171,8 @@ if (JSON.stringify(sampleEntries) !== JSON.stringify(["0a.in", "0a.out"])) {
 
     const calibration = {
         time: { factor: 3, add: 100, roundTo: 100 },
-        memory: { factor: 1, add: 16 * 1024, roundTo: 1024 },
-        measured: { timeMs: 240, memoryKib: 31000, at: "2026-08-05T10:00:00Z", runner: "runner-01" },
+        memory: { factor: 1, add: 16 * 1024 * 1024, roundTo: 1024 * 1024 },
+        measured: { timeMs: 240, memoryBytes: 31744000, at: "2026-08-05T10:00:00Z", runner: "runner-01" },
     };
     const withCalibration = {
         ...config,
@@ -186,13 +186,13 @@ if (JSON.stringify(sampleEntries) !== JSON.stringify(["0a.in", "0a.out"])) {
         modelSolution: { name: "model.cpp", content: "int main(){}\n" },
     }));
     if (back.config.calibration?.time?.factor !== 3) fail("a calibration factor was lost");
-    else if (back.config.calibration?.memory?.add !== 16 * 1024) fail("a calibration offset was lost");
+    else if (back.config.calibration?.memory?.add !== 16 * 1024 * 1024) fail("a calibration offset was lost");
     else if (back.config.calibration?.measured?.timeMs !== 240) fail("the measurement was lost");
     else ok("calibration round-trips, measurement included");
 
     const derived = calibratedLimits(calibration);
-    if (derived.timeMs !== 900 || derived.memoryKib !== 48128) {
-        fail(`derived limits are ${derived.timeMs} ms and ${derived.memoryKib} KiB`);
+    if (derived.timeMs !== 900 || derived.memoryBytes !== 49283072) {
+        fail(`derived limits are ${derived.timeMs} ms and ${derived.memoryBytes} bytes`);
     } else {
         ok("the measurement derives both limits together");
     }

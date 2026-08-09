@@ -3,22 +3,28 @@ import { PermissionDefinition } from "./ManagerApi";
 /**
  * Whether a set of permissions makes a grant a staff grant.
  *
- * Anything a participant does not hold is staff: managing the activity, judging,
- * answering questions, reading other people's submissions. A grant carrying any
- * of it is a membership that **runs** the activity rather than takes part in it,
- * and that decides whether it counts among the competitors — a jury member in
- * the ranking beside the students is a bug, not a preference.
+ * Staff is managing the activity, judging, answering questions, reading other
+ * people's submissions. A grant carrying any of it is a membership that **runs**
+ * the activity rather than takes part in it, and that decides whether it counts
+ * among the competitors — a jury member in the ranking beside the students is a
+ * bug, not a preference.
  *
- * Asked of the catalogue rather than of a list kept here, because the catalogue
- * is the Server's and this rule has to be the same on both sides. A permission
- * the catalogue does not describe is treated as staff: an unknown right is more
- * likely to be a new one somebody has been given than an ordinary participant's.
+ * Read from `systemic`, which the catalogue publishes. It used to be worked out
+ * as "anything the participant template does not grant", which is the same
+ * answer for every permission that existed when it was written — and the wrong
+ * one for `trial:run`, where the screen greyed the switch on while the Server
+ * stored it off. Do not infer this from `participant` again; they are two
+ * questions and the Server answers both.
+ *
+ * A permission the catalogue does not describe is treated as staff: an unknown
+ * right is more likely to be a new one somebody has been given than an ordinary
+ * participant's, and guessing the other way quietly puts them in the ranking.
  */
 export const isStaffGrant = (
     permissions: readonly string[],
     catalogue: readonly PermissionDefinition[],
 ): boolean => permissions.some(key =>
-    catalogue.find(definition => definition.key === key)?.participant !== true);
+    catalogue.find(definition => definition.key === key)?.systemic !== false);
 
 /**
  * What a grant's systemic flag is, given what it carries.

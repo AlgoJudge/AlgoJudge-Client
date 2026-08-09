@@ -277,7 +277,7 @@ export interface ProblemSummary {
 
 export interface ProblemLimits {
     timeMs: number,
-    memoryMb: number,
+    memoryBytes: number,
 }
 
 export interface ProblemSample {

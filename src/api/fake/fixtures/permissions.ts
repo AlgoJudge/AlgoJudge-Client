@@ -10,11 +10,7 @@ import { CONTEST_ID, COURSE_ID, WORKSHOP_ID, WORLD } from "./world";
  * standing in for that endpoint, and the two must not drift.
  */
 
-/**
- * The seven an ordinary participant holds. Everything else is staff, and the
- * catalogue says which is which — a grant carrying any staff permission is a
- * membership that runs the activity rather than takes part in it.
- */
+/** The seven an ordinary participant holds, and what the template starts with. */
 const PARTICIPANT = [
     "activity:read",
     "submission:read:own",
@@ -25,8 +21,25 @@ const PARTICIPANT = [
     "ranking:read",
 ];
 
+/**
+ * What somebody may hold **without leaving the ranking**.
+ *
+ * Deliberately not `PARTICIPANT` itself. Two questions live here — what the
+ * template grants by default, and what makes a grant systemic — and they part
+ * company at `trial:run`: outside the default set, yet timing your own package
+ * is not running the activity. Inferring one from the other put a switch on the
+ * manager's screen that said the opposite of what the Server stored.
+ */
+const NOT_SYSTEMIC = [...PARTICIPANT, "trial:run"];
+
 const definition = (key: string, group: string, scope: PermissionDefinition["scope"]): PermissionDefinition =>
-    ({ key, group, scope, participant: PARTICIPANT.includes(key) });
+    ({
+        key,
+        group,
+        scope,
+        participant: PARTICIPANT.includes(key),
+        systemic: !NOT_SYSTEMIC.includes(key),
+    });
 
 export const PERMISSION_CATALOGUE: PermissionDefinition[] = [
     definition("activity:read", "activity", "activity"),
@@ -35,6 +48,7 @@ export const PERMISSION_CATALOGUE: PermissionDefinition[] = [
     definition("activity:archive", "activity", "both"),
     definition("activity:delete", "activity", "both"),
     definition("activity:enroll", "activity", "both"),
+    definition("trial:run", "activity", "both"),
 
     definition("problem:read:own", "problem", "global"),
     definition("problem:read:all", "problem", "global"),

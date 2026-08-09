@@ -260,7 +260,7 @@ const GRAPH: SeedProblem = {
 const DIJKSTRA: SeedProblem = {
     id: "prob-dijkstra", slug: "najkrotsza-sciezka", name: "Najkrótsza ścieżka", currentVersion: 2,
     statement: shortestPathStatement,
-    limits: { timeMs: 2000, memoryMb: 512 },
+    limits: { timeMs: 2000, memoryBytes: 512 * 1024 * 1024 },
     samples: [{ input: "3 3 1 3\n1 2 5\n2 3 5\n1 3 11", output: "10" }],
     attachments: [{ name: "graf-przyklad.png", mimeType: "image/png", sizeBytes: 8192 }],
 };

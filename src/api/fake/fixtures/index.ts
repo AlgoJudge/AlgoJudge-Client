@@ -219,7 +219,7 @@ export const createDataset = (files: FakeFiles): Dataset => {
                     })),
                     // Absent means the manager turned them off, which the screen
                     // must render rather than print "undefined".
-                    limits: assignment.problem.limits ?? { timeMs: 1000, memoryMb: 256 },
+                    limits: assignment.problem.limits ?? { timeMs: 1000, memoryBytes: 256 * 1024 * 1024 },
                     samples: assignment.problem.samples,
                     // The activity's answer, and the only one: nothing declares
                     // a problem's own languages yet.

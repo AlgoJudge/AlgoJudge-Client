@@ -222,7 +222,7 @@ code that always wrote `private`. The code now does what the comment says.
 | 9.4 | The Server's image had no healthcheck, so `docker compose --wait` returned while the host was still booting; its own CI works around it by polling | **Server** |
 | 9.5 | `nginx.conf` had no `client_max_body_size`, so the 1 MB default would refuse a submission with an HTML body the Client cannot read as `problem+json` | **Client** |
 | 9.6 | `Cors:AllowedOrigins` named only `https://localhost:5173` — the one shape nobody runs, since `npm run dev` serves plain HTTP | **Server** |
-| 9.7 | The config chain stated `kind`/`memoryMb`/`scoring.groups` in the fixtures against the specification's `format`/`memoryKib`/`groups`, bridged by hand in `ManagerApiFake` | **Client** — a chain whose layers override one another must name the same fields |
+| 9.7 | The config chain stated `kind`/`memoryMb`/`scoring.groups` in the fixtures against the specification's `format`/`memoryKib`/`groups`, bridged by hand in `ManagerApiFake` | **Client** — a chain whose layers override one another must name the same fields. *Both names are history: memory is `memoryBytes` everywhere since 2026-08-09 (D-15).* |
 | 9.8 | One image per installation, configured at start, was decided 2026-08-03 and unimplemented; `ApiFactory` read `import.meta.env`, which Vite inlines at build | **Client** — now written into `index.html` by the container's entrypoint |
 
 ---
