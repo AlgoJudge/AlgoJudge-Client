@@ -6,6 +6,7 @@ import { Activity, ProblemDetail, Series, SubmissionSummary } from "../../api/Pa
 import { maySubmit, seriesState } from "../../api/seriesState";
 import { useApiCall } from "../../provider/apiContext";
 import { sha256 } from "../../utils/sha256";
+import { submitRenderers } from "../../renderers";
 
 // Monaco is large and only this form and the source preview need it, so it is
 // split out of the main bundle rather than paid for on every page load.
@@ -59,8 +60,14 @@ export default function SubmissionForm({ activity, problem, series, onSent }: Su
     const holding = series.find(s => s.id === problem.seriesId);
     const state = holding ? seriesState(holding) : "open";
     const closed = holding !== undefined && !maySubmit(holding);
-    const wantsFile = problem.submitFields.some(f => f.kind === "file");
-    const wantsCode = problem.submitFields.some(f => f.kind === "code");
+    // What this problem type asks for, resolved here rather than taken from the
+    // Server — whose `submitFields` is one constant for every type, because it
+    // is not allowed to understand a type's semantics. Its list is the fallback
+    // for a type this build does not know.
+    const asks = submitRenderers.resolve(problem.type).value;
+    const wantsFile = asks ? asks.file !== false : problem.submitFields.some(f => f.kind === "file");
+    const wantsCode = asks ? asks.code : problem.submitFields.some(f => f.kind === "code");
+    const wantsLanguage = asks ? asks.language : true;
 
     // First field wins. Whichever the participant starts filling locks the
     // other, so a submission never carries two sources and the Client never has
@@ -68,10 +75,12 @@ export default function SubmissionForm({ activity, problem, series, onSent }: Su
     const fileLocked = code.trim().length > 0;
     const codeLocked = file !== null;
 
-    const accept = problem.submitFields.find(f => f.kind === "file")?.accept;
+    const accept = asks && asks.file !== false
+        ? asks.file.accept
+        : problem.submitFields.find(f => f.kind === "file")?.accept;
 
     const validate = (): string | undefined => {
-        if (!language) return t("Choose a programming language");
+        if (wantsLanguage && !language) return t("Choose a programming language");
         if (!file && code.trim().length === 0) return t("Provide a solution: paste the code or attach a file");
         if (file) {
             if (file.size === 0) return t("The selected file is empty");
@@ -104,7 +113,10 @@ export default function SubmissionForm({ activity, problem, series, onSent }: Su
             // mismatch, so a truncated upload fails instead of being judged.
             const checksum = file ? await sha256(file) : await sha256(new TextEncoder().encode(code));
             const submission = await call(api => api.participantApi.submit(activity.id, problem.slug, {
-                language: language ?? undefined,
+                // Absent for a type that has no language: an answer file is not
+                // written in one, and sending a made-up value would put it on a
+                // submission for ever.
+                language: wantsLanguage ? (language ?? undefined) : undefined,
                 code: file ? undefined : code,
                 file: file ?? undefined,
                 sha256: checksum,
@@ -126,20 +138,24 @@ export default function SubmissionForm({ activity, problem, series, onSent }: Su
             )}
 
             <Group align="flex-start" grow wrap="wrap">
-                <Select
-                    label={t("Programming language")}
-                    description={t("Select the language your solution is written in")}
-                    data={problem.languages.map(l => ({ value: l, label: l }))}
-                    value={language}
-                    onChange={setLanguage}
-                    allowDeselect={false}
-                />
+                {wantsLanguage && (
+                    <Select
+                        label={t("Programming language")}
+                        description={t("Select the language your solution is written in")}
+                        data={problem.languages.map(l => ({ value: l, label: l }))}
+                        value={language}
+                        onChange={setLanguage}
+                        allowDeselect={false}
+                    />
+                )}
                 {wantsFile && (
                     <FileInput
-                        label={t("Solution file")}
+                        label={t(asks && asks.file !== false ? asks.file.label : "Solution file")}
                         description={codeLocked
                             ? t("Clear the file to use the editor instead")
-                            : t("Up to {{limit}}", { limit: formatBytes(problem.maxUploadBytes) })}
+                            : asks && asks.file !== false && asks.file.description
+                                ? `${t(asks.file.description)} — ${t("Up to {{limit}}", { limit: formatBytes(problem.maxUploadBytes) })}`
+                                : t("Up to {{limit}}", { limit: formatBytes(problem.maxUploadBytes) })}
                         placeholder={t("Choose a file")}
                         accept={accept?.join(",")}
                         value={file}
