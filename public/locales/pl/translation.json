@@ -816,5 +816,19 @@
   "Nothing sent yet": "Nic jeszcze nie wysłano",
   "Empty means from this series' own start": "Puste oznacza: od startu tej serii",
   "Judged against v{{pinned}}; the problem is now at v{{current}}": "Sądzone przeciw v{{pinned}}; zadanie jest już w wersji v{{current}}",
-  "Judged against the newest version": "Sądzone przeciw najnowszej wersji"
+  "Judged against the newest version": "Sądzone przeciw najnowszej wersji",
+  "Measured, per group": "Zmierzone, per grupa",
+  "Suggested from the slowest language measured: a group's limit has to fit every language the activity accepts.": "Sugestia z najwolniejszego zmierzonego języka: limit grupy musi mieścić każdy język akceptowany przez aktywność.",
+  "Suggested limit": "Sugerowany limit",
+  "Measured": "Zmierzono",
+  "Apply": "Zastosuj",
+  "Applied": "Zastosowano",
+  "Apply every suggestion": "Zastosuj wszystkie sugestie",
+  "memory not measured": "pamięć niezmierzona",
+  "Wrong answer": "Zła odpowiedź",
+  "Output limit": "Limit wyjścia",
+  "Runtime error": "Błąd wykonania",
+  "Rule violation": "Naruszenie regulaminu",
+  "Compilation error": "Błąd kompilacji",
+  "permission.trial:run": "Uruchamia próby"
 }
