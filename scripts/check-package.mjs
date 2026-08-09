@@ -30,7 +30,7 @@ addExtensions(OUT);
 const { buildPackage, readPackage, buildSampleArchive } = await import(`../${OUT}/build.js`);
 const { validatePackage, hasErrors } = await import(`../${OUT}/validate.js`);
 const { emptyConfig } = await import(`../${OUT}/types.js`);
-const { applyCalibration, calibratedLimits } = await import(`../${OUT}/calibration.js`);
+const { applyCalibration, measuredGroups, suggestedForGroup } = await import(`../${OUT}/calibration.js`);
 
 const fail = (message) => { console.error("FAIL:", message); process.exitCode = 1; };
 const ok = (message) => console.log("  ok  ", message);
@@ -172,7 +172,16 @@ if (JSON.stringify(sampleEntries) !== JSON.stringify(["0a.in", "0a.out"])) {
     const calibration = {
         time: { factor: 3, add: 100, roundTo: 100 },
         memory: { factor: 1, add: 16 * 1024 * 1024, roundTo: 1024 * 1024 },
-        measured: { timeMs: 240, memoryBytes: 31744000, at: "2026-08-05T10:00:00Z", runner: "runner-01" },
+        // Two languages on group 1, so the suggestion has to come from the
+        // slower of them — group 2 measured only once, and stands for the
+        // ordinary case.
+        measured: [
+            { group: 1, language: "cpp", timeMs: 240, memoryBytes: 31744000 },
+            { group: 1, language: "python", timeMs: 900, memoryBytes: 52428800 },
+            { group: 2, language: "cpp", timeMs: 100, memoryBytes: 20971520 },
+        ],
+        at: "2026-08-05T10:00:00Z",
+        runner: "runner-01",
     };
     const withCalibration = {
         ...config,
@@ -187,14 +196,43 @@ if (JSON.stringify(sampleEntries) !== JSON.stringify(["0a.in", "0a.out"])) {
     }));
     if (back.config.calibration?.time?.factor !== 3) fail("a calibration factor was lost");
     else if (back.config.calibration?.memory?.add !== 16 * 1024 * 1024) fail("a calibration offset was lost");
-    else if (back.config.calibration?.measured?.timeMs !== 240) fail("the measurement was lost");
-    else ok("calibration round-trips, measurement included");
+    else if (back.config.calibration?.measured?.length !== 3) fail("the measurement rows were lost");
+    else if (back.config.calibration?.measured?.[0]?.group !== 1) fail("a measurement lost its group");
+    else ok("calibration round-trips, every measured row included");
 
-    const derived = calibratedLimits(calibration);
-    if (derived.timeMs !== 900 || derived.memoryBytes !== 49283072) {
-        fail(`derived limits are ${derived.timeMs} ms and ${derived.memoryBytes} bytes`);
+    if (measuredGroups(calibration).join(",") !== "1,2") {
+        fail(`measured groups are ${measuredGroups(calibration).join(",")}`);
     } else {
-        ok("the measurement derives both limits together");
+        ok("every measured group is offered a suggestion");
+    }
+
+    // **From the slowest language.** 900 × 3 + 100 → 2800, not 240 × 3 + 100.
+    // A suggestion taken from the faster reference is a limit the other
+    // language cannot meet.
+    const group1 = suggestedForGroup(calibration, 1);
+    if (group1.timeMs !== 2800) {
+        fail(`group 1 suggests ${group1.timeMs} ms, so it did not take the slowest language`);
+    } else if (group1.memoryBytes !== 69206016) {
+        fail(`group 1 suggests ${group1.memoryBytes} bytes of memory`);
+    } else {
+        ok("a group's suggestion comes from the slowest language measured");
+    }
+
+    // Memory is absent unless every row for the group carried one: a maximum
+    // over "some numbers and some absences" is not a measurement of the group.
+    const partial = {
+        ...calibration,
+        measured: [
+            { group: 1, language: "cpp", timeMs: 240, memoryBytes: 31744000 },
+            { group: 1, language: "python", timeMs: 900 },
+        ],
+    };
+    if (suggestedForGroup(partial, 1).memoryBytes !== undefined) {
+        fail("a group with one unmeasured memory still suggested a memory limit");
+    } else if (suggestedForGroup(partial, 1).timeMs !== 2800) {
+        fail("an absent memory should not cost the group its time suggestion");
+    } else {
+        ok("an unmeasured memory leaves the group without a memory suggestion");
     }
 
     const zero = validatePackage(tests, { ...withCalibration, calibration: { time: { factor: 0 } } }, ["checker.cpp", "model.cpp"]);

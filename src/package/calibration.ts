@@ -1,4 +1,6 @@
-import { BYTES_PER_MIB, CalibrationRule, DEFAULT_CALIBRATION, PackageCalibration, PackageLimits } from "./types";
+import {
+    BYTES_PER_MIB, CalibrationRule, DEFAULT_CALIBRATION, PackageCalibration, PackageLimits,
+} from "./types";
 
 /**
  * Turning a measurement of the model solution into a limit.
@@ -30,22 +32,53 @@ export const calibrationRule = (
 ): CalibrationRule => calibration?.[field] ?? DEFAULT_CALIBRATION[field];
 
 /**
- * The limits a measurement produces, or undefined where nothing was measured.
+ * What one group's limits should be, given everything measured for it.
  *
- * Both fields are derived together: a calibration run measures both, and
- * applying one without the other would leave a package half calibrated.
+ * **From the slowest language measured**, which is the rule
+ * `PACKAGE_FORMAT.md` states while the per-group-per-language slot is still an
+ * open question: a group's limit has to accommodate every language the activity
+ * accepts, so the fastest reference would set a limit the others cannot meet.
+ *
+ * Memory is absent unless **every** row for the group carried one. A maximum
+ * over "some numbers and some absences" is not a measurement of the group, and
+ * a limit derived from a partial one would look entirely reasonable.
  */
-export const calibratedLimits = (calibration: PackageCalibration | undefined): Partial<PackageLimits> => {
-    const measured = calibration?.measured;
+export const suggestedForGroup = (
+    calibration: PackageCalibration | undefined,
+    group: number,
+): Partial<PackageLimits> => {
+    const rows = (calibration?.measured ?? []).filter(m => m.group === group);
+    if (rows.length === 0) return {};
+
+    const timeMs = Math.max(...rows.map(m => m.timeMs));
+    const memories = rows.map(m => m.memoryBytes);
+    const memoryBytes = memories.every(m => m !== undefined)
+        ? Math.max(...(memories as number[]))
+        : undefined;
+
     return {
-        timeMs: measured?.timeMs === undefined
+        timeMs: applyCalibration(calibrationRule(calibration, "time"), timeMs),
+        memoryBytes: memoryBytes === undefined
             ? undefined
-            : applyCalibration(calibrationRule(calibration, "time"), measured.timeMs),
-        memoryBytes: measured?.memoryBytes === undefined
-            ? undefined
-            : applyCalibration(calibrationRule(calibration, "memory"), measured.memoryBytes),
+            : applyCalibration(calibrationRule(calibration, "memory"), memoryBytes),
     };
 };
+
+/** Every group that was measured, in the order the rows arrived. */
+export const measuredGroups = (calibration: PackageCalibration | undefined): number[] =>
+    [...new Set((calibration?.measured ?? []).map(m => m.group))].sort((a, b) => a - b);
+
+/**
+ * One suggestion per measured group.
+ *
+ * Returned as a map rather than applied, because **applying it is a decision**:
+ * the measurement is a fact and the limit is a choice, and a screen that wrote
+ * the numbers in on arrival would take that choice away.
+ */
+export const suggestedLimits = (
+    calibration: PackageCalibration | undefined,
+): Map<number, Partial<PackageLimits>> =>
+    new Map(measuredGroups(calibration).map(g => [g, suggestedForGroup(calibration, g)]));
 
 /**
  * A measurement to show the rule against before anything has been measured.

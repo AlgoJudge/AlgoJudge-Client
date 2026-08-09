@@ -11,7 +11,8 @@ import { useTranslation } from "react-i18next";
 import { buildPackage, buildSampleArchive, ExtraFile, readPackage } from "../../package/build";
 import { groupsOf, intakeFiles } from "../../package/intake";
 import {
-    applyCalibration, calibratedLimits, calibrationRule, EXAMPLE_MEMORY_BYTES, EXAMPLE_TIME_MS,
+    applyCalibration, calibrationRule, EXAMPLE_MEMORY_BYTES, EXAMPLE_TIME_MS, measuredGroups,
+    suggestedForGroup,
 } from "../../package/calibration";
 import {
     BYTES_PER_KIB, BYTES_PER_MIB, CalibrationRule, emptyConfig, PackageConfig, PackageGroup, PackageLimits, TestFile,
@@ -330,6 +331,25 @@ export default function PackageBuilder({ stored, onOpenStored, onDraftChange, di
      * and "no time at all" must not be the same value, and a group left with an
      * empty `limits` object would serialise as one in `config.yml`.
      */
+    /**
+     * Writes the suggestion for these groups into their own limits.
+     *
+     * Per group and never into `limits`, the package-wide default: a suggestion
+     * is derived from what one group's tests did, and applying it globally would
+     * hand every other group a limit measured on somebody else's work.
+     *
+     * A field with nothing measured is left alone rather than cleared. Absent
+     * memory means the Runner could not measure it honestly, which is not the
+     * same as "this group has no memory limit".
+     */
+    const applySuggestions = (groups: number[]) => {
+        for (const group of groups) {
+            const limits = suggestedForGroup(config.calibration, group);
+            if (limits.timeMs !== undefined) setGroupLimit(group, "timeMs", limits.timeMs);
+            if (limits.memoryBytes !== undefined) setGroupLimit(group, "memoryBytes", limits.memoryBytes);
+        }
+    };
+
     const setGroupLimit = (group: number, key: keyof PackageLimits, value: number | undefined) => {
         setTouched(true);
         setConfig(c => ({
@@ -801,19 +821,21 @@ export default function PackageBuilder({ stored, onOpenStored, onDraftChange, di
                                     field: "time" as const,
                                     label: t("Time limit"),
                                     units: TIME_UNITS,
-                                    measured: config.calibration?.measured?.timeMs,
                                     example: EXAMPLE_TIME_MS,
                                 },
                                 {
                                     field: "memory" as const,
                                     label: t("Memory limit"),
                                     units: MEMORY_UNITS,
-                                    measured: config.calibration?.measured?.memoryBytes,
                                     example: EXAMPLE_MEMORY_BYTES,
                                 },
                             ]).map(row => {
                                 const rule = calibrationRule(config.calibration, row.field);
-                                const from = row.measured ?? row.example;
+                                // **The worked example, always.** What was
+                                // measured is per group and lives in its own
+                                // table below; one number here would have to
+                                // pick a group and be wrong for every other.
+                                const from = row.example;
                                 return (
                                     <Table.Tr key={row.field}>
                                         <Table.Td><Text size="sm" fw={500}>{row.label}</Text></Table.Td>
@@ -845,7 +867,7 @@ export default function PackageBuilder({ stored, onOpenStored, onDraftChange, di
                                         </Table.Td>
                                         <Table.Td>
                                             <Text size="sm" c="dimmed">
-                                                {row.measured === undefined ? `${t("at")} ` : `${t("measured")} `}
+                                                {t("at")}{" "}
                                                 {inUnits(row.units, from)} → <b>{inUnits(row.units, applyCalibration(rule, from))}</b>
                                             </Text>
                                         </Table.Td>
@@ -863,27 +885,90 @@ export default function PackageBuilder({ stored, onOpenStored, onDraftChange, di
                                 {t("Measure the model solution")}
                             </Button>
                         </Tooltip>
-                        {config.calibration?.measured && (
+                        {measuredGroups(config.calibration).length > 0 && (
                             <Button
                                 variant="light"
                                 size="compact-sm"
                                 disabled={disabled}
-                                onClick={() => {
-                                    const limits = calibratedLimits(config.calibration);
-                                    setTouched(true);
-                                    setConfig(c => ({
-                                        ...c,
-                                        limits: {
-                                            timeMs: limits.timeMs ?? c.limits.timeMs,
-                                            memoryBytes: limits.memoryBytes ?? c.limits.memoryBytes,
-                                        },
-                                    }));
-                                }}
+                                onClick={() => applySuggestions(measuredGroups(config.calibration))}
                             >
-                                {t("Apply to the default limits")}
+                                {t("Apply every suggestion")}
                             </Button>
                         )}
                     </Group>
+
+                    {/* What was measured, and what it suggests — **per group**,
+                        because that is where a limit lives: one number for a
+                        whole problem calibrates a group that states three
+                        seconds wrongly.
+
+                        Shown rather than written in. The measurement is a fact
+                        and the limit is a decision; a screen that applied the
+                        numbers on arrival would take that decision away from
+                        the person whose name is on the problem. */}
+                    {measuredGroups(config.calibration).length > 0 && (
+                        <>
+                            <Text size="sm" fw={500} mt="md">{t("Measured, per group")}</Text>
+                            <Text size="xs" c="dimmed" mb="xs">
+                                {t("Suggested from the slowest language measured: a group's limit has to fit every language the activity accepts.")}
+                            </Text>
+                            <Table striped withTableBorder>
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        <Table.Th>{t("Group")}</Table.Th>
+                                        <Table.Th>{t("Measured")}</Table.Th>
+                                        <Table.Th>{t("Suggested limit")}</Table.Th>
+                                        <Table.Th />
+                                    </Table.Tr>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    {measuredGroups(config.calibration).map(group => {
+                                        const rows = (config.calibration?.measured ?? [])
+                                            .filter(m => m.group === group);
+                                        const limits = suggestedForGroup(config.calibration, group);
+                                        const held = config.groups.find(g => g.group === group)?.limits;
+                                        const applied = held?.timeMs === limits.timeMs
+                                            && held?.memoryBytes === limits.memoryBytes;
+                                        return (
+                                            <Table.Tr key={group}>
+                                                <Table.Td><Text size="sm" fw={500}>{group}</Text></Table.Td>
+                                                <Table.Td>
+                                                    {rows.map((m, index) => (
+                                                        <Text size="xs" c="dimmed" key={index}>
+                                                            {m.language ? m.language + ": " : ""}
+                                                            {inUnits(TIME_UNITS, m.timeMs)}
+                                                            {m.memoryBytes === undefined
+                                                                ? " · " + t("memory not measured")
+                                                                : " · " + inUnits(MEMORY_UNITS, m.memoryBytes)}
+                                                        </Text>
+                                                    ))}
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <Text size="sm">
+                                                        {limits.timeMs === undefined
+                                                            ? "—"
+                                                            : inUnits(TIME_UNITS, limits.timeMs)}
+                                                        {limits.memoryBytes !== undefined
+                                                            && " · " + inUnits(MEMORY_UNITS, limits.memoryBytes)}
+                                                    </Text>
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <Button
+                                                        variant="subtle"
+                                                        size="compact-xs"
+                                                        disabled={disabled || applied}
+                                                        onClick={() => applySuggestions([group])}
+                                                    >
+                                                        {applied ? t("Applied") : t("Apply")}
+                                                    </Button>
+                                                </Table.Td>
+                                            </Table.Tr>
+                                        );
+                                    })}
+                                </Table.Tbody>
+                            </Table>
+                        </>
+                    )}
                 </Card>
             )}
 

@@ -20,6 +20,16 @@ interface StandardIoTest {
     score?: number;
     maxScore?: number;
     note?: string;
+    /**
+     * Why it failed, as a value: `timeLimit`, `runtimeError`, and the rest of
+     * the vocabulary `PACKAGE_FORMAT.md` states. Absent on a test that passed.
+     *
+     * Read as `string` and not as a union on purpose. The vocabulary belongs to
+     * the problem type and grows without a Client release, so a value this
+     * version has never heard of has to be an ordinary case rather than a
+     * parse failure.
+     */
+    reason?: string;
 }
 
 interface StandardIoDocument {
@@ -52,6 +62,28 @@ const statusClass = (status: string | undefined) => {
         case "WARNING": return classes.warning;
         case "ERROR": return classes.error;
         default: return "";
+    }
+};
+
+/**
+ * A short label for a reason this version knows.
+ *
+ * **Returns nothing for anything else, and that is the whole point.** The
+ * vocabulary belongs to the problem type and grows without a Client release, so
+ * an unknown value falls back to the `note` — which is exactly what this table
+ * showed before the field existed. A `default:` that printed the raw key would
+ * put `runtimeError` in front of a participant.
+ */
+const reasonLabel = (reason: string | undefined, t: (key: string) => string): string | undefined => {
+    switch (reason) {
+        case "wrongAnswer": return t("Wrong answer");
+        case "timeLimit": return t("Time limit");
+        case "memoryLimit": return t("Memory limit");
+        case "outputLimit": return t("Output limit");
+        case "runtimeError": return t("Runtime error");
+        case "policyViolation": return t("Rule violation");
+        case "compilationError": return t("Compilation error");
+        default: return undefined;
     }
 };
 
@@ -125,7 +157,20 @@ export default function StandardIoResult({ detail }: { detail: unknown }) {
                             {test.score ?? "—"}{test.maxScore !== undefined ? ` / ${test.maxScore}` : ""}
                         </Table.Td>
                         <Table.Td>
-                            <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>{test.note}</Text>
+                            {/* The reason first, because it is the thing a
+                                participant acts on — and it is the same words
+                                every time, so a table of failures can be read
+                                down the column. The note stays underneath: it
+                                carries the detail, and where it came from a
+                                checker it is the only thing that does. */}
+                            {reasonLabel(test.reason, t) !== undefined && (
+                                <Text size="sm" fw={500}>{reasonLabel(test.reason, t)}</Text>
+                            )}
+                            {test.note && (
+                                <Text size="sm" c="dimmed" style={{ whiteSpace: "pre-wrap" }}>
+                                    {test.note}
+                                </Text>
+                            )}
                         </Table.Td>
                     </Table.Tr>
                 ))}

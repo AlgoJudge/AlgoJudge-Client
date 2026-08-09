@@ -54,14 +54,18 @@ const resultDocument = (score: number, verdict: string) => ({
             status: score >= 60 ? "OK" : "ERROR",
             timeMs: score >= 60 ? 340 : 1000, memoryBytes: 24 * 1024 * 1024,
             score: score >= 60 ? 30 : 0, maxScore: 30,
-            note: verdict === "Time limit exceeded" ? "przekroczony limit czasu" : "",
+            // The Runner's own words travel verbatim; the reason is the value
+            // beside them. Absent on a pass, as the format states.
+            note: verdict === "Time limit exceeded" ? "Time limit exceeded" : "",
+            reason: score >= 60 ? undefined : "timeLimit",
         },
         {
             no: "3a", group: 3,
             status: score >= 100 ? "OK" : "ERROR",
             timeMs: 620, memoryBytes: 48 * 1024 * 1024,
             score: score >= 100 ? 40 : 0, maxScore: 40,
-            note: score >= 100 ? "" : "Zła odpowiedź",
+            note: score >= 100 ? "" : "token 2 differs: expected 30, got 0",
+            reason: score >= 100 ? undefined : "wrongAnswer",
         },
     ],
 });
