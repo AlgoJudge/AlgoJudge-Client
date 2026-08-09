@@ -25,6 +25,7 @@ import {
     ManagedUserFilter,
     ManagedUserSummary,
     ManagerApi,
+    NewTrial,
     ProblemFilter,
     ProblemInput,
     ProblemVersionInput,
@@ -35,6 +36,7 @@ import {
     PauseInput,
     ResumeInput,
     SeriesInput,
+    Trial,
     SeriesProblemInput,
     UserInput,
     InstanceLogoInput,
@@ -475,4 +477,11 @@ export class ManagerApiHttp implements ManagerApi {
         }
     }
 
+    requestTrial(input: NewTrial, signal: AbortSignal): Promise<Trial> {
+        return this.http.request<Trial>("/trials", "POST", { body: input, signal });
+    }
+
+    getTrial(trialId: string, signal: AbortSignal): Promise<Trial> {
+        return this.http.request<Trial>(`/trials/${encodeURIComponent(trialId)}`, "GET", { signal });
+    }
 }

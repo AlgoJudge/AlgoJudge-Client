@@ -660,7 +660,6 @@
   "Example": "Przykład",
   "at": "przy",
   "measured": "zmierzono",
-  "A calibration job needs a Runner. There is none yet.": "Zadanie kalibracyjne wymaga Runnera. Jeszcze go nie ma.",
   "Measure the model solution": "Zmierz rozwiązanie wzorcowe",
   "Apply to the default limits": "Zastosuj do limitów domyślnych",
   "The tests in the groups marked as examples are published for the participant as examples.zip.": "Testy z grup oznaczonych jako przykłady publikują się dla uczestnika jako examples.zip.",
@@ -830,5 +829,6 @@
   "Runtime error": "Błąd wykonania",
   "Rule violation": "Naruszenie regulaminu",
   "Compilation error": "Błąd kompilacji",
-  "permission.trial:run": "Uruchamia próby"
+  "permission.trial:run": "Uruchamia próby",
+  "Measuring runs in an activity, and a problem in the library is not in one yet.": "Pomiar wykonuje się w aktywności, a zadanie w bibliotece jeszcze do żadnej nie należy."
 }

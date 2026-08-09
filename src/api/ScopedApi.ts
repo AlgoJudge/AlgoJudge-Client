@@ -20,6 +20,7 @@ import {
     GrantChangedEvent,
     GrantFilter,
     GrantInput,
+    NewTrial,
     ManagedActivity,
     ManagedActivityFilter,
     ManagedActivitySummary,
@@ -69,6 +70,7 @@ import {
     NewStatement,
     UserSession,
     UserUpdateInput,
+    Trial,
 } from "./ManagerApi";
 import {
     Activity,
@@ -533,6 +535,14 @@ export class ScopedManagerApi {
     }
     createProblemVersion(problemId: string, input: ProblemVersionInput): Promise<ManagedProblemVersion> {
         return this.managerApi.createProblemVersion(problemId, input, this.signal);
+    }
+
+    requestTrial(input: NewTrial): Promise<Trial> {
+        return this.managerApi.requestTrial(input, this.signal);
+    }
+
+    getTrial(trialId: string): Promise<Trial> {
+        return this.managerApi.getTrial(trialId, this.signal);
     }
 
     getProblemPackage(problemId: string, versionId: string): Promise<Blob | undefined> {
