@@ -40,7 +40,7 @@ export const sourceName = (language: string | undefined): string =>
 const resultDocument = (score: number, verdict: string) => ({
     kind: "standard-io",
     version: 1,
-    limits: { timeMs: 1000, memoryMb: 256 },
+    limits: { timeMs: 1000, memoryBytes: 256 * 1024 * 1024 },
     compilation: { status: verdict === "Compilation error" ? "ERROR" : "OK", log: "" },
     groups: [
         { group: 1, points: score >= 30 ? 30 : 0, maxPoints: 30, status: score >= 30 ? "OK" : "ERROR" },
@@ -48,18 +48,18 @@ const resultDocument = (score: number, verdict: string) => ({
         { group: 3, points: score >= 100 ? 40 : 0, maxPoints: 40, status: score >= 100 ? "OK" : "ERROR" },
     ],
     tests: [
-        { no: "1a", group: 1, status: "OK", timeMs: 120, memoryMb: 12, score: 30, maxScore: 30, note: "" },
+        { no: "1a", group: 1, status: "OK", timeMs: 120, memoryBytes: 12 * 1024 * 1024, score: 30, maxScore: 30, note: "" },
         {
             no: "2a", group: 2,
             status: score >= 60 ? "OK" : "ERROR",
-            timeMs: score >= 60 ? 340 : 1000, memoryMb: 24,
+            timeMs: score >= 60 ? 340 : 1000, memoryBytes: 24 * 1024 * 1024,
             score: score >= 60 ? 30 : 0, maxScore: 30,
             note: verdict === "Time limit exceeded" ? "przekroczony limit czasu" : "",
         },
         {
             no: "3a", group: 3,
             status: score >= 100 ? "OK" : "ERROR",
-            timeMs: 620, memoryMb: 48,
+            timeMs: 620, memoryBytes: 48 * 1024 * 1024,
             score: score >= 100 ? 40 : 0, maxScore: 40,
             note: score >= 100 ? "" : "Zła odpowiedź",
         },

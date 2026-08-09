@@ -1,4 +1,4 @@
-import { CalibrationRule, DEFAULT_CALIBRATION, KIB_PER_MIB, PackageCalibration, PackageLimits } from "./types";
+import { BYTES_PER_MIB, CalibrationRule, DEFAULT_CALIBRATION, PackageCalibration, PackageLimits } from "./types";
 
 /**
  * Turning a measurement of the model solution into a limit.
@@ -41,9 +41,9 @@ export const calibratedLimits = (calibration: PackageCalibration | undefined): P
         timeMs: measured?.timeMs === undefined
             ? undefined
             : applyCalibration(calibrationRule(calibration, "time"), measured.timeMs),
-        memoryKib: measured?.memoryKib === undefined
+        memoryBytes: measured?.memoryBytes === undefined
             ? undefined
-            : applyCalibration(calibrationRule(calibration, "memory"), measured.memoryKib),
+            : applyCalibration(calibrationRule(calibration, "memory"), measured.memoryBytes),
     };
 };
 
@@ -54,4 +54,4 @@ export const calibratedLimits = (calibration: PackageCalibration | undefined): P
  * correctly by everyone, and `measured × 3 + 100` is not.
  */
 export const EXAMPLE_TIME_MS = 250;
-export const EXAMPLE_MEMORY_KIB = 32 * KIB_PER_MIB;
+export const EXAMPLE_MEMORY_BYTES = 32 * BYTES_PER_MIB;

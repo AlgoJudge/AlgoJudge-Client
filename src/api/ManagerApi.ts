@@ -958,7 +958,7 @@ export interface ManagedRunner {
         os?: string;
         cpu?: string;
         cores?: number;
-        memoryMb?: number;
+        memoryBytes?: number;
     };
     /** The job it is running, if any, and how many it has finished. */
     currentSubmissionId?: string;

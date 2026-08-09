@@ -226,7 +226,7 @@ export default function RunnersPage() {
                                             <Text size="xs" c="dimmed">
                                                 {runner.machine.cores} × {runner.machine.cpu}
                                                 <br />
-                                                {Math.round((runner.machine.memoryMb ?? 0) / 1024)} GB · {runner.machine.os}
+                                                {Math.round((runner.machine.memoryBytes ?? 0) / (1024 * 1024 * 1024))} GiB · {runner.machine.os}
                                             </Text>
                                         )
                                         : <Text size="xs" c="dimmed">{t("never connected")}</Text>}
@@ -373,7 +373,7 @@ export default function RunnersPage() {
                                             <Table.Th>{t("Machine")}</Table.Th>
                                             <Table.Td>
                                                 {selected.machine.cpu} · {selected.machine.cores} {t("cores")} ·{" "}
-                                                {Math.round((selected.machine.memoryMb ?? 0) / 1024)} GB · {selected.machine.os}
+                                                {Math.round((selected.machine.memoryBytes ?? 0) / (1024 * 1024 * 1024))} GiB · {selected.machine.os}
                                             </Table.Td>
                                         </Table.Tr>
                                     )}

@@ -49,18 +49,18 @@ export const ME = "user-me";
  * "the defaults inside the package, then `ProblemVersion.config`, then
  * `SeriesProblem.config`, each overriding the one before" — and a layer that
  * overrides another has to name the same fields, or there is nothing to
- * override. This stated `kind`, `limits.memoryMb` and `scoring.groups` against
- * `docs/specs/PACKAGE_FORMAT.md`'s `format`, `limits.memoryKib` and top-level
+ * override. This stated `kind`, `limits.memoryBytes` and `scoring.groups` against
+ * `docs/specs/PACKAGE_FORMAT.md`'s `format`, `limits.memoryBytes` and top-level
  * `groups` until 2026-08-08, and a hand-written translation in
  * `ManagerApiFake` stood between them.
  *
  * Kibibytes rather than megabytes because that is what the format speaks; a
  * screen showing megabytes divides where it shows them.
  */
-const standardIoConfig = (timeMs: number, memoryMb: number, groups: number[]) => ({
+const standardIoConfig = (timeMs: number, memoryMib: number, groups: number[]) => ({
     format: "standard-io",
     version: 1,
-    limits: { timeMs, memoryKib: memoryMb * 1024 },
+    limits: { timeMs, memoryBytes: memoryMib * 1024 * 1024 },
     groups: groups.map((points, i) => ({ group: i + 1, points })),
 });
 

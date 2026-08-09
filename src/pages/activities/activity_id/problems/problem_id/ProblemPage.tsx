@@ -135,7 +135,7 @@ export default function ProblemPage() {
                                     {(problem.limits.timeMs / 1000).toFixed(2)} s
                                 </Badge>
                                 <Badge variant="light" leftSection={<IconDatabase size={14} />}>
-                                    {problem.limits.memoryMb} MB
+                                    {Math.round(problem.limits.memoryBytes / (1024 * 1024))} MiB
                                 </Badge>
                             </>
                         )}

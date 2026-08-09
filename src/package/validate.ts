@@ -43,7 +43,7 @@ export const validatePackage = (tests: TestFile[], config: PackageConfig, fileNa
                 values: { group: group.group },
             });
         }
-        if (group.limits?.memoryKib !== undefined && group.limits.memoryKib <= 0) {
+        if (group.limits?.memoryBytes !== undefined && group.limits.memoryBytes <= 0) {
             issues.push({
                 level: "error",
                 message: "Group {{group}} has a memory limit that is not positive",
@@ -110,7 +110,7 @@ export const validatePackage = (tests: TestFile[], config: PackageConfig, fileNa
     if (config.limits.timeMs <= 0) {
         issues.push({ level: "error", message: "The time limit must be positive" });
     }
-    if (config.limits.memoryKib <= 0) {
+    if (config.limits.memoryBytes <= 0) {
         issues.push({ level: "error", message: "The memory limit must be positive" });
     }
 
