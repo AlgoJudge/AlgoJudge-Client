@@ -70,24 +70,44 @@ export interface CalibrationRule {
 }
 
 /**
- * Calibration: the rule, and what a calibration job last measured.
+ * What one model solution did on one group.
  *
- * The measurement happens **once, on request** — an `EvaluationJob` marked as a
- * calibration — and the numbers it produces are written into `config.yml`.
- * Judging never runs the model solution: a limit has to be a stated number that
- * every submission met or missed, not something recomputed per run on whichever
- * Runner picked the job up.
+ * **A row per group**, because that is where a limit lives: a package whose
+ * group 2 states three seconds is calibrated wrongly by one number for the whole
+ * problem.
+ */
+export interface PackageMeasurement {
+    group: number;
+    /**
+     * Absent means the package's own — the common case of a single model
+     * solution, whose numbers become the limits every language then meets.
+     * Present means this row is one language's.
+     */
+    language?: string;
+    timeMs: number;
+    /**
+     * **Absent is not zero.** A Runner that could not measure peak memory
+     * honestly reports nothing rather than a number shown beside a verdict.
+     */
+    memoryBytes?: number;
+}
+
+/**
+ * Calibration: the rule, and what a trial run last measured.
+ *
+ * The measurement happens **once, on request** — a trial run, which is a package
+ * uploaded on its own and attached to no problem — and the numbers it produces
+ * are written into `config.yml`. Judging never runs the model solution: a limit
+ * has to be a stated number that every submission met or missed, not something
+ * recomputed per run on whichever Runner picked the job up.
  */
 export interface PackageCalibration {
     time?: CalibrationRule;
     memory?: CalibrationRule;
-    /** What was measured, and where. Written by the calibration job. */
-    measured?: {
-        timeMs?: number;
-        memoryBytes?: number;
-        at?: string;
-        runner?: string;
-    };
+    /** One row per group, and per language where more than one model was measured. */
+    measured?: PackageMeasurement[];
+    at?: string;
+    runner?: string;
 }
 
 /** Used where the package states no rule of its own. */
