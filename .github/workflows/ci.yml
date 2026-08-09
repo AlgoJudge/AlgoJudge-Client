@@ -72,8 +72,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Built but not pushed: no registry has been chosen yet. This exists so
-      # the Dockerfile cannot rot unnoticed while nobody is deploying.
+      # Built and not pushed, which is now a choice rather than a gap: this
+      # keeps the Dockerfile from rotting on an ordinary commit, and
+      # `release.yml` publishes to `ghcr.io/algojudge/algojudge-client` when
+      # somebody pushes a `v*` tag.
       - name: Build image
         run: docker build -t algojudge-client:ci .
 

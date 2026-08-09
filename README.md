@@ -103,38 +103,56 @@ A value configured in either of the older shapes — ending in `/v1` or `/api/v1
 configured, the real HTTP client otherwise. The fake serves generated data, so
 the interface can be developed without a running Server.
 
+## The published image
+
+Released images are pushed to GitHub's container registry when a `v*` tag is
+pushed:
+
+```bash
+docker pull ghcr.io/algojudge/algojudge-client:1.2.3
+```
+
+`1.2.3`, `1.2`, `1` and `latest` all point at the same image. **A prerelease
+(`v1.2.3-rc.1`) publishes only its own tag** — nothing moving follows it, so
+`latest` is never a release candidate.
+
 ## Docker
 
 Builds the static bundle and serves it from nginx. There is no Node.js runtime
 in the final image.
 
 ```bash
+docker run -p 8080:80 -e API_BASE_URL=https://api.example.org \
+  ghcr.io/algojudge/algojudge-client:1.2.3
+```
+
+**One image serves every installation** (decided 2026-08-03). The address is
+read from the container's environment when it starts, not from the build:
+
+| Variable | Meaning |
+|---|---|
+| `API_BASE_URL` | the Server's origin. `/` when a reverse proxy serves both from one domain |
+| `USE_FAKE_API` | `true` runs the interface against the in-browser fake, with no Server at all |
+
+`docker-entrypoint.sh` writes those into `index.html` before nginx starts, and
+says on stdout what it wrote. **Nothing here may hold a secret**: it ends up in a
+page every browser reads.
+
+The `VITE_APP_*` build arguments still exist and are left empty on purpose. Vite
+inlines them into the bundle, so setting one binds the image to a single
+installation — which is the thing the entrypoint exists to avoid. Build with one
+only if you deliberately want an image that cannot be reconfigured.
+
+Building it yourself is the same as what CI does:
+
+```bash
 docker build -t algojudge-client .
-docker run -p 8080:80 algojudge-client
 ```
-
-With no `VITE_APP_API_BASE_URL` the image runs against the fake API, which is
-useful for looking at the interface without a Server. To point it at one:
-
-```bash
-docker build --build-arg VITE_APP_API_BASE_URL=https://api.example.org -t algojudge-client .
-```
-
-Serving both from one domain, with a reverse proxy sending `/api/` to the
-Server, is the same build with the origin set to the application's own:
-
-```bash
-docker build --build-arg VITE_APP_API_BASE_URL=/ -t algojudge-client .
-```
-
-**The configuration is baked in at build time.** Vite inlines `VITE_`-prefixed
-values into the bundle, so a running container cannot be reconfigured — build a
-separate image per environment. For the same reason none of those values may
-hold a secret; they all end up readable in the browser.
 
 `nginx.conf` falls back to `index.html` for anything that is not a file on disk,
 which is what makes a deep link such as `/activities/PCN1/problems` survive a
 refresh. Hashed assets are cached for a year, `index.html` never.
+
 
 ## Project structure
 

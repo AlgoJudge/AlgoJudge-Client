@@ -1,0 +1,121 @@
+name: Release
+
+# **A tag is the only thing here that publishes anything.** Pushing one is a
+# person's act; nothing that lands on `main` reaches the registry on its own.
+#
+# The convention is `v<major>.<minor>.<patch>`, and a prerelease is
+# `v1.2.3-rc.1`. The `v*` filter is what enforces the prefix — the arithmetic
+# below only strips it.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  # The one thing in this repository that writes anything outside itself.
+  packages: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  # **Not cancelled.** A run interrupted between two `docker push` calls leaves
+  # a version half in the registry, which is worse than a duplicate run.
+  cancel-in-progress: false
+
+env:
+  IMAGE: algojudge-client
+
+jobs:
+  image:
+    name: Publish the container image
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The ancestry check below reads history, and a shallow clone has none.
+          fetch-depth: 0
+
+      # A tag on a scratch branch is not a release. This is the cheap half of
+      # the gate; the other half is the CI run on the commit itself, which this
+      # workflow deliberately does not reproduce — a tag points at a commit, and
+      # that commit's own run is the evidence.
+      - name: The tag must be on main
+        run: |
+          git fetch --no-tags --depth=1 origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" FETCH_HEAD || {
+            echo "$GITHUB_REF_NAME does not point at a commit on main" >&2
+            exit 1
+          }
+
+      - name: Work out the version and the tags
+        id: v
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+
+          # Refused rather than guessed at. `+build` metadata is legal semver
+          # and illegal in a Docker tag, so it is caught here rather than
+          # discovered by a push that fails halfway through.
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "$GITHUB_REF_NAME is not v<major>.<minor>.<patch>[-prerelease]" >&2
+            exit 1
+          fi
+
+          case "$version" in
+            # **A prerelease gets its own tag and nothing else.** The point of
+            # one is that somebody has to ask for it by name; `latest` or a
+            # moving major following it would hand it to everybody who did not.
+            *-*) tags="$version" ;;
+            *)   tags="$version ${version%.*} ${version%%.*} latest" ;;
+          esac
+
+          # ghcr rejects a path with a capital letter — `invalid reference
+          # format` — and the owner here is spelled `AlgoJudge`.
+          owner=$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tags=$tags" >> "$GITHUB_OUTPUT"
+          echo "registry=ghcr.io/$owner" >> "$GITHUB_OUTPUT"
+          echo "Publishing $version as: $tags"
+
+      # **No `VITE_APP_API_BASE_URL` build argument, deliberately.** Vite inlines
+      # those at build time, and one baked in here would bind this image to one
+      # installation — which is the whole thing the entrypoint exists to avoid
+      # (decided 2026-08-03). The address is set on the container instead.
+      #
+      # `image.source` is not decoration: it is what makes GitHub attach the
+      # package to this repository, so the package page links back to the code.
+      - name: Build
+        run: |
+          docker build \
+            -t "$IMAGE:release" \
+            --label "org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --label "org.opencontainers.image.version=${{ steps.v.outputs.version }}" \
+            --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            .
+
+      # The same check CI runs on every commit, for the same reason: a deep link
+      # is not a file on disk, so without the nginx fallback it 404s and the
+      # application is unusable everywhere except its front page.
+      - name: Serve it and check the SPA fallback
+        run: |
+          docker run -d --name release-check -p 8080:80 "$IMAGE:release"
+          for i in $(seq 1 15); do
+            curl -fsS http://localhost:8080/ >/dev/null && break
+            sleep 1
+          done
+          curl -fsS http://localhost:8080/ >/dev/null
+          curl -fsS http://localhost:8080/activities/PCN1/problems >/dev/null
+          docker stop release-check
+
+      - name: Log in to ghcr.io
+        run: |
+          printf '%s' '${{ github.token }}' \
+            | docker login ghcr.io -u '${{ github.actor }}' --password-stdin
+
+      - name: Push
+        run: |
+          for tag in ${{ steps.v.outputs.tags }}; do
+            docker tag "$IMAGE:release" "${{ steps.v.outputs.registry }}/$IMAGE:$tag"
+            docker push "${{ steps.v.outputs.registry }}/$IMAGE:$tag"
+          done
