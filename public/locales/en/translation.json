@@ -816,5 +816,19 @@
   "Nothing sent yet": "Nothing sent yet",
   "Empty means from this series' own start": "Empty means from this series' own start",
   "Judged against v{{pinned}}; the problem is now at v{{current}}": "Judged against v{{pinned}}; the problem is now at v{{current}}",
-  "Judged against the newest version": "Judged against the newest version"
+  "Judged against the newest version": "Judged against the newest version",
+  "Measured, per group": "Measured, per group",
+  "Suggested from the slowest language measured: a group's limit has to fit every language the activity accepts.": "Suggested from the slowest language measured: a group's limit has to fit every language the activity accepts.",
+  "Suggested limit": "Suggested limit",
+  "Measured": "Measured",
+  "Apply": "Apply",
+  "Applied": "Applied",
+  "Apply every suggestion": "Apply every suggestion",
+  "memory not measured": "memory not measured",
+  "Wrong answer": "Wrong answer",
+  "Output limit": "Output limit",
+  "Runtime error": "Runtime error",
+  "Rule violation": "Rule violation",
+  "Compilation error": "Compilation error",
+  "permission.trial:run": "Runs trials"
 }
