@@ -193,6 +193,26 @@ Three pieces that are easy to reach for the wrong one:
 
 ## Decisions in force (2026-08-02)
 
+- **Identity phase 2, specified 2026-08-09, accepted 2026-08-10** —
+  `AlgoJudge-Design/adr/IDENTITY_PHASE_2_DECISIONS_2026-08-09.md`, indexed in the
+  workspace under *Identity phase 2*. **Not yet implemented here.** Three things
+  reach this repository:
+  - `/manager/oidc` stops being a `soon` entry and becomes a real area behind a
+    new `provider:manage` permission, including the claim-mapping editor. A
+    provider secret can be **set and never read back**, and the form has to say
+    so — an empty field otherwise reads as a loss rather than as something the
+    API refuses to disclose.
+  - The grants screen must answer **where a permission came from**: at system
+    scope a set is now the union of one manual contribution and one per linked
+    provider, so it is in no single row. It must also say that setting an
+    activity grant's **override flag** on somebody holding system permissions
+    demotes them inside that activity.
+  - The login screen offers the enabled providers, and that list is read
+    **before anyone signs in** — so it travels on `getInstanceInfo`, the existing
+    anonymous call, not on a new authenticated one.
+  `AccountPage` already reads `session.isLocal` and renders read-only for an SSO
+  account; the Server has been answering a hard-coded `true` and starts telling
+  the truth in phase 2.
 - All identifiers are string UUIDs. The Server still uses `int` keys; the HTTP
   mapper stringifies them until it migrates.
 - `Activity.type` is the type discriminator, formatted `name@version`.
