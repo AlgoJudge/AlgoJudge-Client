@@ -1,6 +1,10 @@
 import { ManagerEventDispatcherImpl } from "../impl/ManagerEventDispatcher";
 import {
     ActivityInput,
+    DeletionRequest,
+    DeletionRequestFilter,
+    IdentityProvider,
+    IdentityProviderInput,
     AnnouncementInput,
     AnswerInput,
     BulkUserInput,
@@ -69,6 +73,7 @@ import { createProblemLibrary, ME, ProblemRecord } from "./fixtures/problems";
 import { createQuestions } from "./fixtures/questions";
 import { createRunners, runnerFile } from "./fixtures/runners";
 import { createUsers } from "./fixtures/users";
+import { createDeletionRequests, createProviders } from "./fixtures/providers";
 import { createSessions } from "./fixtures/sessions";
 import { FakeFiles } from "./FileApiFake";
 import { FakeInstance } from "./FakeInstance";
@@ -128,6 +133,8 @@ export class ManagerApiFake implements ManagerApi {
     private packages = new Map<string, Blob>();
     private users: ManagedUser[] = createUsers();
     private runners: ManagedRunner[] = createRunners();
+    private providers: IdentityProvider[] = createProviders();
+    private deletionRequests: DeletionRequest[] = createDeletionRequests();
 
     /**
      * The same store the rest of the fake reads: a version references files
@@ -318,9 +325,27 @@ export class ManagerApiFake implements ManagerApi {
         // felt like sending.
         const isSystem = systemicByDefault(input.permissions, PERMISSION_CATALOGUE, input.isSystem);
 
-        const existing = this.access.grants.find(g => g.userId === input.userId && g.activityId === input.activityId);
+        // **The manual contribution, and only that one.** A managed one belongs
+        // to its provider's mapping and is rewritten at every sign-in, so an
+        // edit here would last until that person next signed in — which is why
+        // the Server refuses it and why this looks the same way it does.
+        const existing = this.access.grants.find(g =>
+            g.userId === input.userId
+            && g.activityId === input.activityId
+            && g.source === "manual");
+
+        // Only ever set on an activity grant: at system scope there is nothing
+        // to override.
+        const overrideSystem = input.activityId !== undefined && input.overrideSystem === true;
+
         const grant: Grant = existing
-            ? { ...existing, ...input, isSystem, permissions: [...input.permissions] }
+            ? {
+                ...existing,
+                ...input,
+                isSystem,
+                overrideSystem,
+                permissions: [...input.permissions],
+            }
             : {
                 id: newId(),
                 userName: MANAGED_USERS.find(u => u.id === input.userId)?.name ?? input.userId,
@@ -329,6 +354,9 @@ export class ManagerApiFake implements ManagerApi {
                 state: "active",
                 createdAt: new Date().toISOString(),
                 ...input,
+                source: "manual",
+                managed: false,
+                overrideSystem,
                 isSystem,
                 permissions: [...input.permissions],
             };
@@ -841,6 +869,9 @@ export class ManagerApiFake implements ManagerApi {
                     // a class are participants, and one made with a staff set is
                     // not, whoever asked for it.
                     isSystem: systemicByDefault(input.permissions ?? [], PERMISSION_CATALOGUE, false),
+                    source: "manual",
+                    managed: false,
+                    overrideSystem: false,
                     state: "active",
                     createdAt: user.createdAt,
                 }];
@@ -1641,6 +1672,225 @@ export class ManagerApiFake implements ManagerApi {
     private assertNameFree(name: string, exceptId?: string): void {
         if (this.templates.some(t => t.name.toLowerCase() === name.trim().toLowerCase() && t.id !== exceptId)) {
             conflict(`A template named "${name}" already exists`);
+        }
+    }
+
+    // ── Identity providers ───────────────────────────────────────────────────
+
+    async getIdentityProviders(signal: AbortSignal): Promise<IdentityProvider[]> {
+        await this.settle(signal);
+        await this.requireAsync("provider:manage", signal);
+        return this.providers.map(copy);
+    }
+
+    async createIdentityProvider(
+        input: IdentityProviderInput, signal: AbortSignal,
+    ): Promise<IdentityProvider> {
+        await this.settle(signal);
+        await this.requireAsync("provider:manage", signal);
+
+        // Required once and preserved afterwards. A provider registered without
+        // one sits in the list looking configured and fails at the only moment
+        // that matters.
+        if (!input.clientSecret?.trim()) {
+            invalid("A client secret is required", "provider.clientSecret.required");
+        }
+        if (this.providers.some(p => p.slug === input.slug.trim().toLowerCase())) {
+            conflict(`A provider with the slug "${input.slug}" already exists`, "provider.slug.taken");
+        }
+        await this.assertMappableAsync(input, signal);
+
+        const provider: IdentityProvider = {
+            ...this.settingsOf(input),
+            id: newId(),
+            hasClientSecret: true,
+            hasDeletionSecret: Boolean(input.deletionSecret?.trim()),
+            callbackPath: `/api/v1/identity/providers/${input.slug.trim().toLowerCase()}/callback`,
+            linkedAccounts: 0,
+            createdAt: new Date().toISOString(),
+        };
+
+        this.providers = [...this.providers, provider];
+        return copy(provider);
+    }
+
+    async updateIdentityProvider(
+        id: string, input: IdentityProviderInput, signal: AbortSignal,
+    ): Promise<IdentityProvider> {
+        await this.settle(signal);
+        await this.requireAsync("provider:manage", signal);
+
+        const existing = this.providers.find(p => p.id === id);
+        if (!existing) notFound("Identity provider");
+        if (this.providers.some(p => p.id !== id && p.slug === input.slug.trim().toLowerCase())) {
+            conflict(`A provider with the slug "${input.slug}" already exists`, "provider.slug.taken");
+        }
+        await this.assertMappableAsync(input, signal);
+
+        const updated: IdentityProvider = {
+            ...existing,
+            ...this.settingsOf(input),
+            id: existing.id,
+            // **Absent means "leave the stored one alone".** The panel is never
+            // given a secret, so it cannot send one back — and treating a blank
+            // field as "clear it" would unconfigure a working provider on every
+            // save.
+            hasClientSecret: existing.hasClientSecret || Boolean(input.clientSecret?.trim()),
+            hasDeletionSecret: existing.hasDeletionSecret || Boolean(input.deletionSecret?.trim()),
+            callbackPath: `/api/v1/identity/providers/${input.slug.trim().toLowerCase()}/callback`,
+            linkedAccounts: existing.linkedAccounts,
+            createdAt: existing.createdAt,
+        };
+
+        if (updated.deletionChannelEnabled && !updated.hasDeletionSecret) {
+            // An open back channel with no secret is an endpoint anybody may
+            // post an account deletion to.
+            invalid(
+                "The deletion channel needs a secret before it can be enabled",
+                "provider.deletionSecret.required");
+        }
+
+        this.providers = this.providers.map(p => p.id === id ? updated : p);
+        return copy(updated);
+    }
+
+    async deleteIdentityProvider(id: string, signal: AbortSignal): Promise<void> {
+        await this.settle(signal);
+        await this.requireAsync("provider:manage", signal);
+
+        const provider = this.providers.find(p => p.id === id);
+        if (!provider) notFound("Identity provider");
+
+        // Refused rather than cascaded: removing a provider people sign in
+        // through decides something about their accounts, and that is not a side
+        // effect a delete button should have. Disabling is the reversible act.
+        if (provider.linkedAccounts > 0) {
+            conflict(
+                `${provider.linkedAccounts} account(s) sign in through "${provider.slug}". `
+                    + "Disable it instead, or remove the links first",
+                "provider.linked");
+        }
+
+        this.providers = this.providers.filter(p => p.id !== id);
+    }
+
+    async getDeletionRequests(
+        filter: DeletionRequestFilter, signal: AbortSignal,
+    ): Promise<Page<DeletionRequest>> {
+        await this.settle(signal);
+        await this.requireAsync("user:update", signal);
+
+        const matching = this.deletionRequests.filter(r =>
+            filter.state === undefined
+            || (filter.state === "open"
+                ? r.state === "pending" || r.state === "attention"
+                : r.state === filter.state));
+
+        return copy(paginate(matching, filter.page, filter.pageSize));
+    }
+
+    async haltDeletionRequest(id: string, signal: AbortSignal): Promise<DeletionRequest> {
+        await this.settle(signal);
+        await this.requireAsync("user:update", signal);
+
+        const request = this.deletionRequests.find(r => r.id === id);
+        if (!request) notFound("Deletion request");
+
+        // A window that has closed cannot be reopened: what it was holding has
+        // already happened, and an undo that does not exist should not be
+        // offered.
+        if (request.state !== "pending") {
+            conflict("This request is no longer waiting and cannot be stopped", "deletion.notPending");
+        }
+
+        const halted: DeletionRequest = {
+            ...request,
+            state: "halted",
+            resolvedAt: new Date().toISOString(),
+        };
+        this.deletionRequests = this.deletionRequests.map(r => r.id === id ? halted : r);
+        return copy(halted);
+    }
+
+    /** Everything an input carries that is not a secret and not derived. */
+    private settingsOf(input: IdentityProviderInput) {
+        return {
+            slug: input.slug.trim().toLowerCase(),
+            displayName: input.displayName.trim(),
+            issuer: input.issuer.trim().replace(/\/$/, ""),
+            clientId: input.clientId.trim(),
+            scopes: input.scopes?.trim() || "openid profile email",
+            enabled: input.enabled,
+            accountUrl: input.accountUrl?.trim() || undefined,
+            claimPath: input.claimPath?.trim() || "groups",
+            unmappedBehavior: input.unmappedBehavior ?? "deny",
+            defaultTemplateName: input.unmappedBehavior === "defaultTemplate"
+                ? input.defaultTemplateName
+                : undefined,
+            deletionChannelEnabled: input.deletionChannelEnabled,
+            mappingRules: [...(input.mappingRules ?? [])],
+        };
+    }
+
+    /**
+     * The two guards, together, because neither is safe without the other.
+     *
+     * A mapping decides what an external directory's groups buy here, so the
+     * fake refuses exactly what the Server refuses: `system:administrator` is
+     * unreachable through a mapping in every configuration, and nobody may map
+     * onto a permission they do not themselves hold.
+     */
+    private async assertMappableAsync(
+        input: IdentityProviderInput, signal: AbortSignal,
+    ): Promise<void> {
+        const seen = new Set<string>();
+        const named = [
+            ...(input.mappingRules ?? []).map(r => r.templateName),
+            ...(input.unmappedBehavior === "defaultTemplate" && input.defaultTemplateName
+                ? [input.defaultTemplateName]
+                : []),
+        ];
+
+        for (const rule of input.mappingRules ?? []) {
+            if (seen.has(rule.claimValue)) {
+                // Two rules for one value is a question about ordering, and this
+                // model deliberately has no answer to it.
+                invalid(`The claim value "${rule.claimValue}" is mapped twice`, "provider.rule.duplicate");
+            }
+            seen.add(rule.claimValue);
+        }
+
+        const mine = await this.getMyPermissions(undefined, signal);
+        for (const name of named) {
+            const template = this.templates.find(t => t.name === name);
+            if (!template) {
+                invalid(`No template named "${name}"`, "provider.rule.template.unknown");
+            }
+            if (template.permissions.includes("system:administrator")) {
+                forbidden(
+                    `"${name}" grants system:administrator, which no claim may ever grant`,
+                    "provider.rule.administrator");
+            }
+            if (!mine.includes("system:administrator")) {
+                const excess = template.permissions.filter(p => !mine.includes(p));
+                if (excess.length > 0) {
+                    forbidden(
+                        `Cannot map onto permissions you do not hold: ${excess.join(", ")}`,
+                        "provider.rule.excess");
+                }
+            }
+        }
+    }
+
+    /**
+     * Refuses the way the Server refuses: a permission this caller does not
+     * hold is a 403, not an empty list. A fake that answered `[]` would let a
+     * screen look right against it and be wrong against the Server.
+     */
+    private async requireAsync(permission: string, signal: AbortSignal): Promise<void> {
+        const mine = await this.getMyPermissions(undefined, signal);
+        if (!mine.includes("system:administrator") && !mine.includes(permission)) {
+            forbidden(`Access denied: ${permission} is required`, "forbidden");
         }
     }
 

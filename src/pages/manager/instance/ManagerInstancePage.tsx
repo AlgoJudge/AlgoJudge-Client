@@ -33,12 +33,14 @@ const settingsOf = (instance: {
     requireEmail: boolean;
     requireConfirmedEmail: boolean;
     showLogo: boolean;
+    accountDeletionEnabled: boolean;
 }): InstanceSettingsInput => ({
     name: instance.name,
     localRegistrationEnabled: instance.localRegistrationEnabled,
     requireEmail: instance.requireEmail,
     requireConfirmedEmail: instance.requireConfirmedEmail,
     showLogo: instance.showLogo,
+    accountDeletionEnabled: instance.accountDeletionEnabled,
 });
 
 /** The file a language's text is stored under: `privacy.md`, `privacy-en.md`. */
@@ -124,6 +126,12 @@ export default function ManagerInstancePage() {
                                 label={t("Show the mark in the application")}
                                 checked={settings.showLogo}
                                 onChange={e => setSettings({ ...settings, showLogo: e.currentTarget.checked })}
+                            />
+                            <Switch
+                                label={t("Let people remove their own account")}
+                                description={t("On by default. It is a data-protection right before it is a feature; closing it should be a decision.")}
+                                checked={settings.accountDeletionEnabled}
+                                onChange={e => setSettings({ ...settings, accountDeletionEnabled: e.currentTarget.checked })}
                             />
                             <Group justify="flex-end">
                                 <Button

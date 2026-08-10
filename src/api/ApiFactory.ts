@@ -4,21 +4,19 @@ import { apiBaseUrl } from "./http/apiBase";
 import { HttpApiFactory } from "./http/HttpApiFactory";
 
 /**
- * What the container wrote into `index.html` when it started.
+ * What the container wrote into `index.html` when it started — one image per
+ * installation, configured at start rather than at build (decided 2026-08-03).
  *
- * One image per installation, configured at start rather than at build
- * (decided 2026-08-03): the entrypoint runs `envsubst` over the placeholder in
- * `index.html`, and this is what it leaves behind. Absent under `npm run dev`,
- * which never goes through the entrypoint.
+ * The shape and the `Window` augmentation live in `http/apiBase.ts`, beside the
+ * other place that resolves this value: the sign-in buttons leave the
+ * application entirely, so they cannot go through the API layer and need the
+ * address on their own. Two declarations of one global would be two places to
+ * change it.
  */
-interface RuntimeConfig {
-    apiBaseUrl?: string;
-    useFakeApi?: string;
-}
 
-declare global {
-    interface Window { __ALGOJUDGE__?: RuntimeConfig }
-}
+// The  augmentation lives in , beside the other
+// resolution of this value — two declarations of one global is two places to
+// change it.
 
 /**
  * A configured value, or nothing.

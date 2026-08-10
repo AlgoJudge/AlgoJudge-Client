@@ -90,4 +90,11 @@ export class CoreApiHttp implements CoreApi {
     async deleteAccount(password: string, signal: AbortSignal): Promise<void> {
         await this.http.request<void>("/account/delete", "POST", { signal, body: { password } });
     }
+
+    async unlinkProvider(providerId: string | undefined, signal: AbortSignal): Promise<void> {
+        // A different path from `/account/delete`, not a rename of it: that one
+        // is the local account's and asks for a password.
+        await this.http.request<void>(
+            "/account/deletion-requests", "POST", { signal, body: { providerId } });
+    }
 }

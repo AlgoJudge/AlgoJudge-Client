@@ -52,6 +52,7 @@ const ManagerSubmissionsPage = lazy(() => import('./pages/manager/submissions/Ma
 const ManagerSubmissionPage = lazy(() => import('./pages/manager/submissions/submission_id/ManagerSubmissionPage'));
 const ManagerQuestionsPage = lazy(() => import('./pages/manager/questions/ManagerQuestionsPage'));
 const ManagerInstancePage = lazy(() => import('./pages/manager/instance/ManagerInstancePage'));
+const ProvidersPage = lazy(() => import('./pages/manager/providers/ProvidersPage'));
 
 function App() {
 
@@ -190,7 +191,8 @@ function App() {
                 managerRoute("/manager/grants", <GrantsPage />),
                 managerRoute("/manager/permission-templates", <PermissionTemplatesPage />),
                 managerRoute("/manager/runners", <RunnersPage />),
-                managerRoute("/manager/instance", <ManagerInstancePage />)
+                managerRoute("/manager/instance", <ManagerInstancePage />),
+                managerRoute("/manager/oidc", <ProvidersPage />)
             ]
         }
     ], { basename: import.meta.env.BASE_URL });

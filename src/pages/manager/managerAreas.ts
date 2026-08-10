@@ -93,10 +93,16 @@ export const MANAGER_AREAS: ManagerArea[] = [
         icon: IconBuildingCommunity,
         permissions: ["instance:update"],
     },
+    {
+        to: "/manager/oidc",
+        label: "External logins",
+        description: "Identity providers, what a claim from one grants, and the accounts asked to go.",
+        icon: IconIdBadge2,
+        permissions: ["provider:manage"],
+    },
     // Directions rather than features. No permission of their own: they are dead
     // entries that lead nowhere and disclose nothing, and hiding them would make
     // the product look smaller than the plan it is being built to.
-    { to: "/manager/oidc", label: "External logins", description: "", icon: IconIdBadge2, permissions: [], soon: true },
     { to: "/manager/lti", label: "LTI platforms", description: "", icon: IconAlignBoxCenterTop, permissions: [], soon: true },
     { to: "/manager/external-content", label: "External content", description: "", icon: IconWorldWww, permissions: [], soon: true },
     { to: "/manager/workstations", label: "Workstations", description: "", icon: IconDevicesPc, permissions: [], soon: true },

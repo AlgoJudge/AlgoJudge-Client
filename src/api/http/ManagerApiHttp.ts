@@ -1,7 +1,11 @@
 import { InstanceDocumentKind, InstanceDocumentRef, InstanceInfo } from "../CoreApi";
 import {
     ActivityInput,
+    DeletionRequest,
+    DeletionRequestFilter,
     Grant,
+    IdentityProvider,
+    IdentityProviderInput,
     GrantFilter,
     GrantInput,
     ManagedActivity,
@@ -118,6 +122,42 @@ export class ManagerApiHttp implements ManagerApi {
 
     searchUsers(query: string, signal: AbortSignal): Promise<ManagedUserSummary[]> {
         return this.http.request<ManagedUserSummary[]>("/users", "GET", { signal, query: { q: query } });
+    }
+
+    getIdentityProviders(signal: AbortSignal): Promise<IdentityProvider[]> {
+        return this.http.request<IdentityProvider[]>("/identity/providers", "GET", { signal });
+    }
+
+    createIdentityProvider(input: IdentityProviderInput, signal: AbortSignal): Promise<IdentityProvider> {
+        return this.http.request<IdentityProvider>("/identity/providers", "POST", { signal, body: input });
+    }
+
+    updateIdentityProvider(
+        id: string, input: IdentityProviderInput, signal: AbortSignal,
+    ): Promise<IdentityProvider> {
+        return this.http.request<IdentityProvider>(
+            `/identity/providers/${encodeURIComponent(id)}`, "PUT", { signal, body: input });
+    }
+
+    async deleteIdentityProvider(id: string, signal: AbortSignal): Promise<void> {
+        await this.http.request<void>(
+            `/identity/providers/${encodeURIComponent(id)}`, "DELETE", { signal });
+    }
+
+    getDeletionRequests(
+        filter: DeletionRequestFilter, signal: AbortSignal,
+    ): Promise<Page<DeletionRequest>> {
+        const query: Record<string, string | number> = {};
+        if (filter.page !== undefined) query.page = filter.page;
+        if (filter.pageSize !== undefined) query.pageSize = filter.pageSize;
+        if (filter.state) query.state = filter.state;
+        return this.http.request<Page<DeletionRequest>>(
+            "/account-deletion-requests", "GET", { signal, query });
+    }
+
+    haltDeletionRequest(id: string, signal: AbortSignal): Promise<DeletionRequest> {
+        return this.http.request<DeletionRequest>(
+            `/account-deletion-requests/${encodeURIComponent(id)}/halt`, "POST", { signal, body: {} });
     }
 
     getRunners(filter: ManagedRunnerFilter, signal: AbortSignal): Promise<Page<ManagedRunner>> {

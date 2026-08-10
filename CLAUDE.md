@@ -31,13 +31,23 @@ verified as outdated and removed there.
 | `npm run check:package` | round-trips a Runner package through the real builder |
 | `npm run check:content` | parses and validates every `content.md` fixture |
 | `npm run check:events` | drives the event socket against a stub `WebSocket` |
+| `npm run check:i18n` | every `t("…")` a screen asks for, against every language file |
 | `npm run check:api` | lists every endpoint the HTTP layer calls; checks it against an OpenAPI document when given one |
 | `npm run check:ui` | drives a real browser over the screens, against the fake API |
 
 There is no test runner. Lint, `lint:deps`, typecheck and build are the gate and
 all four must exit 0 before anything is merged; the `check:` scripts cover what
 the Client owns and are run when it changes — the two formats
-(`check:content`, `check:package`) and the event transport (`check:events`).
+(`check:content`, `check:package`), the event transport (`check:events`) and the
+translations (`check:i18n`). All four are CI steps.
+
+`check:i18n` catches the one defect none of the others can. **A missing key is
+not an error**: i18next falls back to the key itself, which *is* the English
+text, so a Polish screen quietly renders an English sentence while lint,
+typecheck and the build all stay silent. It reads the literal `t("…")` form only
+— a key built at run time is invisible to it, and the answer to that is not to
+write one. Keys no screen asks for are reported and never failed on: deleting a
+screen should not be harder than adding one.
 
 `check:api` is not a gate yet: it prints the endpoints the HTTP layer calls, and
 only checks them when handed an OpenAPI document —
@@ -193,6 +203,26 @@ Three pieces that are easy to reach for the wrong one:
 
 ## Decisions in force (2026-08-02)
 
+- **Identity phase 2, specified 2026-08-09, accepted 2026-08-10** —
+  `AlgoJudge-Design/adr/IDENTITY_PHASE_2_DECISIONS_2026-08-09.md`, indexed in the
+  workspace under *Identity phase 2*. **Not yet implemented here.** Three things
+  reach this repository:
+  - `/manager/oidc` stops being a `soon` entry and becomes a real area behind a
+    new `provider:manage` permission, including the claim-mapping editor. A
+    provider secret can be **set and never read back**, and the form has to say
+    so — an empty field otherwise reads as a loss rather than as something the
+    API refuses to disclose.
+  - The grants screen must answer **where a permission came from**: at system
+    scope a set is now the union of one manual contribution and one per linked
+    provider, so it is in no single row. It must also say that setting an
+    activity grant's **override flag** on somebody holding system permissions
+    demotes them inside that activity.
+  - The login screen offers the enabled providers, and that list is read
+    **before anyone signs in** — so it travels on `getInstanceInfo`, the existing
+    anonymous call, not on a new authenticated one.
+  `AccountPage` already reads `session.isLocal` and renders read-only for an SSO
+  account; the Server has been answering a hard-coded `true` and starts telling
+  the truth in phase 2.
 - All identifiers are string UUIDs. The Server still uses `int` keys; the HTTP
   mapper stringifies them until it migrates.
 - `Activity.type` is the type discriminator, formatted `name@version`.

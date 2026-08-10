@@ -25,6 +25,15 @@ const DEFAULTS: InstanceInfo = {
     requireEmail: false,
     requireConfirmedEmail: false,
     showLogo: true,
+    // **Empty, and that is the safe default rather than the pessimistic one.**
+    // A sign-in button drawn before the answer arrives would point at a provider
+    // this installation may not have registered, and a 404 in the middle of
+    // signing in is worse than a button that appears a moment later.
+    providers: [],
+    // The other way round: the account screen offers removal, and an
+    // installation that has closed it says so when the answer arrives. Starting
+    // from `false` would hide a right from everybody for the length of a fetch.
+    accountDeletionEnabled: true,
 };
 
 export const InstanceProvider: FC<{ children: ReactNode }> = ({ children }) => {

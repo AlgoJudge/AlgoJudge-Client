@@ -17,6 +17,11 @@
  */
 export const API_PATH = "/api/v1";
 
+/** What the container wrote into `index.html` when it started. See `ApiFactory`. */
+declare global {
+    interface Window { __ALGOJUDGE__?: { apiBaseUrl?: string; useFakeApi?: string } }
+}
+
 /**
  * The API's base address, from whatever the operator configured as the origin.
  *
@@ -34,4 +39,28 @@ export const apiBaseUrl = (configured: string): string => {
         // `/v1/api/v1` and reports nothing but a 404.
         .replace(/(\/api)?\/v1$/, "");
     return origin + API_PATH;
+};
+
+/**
+ * The API's base address as this build is actually configured.
+ *
+ * `ApiFactory` resolves the same thing to construct the HTTP client, and this is
+ * that resolution exported — because one caller cannot go through the API layer
+ * at all. **A sign-in through a provider leaves this application**: the browser
+ * is sent to the provider and comes back to the Server, so the button needs a
+ * real address rather than a method on a client.
+ *
+ * Empty is the honest answer under the fake and under `npm run dev`, where no
+ * origin is configured. A caller that needs a Server has to say what it does
+ * with that, rather than build a link to nowhere.
+ */
+export const resolvedApiBase = (): string => {
+    const runtime = typeof window === "undefined" ? undefined : window.__ALGOJUDGE__;
+    const configured = (value: string | undefined): string | undefined =>
+        value !== undefined && value.trim().length > 0 ? value : undefined;
+
+    const origin = configured(runtime?.apiBaseUrl)
+        ?? configured(import.meta.env.VITE_APP_API_BASE_URL);
+
+    return origin ? apiBaseUrl(origin) : "";
 };

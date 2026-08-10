@@ -1,5 +1,7 @@
-import { Alert, Badge, Button, Group, Modal, Pagination, Select, Stack, Table, Text, Title } from "@mantine/core";
-import { IconPlus, IconTrash, IconWorld } from "@tabler/icons-react";
+import {
+    Alert, Badge, Button, Group, Modal, Pagination, Select, Stack, Switch, Table, Text, Title,
+} from "@mantine/core";
+import { IconAlertTriangle, IconPlus, IconTrash, IconWorld } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -23,6 +25,16 @@ interface Draft {
     createdFromTemplate?: string;
     /** An existing grant is being edited; the pair cannot be changed. */
     existing: boolean;
+    /**
+     * Make this activity grant authoritative inside its activity.
+     *
+     * **Setting it on somebody who holds system permissions demotes them
+     * there.** The modal says so at the moment of the act, because the first
+     * sign of it otherwise is a manager who has quietly lost a screen.
+     */
+    overrideSystem: boolean;
+    /** Whether the person already holds anything at system scope, for that warning. */
+    holdsSystem: boolean;
 }
 
 export default function GrantsPage() {
@@ -89,6 +101,17 @@ export default function GrantsPage() {
         });
     };
 
+    /**
+     * Whether this person already holds something across the installation.
+     *
+     * Read off the grants this screen has loaded, which is enough for the one
+     * thing it is used for: warning that the override flag would demote
+     * somebody. A separate request per row would be a request per row.
+     */
+    const holdsSystemPermissions = (userId: string): boolean =>
+        (grants ?? []).some(g =>
+            g.userId === userId && g.activityId === undefined && g.permissions.length > 0);
+
     const save = async () => {
         if (!draft) return;
         if (!draft.userId) {
@@ -103,6 +126,7 @@ export default function GrantsPage() {
                 activityId: draft.activityId,
                 permissions: draft.permissions,
                 createdFromTemplate: draft.createdFromTemplate,
+                overrideSystem: draft.overrideSystem,
             }));
             setDraft(undefined);
             setReload(n => n + 1);
@@ -139,7 +163,13 @@ export default function GrantsPage() {
                 </Stack>
                 <Button
                     leftSection={<IconPlus size={16} />}
-                    onClick={() => open({ userId: "", permissions: [], existing: false })}
+                    onClick={() => open({
+                        userId: "",
+                        permissions: [],
+                        existing: false,
+                        overrideSystem: false,
+                        holdsSystem: false,
+                    })}
                 >
                     {t("New grant")}
                 </Button>
@@ -203,6 +233,8 @@ export default function GrantsPage() {
                                                 permissions: [...grant.permissions],
                                                 createdFromTemplate: grant.createdFromTemplate,
                                                 existing: true,
+                                                overrideSystem: grant.overrideSystem,
+                                                holdsSystem: holdsSystemPermissions(grant.userId),
                                             })}
                                         >
                                             {grant.userName}
@@ -225,7 +257,24 @@ export default function GrantsPage() {
                                         : <Badge variant="outline">{grant.permissions.length}</Badge>}
                                 </Table.Td>
                                 <Table.Td>
-                                    <Text size="sm" c="dimmed">{grant.createdFromTemplate ?? "—"}</Text>
+                                    <Stack gap={2}>
+                                        <Text size="sm" c="dimmed">{grant.createdFromTemplate ?? "—"}</Text>
+                                        {/* At system scope a person's permissions are
+                                            the union of several rows — one assigned by
+                                            hand, one per linked provider — so a list
+                                            that did not say which row this is cannot
+                                            be acted on. */}
+                                        {grant.managed && (
+                                            <Badge size="xs" variant="light" color="grape">
+                                                {grant.sourceProviderName ?? t("From a provider")}
+                                            </Badge>
+                                        )}
+                                        {grant.overrideSystem && (
+                                            <Badge size="xs" variant="light" color="orange">
+                                                {t("Overrides the system set")}
+                                            </Badge>
+                                        )}
+                                    </Stack>
                                 </Table.Td>
                                 <Table.Td>
                                     <Badge variant="light" color={grant.state === "active" ? "teal" : "blue"}>
@@ -237,15 +286,28 @@ export default function GrantsPage() {
                                 </Table.Td>
                                 <Table.Td>
                                     <Group gap="xs" justify="flex-end" wrap="nowrap">
+                                        {/* A managed contribution belongs to its
+                                            provider's mapping and is rewritten at every
+                                            sign-in, so an edit here would last until
+                                            that person next signed in. The Server
+                                            refuses it; the screen does not offer it. */}
+                                        {grant.managed && (
+                                            <Text size="xs" c="dimmed" maw={220} ta="right">
+                                                {t("Rewritten at every sign-in. Change the provider's mapping instead.")}
+                                            </Text>
+                                        )}
                                         <Button
                                             variant="light"
                                             size="compact-sm"
+                                            disabled={grant.managed}
                                             onClick={() => open({
                                                 userId: grant.userId,
                                                 activityId: grant.activityId,
                                                 permissions: [...grant.permissions],
                                                 createdFromTemplate: grant.createdFromTemplate,
                                                 existing: true,
+                                                overrideSystem: grant.overrideSystem,
+                                                holdsSystem: holdsSystemPermissions(grant.userId),
                                             })}
                                         >
                                             {t("Edit")}
@@ -254,6 +316,7 @@ export default function GrantsPage() {
                                             variant="light"
                                             color="red"
                                             size="compact-sm"
+                                            disabled={grant.managed}
                                             leftSection={<IconTrash size={14} />}
                                             onClick={() => revoke(grant)}
                                         >
@@ -308,6 +371,22 @@ export default function GrantsPage() {
                                 disabled={draft.existing}
                             />
                         </Group>
+
+                        {draft.activityId !== undefined && (
+                            <Stack gap={4}>
+                                <Switch
+                                    label={t("This grant is the whole answer inside the activity")}
+                                    description={t("System-wide permissions do not reach into it — not even an administrator's.")}
+                                    checked={draft.overrideSystem}
+                                    onChange={e => setDraft({ ...draft, overrideSystem: e.currentTarget.checked })}
+                                />
+                                {draft.overrideSystem && draft.holdsSystem && (
+                                    <Alert color="orange" icon={<IconAlertTriangle size={16} />}>
+                                        {t("This person holds permissions across the installation. Switching this on takes them away inside this activity — they will be whatever this grant says, and clearing it again needs somebody else.")}
+                                    </Alert>
+                                )}
+                            </Stack>
+                        )}
 
                         <Select
                             label={t("Start from a template")}
