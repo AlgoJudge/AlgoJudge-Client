@@ -59,6 +59,13 @@ jobs:
       - name: Check the event socket
         run: npm run check:events
 
+      # The one defect nothing above can see. A missing key is not an error:
+      # i18next falls back to the key, which *is* the English text — so a Polish
+      # screen renders an English sentence and every other check stays silent.
+      # Four strings were in exactly that state before this ran.
+      - name: Check the translations
+        run: npm run check:i18n
+
       # Not a gate: the Server publishes no OpenAPI document yet, so this only
       # prints the endpoints that will have to be served. It is here so the list
       # is visible in every run rather than only when somebody thinks to ask.
