@@ -18,6 +18,10 @@ import {
 import {
     ActivityChangedEvent,
     ActivityInput,
+    DeletionRequest,
+    DeletionRequestFilter,
+    IdentityProvider,
+    IdentityProviderInput,
     Grant,
     GrantChangedEvent,
     GrantFilter,
@@ -209,6 +213,10 @@ export class ScopedCoreApi {
     exportData(): Promise<Blob> {
         return this.coreApi.exportData(this.signal);
     }
+    unlinkProvider(providerId: string | undefined): Promise<void> {
+        return this.coreApi.unlinkProvider(providerId, this.signal);
+    }
+
     deleteAccount(password: string): Promise<void> {
         return this.coreApi.deleteAccount(password, this.signal);
     }
@@ -338,6 +346,30 @@ export class ScopedManagerApi {
     }
     revokeGrant(id: string): Promise<void> {
         return this.managerApi.revokeGrant(id, this.signal);
+    }
+
+    getIdentityProviders(): Promise<IdentityProvider[]> {
+        return this.managerApi.getIdentityProviders(this.signal);
+    }
+
+    createIdentityProvider(input: IdentityProviderInput): Promise<IdentityProvider> {
+        return this.managerApi.createIdentityProvider(input, this.signal);
+    }
+
+    updateIdentityProvider(id: string, input: IdentityProviderInput): Promise<IdentityProvider> {
+        return this.managerApi.updateIdentityProvider(id, input, this.signal);
+    }
+
+    deleteIdentityProvider(id: string): Promise<void> {
+        return this.managerApi.deleteIdentityProvider(id, this.signal);
+    }
+
+    getDeletionRequests(filter: DeletionRequestFilter): Promise<Page<DeletionRequest>> {
+        return this.managerApi.getDeletionRequests(filter, this.signal);
+    }
+
+    haltDeletionRequest(id: string): Promise<DeletionRequest> {
+        return this.managerApi.haltDeletionRequest(id, this.signal);
     }
 
     searchUsers(query: string): Promise<ManagedUserSummary[]> {

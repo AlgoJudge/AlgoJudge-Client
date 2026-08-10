@@ -1,10 +1,12 @@
 import {
-    Alert, Anchor, Box, Button, Container, LoadingOverlay, Paper, PasswordInput, Text, TextInput, Title,
+    Alert, Anchor, Box, Button, Container, Divider, LoadingOverlay, Paper, PasswordInput, Stack, Text,
+    TextInput, Title,
 } from '@mantine/core';
 import { IconInfoCircle } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useTranslation } from "react-i18next";
-import { Link, Navigate, useLocation } from 'react-router-dom';
+import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom';
+import { resolvedApiBase } from '../../api/http/apiBase';
 import { UnauthorizedError } from '../../api/ApiError';
 import { useAuth } from '../../provider/authContext';
 import { useInstance } from '../../provider/instanceContext';
@@ -29,6 +31,12 @@ export default function LoginPage() {
     const [busy, setBusy] = useState(false);
     // Read from the shared answer rather than fetched again here.
     const { instance } = useInstance();
+    const [query] = useSearchParams();
+
+    // A federated sign-in that was refused comes back here as a redirect, not as
+    // a response: the browser was mid-journey and there was nobody to read a
+    // JSON body. The Server sends a code; this turns it into a sentence.
+    const refusal = query.get('error');
 
     // Where the guard was going when it stopped somebody. The fallback is the
     // participant's own screen rather than the manager panel: most people who
@@ -65,6 +73,16 @@ export default function LoginPage() {
                     {t('Do not have an account yet?')}{' '}
                     <Anchor component={Link} to="/register" size="sm">{t('Create account')}</Anchor>
                 </Text>
+            )}
+
+            {refusal && !error && (
+                <Alert variant="light" color="red" title={t('Signing in was refused')} icon={<IconInfoCircle />} my="md">
+                    {refusal === 'provider.unmapped'
+                        ? t('That provider does not grant you access to this installation. Ask whoever runs it.')
+                        : refusal === 'provider.disabled'
+                            ? t('That login method is switched off here.')
+                            : t('The sign-in did not complete. Try again, or use a password.')}
+                </Alert>
             )}
 
             {error && (
@@ -107,6 +125,31 @@ export default function LoginPage() {
                     <Text size="xs" c="dimmed" mt="md" ta="center">
                         {t('Forgotten your password? An administrator will issue a new one.')}
                     </Text>
+
+                    {instance.providers.length > 0 && (
+                        <>
+                            <Divider my="lg" label={t('or')} labelPosition="center" />
+                            <Stack gap="xs">
+                                {instance.providers.map(provider => (
+                                    <Button
+                                        key={provider.slug}
+                                        variant="default"
+                                        fullWidth
+                                        // A full page load, not a router link: the
+                                        // journey leaves this application for the
+                                        // provider and comes back through the
+                                        // Server. A client-side navigation would
+                                        // never reach either.
+                                        component="a"
+                                        href={`${resolvedApiBase()}/identity/providers/${encodeURIComponent(provider.slug)}`
+                                            + `/challenge?returnUrl=${encodeURIComponent(destination)}`}
+                                    >
+                                        {t('Continue with {{provider}}', { provider: provider.displayName })}
+                                    </Button>
+                                ))}
+                            </Stack>
+                        </>
+                    )}
                 </Paper>
             </Box>
         </Container>

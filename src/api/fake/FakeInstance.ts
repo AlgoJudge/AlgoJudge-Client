@@ -37,6 +37,7 @@ export class FakeInstance {
         requireEmail: boolean;
         requireConfirmedEmail: boolean;
         showLogo: boolean;
+        accountDeletionEnabled: boolean;
     }): InstanceInfo {
         this.info = {
             ...this.info,
@@ -45,6 +46,7 @@ export class FakeInstance {
             requireEmail: input.requireEmail,
             requireConfirmedEmail: input.requireConfirmedEmail,
             showLogo: input.showLogo,
+            accountDeletionEnabled: input.accountDeletionEnabled,
         };
         this.persist();
         return this.read();
@@ -144,6 +146,7 @@ export class FakeInstance {
             requireEmail: this.info.requireEmail,
             requireConfirmedEmail: this.info.requireConfirmedEmail,
             showLogo: this.info.showLogo,
+            accountDeletionEnabled: this.info.accountDeletionEnabled,
         }));
     }
 
@@ -159,6 +162,16 @@ export class FakeInstance {
             // placeholder it ships with. `?fakeLogo=off` turns the mark off
             // entirely, which is what an operator who wants none does.
             showLogo: true,
+            // Two providers, because one is the case that hides every mistake:
+            // a list, an ordering and a slug that has to reach the right one.
+            // `?fakeProviders=off` is the installation that federates nothing,
+            // which is what the login screen looks like today.
+            providers: [
+                { slug: "university", displayName: "Uczelniane SSO" },
+                { slug: "algojudge", displayName: "AlgoJudge" },
+            ],
+            // A right before it is a feature, so the fake ships it on.
+            accountDeletionEnabled: true,
         };
 
         // Merged over the defaults rather than trusting what was stored. A tab
@@ -192,12 +205,23 @@ export class FakeInstance {
         // And one that publishes nothing at all: no footer links, no navigation
         // entries, and nothing where a front page would be.
         const documented = flag("fakeDocuments");
+        // The installation that federates nothing: no buttons, and a login form
+        // that is the whole of the screen.
+        const federated = flag("fakeProviders");
+        const removable = flag("fakeAccountDeletion");
         if (registration !== undefined) instance.localRegistrationEnabled = registration;
         if (requireEmail !== undefined) instance.requireEmail = requireEmail;
         if (confirmEmail !== undefined) instance.requireConfirmedEmail = confirmEmail;
         if (logo !== undefined) instance.showLogo = logo;
         if (named === false) instance.name = undefined;
         if (documented === false) instance.documents = [];
+        if (federated === false) instance.providers = [];
+        if (removable !== undefined) instance.accountDeletionEnabled = removable;
+
+        // Never restored from storage: the fake's providers are fixtures, and a
+        // tab that kept an older list would offer a button whose slug the fake
+        // no longer answers.
+        instance.providers = instance.providers ?? [];
 
         return instance;
     }

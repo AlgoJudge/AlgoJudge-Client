@@ -84,6 +84,31 @@ export interface InstanceInfo {
      * reference one, because the operator writes the page.
      */
     showLogo: boolean,
+    /**
+     * The identity providers this installation offers, for the buttons on the
+     * sign-in screen.
+     *
+     * It arrives here because it has to be readable **before anybody has signed
+     * in** — which is the whole point of a sign-in button — and this is the one
+     * answer a signed-out screen already fetches. A name and a slug and nothing
+     * else: the issuer, the client id and the claim mapping are an operator's
+     * business and are read behind `provider:manage`.
+     *
+     * An empty list is the ordinary case and means no buttons, not an error.
+     */
+    providers: PublicProvider[],
+    /**
+     * Whether a person may remove their own account here. Shipped on; an
+     * installation may close it.
+     */
+    accountDeletionEnabled: boolean,
+}
+
+/** What a signed-out screen is told about one provider. */
+export interface PublicProvider {
+    /** Appears in the sign-in path, so it is what the button links to. */
+    slug: string,
+    displayName: string,
 }
 
 /**
@@ -285,6 +310,22 @@ export interface CoreApi {
      * Anonymizes the account and ends the session. Immediate and irreversible:
      * submissions and results survive under an identifier that no longer names
      * anybody.
+     *
+     * **The local account's channel**, and it asks for the password to prove it.
+     * An account owned by a provider has none and uses {@link unlinkProvider}.
      */
     deleteAccount(password: string, signal: AbortSignal): Promise<void>;
+
+    /**
+     * De-registers this account from an identity provider — or from every one of
+     * them, when no provider is named.
+     *
+     * **Not a deletion, and not a rename of one.** What it removes is a way of
+     * signing in. The account is emptied only if that was the last one: no other
+     * provider link, and no local password. Somebody who keeps another way in
+     * keeps their account, with one fewer door.
+     *
+     * It asks for no password because an account owned by a provider has none.
+     */
+    unlinkProvider(providerId: string | undefined, signal: AbortSignal): Promise<void>;
 }

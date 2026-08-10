@@ -105,6 +105,41 @@ export interface Grant {
     createdFromTemplate?: string;
     state: GrantState;
     createdAt: string;
+
+    /**
+     * Where this contribution came from.
+     *
+     * **At system scope a person's permissions are the union of several rows** —
+     * one assigned by hand, plus one per linked identity provider — so no single
+     * grant is the answer to "what may they do". A screen that cannot say where
+     * a right came from is one nobody can act on.
+     */
+    source: "manual" | "provider";
+    sourceProviderId?: string;
+    /** The provider's display name, so a row reads without a second lookup. */
+    sourceProviderName?: string;
+
+    /**
+     * Rewritten from its provider's mapping at every sign-in, and therefore
+     * **not editable here**. True exactly when `source` is `provider`; sent as
+     * its own field so a control is disabled on a fact rather than on a string
+     * comparison.
+     */
+    managed: boolean;
+
+    /**
+     * This activity grant is authoritative inside its activity, and system
+     * contributions do not reach it — not even `system:administrator`.
+     *
+     * **Setting it on somebody who holds system permissions demotes them
+     * there**, and the screen has to say so at the moment of the act: otherwise
+     * the first sign of it is a manager who has quietly lost a screen.
+     *
+     * It can also strand its holder. Inside that activity they are whatever the
+     * grant says, typically a participant holding no `grant:update`, so clearing
+     * it takes another manager of the activity or a system administrator.
+     */
+    overrideSystem: boolean;
 }
 
 export interface GrantInput {
@@ -119,6 +154,126 @@ export interface GrantInput {
     isSystem?: boolean;
     createdFromTemplate?: string;
     state?: GrantState;
+    /**
+     * Make this activity grant authoritative inside its activity. Ignored at
+     * system scope, where there is nothing to override.
+     *
+     * There is deliberately no field naming a provider: this writes the manual
+     * contribution and only that one.
+     */
+    overrideSystem?: boolean;
+}
+
+/**
+ * An identity provider this installation trusts.
+ *
+ * **No secret is ever readable.** The Server has no field for one on the way
+ * out, so what arrives is whether one is set — and a form showing an empty box
+ * where a value exists reads as a loss, which is why the screen has to say so
+ * rather than leave it blank.
+ */
+export interface IdentityProvider {
+    id: string;
+    /** Appears in the sign-in path and in the redirect URI. Expensive to change. */
+    slug: string;
+    displayName: string;
+    issuer: string;
+    clientId: string;
+    scopes: string;
+    enabled: boolean;
+    /** Where a person edits their own details, because they cannot do it here. */
+    accountUrl?: string;
+    /** Where in the token the mapped value lives: `groups`, `realm_access.roles`. */
+    claimPath: string;
+    unmappedBehavior: "deny" | "defaultTemplate";
+    defaultTemplateName?: string;
+    deletionChannelEnabled: boolean;
+    hasClientSecret: boolean;
+    hasDeletionSecret: boolean;
+    /**
+     * The path the provider must send the browser back to, **relative to the API
+     * origin**. Sent rather than left to an operator to work out: it has to match
+     * exactly on both sides, and a registration that gets it wrong fails at the
+     * end of somebody's first sign-in with an error from the provider.
+     */
+    callbackPath: string;
+    mappingRules: MappingRule[];
+    /** How many accounts sign in through it. Deleting one with people behind it is refused. */
+    linkedAccounts: number;
+    createdAt: string;
+}
+
+/**
+ * One line of the allowlist: this claim value grants this template.
+ *
+ * **The one place anything points at a permission template.** A grant does not —
+ * choosing one copies its permissions and nothing points back — so editing a
+ * template touches nobody who already used it. A rule is different: the
+ * contribution is re-derived from it at every sign-in, so editing the template it
+ * names *does* reach people, at their next sign-in.
+ */
+export interface MappingRule {
+    claimValue: string;
+    templateName: string;
+}
+
+export interface IdentityProviderInput {
+    slug: string;
+    displayName: string;
+    issuer: string;
+    clientId: string;
+    /**
+     * Required when registering. On an update, **absent means "leave the stored
+     * one alone"** — sending back a secret the screen was never given is how a
+     * write-only field quietly becomes a readable one.
+     */
+    clientSecret?: string;
+    scopes?: string;
+    enabled: boolean;
+    accountUrl?: string;
+    claimPath?: string;
+    unmappedBehavior?: "deny" | "defaultTemplate";
+    defaultTemplateName?: string;
+    deletionChannelEnabled: boolean;
+    deletionSecret?: string;
+    /** Replaced wholesale. An empty list clears the allowlist, which is a real instruction. */
+    mappingRules?: MappingRule[];
+}
+
+/**
+ * A request to remove an account, from whichever direction it came.
+ *
+ * The queue exists because of two rules that both end in "somebody has to look
+ * at this": a provider's request waits a day before it is carried out, and an
+ * account holding system-scope permissions is never emptied automatically.
+ */
+export interface DeletionRequest {
+    id: string;
+    /** `holder` is the person themselves; `provider` is a directory's back channel. */
+    channel: "holder" | "provider";
+    /**
+     * `pending` is inside its window and stoppable. `attention` means the link
+     * was removed and the account was **not** emptied, because it holds
+     * system-scope permissions.
+     */
+    state: "pending" | "completed" | "halted" | "attention";
+    providerId?: string;
+    providerName?: string;
+    userId?: string;
+    userLogin?: string;
+    requestedAt: string;
+    /** When it may be carried out. A day after arrival on the provider's channel. */
+    executeAfter: string;
+    resolvedAt?: string;
+    /** What happened, in a sentence, for whoever reads the queue. */
+    detail?: string;
+}
+
+export interface DeletionRequestFilter {
+    page?: number;
+    pageSize?: number;
+    /** `open` is pending and attention together — what a queue screen wants. */
+    state?: "pending" | "attention" | "open";
 }
 
 export interface GrantFilter {
@@ -1012,6 +1167,8 @@ export interface InstanceSettingsInput {
     requireEmail: boolean;
     requireConfirmedEmail: boolean;
     showLogo: boolean;
+    /** Whether a person may remove their own account. Shipped on. */
+    accountDeletionEnabled: boolean;
 }
 
 /**
@@ -1146,6 +1303,25 @@ export interface ManagerApi {
     revokeGrant(id: string, signal: AbortSignal): Promise<void>;
 
     searchUsers(query: string, signal: AbortSignal): Promise<ManagedUserSummary[]>;
+
+    /**
+     * The identity providers, behind `provider:manage`.
+     *
+     * That permission decides what an external directory's groups buy inside
+     * this installation, which makes it the most dangerous key after
+     * `system:administrator`. Two rules the Server enforces and the screen has to
+     * explain: `system:administrator` can never be mapped onto, and nobody may
+     * map onto a permission they do not themselves hold.
+     */
+    getIdentityProviders(signal: AbortSignal): Promise<IdentityProvider[]>;
+    createIdentityProvider(input: IdentityProviderInput, signal: AbortSignal): Promise<IdentityProvider>;
+    updateIdentityProvider(id: string, input: IdentityProviderInput, signal: AbortSignal): Promise<IdentityProvider>;
+    /** Refused while accounts still sign in through it. Disabling is the reversible act. */
+    deleteIdentityProvider(id: string, signal: AbortSignal): Promise<void>;
+
+    getDeletionRequests(filter: DeletionRequestFilter, signal: AbortSignal): Promise<Page<DeletionRequest>>;
+    /** Stops one inside its window. Refused once the window has closed. */
+    haltDeletionRequest(id: string, signal: AbortSignal): Promise<DeletionRequest>;
 
     getRunners(filter: ManagedRunnerFilter, signal: AbortSignal): Promise<Page<ManagedRunner>>;
     /** Nothing is evaluated by a Runner until an administrator has approved it. */

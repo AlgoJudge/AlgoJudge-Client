@@ -328,6 +328,37 @@ export class CoreApiFake implements CoreApi {
         return account;
     }
 
+    /**
+     * De-registers the account from a provider.
+     *
+     * The fake keeps no link table, so it models the case the screens have to
+     * draw: the link was the only way in, and the account is emptied. The Server
+     * has the other case too — an account that keeps a password, or another
+     * provider, survives with one fewer door — and the difference is a row this
+     * fake has nowhere to put.
+     */
+    async unlinkProvider(providerId: string | undefined, signal: AbortSignal): Promise<void> {
+        await this.settle(signal);
+        const account = this.requireAccount();
+
+        // The mirror image of `deleteAccount`, which refuses a federated
+        // account. Neither channel answers a question the other was asked.
+        if (account.isLocal) {
+            forbidden(
+                "This account signs in with a password; use the account deletion form instead",
+                "account.deletion.notFederated");
+        }
+
+        void providerId;
+        account.anonymized = true;
+        account.username = `deleted-${account.userId.slice(-4)}`;
+        account.firstName = undefined;
+        account.lastName = undefined;
+        account.email = undefined;
+        this.signedInAs = undefined;
+        sessionStorage.removeItem(SESSION_KEY);
+    }
+
     private assertLocal(account: Account): void {
         if (!account.isLocal) {
             forbidden("This account is managed by the identity provider");

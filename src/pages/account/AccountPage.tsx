@@ -96,6 +96,19 @@ export default function AccountPage() {
         URL.revokeObjectURL(url);
     });
 
+    /**
+     * De-registers from every provider this account signs in through.
+     *
+     * No provider is named: somebody who holds one link and no password means
+     * "remove my account", and picking one of several is a choice this screen
+     * has no way to present usefully until an account can hold two.
+     */
+    const unlink = () => run(async () => {
+        await call(api => api.authApi.unlinkProvider(undefined));
+        await signOut();
+        navigate("/login", { replace: true });
+    });
+
     const deleteAccount = () => run(async () => {
         await call(api => api.authApi.deleteAccount(confirmation.password));
         // The session is gone with the account; the guard sends them onwards.
@@ -223,7 +236,9 @@ export default function AccountPage() {
 
                         <Card withBorder radius="sm">
                             <Stack gap="xs">
-                                <Title order={5}>{t("Delete the account")}</Title>
+                                <Title order={5}>
+                                    {local ? t("Delete the account") : t("Leave through the provider")}
+                                </Title>
                                 {local ? (
                                     <>
                                         <Alert color="red" icon={<IconAlertTriangle size={18} />}>
@@ -252,12 +267,33 @@ export default function AccountPage() {
                                         </Group>
                                     </>
                                 ) : (
-                                    // No button: the request queue does not exist
-                                    // yet, and one that pretended otherwise would
-                                    // be worse than saying who to ask.
-                                    <Text size="sm">
-                                        {t("An account from the identity provider is removed by an administrator. Write to them to ask for it.")}
-                                    </Text>
+                                    <>
+                                        {/* A different act with a different name.
+                                            What this removes is a way of signing in;
+                                            whether the account then goes depends on
+                                            whether it was the last one. Calling it
+                                            "delete" would promise more than it does
+                                            in the case where a password remains. */}
+                                        <Alert color="orange" icon={<IconAlertTriangle size={18} />}>
+                                            {t("This removes your link to the identity provider. If it is the only way you sign in, the account is emptied — immediately, and your submissions and results stay under an identifier that no longer names you.")}
+                                        </Alert>
+                                        <TextInput
+                                            label={t("Type DELETE to confirm")}
+                                            value={confirmation.text}
+                                            onChange={e => setConfirmation({ ...confirmation, text: e.currentTarget.value })}
+                                        />
+                                        <Group justify="flex-end">
+                                            <Button
+                                                color="red"
+                                                leftSection={<IconTrash size={16} />}
+                                                loading={busy}
+                                                disabled={confirmation.text !== "DELETE"}
+                                                onClick={unlink}
+                                            >
+                                                {t("Remove my link and account")}
+                                            </Button>
+                                        </Group>
+                                    </>
                                 )}
                             </Stack>
                         </Card>

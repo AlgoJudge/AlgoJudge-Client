@@ -172,9 +172,19 @@ export const createTemplates = (): PermissionTemplate[] => [
  * fixture that can spell it differently, and the two screens would then disagree
  * about who somebody is.
  */
-const named = (grant: Omit<Grant, "userName" | "userLogin" | "isSystem">): Grant => {
+const named = (
+    grant: Omit<Grant, "userName" | "userLogin" | "isSystem" | "source" | "managed" | "overrideSystem">
+        & Partial<Pick<Grant, "source" | "managed" | "overrideSystem">>,
+): Grant => {
     const user = MANAGED_USERS.find(u => u.id === grant.userId);
     return {
+        // Defaults ahead of the spread, so a fixture that states one wins.
+        // Every seeded grant is a manual contribution: nothing in the fake has
+        // signed in through a provider, and a fixture claiming otherwise would
+        // draw a row the fake could not then rewrite.
+        source: "manual",
+        managed: false,
+        overrideSystem: false,
         ...grant,
         userName: user?.name ?? grant.userId,
         userLogin: user?.username ?? grant.userId,
