@@ -33,6 +33,7 @@ const settingsOf = (instance: {
     requireEmail: boolean;
     requireConfirmedEmail: boolean;
     showLogo: boolean;
+    showLocalSignIn: boolean;
     accountDeletionEnabled: boolean;
 }): InstanceSettingsInput => ({
     name: instance.name,
@@ -40,6 +41,7 @@ const settingsOf = (instance: {
     requireEmail: instance.requireEmail,
     requireConfirmedEmail: instance.requireConfirmedEmail,
     showLogo: instance.showLogo,
+    showLocalSignIn: instance.showLocalSignIn,
     accountDeletionEnabled: instance.accountDeletionEnabled,
 });
 
@@ -126,6 +128,12 @@ export default function ManagerInstancePage() {
                                 label={t("Show the mark in the application")}
                                 checked={settings.showLogo}
                                 onChange={e => setSettings({ ...settings, showLogo: e.currentTarget.checked })}
+                            />
+                            <Switch
+                                label={t("Show the password form on the sign-in screen")}
+                                description={t("Off leaves only the provider buttons. It hides the form and nothing more: the password endpoint stays open, administrators and temporary accounts still need it, and ?admin=true brings the form back for them.")}
+                                checked={settings.showLocalSignIn}
+                                onChange={e => setSettings({ ...settings, showLocalSignIn: e.currentTarget.checked })}
                             />
                             <Switch
                                 label={t("Let people remove their own account")}

@@ -1174,6 +1174,7 @@ export interface InstanceSettingsInput {
     requireEmail: boolean;
     requireConfirmedEmail: boolean;
     showLogo: boolean;
+    showLocalSignIn: boolean;
     /** Whether a person may remove their own account. Shipped on. */
     accountDeletionEnabled: boolean;
 }

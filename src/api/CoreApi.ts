@@ -104,6 +104,14 @@ export interface InstanceInfo {
      */
     showLogo: boolean,
     /**
+     * Whether the sign-in screen offers the login-and-password form.
+     *
+     * **Presentation only.** The endpoint stays open — administrators and
+     * temporary accounts still sign in that way, and `?admin=true` brings the
+     * form back for them.
+     */
+    showLocalSignIn: boolean,
+    /**
      * The identity providers this installation offers, for the buttons on the
      * sign-in screen.
      *
