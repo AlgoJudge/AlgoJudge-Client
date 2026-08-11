@@ -162,6 +162,7 @@ export class FakeInstance {
             // placeholder it ships with. `?fakeLogo=off` turns the mark off
             // entirely, which is what an operator who wants none does.
             showLogo: true,
+        showLocalSignIn: true,
             // Two providers, because one is the case that hides every mistake:
             // a list, an ordering and a slug that has to reach the right one.
             // `?fakeProviders=off` is the installation that federates nothing,

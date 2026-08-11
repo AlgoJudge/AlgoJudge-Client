@@ -1822,6 +1822,7 @@ export class ManagerApiFake implements ManagerApi {
             scopes: input.scopes?.trim() || "openid profile email",
             enabled: input.enabled,
             accountUrl: input.accountUrl?.trim() || undefined,
+            deletionUrl: input.deletionUrl?.trim() || undefined,
             claimPath: input.claimPath?.trim() || "groups",
             unmappedBehavior: input.unmappedBehavior ?? "deny",
             defaultTemplateName: input.unmappedBehavior === "defaultTemplate"

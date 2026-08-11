@@ -1,5 +1,6 @@
 import { ForbiddenError, UnauthorizedError } from "../ApiError";
 import {
+    AccountLink,
     CoreApi,
     Health,
     InstanceInfo,
@@ -85,6 +86,10 @@ export class CoreApiHttp implements CoreApi {
 
     exportData(signal: AbortSignal): Promise<Blob> {
         return this.http.download("/account/export", signal);
+    }
+
+    async getAccountLinks(signal: AbortSignal): Promise<AccountLink[]> {
+        return await this.http.request<AccountLink[]>("/account/links", "GET", { signal });
     }
 
     async deleteAccount(password: string, signal: AbortSignal): Promise<void> {

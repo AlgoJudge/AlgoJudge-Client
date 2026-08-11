@@ -23,6 +23,8 @@ export const createProviders = (): IdentityProvider[] => [
         scopes: "openid profile email",
         enabled: true,
         accountUrl: "https://login.example.edu/realms/students/account",
+        // Where the identity itself ends, which is not where it is edited.
+        deletionUrl: "https://login.example.edu/realms/students/account/#/personal-info",
         // Keycloak's shape: one claim holding an object. Authentik's is a
         // repeated `groups`, which the other provider below uses — both are
         // ordinary, and an installation should not have to know which it has.

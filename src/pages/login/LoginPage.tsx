@@ -38,6 +38,19 @@ export default function LoginPage() {
     // JSON body. The Server sends a code; this turns it into a sentence.
     const refusal = query.get('error');
 
+    /*
+     * Whether to draw the login-and-password form.
+     *
+     * **`?admin=true` is a convenience, not a secret.** An installation whose
+     * people all arrive through a provider should not present a password box
+     * almost nobody can use — but it still has administrators, local and
+     * temporary accounts, and they need a way to the form. The endpoint behind
+     * it is open either way, so nothing here is a control: hiding the form no
+     * more disables password sign-in than removing a button disables the route
+     * it pointed at.
+     */
+    const showForm = instance.showLocalSignIn || query.get('admin') === 'true';
+
     // Where the guard was going when it stopped somebody. The fallback is the
     // participant's own screen rather than the manager panel: most people who
     // sign in are participants.
@@ -102,6 +115,7 @@ export default function LoginPage() {
             <Box pos="relative">
                 <Paper withBorder shadow="md" p={30} mt={30} radius="md">
                     <LoadingOverlay visible={busy} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} />
+                    {showForm && (<>
                     <TextInput
                         label={t('Login or email')}
                         placeholder={t('your login')}
@@ -125,10 +139,13 @@ export default function LoginPage() {
                     <Text size="xs" c="dimmed" mt="md" ta="center">
                         {t('Forgotten your password? An administrator will issue a new one.')}
                     </Text>
+                    </>)}
 
                     {instance.providers.length > 0 && (
                         <>
-                            <Divider my="lg" label={t('or')} labelPosition="center" />
+                            {/* The divider separates two ways in, so it is only
+                                a separator when both are on the page. */}
+                            {showForm && <Divider my="lg" label={t('or')} labelPosition="center" />}
                             <Stack gap="xs">
                                 {instance.providers.map(provider => (
                                     <Button

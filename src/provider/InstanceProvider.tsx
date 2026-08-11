@@ -25,6 +25,7 @@ const DEFAULTS: InstanceInfo = {
     requireEmail: false,
     requireConfirmedEmail: false,
     showLogo: true,
+        showLocalSignIn: true,
     // **Empty, and that is the safe default rather than the pessimistic one.**
     // A sign-in button drawn before the answer arrives would point at a provider
     // this installation may not have registered, and a 404 in the middle of
