@@ -1,5 +1,6 @@
 import { UnauthorizedError } from "../ApiError";
 import {
+    AccountLink,
     CoreApi,
     Health,
     InstanceInfo,
@@ -337,6 +338,26 @@ export class CoreApiFake implements CoreApi {
      * provider, survives with one fewer door — and the difference is a row this
      * fake has nowhere to put.
      */
+    /**
+     * What a federated account's own screen is told about its links.
+     *
+     * A local account answers with **nothing**, which is the case the screen
+     * branches on: no link means no "leave through the provider" section at all.
+     */
+    async getAccountLinks(signal: AbortSignal): Promise<AccountLink[]> {
+        await this.settle(signal);
+        const account = this.requireAccount();
+        if (account.isLocal) return [];
+
+        return [{
+            providerSlug: "university",
+            displayName: "Uczelniane SSO",
+            accountUrl: "https://login.example.edu/realms/students/account",
+            deletionUrl: "https://login.example.edu/realms/students/account/#/personal-info",
+            linkedAt: "2026-02-01T09:00:00Z",
+        }];
+    }
+
     async unlinkProvider(providerId: string | undefined, signal: AbortSignal): Promise<void> {
         await this.settle(signal);
         const account = this.requireAccount();

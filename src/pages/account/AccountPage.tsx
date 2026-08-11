@@ -1,12 +1,15 @@
 import {
-    Alert, Badge, Button, Card, Group, PasswordInput, Stack, Tabs, Text, TextInput, Title,
+    Alert, Anchor, Badge, Button, Card, Group, Modal, PasswordInput, Stack, Tabs, Text, TextInput, Title,
 } from "@mantine/core";
-import { IconAlertTriangle, IconDownload, IconInfoCircle, IconTrash } from "@tabler/icons-react";
+import {
+    IconAlertTriangle, IconDownload, IconExternalLink, IconInfoCircle, IconTrash,
+} from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import LoadState from "../../components/LoadState";
-import { useApiCall } from "../../provider/apiContext";
+import { AccountLink } from "../../api/CoreApi";
+import { useApiCall, useApiEffect } from "../../provider/apiContext";
 import { useAuth } from "../../provider/authContext";
 
 const MIN_PASSWORD = 12;
@@ -37,9 +40,22 @@ export default function AccountPage() {
     const [passwords, setPasswords] = useState({ current: "", next: "", repeat: "" });
     const [confirmation, setConfirmation] = useState({ text: "", password: "" });
 
+    // Asked for by one screen, so read by one screen rather than carried on
+    // the session every page load.
+    const [links, setLinks] = useState<AccountLink[]>([]);
+    const [leaving, setLeaving] = useState(false);
+
     const [message, setMessage] = useState<string | undefined>(undefined);
     const [error, setError] = useState<string | undefined>(undefined);
     const [busy, setBusy] = useState(false);
+
+    // **Above the early return, because a hook may not be conditional.** A local
+    // account has none and the Server answers with an empty list rather than a
+    // refusal, so this asks unconditionally and the screen branches on what came
+    // back.
+    useApiEffect(async (api) => {
+        setLinks(await api.authApi.getAccountLinks());
+    }, [session?.userId]);
 
     // The guard above this route guarantees a session; this is the moment
     // between the two renders, not a state a person can sit in.
@@ -277,22 +293,54 @@ export default function AccountPage() {
                                         <Alert color="orange" icon={<IconAlertTriangle size={18} />}>
                                             {t("This removes your link to the identity provider. If it is the only way you sign in, the account is emptied — immediately, and your submissions and results stay under an identifier that no longer names you.")}
                                         </Alert>
-                                        <TextInput
-                                            label={t("Type DELETE to confirm")}
-                                            value={confirmation.text}
-                                            onChange={e => setConfirmation({ ...confirmation, text: e.currentTarget.value })}
-                                        />
+                                        {/* **A button, and the ceremony moved into a
+                                            dialog.** Typing DELETE guards a local
+                                            account, where this screen is the only
+                                            place the act exists. Here the provider
+                                            owns the identity and offers its own
+                                            way out, so the same typing on both
+                                            sides is a toll rather than a check —
+                                            and the dialog still asks once, because
+                                            this is immediate and irreversible. */}
                                         <Group justify="flex-end">
                                             <Button
                                                 color="red"
                                                 leftSection={<IconTrash size={16} />}
                                                 loading={busy}
-                                                disabled={confirmation.text !== "DELETE"}
-                                                onClick={unlink}
+                                                onClick={() => setLeaving(true)}
                                             >
-                                                {t("Remove my link and account")}
+                                                {t("Delete my account")}
                                             </Button>
                                         </Group>
+
+                                        {/* **Two exits, named apart.** The button
+                                            above ends the account here; this ends
+                                            the identity itself, wherever it lives.
+                                            Somebody who only does the first is
+                                            still signed in at the provider and
+                                            can walk straight back in. */}
+                                        {links.some(link => link.deletionUrl) && (
+                                            <Stack gap={4} pt="xs">
+                                                <Text size="sm" c="dimmed">
+                                                    {t("Your account at the identity provider stays. To delete that too:")}
+                                                </Text>
+                                                {links.filter(link => link.deletionUrl).map(link => (
+                                                    <Anchor
+                                                        key={link.providerSlug}
+                                                        href={link.deletionUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        size="sm"
+                                                    >
+                                                        {t("Delete the account at {{provider}}", { provider: link.displayName })}
+                                                        <IconExternalLink
+                                                            size={14}
+                                                            style={{ marginLeft: 4, verticalAlign: "-2px" }}
+                                                        />
+                                                    </Anchor>
+                                                ))}
+                                            </Stack>
+                                        )}
                                     </>
                                 )}
                             </Stack>
@@ -300,6 +348,36 @@ export default function AccountPage() {
                     </Stack>
                 </Tabs.Panel>
             </Tabs>
+
+            {/* The one question this act still asks. It replaces typing DELETE,
+                which guarded the same button until 2026-08-11 — the ceremony was
+                the same on both sides of a door the provider also owns, and a
+                dialog asks once without making somebody spell a word. */}
+            <Modal
+                opened={leaving}
+                onClose={() => setLeaving(false)}
+                title={t("Delete my account")}
+                centered
+            >
+                <Stack gap="sm">
+                    <Text size="sm">
+                        {t("This removes your link to the identity provider. If it is the only way you sign in, the account is emptied — immediately, and your submissions and results stay under an identifier that no longer names you.")}
+                    </Text>
+                    <Group justify="flex-end">
+                        <Button variant="default" onClick={() => setLeaving(false)}>
+                            {t("Cancel")}
+                        </Button>
+                        <Button
+                            color="red"
+                            leftSection={<IconTrash size={16} />}
+                            loading={busy}
+                            onClick={unlink}
+                        >
+                            {t("Delete my account")}
+                        </Button>
+                    </Group>
+                </Stack>
+            </Modal>
         </Stack>
     );
 }

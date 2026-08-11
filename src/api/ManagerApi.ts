@@ -183,6 +183,12 @@ export interface IdentityProvider {
     enabled: boolean;
     /** Where a person edits their own details, because they cannot do it here. */
     accountUrl?: string;
+    /**
+     * Where a person deletes their account **at the provider** — a different
+     * address and a different act. Absent means the account screen offers only
+     * what this installation can do itself, rather than guessing a URL.
+     */
+    deletionUrl?: string;
     /** Where in the token the mapped value lives: `groups`, `realm_access.roles`. */
     claimPath: string;
     unmappedBehavior: "deny" | "defaultTemplate";
@@ -231,6 +237,7 @@ export interface IdentityProviderInput {
     scopes?: string;
     enabled: boolean;
     accountUrl?: string;
+    deletionUrl?: string;
     claimPath?: string;
     unmappedBehavior?: "deny" | "defaultTemplate";
     defaultTemplateName?: string;

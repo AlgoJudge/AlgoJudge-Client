@@ -27,4 +27,22 @@ i18n
          * by definition, so they will keep containing colons.
          */
         nsSeparator: false,
+
+        /*
+         * **React already escapes; i18next escaping again produces entities.**
+         *
+         * Its default is `escapeValue: true`, which HTML-escapes every
+         * interpolated value — and React then renders the escape sequence
+         * literally, because it is text by the time React sees it. A provider
+         * named `Konto AlgoJudge / AlgoJudge account` came out as
+         * `Konto AlgoJudge &#x2F; AlgoJudge account`, on the account screen and
+         * on the sign-in button both.
+         *
+         * It went unnoticed because no interpolated value had contained a
+         * character worth escaping until one carried a slash. Turning it off is
+         * the documented setting for React and gives up no protection: React
+         * escapes anything that is not `dangerouslySetInnerHTML`, and nothing
+         * here is.
+         */
+        interpolation: { escapeValue: false },
     });

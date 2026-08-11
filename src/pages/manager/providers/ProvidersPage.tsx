@@ -49,6 +49,7 @@ const draftFrom = (provider: IdentityProvider): Draft => ({
     scopes: provider.scopes,
     enabled: provider.enabled,
     accountUrl: provider.accountUrl ?? "",
+    deletionUrl: provider.deletionUrl ?? "",
     claimPath: provider.claimPath,
     unmappedBehavior: provider.unmappedBehavior,
     defaultTemplateName: provider.defaultTemplateName,
@@ -66,6 +67,7 @@ const blank = (): Draft => ({
     scopes: "openid profile email",
     enabled: true,
     accountUrl: "",
+    deletionUrl: "",
     claimPath: "groups",
     unmappedBehavior: "deny",
     deletionChannelEnabled: false,
@@ -122,6 +124,7 @@ export default function ProvidersPage() {
             scopes: draft.scopes?.trim() || undefined,
             enabled: draft.enabled,
             accountUrl: draft.accountUrl?.trim() || undefined,
+            deletionUrl: draft.deletionUrl?.trim() || undefined,
             claimPath: draft.claimPath?.trim() || undefined,
             unmappedBehavior: draft.unmappedBehavior,
             defaultTemplateName: draft.defaultTemplateName,
@@ -414,6 +417,13 @@ export default function ProvidersPage() {
                             description={t("An account owned by a provider cannot be edited here, so the screen sends them there.")}
                             value={draft.accountUrl ?? ""}
                             onChange={e => setDraft({ ...draft, accountUrl: e.currentTarget.value })}
+                        />
+
+                        <TextInput
+                            label={t("Where people delete their account at the provider")}
+                            description={t("Offered on their account screen beside the button that removes the account here. Left empty, no link is shown — a guessed address sends somebody who wants to leave to a page that is not ours.")}
+                            value={draft.deletionUrl ?? ""}
+                            onChange={e => setDraft({ ...draft, deletionUrl: e.currentTarget.value })}
                         />
 
                         <Group justify="flex-end">

@@ -2,6 +2,7 @@ import { Api } from "./Api";
 import { FileApi, StatementRef, UploadedFile } from "./FileApi";
 import { InstanceDocumentKind, InstanceDocumentRef } from "./CoreApi";
 import {
+    AccountLink,
     CoreApi,
     CoreEvent,
     CoreEventDispatcher,
@@ -212,6 +213,9 @@ export class ScopedCoreApi {
     }
     exportData(): Promise<Blob> {
         return this.coreApi.exportData(this.signal);
+    }
+    getAccountLinks(): Promise<AccountLink[]> {
+        return this.coreApi.getAccountLinks(this.signal);
     }
     unlinkProvider(providerId: string | undefined): Promise<void> {
         return this.coreApi.unlinkProvider(providerId, this.signal);

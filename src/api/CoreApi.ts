@@ -26,6 +26,25 @@ export interface Session {
 }
 
 /**
+ * One way the signed-in person signs in, as their own account screen needs to
+ * describe it.
+ *
+ * `deletionUrl` is **configuration, not discovery** — OIDC standardises no such
+ * address. Absent means this installation knows of no page where the identity
+ * itself can be ended, and the screen then offers only what it can do by
+ * itself. Never guess one: a wrong link sends somebody who wants to leave to a
+ * 404 on a domain that is not ours.
+ */
+export type AccountLink = {
+    providerSlug: string,
+    displayName: string,
+    accountUrl?: string,
+    deletionUrl?: string,
+    linkedAt: string,
+};
+
+
+/**
  * What a signed-out screen may know about the installation.
  *
  * Read before the login and registration screens render, because both change
@@ -302,6 +321,14 @@ export interface CoreApi {
 
     updateProfile(input: ProfileInput, signal: AbortSignal): Promise<Session>;
     changePassword(currentPassword: string, newPassword: string, signal: AbortSignal): Promise<void>;
+
+    /**
+     * The ways this person can sign in, and where each of them is managed.
+     *
+     * Its own call rather than a field on the session: the session is read on
+     * every page load and this is wanted by one screen.
+     */
+    getAccountLinks(signal: AbortSignal): Promise<AccountLink[]>;
 
     /** Everything held about the signed-in person, as a document they can keep. */
     exportData(signal: AbortSignal): Promise<Blob>;
