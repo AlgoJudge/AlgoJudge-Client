@@ -185,11 +185,22 @@ export class ManagerApiHttp implements ManagerApi {
         });
     }
 
+    /**
+     * A Runner's own diagnostics — its log, its `lscpu`.
+     *
+     * **The bytes, not a JSON envelope** (2026-08-12). It used to unwrap
+     * `{ content: "…" }`, which meant the Server read the whole attachment into
+     * a string to put it there. A Runner's log has no ceiling but its own, so
+     * that was a size nobody chose; the endpoint now streams and this reads
+     * text, exactly as `fileApi.getText` does.
+     *
+     * The signature does not change, so nothing above here does either.
+     */
     async getRunnerAttachment(runnerId: string, attachmentId: string, signal: AbortSignal): Promise<string> {
-        const file = await this.http.request<{ content: string }>(
+        const file = await this.http.download(
             `/runners/${encodeURIComponent(runnerId)}/files/${encodeURIComponent(attachmentId)}`,
-            "GET", { signal });
-        return file.content;
+            signal);
+        return await file.text();
     }
 
     async forgetRunner(id: string, signal: AbortSignal): Promise<void> {
