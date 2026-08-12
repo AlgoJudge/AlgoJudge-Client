@@ -1,4 +1,5 @@
 import { ManagedRunner, RunnerAttachment } from "../../ManagerApi";
+import type { FakeFiles } from "../FileApiFake";
 import { fakeSha } from "./problems";
 
 /**
@@ -13,12 +14,20 @@ import { fakeSha } from "./problems";
 const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60000).toISOString();
 const daysAgo = (days: number) => new Date(Date.now() - days * 86400000).toISOString();
 
-/** What a Runner uploaded about itself, keyed by file id. */
-const FILES: Record<string, string> = {};
-
-const attach = (runnerId: string, name: string, uploadedAt: string, body: string): RunnerAttachment => {
+/**
+ * Puts one attachment into the shared file store and answers with the reference.
+ *
+ * **Into the same store as everything else**, because that is where the panel
+ * now reads it from: a Runner's log is fetched through `fileApi.getText(id)`
+ * like any other stored file, since the second endpoint that used to serve it
+ * was removed on 2026-08-12. A private map here would be a second store, and
+ * the screen would ask the first one and find nothing.
+ */
+const attach = (
+    files: FakeFiles, runnerId: string, name: string, uploadedAt: string, body: string,
+): RunnerAttachment => {
     const id = `file-${runnerId.slice(0, 8)}-${name}`;
-    FILES[id] = body;
+    files.put(id, name, "text/plain", new Blob([body], { type: "text/plain" }), fakeSha(id));
     return {
         id,
         name,
@@ -28,9 +37,6 @@ const attach = (runnerId: string, name: string, uploadedAt: string, body: string
         uploadedAt,
     };
 };
-
-/** The stored bytes of one attachment. Empty for anything nobody uploaded. */
-export const runnerFile = (id: string): string => FILES[id] ?? "";
 
 const LSCPU = `Architecture:        x86_64
 CPU op-mode(s):      32-bit, 64-bit
@@ -78,7 +84,7 @@ const LOG = `2026-08-04 17:58:11 INFO  runner: connected to https://api.algojudg
 `;
 
 
-export const createRunners = (): ManagedRunner[] => [
+export const createRunners = (files: FakeFiles): ManagedRunner[] => [
     {
         id: "e55fd089-61d2-4b44-83ef-466d35117975",
         name: "Main runner",
@@ -98,9 +104,9 @@ export const createRunners = (): ManagedRunner[] => [
         currentSubmissionId: "msub-4",
         completedJobs: 8421,
         attachments: [
-            attach("e55fd089", "lscpu.txt", minutesAgo(0), LSCPU),
-            attach("e55fd089", "free.txt", minutesAgo(0), FREE),
-            attach("e55fd089", "runner.log", minutesAgo(0), LOG),
+            attach(files, "e55fd089", "lscpu.txt", minutesAgo(0), LSCPU),
+            attach(files, "e55fd089", "free.txt", minutesAgo(0), FREE),
+            attach(files, "e55fd089", "runner.log", minutesAgo(0), LOG),
         ],
     },
     {
@@ -121,8 +127,8 @@ export const createRunners = (): ManagedRunner[] => [
         machine: { os: "Ubuntu 24.04", cpu: "Intel Core i5-12400", cores: 12, memoryBytes: 16384 * 1024 * 1024 },
         completedJobs: 2140,
         attachments: [
-            attach("7a1c0f52", "lscpu.txt", minutesAgo(1), LSCPU),
-            attach("7a1c0f52", "free.txt", minutesAgo(1), FREE),
+            attach(files, "7a1c0f52", "lscpu.txt", minutesAgo(1), LSCPU),
+            attach(files, "7a1c0f52", "free.txt", minutesAgo(1), FREE),
         ],
     },
     {
@@ -146,7 +152,7 @@ export const createRunners = (): ManagedRunner[] => [
         completedJobs: 317,
         // Offline for three days: the report is what it uploaded when it last
         // connected, and is shown as such rather than hidden.
-        attachments: [attach("c93b47ae", "lscpu.txt", daysAgo(3), LSCPU)],
+        attachments: [attach(files, "c93b47ae", "lscpu.txt", daysAgo(3), LSCPU)],
     },
     {
         // Waiting: it has registered a key and evaluates nothing until somebody
@@ -167,8 +173,8 @@ export const createRunners = (): ManagedRunner[] => [
         machine: { os: "Debian 12", cpu: "AMD EPYC 7302P", cores: 32, memoryBytes: 65536 * 1024 * 1024 },
         completedJobs: 0,
         attachments: [
-            attach("6c31f9ad", "lscpu.txt", minutesAgo(6), LSCPU),
-            attach("6c31f9ad", "free.txt", minutesAgo(6), FREE),
+            attach(files, "6c31f9ad", "lscpu.txt", minutesAgo(6), LSCPU),
+            attach(files, "6c31f9ad", "free.txt", minutesAgo(6), FREE),
         ],
     },
     {

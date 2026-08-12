@@ -71,7 +71,7 @@ import { emptyConfig, isPackageFile, PackageConfig, PACKAGE_ARCHIVE, SAMPLES_ARC
 import { isStatementName, statementFileName } from "../../content/types";
 import { createProblemLibrary, ME, ProblemRecord } from "./fixtures/problems";
 import { createQuestions } from "./fixtures/questions";
-import { createRunners, runnerFile } from "./fixtures/runners";
+import { createRunners } from "./fixtures/runners";
 import { createUsers } from "./fixtures/users";
 import { createDeletionRequests, createProviders } from "./fixtures/providers";
 import { createSessions } from "./fixtures/sessions";
@@ -132,7 +132,7 @@ export class ManagerApiFake implements ManagerApi {
     /** Package bytes, by version id. Uploaded ones are kept; seeded ones are built. */
     private packages = new Map<string, Blob>();
     private users: ManagedUser[] = createUsers();
-    private runners: ManagedRunner[] = createRunners();
+    private runners: ManagedRunner[];
     private providers: IdentityProvider[] = createProviders();
     private deletionRequests: DeletionRequest[] = createDeletionRequests();
 
@@ -151,6 +151,9 @@ export class ManagerApiFake implements ManagerApi {
     ) {
         this.library = createProblemLibrary(files);
         this.submissions = createSubmissions(files);
+        // Its attachments go into the same store, because the panel reads them
+        // through the file endpoint like everything else.
+        this.runners = createRunners(files);
         // Counted from the assignments that exist, not stated beside them. It is
         // what **refuses a delete**, so a number of its own could refuse one that
         // nothing justifies — or allow one that orphans a series.
@@ -767,13 +770,6 @@ export class ManagerApiFake implements ManagerApi {
         runner.tags = [...tags];
         this.announceRunner(runner);
         return copy(runner);
-    }
-
-    async getRunnerAttachment(runnerId: string, attachmentId: string, signal: AbortSignal): Promise<string> {
-        await this.settle(signal);
-        const runner = this.findRunner(runnerId);
-        if (!runner.attachments.some(a => a.id === attachmentId)) notFound("Attachment");
-        return runnerFile(attachmentId);
     }
 
     async forgetRunner(id: string, signal: AbortSignal): Promise<void> {

@@ -185,13 +185,6 @@ export class ManagerApiHttp implements ManagerApi {
         });
     }
 
-    async getRunnerAttachment(runnerId: string, attachmentId: string, signal: AbortSignal): Promise<string> {
-        const file = await this.http.request<{ content: string }>(
-            `/runners/${encodeURIComponent(runnerId)}/files/${encodeURIComponent(attachmentId)}`,
-            "GET", { signal });
-        return file.content;
-    }
-
     async forgetRunner(id: string, signal: AbortSignal): Promise<void> {
         await this.http.request<void>(`/runners/${encodeURIComponent(id)}`, "DELETE", { signal });
     }

@@ -82,7 +82,7 @@ export default function RunnersPage() {
                 setTags(runner.tags);
                 const file = runner.attachments.find(a => a.id === queryRef.current.get("file"));
                 if (file) {
-                    setFiles({ [file.id]: await api.managerApi.getRunnerAttachment(runner.id, file.id) });
+                    setFiles({ [file.id]: await api.fileApi.getText(file.id) });
                 }
             }
         }
@@ -115,9 +115,14 @@ export default function RunnersPage() {
      * A file is fetched when its tab is first opened, not with the Runner: a
      * machine report is tens of kilobytes nobody reads most of the time.
      */
-    const openFile = async (runner: ManagedRunner, attachment: RunnerAttachment) => {
+    const openFile = async (attachment: RunnerAttachment) => {
         if (files[attachment.id] !== undefined) return;
-        const body = await call(api => api.managerApi.getRunnerAttachment(runner.id, attachment.id));
+        // `GET /files/{id}`, like every other stored file. There was a second
+        // endpoint for these until 2026-08-12; it asked the same question and
+        // was a second way to the bytes. Reading them here also means the
+        // browser can revalidate one it already has, which the other never
+        // offered.
+        const body = await call(api => api.fileApi.getText(attachment.id));
         setFiles(current => ({ ...current, [attachment.id]: body }));
     };
 
@@ -314,7 +319,7 @@ export default function RunnersPage() {
                                 ? { runner: selected.id, file: value }
                                 : { runner: selected.id }, { replace: true });
                             const attachment = selected.attachments.find(a => a.id === value);
-                            if (attachment) openFile(selected, attachment);
+                            if (attachment) openFile(attachment);
                         }}
                     >
                         <Tabs.List>
