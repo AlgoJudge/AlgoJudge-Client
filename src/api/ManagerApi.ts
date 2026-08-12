@@ -1341,7 +1341,6 @@ export interface ManagerApi {
     revokeRunner(id: string, reason: string | undefined, signal: AbortSignal): Promise<ManagedRunner>;
     setRunnerTags(id: string, tags: string[], signal: AbortSignal): Promise<ManagedRunner>;
     /** The bytes of one attachment, as text. Only sensible for a text one. */
-    getRunnerAttachment(runnerId: string, attachmentId: string, signal: AbortSignal): Promise<string>;
     /** Forgets a revoked Runner entirely. Refused while it is anything else. */
     forgetRunner(id: string, signal: AbortSignal): Promise<void>;
 
