@@ -1,6 +1,8 @@
 import { Api } from "./Api";
 import { FileApi, StatementRef, UploadedFile } from "./FileApi";
-import { GradeSummary, LaunchContext, LtiApi, Platform, PlatformInput, ToolRegistration } from "./LtiApi";
+import {
+    GradeSummary, LaunchContext, LtiApi, Placement, Platform, PlatformInput, ToolRegistration,
+} from "./LtiApi";
 import { InstanceDocumentKind, InstanceDocumentRef } from "./CoreApi";
 import {
     AccountLink,
@@ -189,6 +191,12 @@ export class ScopedLtiApi {
     }
     resyncGrades(linkId: string): Promise<number> {
         return this.ltiApi.resyncGrades(linkId, this.signal);
+    }
+    listPlacements(activityId?: string): Promise<Placement[]> {
+        return this.ltiApi.listPlacements(activityId, this.signal);
+    }
+    acknowledgeSharing(placementId: string): Promise<Placement> {
+        return this.ltiApi.acknowledgeSharing(placementId, this.signal);
     }
 }
 

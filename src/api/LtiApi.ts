@@ -152,6 +152,40 @@ export interface ToolRegistration {
     customParameters: string[];
 }
 
+/**
+ * One course link: an activity of ours, as some course of theirs reaches it.
+ *
+ * **Why a manager needs to see these at all.** One activity may be placed in
+ * more than one course — allowed, decided 2026-08-13 — but never silently,
+ * because one activity then feeds two gradebooks. The launch refuses until
+ * somebody accepts it, and this list is where they find the thing to accept.
+ */
+export interface Placement {
+    id: string;
+    platformId: string;
+    platformName: string;
+
+    /** What the course is called at the platform, and its identifier there. */
+    contextTitle: string;
+    contextId: string;
+
+    activityId: string;
+    activitySlug: string;
+    activityName: string;
+
+    /**
+     * Whether this activity is reached from more than one course at all. Carried
+     * apart from the acceptance so a screen can stay quiet about the ordinary
+     * case rather than asking about something nobody is sharing.
+     */
+    shared: boolean;
+
+    /** Whether somebody has accepted that sharing. */
+    sharingAcknowledged: boolean;
+
+    createdAt: string;
+}
+
 export interface LtiApi {
     listPlatforms(signal: AbortSignal): Promise<Platform[]>;
     registerPlatform(input: PlatformInput, signal: AbortSignal): Promise<Platform>;
@@ -177,4 +211,17 @@ export interface LtiApi {
 
     /** Sends everything postable again. Returns how many were queued. */
     resyncGrades(linkId: string, signal: AbortSignal): Promise<number>;
+
+    /** Every course link, newest first; narrowed to one activity when asked. */
+    listPlacements(activityId: string | undefined, signal: AbortSignal): Promise<Placement[]>;
+
+    /**
+     * Accepts that this activity is reached from more than one course, which is
+     * what unblocks a launch refused for want of that decision.
+     *
+     * **Not reversible here, deliberately.** Withdrawing would leave a gradebook
+     * holding scores from an activity that no longer admits it feeds two;
+     * removing the placement at the platform is the honest way back.
+     */
+    acknowledgeSharing(placementId: string, signal: AbortSignal): Promise<Placement>;
 }

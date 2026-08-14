@@ -1,4 +1,6 @@
-import { GradeSummary, LaunchContext, LtiApi, Platform, PlatformInput, ToolRegistration } from "../LtiApi";
+import {
+    GradeSummary, LaunchContext, LtiApi, Placement, Platform, PlatformInput, ToolRegistration,
+} from "../LtiApi";
 import { HttpClient } from "./HttpClient";
 
 /**
@@ -52,5 +54,15 @@ export class LtiApiHttp implements LtiApi {
         const answer = await this.http.request<{ queued: number }>(
             `/lti/placements/${encodeURIComponent(linkId)}/grades/resync`, "POST", { signal });
         return answer.queued;
+    }
+
+    listPlacements(activityId: string | undefined, signal: AbortSignal): Promise<Placement[]> {
+        const query = activityId ? `?activityId=${encodeURIComponent(activityId)}` : "";
+        return this.http.request<Placement[]>(`/lti/placements${query}`, "GET", { signal });
+    }
+
+    acknowledgeSharing(placementId: string, signal: AbortSignal): Promise<Placement> {
+        return this.http.request<Placement>(
+            `/lti/placements/${encodeURIComponent(placementId)}/sharing`, "POST", { signal });
     }
 }

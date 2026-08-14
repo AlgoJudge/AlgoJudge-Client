@@ -5,7 +5,7 @@ import {
 import { IconAlertTriangle, IconCopy, IconPlus, IconShieldLock, IconTrash } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Platform, PlatformInput, ToolRegistration } from "../../../api/LtiApi";
+import { Placement, Platform, PlatformInput, ToolRegistration } from "../../../api/LtiApi";
 import LoadState from "../../../components/LoadState";
 import { CopyButton } from "../../../components/buttons";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
@@ -35,6 +35,8 @@ export default function LtiPlatformsPage() {
     const call = useApiCall();
 
     const [platforms, setPlatforms] = useState<Platform[] | undefined>(undefined);
+    const [placements, setPlacements] = useState<Placement[] | undefined>(undefined);
+    const [accepting, setAccepting] = useState<Placement | undefined>(undefined);
     const [registration, setRegistration] = useState<ToolRegistration | undefined>(undefined);
     const [draft, setDraft] = useState<Draft | undefined>(undefined);
     const [removing, setRemoving] = useState<Platform | undefined>(undefined);
@@ -44,6 +46,7 @@ export default function LtiPlatformsPage() {
 
     const error = useApiEffect(async (api) => {
         setPlatforms(await api.ltiApi.listPlatforms());
+        setPlacements(await api.ltiApi.listPlacements());
     }, [reload]);
 
     /** The same shape the providers screen uses: one place that catches and shows. */
@@ -176,6 +179,104 @@ export default function LtiPlatformsPage() {
                         </Table>
                     )}
             </LoadState>
+
+            <div>
+                <Title order={4} mb="xs">{t("Course placements")}</Title>
+                <Text size="sm" c="dimmed" mb="sm">
+                    {t("Where courses reach the activities of this installation. One activity may be placed in more than one course, and a launch waits until somebody accepts that.")}
+                </Text>
+
+                <LoadState loading={placements === undefined} error={error}>
+                    {placements?.length === 0
+                        ? <Text c="dimmed">{t("Nothing has been launched yet, so there is no placement to show.")}</Text>
+                        : (
+                            <Table highlightOnHover>
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        <Table.Th>{t("Course")}</Table.Th>
+                                        <Table.Th>{t("Activity")}</Table.Th>
+                                        <Table.Th>{t("Sharing")}</Table.Th>
+                                        <Table.Th />
+                                    </Table.Tr>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    {placements?.map(placement => (
+                                        <Table.Tr key={placement.id}>
+                                            <Table.Td>
+                                                <Text fw={500}>{placement.contextTitle}</Text>
+                                                <Text size="xs" c="dimmed">{placement.platformName}</Text>
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <Text size="sm">{placement.activityName}</Text>
+                                                <Text size="xs" c="dimmed">{placement.activitySlug}</Text>
+                                            </Table.Td>
+                                            <Table.Td>
+                                                {/*
+                                                  * Silent about the ordinary case on purpose: an
+                                                  * activity reached from one course is not a
+                                                  * question, and a badge on every row would make
+                                                  * the one row that is a question look like all
+                                                  * the others.
+                                                  */}
+                                                {!placement.shared
+                                                    ? <Text size="sm" c="dimmed">{t("This course only")}</Text>
+                                                    : placement.sharingAcknowledged
+                                                        ? <Badge color="gray" variant="light">{t("Shared, accepted")}</Badge>
+                                                        : <Badge color="orange" variant="light">{t("Waiting for a decision")}</Badge>}
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <Group gap="xs" justify="flex-end" wrap="nowrap">
+                                                    {placement.shared && !placement.sharingAcknowledged && (
+                                                        <Button
+                                                            size="xs"
+                                                            variant="default"
+                                                            loading={busy}
+                                                            onClick={() => setAccepting(placement)}
+                                                        >
+                                                            {t("Accept the sharing")}
+                                                        </Button>
+                                                    )}
+                                                </Group>
+                                            </Table.Td>
+                                        </Table.Tr>
+                                    ))}
+                                </Table.Tbody>
+                            </Table>
+                        )}
+                </LoadState>
+            </div>
+
+            <Modal
+                opened={accepting !== undefined}
+                onClose={() => setAccepting(undefined)}
+                title={t("Accept that this activity is shared?")}
+            >
+                <Stack gap="sm">
+                    <Text size="sm">
+                        {t("This activity is already reached from another course. Accepting means it feeds both gradebooks, and every launch from here works from now on.")}
+                    </Text>
+                    <Text size="sm" c="dimmed">
+                        {t("It cannot be withdrawn here: scores already sent stay where they were sent. Remove the placement in the course instead.")}
+                    </Text>
+                    <Group justify="flex-end">
+                        <Button variant="default" onClick={() => setAccepting(undefined)}>
+                            {t("Cancel")}
+                        </Button>
+                        <Button
+                            loading={busy}
+                            onClick={async () => {
+                                const id = accepting?.id;
+                                if (!id) return;
+                                if (await run(() => call(api => api.ltiApi.acknowledgeSharing(id)))) {
+                                    setAccepting(undefined);
+                                }
+                            }}
+                        >
+                            {t("Accept the sharing")}
+                        </Button>
+                    </Group>
+                </Stack>
+            </Modal>
 
             <Modal
                 opened={registration !== undefined}

@@ -1,4 +1,6 @@
-import { GradeSummary, LaunchContext, LtiApi, Platform, PlatformInput, ToolRegistration } from "../LtiApi";
+import {
+    GradeSummary, LaunchContext, LtiApi, Placement, Platform, PlatformInput, ToolRegistration,
+} from "../LtiApi";
 import { conflict, invalid, notFound } from "./refuse";
 
 /**
@@ -71,6 +73,37 @@ export class LtiApiFake implements LtiApi {
         enabled: true,
         providerId: "provider-lti-1",
         createdAt: "2026-08-14T09:00:00.000Z",
+    }];
+
+    /**
+     * Two placements of one activity, which is the case the screen exists for:
+     * a second course reached the same activity and nobody has accepted that, so
+     * its launches are refused until somebody does.
+     */
+    private placements: Placement[] = [{
+        id: "placement-1",
+        platformId: "platform-1",
+        platformName: "Moodle WMiI",
+        contextTitle: "Algorytmy i struktury danych — grupa LA",
+        contextId: "41",
+        activityId: "activity-ammpz",
+        activitySlug: "AMMPZ-2019",
+        activityName: "Akademickie Mistrzostwa Polski w Programowaniu Zespołowym 2019",
+        shared: true,
+        sharingAcknowledged: true,
+        createdAt: "2026-08-14T09:10:00.000Z",
+    }, {
+        id: "placement-2",
+        platformId: "platform-1",
+        platformName: "Moodle WMiI",
+        contextTitle: "Algorytmy i struktury danych — grupa LB",
+        contextId: "42",
+        activityId: "activity-ammpz",
+        activitySlug: "AMMPZ-2019",
+        activityName: "Akademickie Mistrzostwa Polski w Programowaniu Zespołowym 2019",
+        shared: true,
+        sharingAcknowledged: false,
+        createdAt: "2026-08-14T11:30:00.000Z",
     }];
 
     private nextId = 2;
@@ -149,6 +182,20 @@ export class LtiApiFake implements LtiApi {
     async getGrades(linkId: string, verify: boolean): Promise<GradeSummary> {
         if (linkId !== "link-1") throw notFound("Placement");
         return verify ? { ...this.grades, drifted: 1 } : { ...this.grades };
+    }
+
+    async listPlacements(activityId: string | undefined): Promise<Placement[]> {
+        return this.placements
+            .filter(p => !activityId || p.activityId === activityId)
+            .map(p => ({ ...p }));
+    }
+
+    async acknowledgeSharing(placementId: string): Promise<Placement> {
+        const placement = this.placements.find(p => p.id === placementId);
+        if (!placement) throw notFound("Placement");
+        // One way only, the way the Server has it: there is no un-accepting.
+        placement.sharingAcknowledged = true;
+        return { ...placement };
     }
 
     async resyncGrades(linkId: string): Promise<number> {

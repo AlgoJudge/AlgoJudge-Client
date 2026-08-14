@@ -207,5 +207,82 @@ if (!conflict.includes("jan.kowalski")) {
 }
 await shot("lti-conflict");
 
+// ── The manager's screen, and the one decision it exists to carry ───────────
+//
+// A placement waiting for a decision is the only thing on this screen that
+// blocks anybody: until somebody accepts it, every launch from that course is
+// refused. The badge and the button are checked together, because a badge with
+// no way to act on it is what this screen had before.
+
+// **As the administrator, not as a manager.** `provider:manage` is deliberately
+// outside the manager set — deciding which platform may assert identity is not
+// running a course — so `amy` cannot reach this screen at all.
+// **A tab that has not launched.** The launch context lives in `sessionStorage`
+// and is scoped to the tab by design, so every page opened after a launch —
+// including this one — renders inside the confined shell. Clearing it is what a
+// second tab would look like, which is where a manager actually does this work.
+await evaluate(`window.sessionStorage.clear(); return true;`);
+
+await go(`${APP}/manager/lti?fakeUser=john`,
+    // **The heading, then a row.** The heading renders before the placements
+    // arrive, so waiting for it reads an empty table and calls it a screen that
+    // says nothing.
+    `document.body.innerText.includes("Podpięcia w kursach")
+        && document.body.innerText.includes("AMMPZ-2019")`);
+await shot("lti-manager");
+
+const manager = (await evaluate(`return document.body.innerText;`)).toLowerCase();
+if (!manager.includes("Moodle WMiI".toLowerCase())) {
+    fail("the platforms table shows no platform");
+} else {
+    pass("the platform this installation accepts launches from is listed");
+}
+if (!manager.includes("Czeka na decyzję".toLowerCase())) {
+    fail("a placement nobody has accepted is not marked as waiting");
+} else {
+    pass("a shared placement nobody accepted says it is waiting");
+}
+if (!manager.includes("Tylko ten kurs".toLowerCase()) && !manager.includes("Współdzielona".toLowerCase())) {
+    fail("the sharing column says nothing at all");
+} else {
+    pass("the sharing column distinguishes the ordinary case from the shared one");
+}
+
+// The button, clicked — then the modal's own button, and the badge must change.
+const opened = await evaluate(`
+    const button = [...document.querySelectorAll("button")]
+        .find(b => b.textContent.trim() === "Zgadzam się na współdzielenie");
+    if (!button) return false;
+    button.click();
+    return true;`);
+if (!opened) {
+    fail("nothing on the screen offers to accept the sharing");
+} else {
+    await new Promise(r => setTimeout(r, 900));
+    const asked = await evaluate(`return document.body.innerText;`);
+    if (!asked.includes("oba dzienniki")) {
+        fail("accepting does not say what it means for the gradebooks");
+    } else {
+        pass("accepting asks first, and says both gradebooks are fed");
+    }
+    await shot("lti-manager-sharing");
+
+    await evaluate(`
+        const confirm = [...document.querySelectorAll("button")]
+            .filter(b => b.textContent.trim() === "Zgadzam się na współdzielenie");
+        confirm[confirm.length - 1].click();
+        return true;`);
+    await new Promise(r => setTimeout(r, 1500));
+    const after = (await evaluate(`return document.body.innerText;`)).toLowerCase();
+    if (after.includes("Czeka na decyzję".toLowerCase())) {
+        fail("the placement still says it is waiting after being accepted");
+    } else if (!after.includes("zgoda jest")) {
+        fail("the placement does not say the sharing was accepted");
+    } else {
+        pass("accepting the sharing is recorded and the row says so");
+    }
+    await shot("lti-manager-accepted");
+}
+
 await close();
 console.log(process.exitCode ? "verify-lti: FAILED" : "verify-lti: ok");
