@@ -103,7 +103,16 @@ export const MANAGER_AREAS: ManagerArea[] = [
     // Directions rather than features. No permission of their own: they are dead
     // entries that lead nowhere and disclose nothing, and hiding them would make
     // the product look smaller than the plan it is being built to.
-    { to: "/manager/lti", label: "LTI platforms", description: "", icon: IconAlignBoxCenterTop, permissions: [], soon: true },
+    {
+        to: "/manager/lti",
+        label: "LTI platforms",
+        description: "Course platforms that may open activities for their students.",
+        icon: IconAlignBoxCenterTop,
+        // The same permission the OIDC providers sit behind, because registering
+        // a platform writes a provider row: it is the same decision about who
+        // this installation trusts to vouch for people.
+        permissions: ["provider:manage"],
+    },
     { to: "/manager/external-content", label: "External content", description: "", icon: IconWorldWww, permissions: [], soon: true },
     { to: "/manager/workstations", label: "Workstations", description: "", icon: IconDevicesPc, permissions: [], soon: true },
     { to: "/manager/printers", label: "Printers", description: "", icon: IconPrinter, permissions: [], soon: true },

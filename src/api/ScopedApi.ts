@@ -1,5 +1,6 @@
 import { Api } from "./Api";
 import { FileApi, StatementRef, UploadedFile } from "./FileApi";
+import { GradeSummary, LaunchContext, LtiApi, Platform, PlatformInput, ToolRegistration } from "./LtiApi";
 import { InstanceDocumentKind, InstanceDocumentRef } from "./CoreApi";
 import {
     AccountLink,
@@ -147,11 +148,47 @@ export class ScopedApi {
     participantApi: ScopedParticipantApi;
     managerApi: ScopedManagerApi;
     fileApi: ScopedFileApi;
+    ltiApi: ScopedLtiApi;
     constructor(private api: Api, private signal: AbortSignal) {
         this.authApi = new ScopedCoreApi(this.api.authApi, this.signal);
         this.participantApi = new ScopedParticipantApi(this.api.participantApi, this.signal);
         this.managerApi = new ScopedManagerApi(this.api.managerApi, this.signal);
         this.fileApi = new ScopedFileApi(this.api.fileApi, this.signal);
+        this.ltiApi = new ScopedLtiApi(this.api.ltiApi, this.signal);
+    }
+}
+
+/**
+ * The LMS integration, with the signal bound like everything else.
+ *
+ * Mechanical, as the rest of this file is: every method forwards to the same
+ * method with the signal appended, and must not drift from it.
+ */
+export class ScopedLtiApi {
+    constructor(private ltiApi: LtiApi, private signal: AbortSignal) {}
+    listPlatforms(): Promise<Platform[]> {
+        return this.ltiApi.listPlatforms(this.signal);
+    }
+    registerPlatform(input: PlatformInput): Promise<Platform> {
+        return this.ltiApi.registerPlatform(input, this.signal);
+    }
+    updatePlatform(id: string, input: PlatformInput): Promise<Platform> {
+        return this.ltiApi.updatePlatform(id, input, this.signal);
+    }
+    deletePlatform(id: string): Promise<void> {
+        return this.ltiApi.deletePlatform(id, this.signal);
+    }
+    getRegistration(id: string): Promise<ToolRegistration> {
+        return this.ltiApi.getRegistration(id, this.signal);
+    }
+    claimLaunch(ticket: string): Promise<LaunchContext> {
+        return this.ltiApi.claimLaunch(ticket, this.signal);
+    }
+    getGrades(linkId: string, verify: boolean): Promise<GradeSummary> {
+        return this.ltiApi.getGrades(linkId, verify, this.signal);
+    }
+    resyncGrades(linkId: string): Promise<number> {
+        return this.ltiApi.resyncGrades(linkId, this.signal);
     }
 }
 
