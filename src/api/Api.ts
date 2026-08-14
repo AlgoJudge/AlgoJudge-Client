@@ -2,6 +2,7 @@ import { Availability } from "./Availability";
 import { CoreApi } from "./CoreApi";
 import { EventConnection } from "./EventConnection";
 import { FileApi } from "./FileApi";
+import { LtiApi } from "./LtiApi";
 import { ManagerApi } from "./ManagerApi";
 import { ParticipantApi } from "./ParticipantApi";
 
@@ -16,6 +17,12 @@ export interface Api {
      * by what references it.
      */
     fileApi: FileApi,
+    /**
+     * The LMS integration, which an installation may not have. Every screen
+     * behind it is reached from a launch or from an activity that has one, so
+     * nothing on the ordinary path depends on this answering.
+     */
+    ltiApi: LtiApi,
     /**
      * The live connection behind the three event dispatchers. Started when a
      * session exists and stopped when it ends; the screens read the dispatchers

@@ -1,0 +1,84 @@
+/*
+ * The confined shell, sized for a frame nobody can resize.
+ *
+ * **Measured, not assumed.** Moodle implements no `lti.frameResize` — there is
+ * no `postMessage` in `mod/lti` at all, in 4.5.13, 5.2.2 or 5.3dev — so the
+ * height is whatever the teacher typed into the activity's settings and this
+ * layout cannot ask for more. Everything below follows from that: the chrome is
+ * one slim row, and the content scrolls inside itself rather than making the
+ * page scroll, because a scrollbar inside a scrollbar is the single most
+ * recognisable sign of a badly embedded tool.
+ */
+
+.shell {
+    display: flex;
+    flex-direction: column;
+    /* The frame's height, whatever it turns out to be. Not a viewport unit:
+       inside an iframe `100vh` is the frame, but a browser that disagrees gives
+       a second scrollbar, and `100%` follows the element it is given. */
+    height: 100%;
+    min-height: 0;
+}
+
+.bar {
+    display: flex;
+    align-items: center;
+    gap: var(--mantine-spacing-sm);
+    padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
+    border-bottom: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+    /* Never shrinks: the navigation is what makes this an activity rather than
+       a page, and it is the first thing a squeezed flexbox would eat. */
+    flex: 0 0 auto;
+}
+
+.course {
+    /* The course's name at the platform, so somebody in a frame knows which of
+       their courses they are looking at. Truncated rather than wrapped: a second
+       line here is a line taken from the problem statement. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 40%;
+}
+
+.links {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    /* Scrolls sideways on a narrow frame instead of wrapping onto a second row,
+       for the same reason as above. */
+    overflow-x: auto;
+    scrollbar-width: thin;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: var(--mantine-radius-sm);
+    white-space: nowrap;
+    text-decoration: none;
+    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+}
+
+.link:hover {
+    background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+}
+
+.active {
+    background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+    color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
+}
+
+.content {
+    /* The only thing that scrolls. `min-height: 0` is what lets a flex child
+       shrink below its content and scroll at all — without it the child grows
+       and the *page* scrolls, which is the doubled scrollbar again. */
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--mantine-spacing-md);
+}

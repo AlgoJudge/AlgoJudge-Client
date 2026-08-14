@@ -11,8 +11,13 @@ import HomePage from './pages/home/HomePage';
 import LoginPage from './pages/login/LoginPage';
 
 import RegisterPage from './pages/register/RegisterPage';
-import AppLayout from './layouts/app/AppLayout';
 import SessionShell from './layouts/SessionShell';
+import LaunchShell from './layouts/LaunchShell';
+import LaunchedPage from './pages/lti/LaunchedPage';
+import LaunchRefusedPage from './pages/lti/LaunchRefusedPage';
+import LaunchSignInPage from './pages/lti/LaunchSignInPage';
+import LaunchConflictPage from './pages/lti/LaunchConflictPage';
+import { LaunchProvider } from './provider/LaunchProvider';
 import ActivitiesPage from './pages/activities/ActivitiesPage';
 import ActivityPage from './pages/activities/activity_id/ActivityPage';
 import ProblemsPage from './pages/activities/activity_id/problems/ProblemsPage';
@@ -53,6 +58,7 @@ const ManagerSubmissionPage = lazy(() => import('./pages/manager/submissions/sub
 const ManagerQuestionsPage = lazy(() => import('./pages/manager/questions/ManagerQuestionsPage'));
 const ManagerInstancePage = lazy(() => import('./pages/manager/instance/ManagerInstancePage'));
 const ProvidersPage = lazy(() => import('./pages/manager/providers/ProvidersPage'));
+const LtiPlatformsPage = lazy(() => import('./pages/manager/lti/LtiPlatformsPage'));
 
 function App() {
 
@@ -76,6 +82,34 @@ function App() {
         // one, a shell whose children do not match still matches the address by
         // itself, and then draws its chrome around an empty page — which is what
         // `/` did the moment a second shell was added beside the first.
+        {
+            // Where a launch lands, and the three ways one can end badly.
+            //
+            // **No shell at all.** These are drawn inside a course page, where
+            // Moodle already provides the header, the footer and the legal
+            // links; §5.2 asks for that chrome to be removed rather than
+            // doubled. They also have to render for somebody with no session,
+            // because "the session did not survive the frame" is exactly what
+            // one of them exists to say.
+            children: [
+                {
+                    path: "/lti/launched",
+                    element: <LaunchedPage />
+                },
+                {
+                    path: "/lti/failed",
+                    element: <LaunchRefusedPage />
+                },
+                {
+                    path: "/lti/sign-in",
+                    element: <LaunchSignInPage />
+                },
+                {
+                    path: "/lti/conflict",
+                    element: <LaunchConflictPage />
+                },
+            ]
+        },
         {
             // The visitor's shell, and only the visitor's: an application shell
             // around a sign-in form would offer navigation to nowhere.
@@ -126,7 +160,11 @@ function App() {
             // One guard for the whole application shell: every participant and
             // manager screen is a child of it, so there is no route that can be
             // added later and forgotten here.
-            element: <RequireSession><AppLayout /></RequireSession>,
+            // **The shell follows the launch, not the address.** `LaunchShell`
+            // draws the confined interface for a tab that arrived through a
+            // framed launch and the full application for every other one; §5.2
+            // will not have the mode entered because a URL said so.
+            element: <RequireSession><LaunchShell /></RequireSession>,
             children: [
                 {
                     path: "/account",
@@ -192,7 +230,8 @@ function App() {
                 managerRoute("/manager/permission-templates", <PermissionTemplatesPage />),
                 managerRoute("/manager/runners", <RunnersPage />),
                 managerRoute("/manager/instance", <ManagerInstancePage />),
-                managerRoute("/manager/oidc", <ProvidersPage />)
+                managerRoute("/manager/oidc", <ProvidersPage />),
+                managerRoute("/manager/lti", <LtiPlatformsPage />)
             ]
         }
     ], { basename: import.meta.env.BASE_URL });
@@ -223,7 +262,14 @@ function App() {
                                         navigation a notification was landing
                                         on. */}
                                     <Notifications position="bottom-left" />
-                                    <RouterProvider router={router} />
+                                    {/* Inside the session, because the ticket is
+                                        claimed as the person the launch resolved
+                                        to — and above the router, because the
+                                        shell a route draws depends on whether
+                                        this tab is inside a launch. */}
+                                    <LaunchProvider>
+                                        <RouterProvider router={router} />
+                                    </LaunchProvider>
                                 </EventsProvider>
                             </PermissionsProvider>
                         </InstanceProvider>

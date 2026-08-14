@@ -4,6 +4,7 @@ import { CoreEventDispatcherImpl } from "../impl/CoreEventDispatcherImpl";
 import { CoreApiHttp } from "./CoreApiHttp";
 import { FileApiHttp } from "./FileApiHttp";
 import { HttpClient } from "./HttpClient";
+import { LtiApiHttp } from "./LtiApiHttp";
 import { ManagerApiHttp } from "./ManagerApiHttp";
 import { ParticipantApiHttp } from "./ParticipantApiHttp";
 import { eventUrl, WebSocketEvents } from "../ws/WebSocketEvents";
@@ -32,6 +33,7 @@ export class HttpApiFactory {
             participantApi,
             managerApi,
             fileApi: new FileApiHttp(http, baseUrl),
+            ltiApi: new LtiApiHttp(http),
             // One socket for all three, built here because this is where all
             // three dispatchers exist. It stays shut until somebody signs in.
             events: new WebSocketEvents(

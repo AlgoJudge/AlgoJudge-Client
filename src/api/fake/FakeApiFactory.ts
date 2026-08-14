@@ -6,6 +6,7 @@ import { FakeActivities } from "./FakeActivities";
 import { FakeAccess } from "./FakeAccess";
 import { FakeInstance } from "./FakeInstance";
 import { FakeFiles, FileApiFake } from "./FileApiFake";
+import { LtiApiFake } from "./LtiApiFake";
 import { ManagerApiFake } from "./ManagerApiFake";
 import { ParticipantApiFake } from "./ParticipantApiFake";
 
@@ -32,6 +33,7 @@ export class FakeApiFactory {
             participantApi: new ParticipantApiFake(files, activities, access),
             managerApi: new ManagerApiFake(files, instance, activities, access),
             fileApi: new FileApiFake(files),
+            ltiApi: new LtiApiFake(),
             // The fake dispatches its own events as it changes things, so there
             // is no connection to open and nothing to pretend about.
             events: new NullEventConnection(),
