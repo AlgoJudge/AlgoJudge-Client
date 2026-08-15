@@ -83,6 +83,16 @@ const explain = (reason: string, t: (key: string) => string): Explanation => {
                 detail: t("The link in your course does not say which AlgoJudge activity it should open."),
                 forTheTeacher: t("In the course, edit this external tool and add a custom parameter: activity=<the activity's slug>."),
             };
+        case "notPublished":
+            return {
+                // Not a failure, and the page has to say so: there is nothing
+                // wrong and nothing for them to do. A copy of last year's course
+                // is reachable from the moment somebody places it, and the class
+                // often arrives before the teacher has finished preparing it.
+                title: t("This activity is still being prepared"),
+                detail: t("It is not open yet. Nothing is broken — come back when your teacher has finished setting it up."),
+                forTheTeacher: t("Open the activity in AlgoJudge and publish it when it is ready. Until then you can open it yourself, and nobody else can."),
+            };
         case "sharingNotAcknowledged":
             return {
                 title: t("This activity is already used by another course"),

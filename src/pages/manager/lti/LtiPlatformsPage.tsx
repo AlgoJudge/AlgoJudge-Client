@@ -40,6 +40,9 @@ export default function LtiPlatformsPage() {
     const [platforms, setPlatforms] = useState<Platform[] | undefined>(undefined);
     const [placements, setPlacements] = useState<Placement[] | undefined>(undefined);
     const [accepting, setAccepting] = useState<Placement | undefined>(undefined);
+    const [copying, setCopying] = useState<Placement | undefined>(undefined);
+    const [copySlug, setCopySlug] = useState("");
+    const [copyStart, setCopyStart] = useState("");
     const [rosterOf, setRosterOf] = useState<Placement | undefined>(undefined);
     const [roster, setRoster] = useState<RosterView | undefined>(undefined);
     const [enrolled, setEnrolled] = useState<RosterEnrolment | undefined>(undefined);
@@ -338,6 +341,20 @@ export default function LtiPlatformsPage() {
                                                     : placement.sharingAcknowledged
                                                         ? <Badge color="gray" variant="light">{t("Shared, accepted")}</Badge>
                                                         : <Badge color="orange" variant="light">{t("Waiting for a decision")}</Badge>}
+
+                                                {/*
+                                                  * **What it looks like, not what it is.** The
+                                                  * platform names the course this one was copied
+                                                  * from; it cannot say which activity in the copy
+                                                  * matches which in the original, so this is a
+                                                  * sentence for a person and not a decision.
+                                                  */}
+                                                {placement.looksLikeCopyOf && (
+                                                    <Text size="xs" c="dimmed" mt={4}>
+                                                        {t("Looks like a copy of {{course}}",
+                                                            { course: placement.copiedFromContext || "?" })}
+                                                    </Text>
+                                                )}
                                             </Table.Td>
                                             <Table.Td>
                                                 <Group gap="xs" justify="flex-end" wrap="nowrap">
@@ -349,14 +366,28 @@ export default function LtiPlatformsPage() {
                                                         {t("Who is in the course")}
                                                     </Button>
                                                     {placement.shared && !placement.sharingAcknowledged && (
-                                                        <Button
-                                                            size="xs"
-                                                            variant="default"
-                                                            loading={busy}
-                                                            onClick={() => setAccepting(placement)}
-                                                        >
-                                                            {t("Accept the sharing")}
-                                                        </Button>
+                                                        <>
+                                                            <Button
+                                                                size="xs"
+                                                                variant="default"
+                                                                loading={busy}
+                                                                onClick={() => setAccepting(placement)}
+                                                            >
+                                                                {t("Share one activity")}
+                                                            </Button>
+                                                            <Button
+                                                                size="xs"
+                                                                variant="default"
+                                                                loading={busy}
+                                                                onClick={() => {
+                                                                    setCopySlug("");
+                                                                    setCopyStart("");
+                                                                    setCopying(placement);
+                                                                }}
+                                                            >
+                                                                {t("Give it its own copy")}
+                                                            </Button>
+                                                        </>
                                                     )}
                                                 </Group>
                                             </Table.Td>
@@ -367,6 +398,52 @@ export default function LtiPlatformsPage() {
                         )}
                 </LoadState>
             </div>
+
+            <Modal
+                opened={copying !== undefined}
+                onClose={() => setCopying(undefined)}
+                title={t("Give this course its own copy")}
+            >
+                <Stack gap="sm">
+                    <Text size="sm">
+                        {t("The copy carries the rounds, the problems and the settings — and nothing that happened: no submissions, no results, nobody's rights. Every date moves so that the first round starts when you say.")}
+                    </Text>
+                    <Text size="sm" c="dimmed">
+                        {t("It arrives unpublished. Nothing opens and nobody but you can reach it until you publish it.")}
+                    </Text>
+                    <TextInput
+                        label={t("A name of its own")}
+                        placeholder={t("asd-2027")}
+                        value={copySlug}
+                        onChange={event => setCopySlug(event.currentTarget.value)}
+                    />
+                    <TextInput
+                        type="datetime-local"
+                        label={t("When the first round starts")}
+                        value={copyStart}
+                        onChange={event => setCopyStart(event.currentTarget.value)}
+                    />
+                    <Group justify="flex-end">
+                        <Button variant="default" onClick={() => setCopying(undefined)}>
+                            {t("Cancel")}
+                        </Button>
+                        <Button
+                            disabled={!copySlug.trim() || !copyStart || busy}
+                            loading={busy}
+                            onClick={() => run(async () => {
+                                const id = copying?.id;
+                                if (!id) return;
+                                await call(api => api.ltiApi.copyActivityForPlacement(
+                                    id, copySlug.trim(), new Date(copyStart).toISOString()));
+                                setCopying(undefined);
+                                setReload(n => n + 1);
+                            })}
+                        >
+                            {t("Copy it")}
+                        </Button>
+                    </Group>
+                </Stack>
+            </Modal>
 
             <Modal
                 opened={accepting !== undefined}

@@ -200,6 +200,10 @@ export class ScopedLtiApi {
     acknowledgeSharing(placementId: string): Promise<Placement> {
         return this.ltiApi.acknowledgeSharing(placementId, this.signal);
     }
+    copyActivityForPlacement(
+        placementId: string, slug: string, startsAt: string): Promise<Placement> {
+        return this.ltiApi.copyActivityForPlacement(placementId, slug, startsAt, this.signal);
+    }
     getRoster(placementId: string): Promise<RosterView> {
         return this.ltiApi.getRoster(placementId, this.signal);
     }

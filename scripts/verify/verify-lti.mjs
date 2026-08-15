@@ -249,9 +249,11 @@ if (!manager.includes("Tylko ten kurs".toLowerCase()) && !manager.includes("Wsp�
 }
 
 // The button, clicked — then the modal's own button, and the badge must change.
+// **Renamed when the copy answer arrived**: accepting the sharing is now one of
+// two things a person can choose, so the label says which one it is.
 const opened = await evaluate(`
     const button = [...document.querySelectorAll("button")]
-        .find(b => b.textContent.trim() === "Zgadzam się na współdzielenie");
+        .find(b => b.textContent.trim() === "Współdziel jedną aktywność");
     if (!button) return false;
     button.click();
     return true;`);
@@ -480,6 +482,86 @@ if (!gone.includes("zakończony albo wygasł")) {
 } else {
     pass("a finished choosing says so");
 }
+
+// ── A course that was copied ─────────────────────────────────────────────────
+//
+// The screen has to offer both answers, because the data cannot tell them
+// apart: one activity shared by two courses is right for two groups of one
+// class, and wrong for this year copied from last year.
+// **A real navigation, not an in-app one.** The check above accepts the sharing
+// on this very placement, and the fake keeps its state for the life of the page
+// — so visiting in-app would arrive at a row whose question has been answered.
+await go(`${APP}/manager/lti?fakeUser=admin`,
+    `document.body.innerText.includes("Wygląda na kopię")`);
+
+const copied = await evaluate(`return document.body.innerText;`);
+if (!copied.includes("Wygląda na kopię kursu")) {
+    fail("a placement that looks like a copy does not say so");
+} else {
+    pass("a placement that looks like a copy says which one");
+}
+
+const offers = await evaluate(`
+    const buttons = [...document.querySelectorAll("button")].map(b => b.textContent);
+    return {
+        share: buttons.some(text => text.includes("Współdziel jedną aktywność")),
+        copy: buttons.some(text => text.includes("Daj mu własną kopię")),
+    };
+`);
+if (!offers.share || !offers.copy) {
+    fail(`both answers are not offered: ${JSON.stringify(offers)}`);
+} else {
+    pass("both answers are offered on the row that is a question");
+}
+
+await shot("lti-copied-course");
+
+// **The copy asks for a name and a date**, and refuses to proceed without
+// them: a copy made with last year's dates is the failure this whole screen
+// exists to prevent.
+await evaluate(`
+    const button = [...document.querySelectorAll("button")]
+        .find(b => b.textContent.includes("Daj mu własną kopię"));
+    button && button.click();
+    return true;
+`);
+
+for (let i = 0; i < 30; i++) {
+    if (await evaluate(`return document.body.innerText.includes("Kiedy zaczyna się pierwsza runda");`)) break;
+    await new Promise(resolve => setTimeout(resolve, 300));
+}
+
+const asks = await evaluate(`
+    const text = document.body.innerText;
+    const button = [...document.querySelectorAll("button")]
+        .find(b => b.textContent.trim() === "Skopiuj");
+    return {
+        saysUnpublished: text.includes("nieopublikowana"),
+        saysWhatTravels: text.includes("nic z tego, co się wydarzyło"),
+        blocked: button ? button.disabled : "no button",
+    };
+`);
+
+if (!asks.saysUnpublished) {
+    fail("the copy dialogue does not say the copy arrives unpublished");
+} else {
+    pass("the copy dialogue says the copy arrives unpublished");
+}
+if (!asks.saysWhatTravels) {
+    fail("the copy dialogue does not say what the copy leaves behind");
+} else {
+    pass("the copy dialogue says what the copy leaves behind");
+}
+if (asks.blocked !== true) {
+    fail(`copying is offered before a name and a date are given (${asks.blocked})`);
+} else {
+    pass("copying waits for a name and a date");
+}
+
+// Settled rather than mid-transition: a screenshot taken while the modal fades
+// in shows the page through it, which reads as a rendering defect and is not one.
+await new Promise(resolve => setTimeout(resolve, 800));
+await shot("lti-copy-dialogue");
 
 await close();
 console.log(process.exitCode ? "verify-lti: FAILED" : "verify-lti: ok");

@@ -105,6 +105,11 @@ export class LtiApiFake implements LtiApi {
         activityName: "Akademickie Mistrzostwa Polski w Programowaniu Zespołowym 2019",
         shared: true,
         sharingAcknowledged: false,
+        // The interesting case: the platform said this course was copied from
+        // one already placed here, so the screen has something to propose rather
+        // than only a question.
+        looksLikeCopyOf: "placement-1",
+        copiedFromContext: "Algorytmy i struktury danych — grupa LA",
         createdAt: "2026-08-14T11:30:00.000Z",
     }];
 
@@ -349,6 +354,26 @@ export class LtiApiFake implements LtiApi {
         return this.placements
             .filter(p => !activityId || p.activityId === activityId)
             .map(p => ({ ...p }));
+    }
+
+    async copyActivityForPlacement(
+        placementId: string, slug: string, startsAt: string): Promise<Placement> {
+        const placement = this.placements.find(p => p.id === placementId);
+        if (!placement) throw notFound("Placement");
+        if (!slug.trim()) throw invalid("A slug is required");
+        if (this.placements.some(p => p.activitySlug === slug.trim())) {
+            throw conflict("An activity with that slug already exists");
+        }
+
+        // The copy takes the placement with it, and the sharing question stops
+        // applying: this placement is the only one pointing at the new activity.
+        placement.activityId = "activity-" + slug.trim();
+        placement.activitySlug = slug.trim();
+        placement.activityName = `${placement.activityName} (${startsAt.slice(0, 4)})`;
+        placement.sharingAcknowledged = true;
+        placement.looksLikeCopyOf = null;
+        placement.copiedFromContext = null;
+        return { ...placement };
     }
 
     async acknowledgeSharing(placementId: string): Promise<Placement> {

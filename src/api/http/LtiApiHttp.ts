@@ -67,6 +67,16 @@ export class LtiApiHttp implements LtiApi {
             `/lti/placements/${encodeURIComponent(placementId)}/sharing`, "POST", { signal });
     }
 
+    copyActivityForPlacement(
+        placementId: string, slug: string, startsAt: string,
+        signal: AbortSignal): Promise<Placement> {
+        return this.http.request<Placement>(
+            `/lti/placements/${encodeURIComponent(placementId)}/copy-activity`, "POST", {
+                signal,
+                body: { slug, startsAt },
+            });
+    }
+
     getRoster(placementId: string, signal: AbortSignal): Promise<RosterView> {
         return this.http.request<RosterView>(
             `/lti/placements/${encodeURIComponent(placementId)}/roster`, "GET", { signal });
