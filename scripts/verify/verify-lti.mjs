@@ -358,5 +358,128 @@ if (!rosterOpened) {
     await shot("lti-roster-enrolled");
 }
 
+// ── Expecting a registration ─────────────────────────────────────────────────
+//
+// The address is the whole mechanism: handing it over is what admits a platform.
+// So the screen has to show it while it is live and stop showing it once it is
+// not — a spent code left on screen invites somebody to hand it over twice.
+await visit("/manager/lti?fakeUser=admin",
+    `document.body.innerText.includes("Oczekiwane rejestracje")`);
+
+const expecting = await evaluate(`return document.body.innerText;`);
+if (!expecting.includes("Oczekiwane rejestracje")) {
+    fail("the platforms screen does not offer to expect a registration");
+} else {
+    pass("the platforms screen offers to expect a registration");
+}
+
+// The seeded one is spent, so its address must not be on screen.
+if (expecting.includes("already-used")) {
+    fail("a spent invitation still shows the address it was admitted with");
+} else {
+    pass("a spent invitation shows no address");
+}
+
+await evaluate(`
+    const label = [...document.querySelectorAll("label")]
+        .find(l => l.textContent.includes("Jak to nazwać"));
+    const input = label && label.parentElement.querySelector("input");
+    if (input) {
+        const setter = Object.getOwnPropertyDescriptor(
+            window.HTMLInputElement.prototype, "value").set;
+        setter.call(input, "Moodle WMiI");
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    const button = [...document.querySelectorAll("button")]
+        .find(b => b.textContent.includes("Oczekuj rejestracji"));
+    button && button.click();
+    return true;
+`);
+// Waited for rather than slept through: the address appears when the call
+// returns, and a fixed sleep is a race dressed as a pause.
+for (let i = 0; i < 30; i++) {
+    if (await evaluate(`return document.body.innerText.includes("/lti/register?code=");`)) break;
+    await new Promise(resolve => setTimeout(resolve, 300));
+}
+
+const invited = await evaluate(`return document.body.innerText;`);
+if (!invited.includes("Moodle WMiI") || !invited.includes("/lti/register?code=")) {
+    fail("expecting a registration does not produce an address to hand over");
+} else {
+    pass("expecting a registration produces the address to hand over");
+}
+if (!invited.toLowerCase().includes("oczekuje")) {
+    fail("a live invitation is not marked as waiting");
+} else {
+    pass("a live invitation is marked as waiting");
+}
+
+await shot("lti-invitations");
+
+// ── Choosing what to place ───────────────────────────────────────────────────
+//
+// The platform said it takes several, so the screen must offer several — and
+// with one platform that takes one, exactly one.
+await visit("/lti/choose?code=demo&fakeUser=admin",
+    `document.body.innerText.includes("Wybierz, co umieścić")`);
+
+const choosing = await evaluate(`return document.body.innerText;`);
+if (!choosing.includes("Wybierz, co umieścić")) {
+    fail("the choosing screen does not open");
+} else {
+    pass("the choosing screen opens");
+}
+if (!choosing.includes("Algorytmy i struktury danych")) {
+    fail("the choosing screen does not say which course it is placing into");
+} else {
+    pass("the choosing screen says which course it is placing into");
+}
+
+const several = await evaluate(
+    `return document.querySelectorAll('input[type=checkbox]').length;`);
+if (Number(several) < 2) {
+    fail(`a platform taking several items is offered ${several} checkboxes`);
+} else {
+    pass("a platform taking several items is offered checkboxes");
+}
+
+// **The placing button waits for a choice.** A form that posts an empty answer
+// sends the person back to Moodle with nothing placed and no reason given.
+const idleFirst = await evaluate(`
+    const button = [...document.querySelectorAll("button")]
+        .find(b => b.textContent.includes("Umieść"));
+    return button ? button.disabled : "no button";
+`);
+if (idleFirst !== true) {
+    fail(`placing is offered before anything is chosen (${idleFirst})`);
+} else {
+    pass("placing waits until something is chosen");
+}
+
+await shot("lti-choose");
+
+// The one-item platform, which is the case a checkbox list would get wrong.
+await visit("/lti/choose?code=single&fakeUser=admin",
+    `document.querySelectorAll("input[type=radio]").length > 0`);
+const single = await evaluate(`return {
+    radios: document.querySelectorAll("input[type=radio]").length,
+    boxes: document.querySelectorAll("input[type=checkbox]").length,
+};`);
+if (!single || single.radios < 2 || single.boxes !== 0) {
+    fail(`a platform taking one item is offered ${JSON.stringify(single)}`);
+} else {
+    pass("a platform taking one item is offered a single choice");
+}
+
+// And a choosing that is over says so rather than showing an empty list.
+await visit("/lti/choose?code=spent&fakeUser=admin",
+    `document.body.innerText.includes("wygasł")`);
+const gone = await evaluate(`return document.body.innerText;`);
+if (!gone.includes("zakończony albo wygasł")) {
+    fail("a finished choosing does not say so");
+} else {
+    pass("a finished choosing says so");
+}
+
 await close();
 console.log(process.exitCode ? "verify-lti: FAILED" : "verify-lti: ok");
