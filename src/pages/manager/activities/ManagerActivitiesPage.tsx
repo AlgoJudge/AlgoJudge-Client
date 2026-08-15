@@ -31,6 +31,9 @@ const STATE_COLOUR = { upcoming: "blue", ongoing: "teal", finished: "gray", unti
 export default function ManagerActivitiesPage() {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const [copying, setCopying] = useState<ManagedActivity | undefined>(undefined);
+    const [copySlug, setCopySlug] = useState("");
+    const [copyStart, setCopyStart] = useState("");
     const call = useApiCall();
 
     const [items, setItems] = useState<ManagedActivity[] | undefined>(undefined);
@@ -157,10 +160,44 @@ export default function ManagerActivitiesPage() {
                                         <Text size="xs" c="dimmed">{t("ranking")}: {activity.rankingType}</Text>
                                     </Stack>
                                 </Table.Td>
-                                <Table.Td>
-                                    <Badge variant="light" color={STATE_COLOUR[state(activity)]}>
-                                        {t(`activityState.${state(activity)}`)}
-                                    </Badge>
+                                {/*
+                                  * `nowrap`, because this column was squeezed
+                                  * narrow enough to cut its own badges: the states
+                                  * read "TR…" and "BE…", which name nothing. Found
+                                  * by looking at the screen rather than at the
+                                  * assertions, which passed either way.
+                                  */}
+                                <Table.Td style={{ whiteSpace: "nowrap" }}>
+                                    {/*
+                                      * **Being prepared outranks the schedule.** An
+                                      * activity nobody can reach has no state worth
+                                      * reading off its dates, and showing one would
+                                      * say it was open when nobody could open it.
+                                      */}
+                                    {/*
+                                      * `label: overflow visible`, because the badge
+                                      * truncates its own text: the states were
+                                      * reading "TR…" and "BE…", which name nothing.
+                                      * The cell is wide enough; the component was
+                                      * cutting inside it.
+                                      */}
+                                    {activity.publishedAt ? (
+                                        <Badge
+                                            variant="light"
+                                            color={STATE_COLOUR[state(activity)]}
+                                            styles={{ label: { overflow: "visible" } }}
+                                        >
+                                            {t(`activityState.${state(activity)}`)}
+                                        </Badge>
+                                    ) : (
+                                        <Badge
+                                            variant="light"
+                                            color="orange"
+                                            styles={{ label: { overflow: "visible" } }}
+                                        >
+                                            {t("Being prepared")}
+                                        </Badge>
+                                    )}
                                 </Table.Td>
                                 <Table.Td>
                                     {activity.startDate
@@ -178,6 +215,28 @@ export default function ManagerActivitiesPage() {
                                             onClick={() => navigate(`/manager/activities/${activity.slug}`)}
                                         >
                                             {t("Open")}
+                                        </Button>
+                                        <Button
+                                            variant="subtle"
+                                            size="compact-sm"
+                                            loading={busy}
+                                            onClick={() => run(() => call(api =>
+                                                api.managerApi.setActivityPublished(
+                                                    activity.id, !activity.publishedAt)))}
+                                        >
+                                            {activity.publishedAt ? t("Withdraw") : t("Publish")}
+                                        </Button>
+                                        <Button
+                                            variant="subtle"
+                                            size="compact-sm"
+                                            loading={busy}
+                                            onClick={() => {
+                                                setCopySlug("");
+                                                setCopyStart("");
+                                                setCopying(activity);
+                                            }}
+                                        >
+                                            {t("Copy for a new run")}
                                         </Button>
                                         <Tooltip label={activity.archivedAt ? t("Restore") : t("Archive")}>
                                             <Button
@@ -258,6 +317,51 @@ export default function ManagerActivitiesPage() {
                     <Group justify="space-between">
                         <Button variant="default" onClick={() => setCreating(false)}>{t("Back")}</Button>
                         <Button loading={busy} onClick={create}>{t("Save")}</Button>
+                    </Group>
+                </Stack>
+            </Modal>
+
+            <Modal
+                opened={copying !== undefined}
+                onClose={() => setCopying(undefined)}
+                title={t("Copy for a new run")}
+            >
+                <Stack gap="sm">
+                    <Text size="sm">
+                        {t("The copy carries the rounds, the problems and the settings — and nothing that happened: no submissions, no results, nobody's rights. Every date moves so that the first round starts when you say.")}
+                    </Text>
+                    <Text size="sm" c="dimmed">
+                        {t("It arrives unpublished. Nothing opens and nobody but you can reach it until you publish it.")}
+                    </Text>
+                    <TextInput
+                        label={t("A name of its own")}
+                        placeholder={t("asd-2027")}
+                        value={copySlug}
+                        onChange={event => setCopySlug(event.currentTarget.value)}
+                    />
+                    <TextInput
+                        type="datetime-local"
+                        label={t("When the first round starts")}
+                        value={copyStart}
+                        onChange={event => setCopyStart(event.currentTarget.value)}
+                    />
+                    <Group justify="flex-end">
+                        <Button variant="default" onClick={() => setCopying(undefined)}>
+                            {t("Back")}
+                        </Button>
+                        <Button
+                            disabled={!copySlug.trim() || !copyStart || busy}
+                            loading={busy}
+                            onClick={() => run(async () => {
+                                const id = copying?.id;
+                                if (!id) return;
+                                await call(api => api.managerApi.duplicateActivity(
+                                    id, copySlug.trim(), new Date(copyStart).toISOString()));
+                                setCopying(undefined);
+                            })}
+                        >
+                            {t("Copy it")}
+                        </Button>
                     </Group>
                 </Stack>
             </Modal>

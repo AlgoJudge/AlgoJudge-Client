@@ -284,6 +284,25 @@ export class ManagerApiHttp implements ManagerApi {
         });
     }
 
+    setActivityPublished(
+        id: string, published: boolean, signal: AbortSignal): Promise<ManagedActivity> {
+        return this.http.request<ManagedActivity>(
+            `/activities/${encodeURIComponent(id)}/published`, "POST", {
+                signal,
+                body: { published },
+            });
+    }
+
+    duplicateActivity(
+        id: string, slug: string, startsAt: string,
+        signal: AbortSignal): Promise<ManagedActivity> {
+        return this.http.request<ManagedActivity>(
+            `/activities/${encodeURIComponent(id)}/duplicate`, "POST", {
+                signal,
+                body: { slug, startsAt },
+            });
+    }
+
     async deleteActivity(id: string, signal: AbortSignal): Promise<void> {
         await this.http.request<void>(`/activities/${encodeURIComponent(id)}`, "DELETE", { signal });
     }

@@ -162,6 +162,20 @@ export interface ToolRegistration {
  */
 export interface Placement {
     id: string;
+
+    /**
+     * The placement this one appears to be a copy of, when the platform said the
+     * course was copied from one already known here.
+     *
+     * **A hint, never a conclusion.** The platform names a course, not an
+     * activity: no version of Moodle carries a resource link history, so with
+     * two AlgoJudge activities in the copied course this points at the course
+     * and a person decides the rest.
+     */
+    looksLikeCopyOf?: string | null;
+
+    /** What that course is called, for the screen to name it. */
+    copiedFromContext?: string | null;
     platformId: string;
     platformName: string;
 
@@ -340,6 +354,18 @@ export interface LtiApi {
      * removing the placement at the platform is the honest way back.
      */
     acknowledgeSharing(placementId: string, signal: AbortSignal): Promise<Placement>;
+
+    /**
+     * Gives this placement an activity of its own, copied from the one it points
+     * at, with every date moved to the new start.
+     *
+     * **The other answer to a copied course.** Accepting the sharing puts two
+     * cohorts into one activity, which is right when one offering runs in two
+     * courses and wrong when this year was copied from last year.
+     */
+    copyActivityForPlacement(
+        placementId: string, slug: string, startsAt: string,
+        signal: AbortSignal): Promise<Placement>;
 
     /**
      * The course's roster, read from the platform now.

@@ -104,6 +104,11 @@ const activityOf = (activity: SeedActivity): ManagedActivity => ({
     languages: activity.languages,
     maxSubmissionsPerProblem: activity.maxSubmissionsPerProblem,
     archivedAt: activity.archivedAt,
+    // **Published, except the workshop.** Everything the fixtures describe has
+    // been running; leaving one unpublished is what makes the two states visible
+    // on the screen at the same time, which is the case a person has to tell
+    // apart.
+    publishedAt: activity.slug === "WARSZTAT-9" ? undefined : "2026-01-05T08:00:00.000Z",
     // All three are recomputed by the fake — from the series it holds and from
     // the grants — so what is written here is only a starting value.
     seriesCount: activity.series.length,

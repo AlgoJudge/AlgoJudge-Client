@@ -427,6 +427,13 @@ export interface ManagedActivity {
     maxSubmissionsPerProblem?: number;
     /** Set once ended: still readable, accepting nothing new. */
     archivedAt?: string;
+
+    /**
+     * When somebody decided this exists for the people taking part. Absent means
+     * never: it is being prepared, nothing in it opens, and only the people who
+     * may edit it can reach it.
+     */
+    publishedAt?: string;
     seriesCount: number;
     problemCount: number;
     participantCount: number;
@@ -644,6 +651,13 @@ export interface ManagedProblem {
     sharedWith: string[];
     /** Set once retired: gone from the attach picker, taking no new versions. */
     archivedAt?: string;
+
+    /**
+     * When somebody decided this exists for the people taking part. Absent means
+     * never: it is being prepared, nothing in it opens, and only the people who
+     * may edit it can reach it.
+     */
+    publishedAt?: string;
     currentVersion: number;
     versionCount: number;
     createdAt: string;
@@ -1401,6 +1415,26 @@ export interface ManagerApi {
     updateActivity(id: string, input: ActivityInput, signal: AbortSignal): Promise<ManagedActivity>;
     /** The ordinary way an activity ends. Readable, accepting nothing new. */
     setActivityArchived(id: string, archived: boolean, signal: AbortSignal): Promise<ManagedActivity>;
+
+    /**
+     * Says an activity exists for the people taking part, or takes that back.
+     *
+     * **Withdrawing does not undo what happened.** Rounds already opened stay
+     * open in every record of them; this stops the scheduler and hides the
+     * activity, which is the most an unpublish can honestly claim.
+     */
+    setActivityPublished(
+        id: string, published: boolean, signal: AbortSignal): Promise<ManagedActivity>;
+
+    /**
+     * Copies an activity for a new run of it: the rounds, the assignments and
+     * the settings, with every date moved so the first round starts at
+     * `startsAt`. Nothing that happened travels, and the copy arrives
+     * unpublished.
+     */
+    duplicateActivity(
+        id: string, slug: string, startsAt: string,
+        signal: AbortSignal): Promise<ManagedActivity>;
     /**
      * Destroys the submissions participants may still want to look back at,
      * which is why it is a permission of its own and not in the manager
