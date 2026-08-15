@@ -1,5 +1,6 @@
 import {
-    GradeSummary, LaunchContext, LtiApi, Placement, Platform, PlatformInput, ToolRegistration,
+    GradeSummary, LaunchContext, LtiApi, Placement, Platform, PlatformInput, RosterEnrolment,
+    RosterView, ToolRegistration,
 } from "../LtiApi";
 import { HttpClient } from "./HttpClient";
 
@@ -64,5 +65,15 @@ export class LtiApiHttp implements LtiApi {
     acknowledgeSharing(placementId: string, signal: AbortSignal): Promise<Placement> {
         return this.http.request<Placement>(
             `/lti/placements/${encodeURIComponent(placementId)}/sharing`, "POST", { signal });
+    }
+
+    getRoster(placementId: string, signal: AbortSignal): Promise<RosterView> {
+        return this.http.request<RosterView>(
+            `/lti/placements/${encodeURIComponent(placementId)}/roster`, "GET", { signal });
+    }
+
+    enrolFromRoster(placementId: string, signal: AbortSignal): Promise<RosterEnrolment> {
+        return this.http.request<RosterEnrolment>(
+            `/lti/placements/${encodeURIComponent(placementId)}/roster/enrol`, "POST", { signal });
     }
 }

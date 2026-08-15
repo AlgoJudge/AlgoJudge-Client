@@ -1,5 +1,6 @@
 import {
-    GradeSummary, LaunchContext, LtiApi, Placement, Platform, PlatformInput, ToolRegistration,
+    GradeSummary, LaunchContext, LtiApi, Placement, Platform, PlatformInput, RosterEnrolment,
+    RosterEntry, RosterView, ToolRegistration,
 } from "../LtiApi";
 import { conflict, invalid, notFound } from "./refuse";
 
@@ -106,6 +107,44 @@ export class LtiApiFake implements LtiApi {
         createdAt: "2026-08-14T11:30:00.000Z",
     }];
 
+    /**
+     * A roster with one of each case, because the screen exists for the cases
+     * rather than for the happy row: somebody already known, somebody who can be
+     * linked, somebody the platform will not name, and somebody who has left.
+     *
+     * Shaped from a roster measured against Moodle 5.2.2 — short role names, and
+     * a username that is the platform's assertion rather than our login.
+     */
+    private roster: RosterEntry[] = [{
+        subject: "3",
+        roles: ["Learner"],
+        name: "Jan Kowalski",
+        email: "j.kowalski@example.edu.pl",
+        assertedUsername: "jkowalski",
+        status: "Active",
+        userId: "user-kowalski",
+        userName: "jkowalski",
+        strength: "confirmed",
+    }, {
+        subject: "4",
+        roles: ["Learner"],
+        name: "Anna Nowak",
+        email: "a.nowak@example.edu.pl",
+        assertedUsername: "anowak",
+        status: "Active",
+    }, {
+        subject: "5",
+        roles: ["Instructor"],
+        name: "Tomasz Wi\u015bniewski",
+        status: "Active",
+    }, {
+        subject: "6",
+        roles: ["Learner"],
+        name: "Agnieszka Lis",
+        assertedUsername: "alis",
+        status: "Inactive",
+    }];
+
     private nextId = 2;
 
     async listPlatforms(): Promise<Platform[]> {
@@ -182,6 +221,54 @@ export class LtiApiFake implements LtiApi {
     async getGrades(linkId: string, verify: boolean): Promise<GradeSummary> {
         if (linkId !== "link-1") throw notFound("Placement");
         return verify ? { ...this.grades, drifted: 1 } : { ...this.grades };
+    }
+
+    async getRoster(placementId: string): Promise<RosterView> {
+        if (!this.placements.some(p => p.id === placementId)) throw notFound("Placement");
+
+        const members = this.roster.map(m => ({ ...m }));
+        return {
+            contextId: "41",
+            contextTitle: "Algorytmy i struktury danych — grupa LA",
+            readAt: new Date().toISOString(),
+            total: members.length,
+            known: members.filter(m => m.userId).length,
+            members,
+            disclosed: {
+                withUsername: members.filter(m => m.assertedUsername).length,
+                withEmail: members.filter(m => m.email).length,
+                withName: members.filter(m => m.name).length,
+            },
+        };
+    }
+
+    async enrolFromRoster(placementId: string): Promise<RosterEnrolment> {
+        if (!this.placements.some(p => p.id === placementId)) throw notFound("Placement");
+
+        const skipped = this.roster
+            .filter(m => m.status === "Inactive" || !m.assertedUsername)
+            .map(m => ({
+                subject: m.subject,
+                name: m.name,
+                reason: m.status === "Inactive" ? "inactive" : "noUsername",
+            }));
+
+        // The one who could be linked now is, so a second run reads differently
+        // — the screen has to survive being used twice.
+        const newlyLinked = this.roster.filter(
+            m => m.assertedUsername && m.status !== "Inactive" && !m.userId);
+        for (const member of newlyLinked) {
+            member.userId = "user-" + member.assertedUsername;
+            member.userName = member.assertedUsername;
+            member.strength = "provisional";
+        }
+
+        return {
+            read: this.roster.length,
+            linked: newlyLinked.length,
+            granted: this.roster.filter(m => m.userId && m.status !== "Inactive").length,
+            skipped,
+        };
     }
 
     async listPlacements(activityId: string | undefined): Promise<Placement[]> {

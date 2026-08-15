@@ -284,5 +284,79 @@ if (!opened) {
     await shot("lti-manager-accepted");
 }
 
+// ── The roster, and the four reasons somebody is left out ────────────────
+//
+// The screen exists for the people it *cannot* place: a roster that links
+// everybody needs no interface at all. So every check below is about a row that
+// did not work out, and about saying which kind of not-working-out it was.
+
+const rosterOpened = await evaluate(`
+    const button = [...document.querySelectorAll("button")]
+        .find(b => b.textContent.trim() === "Kto jest w kursie");
+    if (!button) return false;
+    button.click();
+    return true;`);
+
+if (!rosterOpened) {
+    fail("no placement offers to show who is in the course");
+} else {
+    await new Promise(r => setTimeout(r, 1500));
+    const listed = (await evaluate(`return document.body.innerText;`)).toLowerCase();
+
+    if (!listed.includes("jan kowalski") || !listed.includes("anna nowak")) {
+        fail("the roster shows no people");
+    } else {
+        pass("the roster lists the course's people");
+    }
+
+    // Somebody the platform will not name, and somebody who has left: both are
+    // in the list rather than quietly dropped from it.
+    if (!listed.includes("bez nazwy u\u017cytkownika")) {
+        fail("somebody the platform sent no username for is not marked as such");
+    } else {
+        pass("a member with no username is shown, and said to have none");
+    }
+    if (!listed.includes("opu\u015bci\u0142")) {
+        fail("somebody who has left the course is not marked as such");
+    } else {
+        pass("a member the course says has left is marked");
+    }
+    if (!listed.includes("potwierdzone")) {
+        fail("an existing link does not say how firm it is");
+    } else {
+        pass("an existing link says whether it is confirmed");
+    }
+
+    await shot("lti-roster");
+
+    await evaluate(`
+        const button = [...document.querySelectorAll("button")]
+            .find(b => b.textContent.trim() === "Zapisz do aktywno\u015bci");
+        if (button) button.click();
+        return true;`);
+    await new Promise(r => setTimeout(r, 2000));
+
+    const after = (await evaluate(`return document.body.innerText;`)).toLowerCase();
+
+    if (!after.includes("pomini\u0119ci")) {
+        fail("enrolling says nothing about whom it left out");
+    } else {
+        pass("enrolling reports whom it left out");
+    }
+    // The reason, not the code: "noUsername" on a screen is for whoever wrote it.
+    if (!after.includes("nie poda\u0142a jego nazwy") && !after.includes("kurs m\u00f3wi")) {
+        fail("the reasons are shown as codes rather than as reasons");
+    } else {
+        pass("each reason is given in words a teacher can act on");
+    }
+    if (!after.includes("wst\u0119pne")) {
+        fail("somebody linked from a roster is not marked provisional");
+    } else {
+        pass("somebody linked from a roster is marked provisional");
+    }
+
+    await shot("lti-roster-enrolled");
+}
+
 await close();
 console.log(process.exitCode ? "verify-lti: FAILED" : "verify-lti: ok");
