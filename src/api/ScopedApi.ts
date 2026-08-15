@@ -1,7 +1,8 @@
 import { Api } from "./Api";
 import { FileApi, StatementRef, UploadedFile } from "./FileApi";
 import {
-    GradeSummary, LaunchContext, LtiApi, Placement, Platform, PlatformInput, RosterEnrolment,
+    DeepLinkAnswer, DeepLinkChoosing, GradeSummary, LaunchContext, LtiApi, Placement, Platform,
+    PlatformInput, RegistrationInvitation, RosterEnrolment,
     RosterView, ToolRegistration,
 } from "./LtiApi";
 import { InstanceDocumentKind, InstanceDocumentRef } from "./CoreApi";
@@ -204,6 +205,21 @@ export class ScopedLtiApi {
     }
     enrolFromRoster(placementId: string): Promise<RosterEnrolment> {
         return this.ltiApi.enrolFromRoster(placementId, this.signal);
+    }
+    listInvitations(): Promise<RegistrationInvitation[]> {
+        return this.ltiApi.listInvitations(this.signal);
+    }
+    invite(note: string): Promise<RegistrationInvitation> {
+        return this.ltiApi.invite(note, this.signal);
+    }
+    revokeInvitation(id: string): Promise<void> {
+        return this.ltiApi.revokeInvitation(id, this.signal);
+    }
+    openChoosing(code: string): Promise<DeepLinkChoosing> {
+        return this.ltiApi.openChoosing(code, this.signal);
+    }
+    answerChoosing(code: string, activityIds: string[]): Promise<DeepLinkAnswer> {
+        return this.ltiApi.answerChoosing(code, activityIds, this.signal);
     }
 }
 

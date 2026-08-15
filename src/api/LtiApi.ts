@@ -259,6 +259,49 @@ export interface RosterEnrolment {
     skipped: RosterSkip[];
 }
 
+/**
+ * A registration somebody here is expecting.
+ *
+ * **The address is the whole of it.** It carries a one-time code, and handing it
+ * over is what admits a platform — so it is shown once, copied, and read as
+ * spent afterwards.
+ */
+export interface RegistrationInvitation {
+    id: string;
+    note: string;
+    registrationUrl: string;
+    expiresAt: string;
+    usedAt?: string | null;
+    platformId?: string | null;
+}
+
+/** What a platform asked this tool to place, and what may be placed. */
+export interface DeepLinkChoosing {
+    contextTitle: string;
+    acceptMultiple: boolean;
+    embedded: boolean;
+    locale?: string | null;
+    activities: DeepLinkCandidate[];
+}
+
+export interface DeepLinkCandidate {
+    id: string;
+    slug: string;
+    name: string;
+}
+
+/**
+ * The signed answer and where it goes.
+ *
+ * **Posted as a form by the browser, never followed here.** The platform expects
+ * the person's own browser carrying the platform's own cookie, at an address
+ * that checks a session key it issued.
+ */
+export interface DeepLinkAnswer {
+    returnUrl: string;
+    jwt: string;
+}
+
 export interface LtiApi {
     listPlatforms(signal: AbortSignal): Promise<Platform[]>;
     registerPlatform(input: PlatformInput, signal: AbortSignal): Promise<Platform>;
@@ -312,4 +355,20 @@ export interface LtiApi {
      * worth reading — whom it declined to place, and why.
      */
     enrolFromRoster(placementId: string, signal: AbortSignal): Promise<RosterEnrolment>;
+
+    /** Registrations somebody here is expecting, newest first. */
+    listInvitations(signal: AbortSignal): Promise<RegistrationInvitation[]>;
+
+    /** Expects one, and answers with the address to hand over. */
+    invite(note: string, signal: AbortSignal): Promise<RegistrationInvitation>;
+
+    /** Calls it off. The row stays, expired, so the list still says it happened. */
+    revokeInvitation(id: string, signal: AbortSignal): Promise<void>;
+
+    /** What a platform asked to place, for the screen that picks it. */
+    openChoosing(code: string, signal: AbortSignal): Promise<DeepLinkChoosing>;
+
+    /** Answers the platform. Spends the choosing. */
+    answerChoosing(
+        code: string, activityIds: string[], signal: AbortSignal): Promise<DeepLinkAnswer>;
 }

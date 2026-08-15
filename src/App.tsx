@@ -17,6 +17,7 @@ import LaunchedPage from './pages/lti/LaunchedPage';
 import LaunchRefusedPage from './pages/lti/LaunchRefusedPage';
 import LaunchSignInPage from './pages/lti/LaunchSignInPage';
 import LaunchConflictPage from './pages/lti/LaunchConflictPage';
+import ChoosePage from './pages/lti/ChoosePage';
 import { LaunchProvider } from './provider/LaunchProvider';
 import ActivitiesPage from './pages/activities/ActivitiesPage';
 import ActivityPage from './pages/activities/activity_id/ActivityPage';
@@ -107,6 +108,14 @@ function App() {
                 {
                     path: "/lti/conflict",
                     element: <LaunchConflictPage />
+                },
+                {
+                    // Where a deep linking request lands. Inside the launch
+                    // shell, because it happens in the platform's frame like
+                    // every other launch — and because the person here has a
+                    // session this tool made, not one they signed into.
+                    path: "/lti/choose",
+                    element: <ChoosePage />
                 },
             ]
         },

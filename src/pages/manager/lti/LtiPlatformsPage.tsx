@@ -6,7 +6,8 @@ import { IconAlertTriangle, IconCopy, IconPlus, IconShieldLock, IconTrash } from
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    Placement, Platform, PlatformInput, RosterEnrolment, RosterView, ToolRegistration,
+    Placement, Platform, PlatformInput, RegistrationInvitation, RosterEnrolment, RosterView,
+    ToolRegistration,
 } from "../../../api/LtiApi";
 import LoadState from "../../../components/LoadState";
 import { CopyButton } from "../../../components/buttons";
@@ -43,6 +44,8 @@ export default function LtiPlatformsPage() {
     const [roster, setRoster] = useState<RosterView | undefined>(undefined);
     const [enrolled, setEnrolled] = useState<RosterEnrolment | undefined>(undefined);
     const [registration, setRegistration] = useState<ToolRegistration | undefined>(undefined);
+    const [invitations, setInvitations] = useState<RegistrationInvitation[] | undefined>(undefined);
+    const [note, setNote] = useState("");
     const [draft, setDraft] = useState<Draft | undefined>(undefined);
     const [removing, setRemoving] = useState<Platform | undefined>(undefined);
     const [saveError, setSaveError] = useState<string | undefined>(undefined);
@@ -52,6 +55,7 @@ export default function LtiPlatformsPage() {
     const error = useApiEffect(async (api) => {
         setPlatforms(await api.ltiApi.listPlatforms());
         setPlacements(await api.ltiApi.listPlacements());
+        setInvitations(await api.ltiApi.listInvitations());
     }, [reload]);
 
     /** The same shape the providers screen uses: one place that catches and shows. */
@@ -206,6 +210,90 @@ export default function LtiPlatformsPage() {
                         </Table>
                     )}
             </LoadState>
+
+            <div>
+                <Title order={4} mb="xs">{t("Expected registrations")}</Title>
+                <Text size="sm" c="dimmed" mb="sm">
+                    {t("A platform can register itself, if somebody here is expecting it. Hand the address over to whoever administers the platform; it is good once, for half an hour.")}
+                </Text>
+
+                <Group align="flex-end" mb="sm">
+                    <TextInput
+                        style={{ flex: 1 }}
+                        label={t("What to call it while waiting")}
+                        placeholder={t("WMiI Moodle")}
+                        value={note}
+                        onChange={event => setNote(event.currentTarget.value)}
+                    />
+                    <Button
+                        disabled={busy}
+                        onClick={() => run(async () => {
+                            await call(api => api.ltiApi.invite(note));
+                            setNote("");
+                            setReload(n => n + 1);
+                        })}
+                    >
+                        {t("Expect a registration")}
+                    </Button>
+                </Group>
+
+                <LoadState loading={invitations === undefined} error={error}>
+                    {invitations?.length === 0
+                        ? <Text size="sm" c="dimmed">{t("Nobody is expected right now.")}</Text>
+                        : (
+                            <Stack gap="xs">
+                                {invitations?.map(invitation => {
+                                    // Three states, and the screen has to tell them
+                                    // apart: still waiting, used by a platform, or
+                                    // out of time. Only the first is worth copying.
+                                    const spent = Boolean(invitation.usedAt);
+                                    const expired = !spent
+                                        && new Date(invitation.expiresAt).getTime() < Date.now();
+                                    const live = !spent && !expired;
+
+                                    return (
+                                        <Card key={invitation.id} withBorder padding="sm">
+                                            <Group justify="space-between" align="flex-start">
+                                                <div style={{ minWidth: 0 }}>
+                                                    <Text fw={500}>
+                                                        {invitation.note || t("A platform")}
+                                                    </Text>
+                                                    {live && (
+                                                        <Code block style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+                                                            {invitation.registrationUrl}
+                                                        </Code>
+                                                    )}
+                                                </div>
+                                                <Group gap="xs">
+                                                    <Badge color={spent ? "green" : expired ? "gray" : "blue"}>
+                                                        {spent
+                                                            ? t("Registered")
+                                                            : expired ? t("Expired") : t("Waiting")}
+                                                    </Badge>
+                                                    {live && (
+                                                        <Button
+                                                            size="xs"
+                                                            variant="subtle"
+                                                            color="red"
+                                                            disabled={busy}
+                                                            onClick={() => run(async () => {
+                                                                await call(api =>
+                                                                    api.ltiApi.revokeInvitation(invitation.id));
+                                                                setReload(n => n + 1);
+                                                            })}
+                                                        >
+                                                            {t("Call it off")}
+                                                        </Button>
+                                                    )}
+                                                </Group>
+                                            </Group>
+                                        </Card>
+                                    );
+                                })}
+                            </Stack>
+                        )}
+                </LoadState>
+            </div>
 
             <div>
                 <Title order={4} mb="xs">{t("Course placements")}</Title>

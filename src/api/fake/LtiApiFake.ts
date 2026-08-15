@@ -1,6 +1,7 @@
 import {
-    GradeSummary, LaunchContext, LtiApi, Placement, Platform, PlatformInput, RosterEnrolment,
-    RosterEntry, RosterView, ToolRegistration,
+    DeepLinkAnswer, DeepLinkChoosing, GradeSummary, LaunchContext, LtiApi, Placement, Platform,
+    PlatformInput, RegistrationInvitation, RosterEnrolment, RosterEntry, RosterView,
+    ToolRegistration,
 } from "../LtiApi";
 import { conflict, invalid, notFound } from "./refuse";
 
@@ -268,6 +269,79 @@ export class LtiApiFake implements LtiApi {
             linked: newlyLinked.length,
             granted: this.roster.filter(m => m.userId && m.status !== "Inactive").length,
             skipped,
+        };
+    }
+
+    // ── Registrations somebody is expecting ─────────────────────────────────
+
+    private invitations: RegistrationInvitation[] = [
+        {
+            id: "invitation-spent",
+            note: "WMiI Moodle",
+            registrationUrl: "https://algojudge.invalid/api/v1/lti/register?code=already-used",
+            expiresAt: new Date(Date.now() - 3_600_000).toISOString(),
+            usedAt: new Date(Date.now() - 4_000_000).toISOString(),
+            platformId: "platform-1",
+        },
+    ];
+
+    async listInvitations(): Promise<RegistrationInvitation[]> {
+        return this.invitations.map(i => ({ ...i }));
+    }
+
+    async invite(note: string): Promise<RegistrationInvitation> {
+        const code = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+        const invitation: RegistrationInvitation = {
+            id: "invitation-" + code.slice(0, 6),
+            note: note.trim(),
+            registrationUrl: `https://algojudge.invalid/api/v1/lti/register?code=${code}`,
+            // The Server's own half hour, so the screen is built against the
+            // life the real one has.
+            expiresAt: new Date(Date.now() + 1_800_000).toISOString(),
+            usedAt: null,
+            platformId: null,
+        };
+        this.invitations = [invitation, ...this.invitations];
+        return { ...invitation };
+    }
+
+    async revokeInvitation(id: string): Promise<void> {
+        const invitation = this.invitations.find(i => i.id === id);
+        if (!invitation) throw notFound("Registration invitation");
+        // Expired rather than removed, exactly as the Server does it: the list
+        // still says somebody expected a registration and called it off.
+        invitation.expiresAt = new Date().toISOString();
+    }
+
+    // ── A platform asking what to place ─────────────────────────────────────
+
+    async openChoosing(code: string): Promise<DeepLinkChoosing> {
+        if (code === "spent") throw notFound("Deep link session");
+
+        return {
+            contextTitle: "Algorytmy i struktury danych",
+            // Both shapes are worth working on, and the code says which: a
+            // platform that takes one item is the case the screen gets wrong.
+            acceptMultiple: code !== "single",
+            embedded: true,
+            locale: "pl",
+            activities: [
+                { id: "activity-1", slug: "asd-lab", name: "Laboratorium ASD" },
+                { id: "activity-2", slug: "asd-projekt", name: "Projekt zaliczeniowy" },
+            ],
+        };
+    }
+
+    async answerChoosing(code: string, activityIds: string[]): Promise<DeepLinkAnswer> {
+        if (activityIds.length === 0) throw invalid("Nothing was chosen");
+        if (code === "single" && activityIds.length > 1) {
+            throw invalid(
+                "This platform asked for one item and would drop the rest without saying so");
+        }
+
+        return {
+            returnUrl: "https://moodle.invalid/mod/lti/contentitem_return.php?sesskey=fake",
+            jwt: "fake.deep-link.response",
         };
     }
 
