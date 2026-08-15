@@ -186,6 +186,79 @@ export interface Placement {
     createdAt: string;
 }
 
+/**
+ * One person on a course's roster, as the platform describes them.
+ *
+ * **Everything but `subject` may be absent, and that is the point.** A platform
+ * discloses what its administrator configured it to disclose; measured against
+ * Moodle 5.2.2 the username arrives only when the tool may send names *and* the
+ * roster is asked for one placement. A screen that assumes a name is there shows
+ * a column of blanks and no reason for them.
+ */
+export interface RosterEntry {
+    /** The platform's own identifier for them. Always present. */
+    subject: string;
+
+    roles: string[];
+    name?: string;
+    email?: string;
+
+    /** The username the **platform** asserts, which is not our account's login. */
+    assertedUsername?: string;
+
+    /** The platform's word for whether they are still in the course. */
+    status?: string;
+
+    /** The AlgoJudge account behind them, where one is known. */
+    userId?: string;
+    userName?: string;
+
+    /**
+     * `confirmed` — they launched and we saw them. `provisional` — a roster said
+     * so and nobody has verified it. Absent when nobody is matched at all.
+     */
+    strength?: string;
+}
+
+/** What the platform disclosed, counted rather than assumed. */
+export interface RosterDisclosure {
+    withUsername: number;
+    withEmail: number;
+    withName: number;
+}
+
+export interface RosterView {
+    contextId: string;
+    contextTitle: string;
+    readAt: string;
+    total: number;
+
+    /** How many already have an AlgoJudge account behind them. */
+    known: number;
+
+    members: RosterEntry[];
+    disclosed: RosterDisclosure;
+}
+
+/** Somebody the roster named and this installation would not place. */
+export interface RosterSkip {
+    subject: string;
+    name?: string;
+
+    /**
+     * `noUsername`, `unknownAccount`, `outsideNamespace`, `inactive`. Each is
+     * somebody a teacher may be expecting to see, so none of them is silent.
+     */
+    reason: string;
+}
+
+export interface RosterEnrolment {
+    read: number;
+    linked: number;
+    granted: number;
+    skipped: RosterSkip[];
+}
+
 export interface LtiApi {
     listPlatforms(signal: AbortSignal): Promise<Platform[]>;
     registerPlatform(input: PlatformInput, signal: AbortSignal): Promise<Platform>;
@@ -224,4 +297,19 @@ export interface LtiApi {
      * removing the placement at the platform is the honest way back.
      */
     acknowledgeSharing(placementId: string, signal: AbortSignal): Promise<Placement>;
+
+    /**
+     * The course's roster, read from the platform now.
+     *
+     * **Read when somebody asks, never on a timer** (decided 2026-08-15). This
+     * is a university's Moodle; a screen that refreshed on a schedule would be
+     * traffic they never asked for.
+     */
+    getRoster(placementId: string, signal: AbortSignal): Promise<RosterView>;
+
+    /**
+     * Puts that roster into the activity. Answers what it did and — the part
+     * worth reading — whom it declined to place, and why.
+     */
+    enrolFromRoster(placementId: string, signal: AbortSignal): Promise<RosterEnrolment>;
 }

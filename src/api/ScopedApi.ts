@@ -1,7 +1,8 @@
 import { Api } from "./Api";
 import { FileApi, StatementRef, UploadedFile } from "./FileApi";
 import {
-    GradeSummary, LaunchContext, LtiApi, Placement, Platform, PlatformInput, ToolRegistration,
+    GradeSummary, LaunchContext, LtiApi, Placement, Platform, PlatformInput, RosterEnrolment,
+    RosterView, ToolRegistration,
 } from "./LtiApi";
 import { InstanceDocumentKind, InstanceDocumentRef } from "./CoreApi";
 import {
@@ -197,6 +198,12 @@ export class ScopedLtiApi {
     }
     acknowledgeSharing(placementId: string): Promise<Placement> {
         return this.ltiApi.acknowledgeSharing(placementId, this.signal);
+    }
+    getRoster(placementId: string): Promise<RosterView> {
+        return this.ltiApi.getRoster(placementId, this.signal);
+    }
+    enrolFromRoster(placementId: string): Promise<RosterEnrolment> {
+        return this.ltiApi.enrolFromRoster(placementId, this.signal);
     }
 }
 
