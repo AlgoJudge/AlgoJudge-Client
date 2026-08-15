@@ -138,5 +138,78 @@ const after = await evaluate(`return document.querySelectorAll("tbody tr").lengt
 check(after > before,
     `the accounts are in the activity already enrolled (${before} → ${after})`);
 
+// — copying an activity for a new run, and the state it arrives in.
+//
+// The dangerous case is a copy of last year that opens itself: the dates are
+// last year's until somebody moves them, so the screen asks for a start and the
+// copy arrives unpublished.
+await go(`${APP}/manager/activities?fakeUser=john`, MANAGER_LIST);
+
+const offers = await evaluate(`
+    const buttons = [...document.querySelectorAll("button")].map(b => b.textContent);
+    return {
+        copy: buttons.some(text => text.includes("Skopiuj na nową edycję")),
+        withdraw: buttons.some(text => text.includes("Wycofaj")),
+    };
+`);
+check(offers.copy, "an activity can be copied for a new run");
+check(offers.withdraw, "a published activity can be withdrawn");
+
+await click(`[...document.querySelectorAll("button")]
+    .find(b => b.textContent.includes("Skopiuj na nową edycję"))`);
+await wait(700);
+
+const dialogue = await evaluate(`
+    const text = document.body.innerText;
+    const button = [...document.querySelectorAll("button")]
+        .find(b => b.textContent.trim() === "Skopiuj");
+    return {
+        saysUnpublished: text.includes("nieopublikowana"),
+        asksForDate: text.includes("Kiedy zaczyna się pierwsza runda"),
+        blocked: button ? button.disabled : false,
+    };
+`);
+check(dialogue.asksForDate, "copying asks when the first round starts");
+check(dialogue.saysUnpublished, "copying says the copy arrives unpublished");
+check(dialogue.blocked, "copying waits for a name and a date");
+
+// Both fields set the same way: `type` takes a CSS selector, and these two are
+// found by placeholder and by input type rather than by any class.
+await evaluate(`
+    const setter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype, "value").set;
+    const fill = (input, value) => {
+        setter.call(input, value);
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+    const inputs = [...document.querySelectorAll("input")];
+    fill(inputs.find(i => i.placeholder === "asd-2027"), "asd-2027");
+    fill(inputs.find(i => i.type === "datetime-local"), "2027-10-01T09:00");
+    return true;
+`);
+await wait(300);
+await shot("activity-copy-dialogue");
+
+await click(`[...document.querySelectorAll("button")]
+    .find(b => b.textContent.trim() === "Skopiuj")`);
+await wait(900);
+
+const listed = await body();
+check(listed.includes("asd-2027"), "the copy is in the list");
+// **And it is marked as not ready**, which is the whole reason the state exists:
+// a copy that looked like every other row would be opened by somebody assuming
+// it was.
+// **`textContent`, not `innerText`.** The badge is styled to ellipsise, and the
+// rendered text is what `innerText` reports — so a state can be present, correct
+// and invisible to a check that reads the screen the way a person sees it.
+const states = await evaluate(`
+    return [...document.querySelectorAll("tbody tr")]
+        .map(row => row.cells[2] ? row.cells[2].textContent.trim() : "");
+`);
+check(states.includes("W przygotowaniu"),
+    `the copy says it is being prepared (states: ${JSON.stringify(states)})`);
+
+await shot("activity-copied");
+
 report();
 close();

@@ -526,6 +526,12 @@ export class ScopedManagerApi {
     setActivityArchived(id: string, archived: boolean): Promise<ManagedActivity> {
         return this.managerApi.setActivityArchived(id, archived, this.signal);
     }
+    setActivityPublished(id: string, published: boolean): Promise<ManagedActivity> {
+        return this.managerApi.setActivityPublished(id, published, this.signal);
+    }
+    duplicateActivity(id: string, slug: string, startsAt: string): Promise<ManagedActivity> {
+        return this.managerApi.duplicateActivity(id, slug, startsAt, this.signal);
+    }
     deleteActivity(id: string): Promise<void> {
         return this.managerApi.deleteActivity(id, this.signal);
     }

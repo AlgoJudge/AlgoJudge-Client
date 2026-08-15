@@ -487,6 +487,72 @@ export class ManagerApiFake implements ManagerApi {
         return copy(record.activity);
     }
 
+    async setActivityPublished(
+        id: string, published: boolean, signal: AbortSignal): Promise<ManagedActivity> {
+        await this.settle(signal);
+        const record = this.findActivity(id);
+        // Publishing twice keeps the first timestamp, like the Server: "since
+        // when could people see this" has one answer.
+        if (published && !record.activity.publishedAt) {
+            record.activity.publishedAt = new Date().toISOString();
+        } else if (!published) {
+            record.activity.publishedAt = undefined;
+        }
+        this.announceActivity(record.activity);
+        return copy(record.activity);
+    }
+
+    async duplicateActivity(
+        id: string, slug: string, startsAt: string, signal: AbortSignal): Promise<ManagedActivity> {
+        await this.settle(signal);
+        const record = this.findActivity(id);
+
+        const wanted = slug.trim();
+        if (!wanted) invalid("A slug is required", "slug.required");
+        if (this.activities.some(a => a.activity.slug.toLowerCase() === wanted.toLowerCase())) {
+            conflict("An activity with that slug already exists", "activity.slug.taken");
+        }
+
+        // **The anchor is the earliest round start**, as on the Server, so the
+        // screen is built against the same arithmetic rather than a guess.
+        const starts = record.series
+            .map(series => series.startDate)
+            .filter((date): date is string => Boolean(date))
+            .sort();
+        const anchor = starts[0] ?? record.activity.startDate;
+        const delta = anchor
+            ? new Date(startsAt).getTime() - new Date(anchor).getTime()
+            : 0;
+        const move = (date?: string) =>
+            date ? new Date(new Date(date).getTime() + delta).toISOString() : undefined;
+
+        const made: ManagedActivity = {
+            ...copy(record.activity),
+            id: "activity-" + wanted,
+            slug: wanted,
+            startDate: move(record.activity.startDate),
+            endDate: move(record.activity.endDate),
+            archivedAt: undefined,
+            // Nothing here is for anybody yet, which is the whole point of a copy.
+            publishedAt: undefined,
+        };
+
+        this.activities.push({
+            activity: made,
+            series: record.series.map(series => ({
+                ...copy(series),
+                id: "series-" + wanted + "-" + series.slug,
+                startDate: move(series.startDate),
+                endDate: move(series.endDate),
+                isOpen: false,
+                problems: series.problems.map(problem => ({ ...copy(problem), submissionCount: 0 })),
+            })),
+        });
+
+        this.announceActivity(made);
+        return copy(made);
+    }
+
     async deleteActivity(id: string, signal: AbortSignal): Promise<void> {
         await this.settle(signal);
         const record = this.findActivity(id);
