@@ -143,7 +143,19 @@ export const importOne = async (
         await api.managerApi.createProblemVersion(created.id, {
             note: `Imported from onlinejudge.org, problem ${problem.number}`,
             statements: [{ fileId: statement.id }],
-            config: { uva: { problemNumber: problem.number } },
+            config: {
+                uva: { problemNumber: problem.number },
+                // **Without this the problem cannot be submitted at all.** The
+                // Runner reads a language name and sends the archive its own
+                // numeric id; an imported problem with no map is refused before
+                // anything leaves, which an end-to-end run on 2026-08-16 showed
+                // as "the problem's configuration cannot be read".
+                //
+                // One entry, and only the one whose id has been seen accepted.
+                // Guessing the rest of the archive's table would put numbers in
+                // here that nobody has watched work.
+                languages: { cpp: 5 },
+            },
         });
 
         // Visible to the whole installation: an imported problem is a library
