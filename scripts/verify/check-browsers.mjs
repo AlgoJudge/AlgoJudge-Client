@@ -195,6 +195,34 @@ await killByPid(decoy);
 await scrub(decoyProfile);
 await scrub(leakProfile);
 
+// ------------------------------------------- a pid that is not a browser at all
+
+// The other half of the pid-reuse case. Above, the number had been handed to a
+// different **browser**; here it belongs to something that is not one — which is
+// the likelier accident, because most of what a machine starts is not a browser.
+//
+// **No single sabotage reddens the survival assertions below**, and that is worth
+// knowing rather than discovering later: the guards are layered, so removing any
+// one of them still leaves this process alive. What one change does break is the
+// classification, so that is asserted too.
+const bystander = spawn(process.execPath, ["-e", "setTimeout(() => {}, 120000)"], { stdio: "ignore" });
+writeFileSync(REGISTRY, `${JSON.stringify([{
+    pid: bystander.pid, kind: "chrome", port: 9399, profile: join(PROFILES, "chrome-check"),
+    binary: chrome.binary, startedAt: new Date().toISOString(), startedBy: "check:browsers",
+}], null, 2)}
+`);
+
+const sorted = await inventory();
+check(!sorted.ours.some(o => o.pid === bystander.pid), "an entry whose pid is not a browser is not counted as ours");
+check(sorted.stale.some(o => o.pid === bystander.pid && o.why === "no browser is running with that pid"),
+    "and it is reported as that, rather than as a process that has ended");
+
+const untouched = await stopOne(bystander.pid);
+check(untouched.outcome !== "closed", `asked to close it, nothing is closed (${untouched.outcome})`);
+check(alive(bystander.pid), "the process it named is still running");
+check(registry().every(e => e.pid !== bystander.pid), "and the entry is dropped rather than kept forever");
+bystander.kill();
+
 // -------------------------------------------------------------- and the runner
 
 const APP = process.env.APP ?? "http://localhost:5180";
