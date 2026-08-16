@@ -154,10 +154,18 @@ export async function inventory() {
 
     for (const entry of read()) {
         const found = live.find(p => p.pid === entry.pid);
-        // Gone, or the pid was handed to something else in the meantime. Either
-        // way this entry names nothing we may kill.
+        // Either the pid was handed to something else in the meantime, or no
+        // browser is answering to it at all. Both say the same thing about what
+        // may be done here, and neither says the process has ended: this list
+        // holds browsers, so a pid now belonging to a text editor is simply not
+        // in it. Claiming it had exited would be stating more than was looked at.
         if (found && carries(found.command, entry.profile)) ours.push({ ...entry, command: found.command });
-        else stale.push({ ...entry, why: found ? "the pid now belongs to something else" : "the process is gone" });
+        else {
+            stale.push({
+                ...entry,
+                why: found ? "the pid now belongs to another browser" : "no browser is running with that pid",
+            });
+        }
     }
 
     const known = new Set(ours.map(o => o.pid));
@@ -270,11 +278,11 @@ export async function stop(entry) {
     const found = (await browsers()).find(p => p.pid === entry.pid);
     if (!found) {
         drop(entry.pid);
-        return { pid: entry.pid, outcome: "gone" };
+        return { pid: entry.pid, outcome: "gone", why: "no browser is running with that pid" };
     }
     if (!carries(found.command, entry.profile)) {
         drop(entry.pid);
-        return { pid: entry.pid, outcome: "refused", why: "the pid now belongs to something else" };
+        return { pid: entry.pid, outcome: "refused", why: "the pid now belongs to another browser" };
     }
 
     await gracefully(entry.kind, entry.port);
