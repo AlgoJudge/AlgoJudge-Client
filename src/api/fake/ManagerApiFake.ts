@@ -29,6 +29,7 @@ import {
     ManagedSubmissionFilter,
     ManagedUser,
     InstanceLogoInput,
+    AccessKey,
     ExternalContent,
     InstanceSettingsInput,
     NewStatement,
@@ -128,6 +129,9 @@ export class ManagerApiFake implements ManagerApi {
     /** Ships as an installation does, and edited from the same screen. */
     private hosts: string[] = ["onlinejudge.org"];
 
+    /** Names and dates only, exactly as the API answers. */
+    private keys: AccessKey[] = [];
+
     private templates = createTemplates();
     private library: ProblemRecord[];
     private activities: ActivityRecord[] = createActivityLibrary();
@@ -168,6 +172,25 @@ export class ManagerApiFake implements ManagerApi {
                 .filter(problem => problem.problemId === record.problem.id)
                 .length;
         }
+    }
+
+    async getAccessKeys(signal: AbortSignal): Promise<AccessKey[]> {
+        await this.settle(signal);
+        return this.keys.map(key => ({ ...key }));
+    }
+
+    async setAccessKey(name: string, value: string, signal: AbortSignal): Promise<AccessKey[]> {
+        await this.settle(signal);
+        // **The value is taken and never kept anywhere a screen can read it.**
+        // The fake holds only what the real answer carries, so a screen that
+        // started rendering a secret would break here rather than in production.
+        const key = name.trim().toLowerCase();
+        const kept = this.keys.filter(one => one.name !== key);
+        this.keys = value.trim().length === 0
+            ? kept
+            : [...kept, { name: key, updatedAt: new Date().toISOString() }]
+                .sort((a, b) => a.name.localeCompare(b.name));
+        return this.keys.map(one => ({ ...one }));
     }
 
     async getExternalContent(signal: AbortSignal): Promise<ExternalContent> {

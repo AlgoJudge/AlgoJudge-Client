@@ -78,6 +78,7 @@ import {
     UserChangedEvent,
     UserInput,
     InstanceLogoInput,
+    AccessKey,
     ExternalContent,
     InstanceSettingsInput,
     NewStatement,
@@ -498,6 +499,12 @@ export class ScopedManagerApi {
     }
     updateInstanceSettings(input: InstanceSettingsInput): Promise<InstanceInfo> {
         return this.managerApi.updateInstanceSettings(input, this.signal);
+    }
+    getAccessKeys(): Promise<AccessKey[]> {
+        return this.managerApi.getAccessKeys(this.signal);
+    }
+    setAccessKey(name: string, value: string): Promise<AccessKey[]> {
+        return this.managerApi.setAccessKey(name, value, this.signal);
     }
     getExternalContent(): Promise<ExternalContent> {
         return this.managerApi.getExternalContent(this.signal);

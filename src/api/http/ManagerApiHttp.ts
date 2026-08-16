@@ -44,6 +44,7 @@ import {
     SeriesProblemInput,
     UserInput,
     InstanceLogoInput,
+    AccessKey,
     ExternalContent,
     InstanceSettingsInput,
     NewStatement,
@@ -236,6 +237,15 @@ export class ManagerApiHttp implements ManagerApi {
 
     updateInstanceSettings(input: InstanceSettingsInput, signal: AbortSignal): Promise<InstanceInfo> {
         return this.http.request<InstanceInfo>("/instance", "PUT", { signal, body: input });
+    }
+
+    getAccessKeys(signal: AbortSignal): Promise<AccessKey[]> {
+        return this.http.request<AccessKey[]>("/instance/access-keys", "GET", { signal });
+    }
+
+    setAccessKey(name: string, value: string, signal: AbortSignal): Promise<AccessKey[]> {
+        return this.http.request<AccessKey[]>(
+            `/instance/access-keys/${encodeURIComponent(name)}`, "PUT", { signal, body: { value } });
     }
 
     getExternalContent(signal: AbortSignal): Promise<ExternalContent> {
