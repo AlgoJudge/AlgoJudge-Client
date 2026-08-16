@@ -45,13 +45,14 @@ import {
     UserInput,
     InstanceLogoInput,
     AccessKey,
+    AccessKeyValue,
     ExternalContent,
     InstanceSettingsInput,
     NewStatement,
     UserSession,
     UserUpdateInput,
 } from "../ManagerApi";
-import { StatementRef } from "../FileApi";
+import { StatementRef, UploadedFile } from "../FileApi";
 import { ActivityDocumentKind, ActivityDocumentRef, Page } from "../ParticipantApi";
 import { ManagerEventDispatcherImpl } from "../impl/ManagerEventDispatcher";
 import { HttpClient } from "./HttpClient";
@@ -237,6 +238,15 @@ export class ManagerApiHttp implements ManagerApi {
 
     updateInstanceSettings(input: InstanceSettingsInput, signal: AbortSignal): Promise<InstanceInfo> {
         return this.http.request<InstanceInfo>("/instance", "PUT", { signal, body: input });
+    }
+
+    requestAccessKey(name: string, signal: AbortSignal): Promise<AccessKeyValue> {
+        return this.http.request<AccessKeyValue>(
+            `/instance/access-keys/${encodeURIComponent(name)}/value`, "GET", { signal });
+    }
+
+    fetchFile(url: string, signal: AbortSignal): Promise<UploadedFile> {
+        return this.http.request<UploadedFile>("/files/fetch", "POST", { signal, body: { url } });
     }
 
     getAccessKeys(signal: AbortSignal): Promise<AccessKey[]> {

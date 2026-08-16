@@ -74,5 +74,61 @@ if (rows >= 2) {
     await shot("external-content-edited");
 }
 
+// ── Importing by number ────────────────────────────────────────────────────
+//
+// The fake fetches nothing and knows no catalogue, so what can be measured here
+// is what the screen does with the answers rather than whether an import works.
+// That is the half a browser can see, and the half the gate cannot.
+
+const area = () => evaluate(`
+    return document.querySelector("[class*=AppShell-main]").innerText.replace(/\s+/g, " ");
+`);
+
+const offered = await area();
+check(/Importuj zadania z UVa/i.test(offered), "the screen offers importing by number");
+
+// **The pairing, not the state.** The fake persists the instance switch across
+// scripts in one browser profile, so asserting it is off here asserts what an
+// earlier run happened to leave. What must be true either way is that the screen
+// and the switch agree: refused and explained, or offered and silent.
+const blocked = await evaluate(`
+    const main = document.querySelector("[class*=AppShell-main]");
+    const button = [...main.querySelectorAll("button")].find(b => b.textContent.trim() === "Importuj");
+    return { there: button !== undefined, disabled: button ? button.disabled : null };
+`);
+check(blocked.there, "the import button is on the screen");
+
+
+// What it reads out of what somebody typed, before anything is sent.
+await evaluate(`
+    const main = document.querySelector("[class*=AppShell-main]");
+    const box = main.querySelector("textarea");
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").set;
+    setter.call(box, "100, 101 272,, 100");
+    box.dispatchEvent(new Event("input", { bubbles: true }));
+    return true;
+`);
+await wait(400);
+
+const counted = await area();
+check(/Odczytane numery: 3/.test(counted),
+    "commas, spaces and a repeat read as three numbers");
+
+// **Still not asserted, and the reason has moved.** With numbers typed the
+// button stays refused while nothing is explained. The read is no longer the
+// suspect — it goes through `useApiEffect` now — which leaves the count: the
+// button is refused when `numbers.length === 0`, so the text set on the
+// textarea is not reaching React state in this script even though the counter
+// above read three from it a moment earlier. Two measurements of the same thing
+// disagree, and that is worth resolving before either is asserted.
+//
+// **One suspect is already eliminated**, so nobody spends an hour on it again:
+// the counter's key carries `{{count}}`, which makes i18next look for plural
+// forms — but this project has none at all (zero `_one`/`_few`/`_many`/`_other`
+// keys), and `"{{count}} account(s) sign in through it"` renders fine from the
+// same shape in `ProvidersPage`. i18next falls back to the base key. It is not
+// the translation.
+await shot("uva-import");
+
 report();
 close();

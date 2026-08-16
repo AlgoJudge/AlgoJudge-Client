@@ -9,7 +9,7 @@ import { InstanceDocumentKind, InstanceDocumentRef } from "../../../api/CoreApi"
 import { AccessKey, InstanceSettingsInput } from "../../../api/ManagerApi";
 import { DOCUMENT_KINDS, LOGO_ATTACHMENT } from "../../../api/instanceDocuments";
 import SharedDocumentsPanel from "../../../components/content/DocumentsPanel";
-import { useApiCall } from "../../../provider/apiContext";
+import { useApiCall, useApiEffect } from "../../../provider/apiContext";
 import { useInstance } from "../../../provider/instanceContext";
 import { sha256 } from "../../../utils/sha256";
 
@@ -336,10 +336,10 @@ function AccessKeysCard() {
     const [value, setValue] = useState("");
     const [busy, setBusy] = useState(false);
 
-    useEffect(() => {
-        void (async () => setKeys(await call(api => api.managerApi.getAccessKeys())))();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    // Through the wrapper, for the same reason as everywhere else: a bare
+    // effect with `useApiCall` never resolves, and a list that never arrives
+    // reads as an installation holding no keys.
+    useApiEffect(async api => setKeys(await api.managerApi.getAccessKeys()), []);
 
     const save = async () => {
         setBusy(true);

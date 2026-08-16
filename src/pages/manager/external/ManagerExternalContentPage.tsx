@@ -1,8 +1,10 @@
-import { Alert, Badge, Button, Card, Group, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Alert, Badge, Button, Card, Group, Stack, Table, Text, TextInput, Textarea, Title } from "@mantine/core";
 import { IconInfoCircle, IconPlus, IconTrash } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useApiCall } from "../../../provider/apiContext";
+import { useApiCall, useApiEffect } from "../../../provider/apiContext";
+import { UvaProblemPicker } from "@algojudge/uva-explorer-react";
+import { ImportOutcome, UvaProblem, importOne, lookUp, numbersIn } from "./uvaImport";
 
 /**
  * Where this installation may fetch documents from.
@@ -26,14 +28,16 @@ export default function ManagerExternalContentPage() {
     const [busy, setBusy] = useState(false);
     const [saved, setSaved] = useState(false);
 
-    useEffect(() => {
-        void (async () => {
-            const answer = await call(api => api.managerApi.getExternalContent());
-            setEnabled(answer.enabled);
-            setHosts(answer.hosts);
-        })();
-        // Read once, on arrival. Nothing else on this screen changes it.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+    // **Through the wrapper, not a bare effect.** Written as `useEffect` plus
+    // `useApiCall` this never resolved: the switch stayed neither on nor off,
+    // so the import button was refused for ever and the screen explained
+    // nothing. The wrapper also carries the abort and the refetch after a
+    // connection comes back, which every screen wants and none should have to
+    // remember.
+    useApiEffect(async api => {
+        const answer = await api.managerApi.getExternalContent();
+        setEnabled(answer.enabled);
+        setHosts(answer.hosts);
     }, []);
 
     const save = async (next: string[]) => {
@@ -125,6 +129,175 @@ export default function ManagerExternalContentPage() {
                     {saved && <Text size="sm" c="dimmed">{t("Saved.")}</Text>}
                 </Stack>
             </Card>
+
+            <ImportCard enabled={enabled} />
         </Stack>
+    );
+}
+
+/**
+ * Importing problems by number.
+ *
+ * **The whole of the paste path.** A number carries neither a title nor an
+ * address, so the catalogue is asked for the first and the second is built from
+ * the number — and whether the statement still exists is settled by fetching
+ * it, because a problem withdrawn from the archive has no document.
+ *
+ * Every number gets its own row in the answer. A batch that half worked is the
+ * ordinary case, not an error: the ones that landed are problems now, and
+ * reporting the batch as a single failure would hide them.
+ */
+function ImportCard({ enabled }: { enabled: boolean | undefined }) {
+    const { t } = useTranslation();
+    const call = useApiCall();
+
+    const [text, setText] = useState("");
+    const [picking, setPicking] = useState(false);
+    const [accessKey, setAccessKey] = useState<string | undefined>(undefined);
+    const [busy, setBusy] = useState(false);
+    const [outcomes, setOutcomes] = useState<ImportOutcome[]>([]);
+
+    const numbers = numbersIn(text);
+
+    const run = async () => {
+        setBusy(true);
+        setOutcomes([]);
+        try {
+            const done: ImportOutcome[] = [];
+            for (const number of numbers) {
+                // One at a time, and on purpose: this asks somebody else's
+                // catalogue and this installation's Server for every entry, and
+                // a burst of parallel requests to a public archive is rude in a
+                // way nobody would notice here and everybody would notice there.
+                const found = await lookUp(number).catch(() => undefined);
+                done.push(found === undefined
+                    ? { number, ok: false, reason: "unknown" }
+                    : await call(scoped => importOne(scoped, found)));
+                setOutcomes([...done]);
+            }
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    /**
+     * Imports what the picker handed back.
+     *
+     * **Nothing is looked up.** The picker states the number, the title and the
+     * statement's address, so the catalogue is not asked — that call exists only
+     * because a pasted number carries none of it.
+     */
+    const picked = async (problems: { number: number; title: string; urls: { statement_pdf: string } }[]) => {
+        setBusy(true);
+        setOutcomes([]);
+        try {
+            const done: ImportOutcome[] = [];
+            for (const problem of problems) {
+                const found: UvaProblem = {
+                    number: problem.number,
+                    title: problem.title,
+                    statementUrl: problem.urls.statement_pdf,
+                };
+                done.push(await call(scoped => importOne(scoped, found)));
+                setOutcomes([...done]);
+            }
+        } finally {
+            setBusy(false);
+            setPicking(false);
+        }
+    };
+
+    const said = (outcome: ImportOutcome) => {
+        if (outcome.ok) return t("Imported as {{slug}}", { slug: outcome.slug });
+        switch (outcome.reason) {
+            case "unknown": return t("The archive knows no problem with that number.");
+            case "duplicate": return t("Already imported.");
+            case "statement": return t("Its statement could not be fetched — the problem may have been withdrawn.");
+            default: return outcome.detail ?? t("It could not be created.");
+        }
+    };
+
+    return (
+        <Card withBorder padding="md">
+            <Stack gap="sm">
+                <Text fw={500}>{t("Import problems from UVa Online Judge")}</Text>
+
+                {enabled === false && (
+                    <Alert color="orange" icon={<IconInfoCircle size={18} />}>
+                        {t("Nothing can be imported while judging by services this installation does not run is switched off.")}
+                    </Alert>
+                )}
+
+                <Text size="sm" c="dimmed">
+                    {t("Problem numbers, separated by commas or spaces. Each becomes a problem of its own, named as the archive names it, visible to the whole installation.")}
+                </Text>
+
+                <Textarea
+                    autosize
+                    minRows={2}
+                    placeholder="100, 101, 272"
+                    value={text}
+                    disabled={busy}
+                    onChange={e => setText(e.currentTarget.value)}
+                />
+
+                <Group justify="space-between">
+                    <Text size="sm" c="dimmed">
+                        {t("{{count}} number(s) read", { count: numbers.length })}
+                    </Text>
+                    <Button
+                        variant="light"
+                        disabled={enabled !== true || busy}
+                        onClick={() => void (async () => {
+                            // Asked for when it is needed and not before: this is
+                            // the one call that answers with a stored secret, and
+                            // a screen nobody opened should not have asked.
+                            if (accessKey === undefined) {
+                                const answer = await call(api => api.managerApi.requestAccessKey("uvaexplorer"));
+                                setAccessKey(answer.value);
+                            }
+                            setPicking(true);
+                        })()}
+                    >
+                        {t("Browse the archive")}
+                    </Button>
+                    <Button
+                        loading={busy}
+                        disabled={enabled !== true || numbers.length === 0}
+                        onClick={() => void run()}
+                    >
+                        {t("Import")}
+                    </Button>
+                </Group>
+
+                {picking && (
+                    <UvaProblemPicker
+                        accessKey={accessKey}
+                        language="pl"
+                        style={{ width: "100%", height: 520, border: 0 }}
+                        title={t("Problems in the UVa archive")}
+                        onConfirm={message => void picked(message.problems)}
+                        onCancel={() => setPicking(false)}
+                    />
+                )}
+
+                {outcomes.length > 0 && (
+                    <Table withTableBorder>
+                        <Table.Tbody>
+                            {outcomes.map(outcome => (
+                                <Table.Tr key={outcome.number}>
+                                    <Table.Td w={90}>{outcome.number}</Table.Td>
+                                    <Table.Td>
+                                        <Text size="sm" c={outcome.ok ? undefined : "red"}>
+                                            {said(outcome)}
+                                        </Text>
+                                    </Table.Td>
+                                </Table.Tr>
+                            ))}
+                        </Table.Tbody>
+                    </Table>
+                )}
+            </Stack>
+        </Card>
     );
 }
