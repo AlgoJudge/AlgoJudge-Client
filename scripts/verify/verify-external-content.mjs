@@ -114,13 +114,13 @@ const counted = await area();
 check(/Odczytane numery: 3/.test(counted),
     "commas, spaces and a repeat read as three numbers");
 
-// **Not asserted here, and the reason is written down rather than dropped.**
-// Pairing "the button is refused" with "the screen explains why" failed three
-// ways, and the last one is worth a proper look: with numbers typed the button
-// was still refused while nothing was explained, which is only possible when
-// `enabled` is neither true nor false — that is, the read never resolved. If
-// that is what happens, a manager sees a dead button and no reason for it.
-// Left as an open question rather than as a green check that means nothing.
+// **Still not asserted, and the reason has moved.** With numbers typed the
+// button stays refused while nothing is explained. The read is no longer the
+// suspect — it goes through `useApiEffect` now — which leaves the count: the
+// button is refused when `numbers.length === 0`, so the text set on the
+// textarea is not reaching React state in this script even though the counter
+// above read three from it a moment earlier. Two measurements of the same thing
+// disagree, and that is worth resolving before either is asserted.
 await shot("uva-import");
 
 report();

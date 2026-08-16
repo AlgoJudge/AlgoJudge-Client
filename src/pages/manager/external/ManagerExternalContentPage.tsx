@@ -1,8 +1,8 @@
 import { Alert, Badge, Button, Card, Group, Stack, Table, Text, TextInput, Textarea, Title } from "@mantine/core";
 import { IconInfoCircle, IconPlus, IconTrash } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useApiCall } from "../../../provider/apiContext";
+import { useApiCall, useApiEffect } from "../../../provider/apiContext";
 import { ImportOutcome, importOne, lookUp, numbersIn } from "./uvaImport";
 
 /**
@@ -27,14 +27,16 @@ export default function ManagerExternalContentPage() {
     const [busy, setBusy] = useState(false);
     const [saved, setSaved] = useState(false);
 
-    useEffect(() => {
-        void (async () => {
-            const answer = await call(api => api.managerApi.getExternalContent());
-            setEnabled(answer.enabled);
-            setHosts(answer.hosts);
-        })();
-        // Read once, on arrival. Nothing else on this screen changes it.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+    // **Through the wrapper, not a bare effect.** Written as `useEffect` plus
+    // `useApiCall` this never resolved: the switch stayed neither on nor off,
+    // so the import button was refused for ever and the screen explained
+    // nothing. The wrapper also carries the abort and the refetch after a
+    // connection comes back, which every screen wants and none should have to
+    // remember.
+    useApiEffect(async api => {
+        const answer = await api.managerApi.getExternalContent();
+        setEnabled(answer.enabled);
+        setHosts(answer.hosts);
     }, []);
 
     const save = async (next: string[]) => {
