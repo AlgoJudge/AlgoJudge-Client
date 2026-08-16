@@ -85,6 +85,7 @@ both worth knowing before changing any of it:
 | `verify-seven`, `verify-six` | two batches of accepted changes, kept as regressions |
 | `verify-submit-modal` | sending from the submissions panel |
 | `verify-sync` | the two halves of the fake agreeing about the same activity |
+| `verify-uva` | a problem judged elsewhere: its statement is a copy served from here, and no participant screen reaches another host |
 | `verify-systemic` | systemic users: not counted, not ranked, still able to submit |
 
 ## A single failure is worth re-running
@@ -147,6 +148,11 @@ keeping rather than rewriting.
 - **Monaco ignores a `value` set on its hidden textarea.** Click `.view-lines`
   and send `Input.insertText`. Read it back from `.view-lines`, with ` `
   normalised to a space.
+- **`performance.getEntriesByType("resource")` does not see an `<object>` load.**
+  Sabotaged by pointing a statement's `<object>` at another host, the resource
+  sweep stayed green and only an explicit check of the element's address went
+  red. Anything embedded has to be checked by its address; the sweep is a net,
+  not the guard.
 - **Mantine's grouped `Select` wants `{ group, items }`.** A flat option carrying
   a `group` key is read as a group whose `items` are missing, and the component
   throws.
