@@ -113,7 +113,15 @@ export const MANAGER_AREAS: ManagerArea[] = [
         // this installation trusts to vouch for people.
         permissions: ["provider:manage"],
     },
-    { to: "/manager/external-content", label: "External content", description: "", icon: IconWorldWww, permissions: [], soon: true },
+    {
+        to: "/manager/external-content",
+        label: "External content",
+        description: "Where this installation may fetch documents from, and whether it may at all.",
+        icon: IconWorldWww,
+        // The same permission as the rest of the installation's settings: this
+        // is one of them, and turning it on is the same kind of decision.
+        permissions: ["instance:update"],
+    },
     { to: "/manager/workstations", label: "Workstations", description: "", icon: IconDevicesPc, permissions: [], soon: true },
     { to: "/manager/printers", label: "Printers", description: "", icon: IconPrinter, permissions: [], soon: true },
 ];
