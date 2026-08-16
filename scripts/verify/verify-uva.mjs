@@ -70,6 +70,29 @@ check(notices.some(n => n.includes("0")),
     "and that the program must return zero to the shell");
 await shot("uva-submit");
 
+// ── The result: the archive's answer, and no table pretending otherwise ─────
+
+// Reached by its own address rather than by clicking a row: the id is derived
+// from the seed, so the check does not depend on where a list happens to put it.
+await go(`${APP}/activities/PROG-1-LA/submissions/sub-series-w2-student-me-uva100-8700?fakeUser=amy`,
+    `document.body.innerText.includes("uva100")`);
+await wait(2500);
+
+const result = await evaluate(`
+    const area = document.querySelector("[class*=AppShell-main]");
+    return {
+        text: (area?.innerText ?? "").replace(/\\s+/g, " "),
+        tables: area ? area.querySelectorAll("table").length : 0,
+    };
+`);
+check(/AC|Accepted/.test(result.text), "the result screen shows the archive's own verdict");
+check(/60 ms/.test(result.text),
+    "and the run time out of the attached document, not a column of the Server's");
+check(/31254724/.test(result.text), "and the archive's submission id, as text");
+check(!/Test|Grupa/i.test(result.text),
+    "and no per-test table, because the archive discloses none");
+await shot("uva-result");
+
 // ── And neither screen reached another host ─────────────────────────────────
 
 // **The sweep below has a blind spot, and it is written down rather than

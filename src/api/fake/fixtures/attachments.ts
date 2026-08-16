@@ -37,6 +37,33 @@ export const sourceName = (language: string | undefined): string =>
  * table on the participant's side and a grouped one on the manager's, for the
  * same submission.
  */
+/**
+ * What a judge that is not this installation attached instead.
+ *
+ * No per-test table, because the archive discloses none — no test count, no
+ * percentage, no groups. A table here would be a shape invented to look
+ * familiar, and the result screen would draw an empty one and call it a result.
+ */
+const externalResultDocument = (attempt: SeedAttempt) => ({
+    kind: "uva",
+    version: 1,
+    score: attempt.score ?? 0,
+    maxScore: attempt.maxScore ?? 1,
+    external: {
+        judge: "onlinejudge.org",
+        problemNumber: 100,
+        submissionId: 31254724,
+        verdictId: attempt.verdict === "Accepted" ? 90 : 70,
+        verdict: attempt.verdict === "Accepted" ? "Accepted" : "WrongAnswer",
+        verdictAbbr: attempt.verdict === "Accepted" ? "AC" : "WA",
+        languageId: 6,
+        runtimeMs: 60,
+        submittedAtUnix: 1786854437,
+        judgedAtUnix: 1786854478,
+    },
+    compilation: { status: "OK" },
+});
+
 const resultDocument = (score: number, verdict: string) => ({
     kind: "standard-io",
     version: 1,
@@ -121,8 +148,14 @@ export const attemptFiles = (
     const out: SubmissionFile[] = [];
 
     if (attempt.state === "completed") {
+        // Which document depends on who judged it. A problem marked out of one by
+        // an external archive has no groups to report, and handing the per-test
+        // shape to its renderer would draw a table with nothing in it.
+        const document = attempt.maxScore !== undefined && attempt.maxScore !== 100
+            ? externalResultDocument(attempt)
+            : resultDocument(attempt.score ?? 0, attempt.verdict ?? "");
         out.push(store(files, key, SUBMISSION_DETAILS, "details.json", "application/json",
-            JSON.stringify(resultDocument(attempt.score ?? 0, attempt.verdict ?? ""), null, 2)));
+            JSON.stringify(document, null, 2)));
     }
     // A log where there is something to say. An infrastructure failure has one
     // and no result document at all, which is the case worth keeping: the run
