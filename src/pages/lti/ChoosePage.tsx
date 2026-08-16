@@ -132,8 +132,11 @@ export default function ChoosePage() {
             )}
 
             <Group justify="flex-end">
+                {/* Its own key, not `Place`. That one is the ranking's place
+                    column — a noun — and borrowing it for this verb renamed
+                    "Miejsce" to "Umieść" on every board in the product. */}
                 <Button onClick={send} disabled={picked.length === 0 || sending} loading={sending}>
-                    {t("Place")}
+                    {t("Place in the course")}
                 </Button>
             </Group>
 

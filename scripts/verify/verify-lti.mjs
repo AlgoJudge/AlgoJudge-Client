@@ -458,6 +458,22 @@ if (idleFirst !== true) {
     pass("placing waits until something is chosen");
 }
 
+// **The whole label, because this one used to be shared.** The button took the
+// key `Place` from the ranking's place column, and the Polish for it went from
+// the noun to the verb — which renamed "Miejsce" to "Umieść" on every board in
+// the product. `check:i18n` cannot see that: the key exists and has a value.
+// Matching on a prefix, as the check above does, would not see it either.
+const label = await evaluate(`
+    const button = [...document.querySelectorAll("button")]
+        .find(b => b.textContent.includes("Umieść"));
+    return button ? button.textContent.trim() : "no button";
+`);
+if (label !== "Umieść w kursie") {
+    fail(`the placing button reads "${label}", so it is sharing a key again`);
+} else {
+    pass("the placing button has a label of its own");
+}
+
 await shot("lti-choose");
 
 // The one-item platform, which is the case a checkbox list would get wrong.
