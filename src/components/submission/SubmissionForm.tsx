@@ -131,6 +131,15 @@ export default function SubmissionForm({ activity, problem, series, onSent }: Su
 
     return (
         <Stack gap="md">
+            {/* What this type has to say before anything is sent. Above the
+                fields rather than beside the button: a warning read after the
+                decision is a warning that arrived too late. */}
+            {asks?.notices?.map(notice => (
+                <Alert key={notice} color="blue" icon={<IconAlertCircle size={18} />}>
+                    {t(notice)}
+                </Alert>
+            ))}
+
             {problem.submissionsLeft !== undefined && problem.submissionsLeft <= 3 && (
                 <Alert color="yellow" icon={<IconAlertCircle size={18} />}>
                     {t("Submissions left")}: {problem.submissionsLeft}

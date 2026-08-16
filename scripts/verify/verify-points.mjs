@@ -59,6 +59,13 @@ check(board.total === board.rounds[0] + board.rounds[1],
     `the total is the rounds added up (${board.total} = ${board.rounds.join(" + ")})`);
 check(board.rounds[0] === 260,
     `and a round is its problems on their own scales (${board.rounds[0]}, from 100 + 160)`);
+// The second round holds the one worth having: a problem marked out of **one**
+// by an external judge and worth five here, so this line proves the sum spans
+// problems marked out of different maxima, not merely problems worth different
+// amounts. Read as `round(1/1 × 5)` it is 5; read as `round(1/100 × 5)` it is
+// zero, which is what both the Server and this fake did until 2026-08-16.
+check(board.rounds[1] === 30,
+    `and one marked out of one still counts for its full value (${board.rounds[1]}, from 25 + 5)`);
 await shot("pts-board");
 
 // ── 5. The activity decides the languages ──────────────────────────────────

@@ -7,6 +7,7 @@ import { StatementRef } from "../../../../../api/FileApi";
 import { Activity, ProblemDetail, Series } from "../../../../../api/ParticipantApi";
 import { maySubmit, seriesState } from "../../../../../api/seriesState";
 import ProblemStatusBadge from "../../../../../components/problem/ProblemStatusBadge";
+import PdfStatement from "../../../../../content/PdfStatement";
 import { useApi, useApiEffect } from "../../../../../provider/apiContext";
 import LoadState from "../../../../../components/LoadState";
 import { statementRenderers } from "../../../../../renderers";
@@ -186,15 +187,13 @@ export default function ProblemPage() {
                 </Group>
             )}
 
-            {/* A statement that is not Markdown — a `content.pdf` — is handed
-                over rather than fed to a renderer that reads Markdown. */}
+            {/* A statement that is not Markdown — a `content.pdf` — is drawn by
+                something that can draw it, rather than fed to a renderer that
+                reads Markdown. It used to be handed over as a download link,
+                which on a problem imported from an archive is the whole
+                statement reduced to a file name. */}
             {chosen.ref && !isMarkdown(chosen.ref) ? (
-                <Group gap="xs">
-                    <IconDownload size={16} />
-                    <Anchor href={api.fileApi.url(chosen.ref.fileId)} target="_blank" rel="noreferrer">
-                        {chosen.ref.name}
-                    </Anchor>
-                </Group>
+                <PdfStatement url={api.fileApi.url(chosen.ref.fileId)} name={chosen.ref.name} />
             ) : statement === undefined ? (
                 <Center my="xl"><Loader /></Center>
             ) : (

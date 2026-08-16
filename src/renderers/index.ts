@@ -3,6 +3,7 @@ import { Attachment } from "../api/ParticipantApi";
 import UnsupportedContent from "./UnsupportedContent";
 import StandardIoResult from "./results/StandardIoResult";
 import UnsupportedResult from "./results/UnsupportedResult";
+import UvaResult from "./results/UvaResult";
 import IcpcRanking from "./ranking/IcpcRanking";
 import PointsRanking from "./ranking/PointsRanking";
 import UnsupportedRanking from "./ranking/UnsupportedRanking";
@@ -56,6 +57,10 @@ export const statementRenderers = new TypeRegistry<StatementRenderer>(Unsupporte
     .register("standard-io@*", ContentView)
     // A statement is a statement whatever the type does with the answer.
     .register("output-only@*", ContentView)
+    // A UVa statement is the archive's PDF, copied into the instance at import.
+    // `ContentView` renders Markdown, so a manager who later writes one gets it;
+    // until then `ProblemPage` hands the PDF straight to the viewer.
+    .register("uva@*", ContentView)
     // The rules page has no problem type of its own; it uses the same format.
     .register("rules@*", ContentView);
 
@@ -71,7 +76,11 @@ export const resultRenderers = new TypeRegistry<ResultRenderer>(UnsupportedResul
     // The same document: a per-test table is a per-test table, and the schema
     // differs only in its `kind`. Sharing the renderer is the point — had the
     // model been wrong, it would not have shared.
-    .register("output-only@*", StandardIoResult);
+    .register("output-only@*", StandardIoResult)
+    // A different document and a different shape: no per-test table, because the
+    // archive discloses none. Sharing `StandardIoResult` here would draw an empty
+    // table and call it a result.
+    .register("uva@*", UvaResult);
 
 /**
  * What a problem type asks a participant for.
@@ -94,12 +103,40 @@ export interface SubmitRenderer {
     file: false | { accept: string[]; label: string; description: string };
     /** Whether a language has to be chosen — an answer file is in no language. */
     language: boolean;
+    /**
+     * What the participant has to be told **before** they submit, as translation
+     * keys.
+     *
+     * Not decoration. A `uva@1` submission leaves the instance for a third party
+     * and is stored there for ever; somebody should learn that before sending
+     * their work, not afterwards.
+     */
+    notices?: string[];
 }
 
 export const submitRenderers = new TypeRegistry<SubmitRenderer | null>(null)
     .register("standard-io@*", {
         code: true,
         file: { accept: [".cpp", ".cc", ".py", ".txt"], label: "Solution file", description: "" },
+        language: true,
+    })
+    .register("uva@*", {
+        code: true,
+        // No file: the archive takes source, and only source.
+        file: false,
+        notices: [
+            // §10.2: the most significant property of the type, and not a
+            // technical detail. Said before the act, because afterwards it is
+            // news rather than a choice.
+            "This solution is sent to onlinejudge.org to be judged, and is stored there.",
+            // §7.4, measured from the archive's own rules: a genuine surprise for
+            // anybody used to a local judge, and one sentence saves a confused
+            // runtime error.
+            "The program must return 0 to the shell, or the archive reports a runtime error whatever it printed.",
+        ],
+        // UVa needs one, and the problem's own configuration says which are on
+        // offer — a language it does not accept is refused before anything is
+        // sent, and again by the Runner if it arrives anyway.
         language: true,
     })
     .register("output-only@*", {
@@ -150,6 +187,13 @@ const PROBLEM_TYPE_CATALOGUE: ProblemTypeOption[] = [
         label: "Standard input and output",
         description: "The solution reads standard input and writes standard output. "
             + "The package carries the tests, the limits and the scoring.",
+    },
+    {
+        id: "uva@1",
+        label: "Judged on UVa Online Judge",
+        description: "The statement is a copy of the archive's, and the solution is forwarded to "
+            + "onlinejudge.org to be judged there. There are no tests here and no partial credit: "
+            + "the verdict is the archive's, and it is accepted or it is not.",
     },
     {
         id: "output-only@1",

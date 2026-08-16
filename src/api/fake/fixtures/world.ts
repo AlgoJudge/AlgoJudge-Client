@@ -109,6 +109,14 @@ export interface SeedProblem {
     hasPackage?: boolean;
     /** The participant-facing text, in the default language. */
     statement: string;
+    /**
+     * Serve the statement as `content.pdf` rather than `content.md`.
+     *
+     * A problem imported from an archive has a PDF and nothing else, and until
+     * this existed nothing in the seed did — so the screen's own branch for it
+     * was written and never drawn.
+     */
+    statementIsPdf?: boolean;
     /** Keyed by language subtag, for the switcher above the statement. */
     translations?: Record<string, string>;
     samples?: ProblemSample[];
@@ -283,6 +291,25 @@ const TOPO: SeedProblem = {
     samples: [{ input: "3 2\n1 2\n2 3", output: "1 2 3" }],
 };
 
+/**
+ * A one-page PDF, written out rather than referenced.
+ *
+ * Short but **valid**: the point of the fixture is that a browser draws it, and
+ * a stub of plausible-looking bytes would prove only that the element exists.
+ */
+const uvaStatementPdf = [
+    "%PDF-1.4",
+    "1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj",
+    "2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj",
+    "3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 300 120]"
+        + "/Resources<</Font<</F1 4 0 R>>>>/Contents 5 0 R>>endobj",
+    "4 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj",
+    "5 0 obj<</Length 78>>stream",
+    "BT /F1 12 Tf 20 70 Td (The 3n + 1 problem) Tj 0 -20 Td (UVa 100) Tj ET",
+    "endstream endobj",
+    "trailer<</Root 1 0 R>>",
+].join("\n");
+
 const LOOPS: SeedProblem = {
     id: "prob-petle", slug: "petle-i-sumy", name: "Pętle i sumy", currentVersion: 1,
     statement: loopsStatement,
@@ -301,6 +328,24 @@ const GUESS: SeedProblem = {
     type: "interactive@9",
     statement: JSON.stringify(unknownTypeStatement, null, 2),
     submitFields: [],
+};
+
+/**
+ * Judged somewhere else entirely: the statement is the archive's, and the
+ * verdict comes from `onlinejudge.org`.
+ *
+ * Here to exercise the one thing nothing else does — **a result marked out of
+ * one**. Every other attempt in this seed is marked out of a hundred, so the
+ * arithmetic that divides by the reported maximum was, until this existed,
+ * indistinguishable from the arithmetic that assumed one.
+ */
+const UVA_3N1: SeedProblem = {
+    id: "prob-uva-100", slug: "UVa-100", name: "The 3n + 1 problem", currentVersion: 1,
+    type: "uva@1",
+    // The archive's own PDF, copied in at import. The Markdown below is what a
+    // manager would have to write by hand to replace it, and nothing does.
+    statement: uvaStatementPdf,
+    statementIsPdf: true,
 };
 
 // ──────────────────────────────────────────────────────────── the contest
@@ -517,6 +562,12 @@ export const WORLD: SeedActivity[] = [
                     { contestant: "student-me", problem: "tablice", at: 2000, language: "python", state: "completed", verdict: "Wrong answer", score: 70 },
                     { contestant: "student-me", problem: "tablice", at: 2100, language: "python", state: "completed", verdict: "Partially accepted", score: 80 },
 
+                    // Accepted by the archive, on the archive's own scale. It is
+                    // worth the whole five points and reads as solved — both of
+                    // which are wrong by a factor of a hundred if the maximum
+                    // goes unread.
+
+
                     { contestant: "student-1", problem: "petle", at: 1500, language: "python", state: "completed", verdict: "Accepted", score: 100 },
                     { contestant: "student-1", problem: "tablice", at: 2400, language: "python", state: "completed", verdict: "Accepted", score: 100 },
 
@@ -531,10 +582,17 @@ export const WORLD: SeedActivity[] = [
                 revealProblemCount: true,
                 assignments: [
                     { problem: LOOPS, slug: "rekurencja", name: "Rekurencja — rozgrzewka", maxPoints: 50 },
+                    // Worth five, marked out of one, in a round that is **open** —
+                    // so the submission screen exists and can be looked at.
+                    { problem: UVA_3N1, slug: "uva100", maxPoints: 5 },
                     { problem: ARRAYS, slug: "sortowanie", name: "Sortowanie" },
                 ],
                 attempts: [
                     { contestant: "student-me", problem: "rekurencja", at: 8640, language: "python", state: "completed", verdict: "Partially accepted", score: 50 },
+                    // Accepted on the archive's own scale. Worth the whole five
+                    // points and read as solved — both wrong by a factor of a
+                    // hundred if the reported maximum goes unread.
+                    { contestant: "student-me", problem: "uva100", at: 8700, language: "python", state: "completed", verdict: "Accepted", score: 1, maxScore: 1 },
                     { contestant: "student-1", problem: "rekurencja", at: 7200, language: "python", state: "completed", verdict: "Accepted", score: 100 },
                     { contestant: "student-1", problem: "sortowanie", at: 7800, language: "python", state: "completed", verdict: "Partially accepted", score: 80 },
                     { contestant: "student-3", problem: "rekurencja", at: 9000, language: "python", state: "cancelled" },

@@ -120,9 +120,13 @@ export const createDataset = (files: FakeFiles): Dataset => {
     ): StatementRef => {
         // Named by where it is used, not by what it holds: one library problem
         // is attached in several places, and one name would make them one file.
-        const name = `${activity.id}/${assignment.slug}/${language ? `content-${language}.md` : "content.md"}`;
-        const stored = files.seedText(name, "text/markdown", text);
-        return { name: language ? `content-${language}.md` : "content.md", language, fileId: stored.id, sha256: stored.sha256, sizeBytes: stored.sizeBytes };
+        // A statement is Markdown unless the problem says otherwise. The one that
+        // says otherwise arrived by import and has a PDF and nothing else.
+        const pdf = assignment.problem.statementIsPdf === true && language === undefined;
+        const leaf = pdf ? "content.pdf" : language ? `content-${language}.md` : "content.md";
+        const name = `${activity.id}/${assignment.slug}/${leaf}`;
+        const stored = files.seedText(name, pdf ? "application/pdf" : "text/markdown", text);
+        return { name: leaf, language, fileId: stored.id, sha256: stored.sha256, sizeBytes: stored.sizeBytes };
     };
 
     for (const activity of WORLD) {
