@@ -51,14 +51,28 @@ check(/example\.invalid/.test(added), "a host added on this screen is still ther
 check(/onlinejudge\.org/.test(added), "and the one that was already there was not replaced by it");
 
 // And removed, read back the same way.
-await click(`[...${AREA}.querySelectorAll("*")].filter(e => e.tagName === "BUTTON" && e.textContent.trim() === "Usuń")[1]`);
-await wait(1200);
-await reopen();
+//
+// **Guarded rather than assumed.** Without this the removal step reaches for a
+// control that only exists once the step above worked, and a broken save then
+// ends the run with "nothing to click" instead of with the assertion that
+// actually failed. A check that reports the wrong thing when it breaks is a
+// check somebody will misread at the worst moment.
+const rows = await evaluate(`
+    return [...${AREA}.querySelectorAll("button")]
+        .filter(b => b.textContent.trim() === "Usuń").length;
+`);
+check(rows >= 2, `both hosts offer a way to remove them (${rows})`);
 
-const removed = await screen();
-check(!/example\.invalid/.test(removed), "a host removed on this screen stays removed");
-check(/onlinejudge\.org/.test(removed), "and removing one did not take the other with it");
-await shot("external-content-edited");
+if (rows >= 2) {
+    await click(`[...${AREA}.querySelectorAll("button")].filter(b => b.textContent.trim() === "Usuń")[1]`);
+    await wait(1200);
+    await reopen();
+
+    const removed = await screen();
+    check(!/example\.invalid/.test(removed), "a host removed on this screen stays removed");
+    check(/onlinejudge\.org/.test(removed), "and removing one did not take the other with it");
+    await shot("external-content-edited");
+}
 
 report();
 close();
