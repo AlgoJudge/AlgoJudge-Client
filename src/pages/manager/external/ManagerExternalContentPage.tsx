@@ -1,8 +1,9 @@
-import { Alert, Badge, Button, Card, Group, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Alert, Badge, Button, Card, Group, Stack, Table, Text, TextInput, Textarea, Title } from "@mantine/core";
 import { IconInfoCircle, IconPlus, IconTrash } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useApiCall } from "../../../provider/apiContext";
+import { ImportOutcome, importOne, lookUp, numbersIn } from "./uvaImport";
 
 /**
  * Where this installation may fetch documents from.
@@ -125,6 +126,119 @@ export default function ManagerExternalContentPage() {
                     {saved && <Text size="sm" c="dimmed">{t("Saved.")}</Text>}
                 </Stack>
             </Card>
+
+            <ImportCard enabled={enabled} />
         </Stack>
+    );
+}
+
+/**
+ * Importing problems by number.
+ *
+ * **The whole of the paste path.** A number carries neither a title nor an
+ * address, so the catalogue is asked for the first and the second is built from
+ * the number — and whether the statement still exists is settled by fetching
+ * it, because a problem withdrawn from the archive has no document.
+ *
+ * Every number gets its own row in the answer. A batch that half worked is the
+ * ordinary case, not an error: the ones that landed are problems now, and
+ * reporting the batch as a single failure would hide them.
+ */
+function ImportCard({ enabled }: { enabled: boolean | undefined }) {
+    const { t } = useTranslation();
+    const call = useApiCall();
+
+    const [text, setText] = useState("");
+    const [busy, setBusy] = useState(false);
+    const [outcomes, setOutcomes] = useState<ImportOutcome[]>([]);
+
+    const numbers = numbersIn(text);
+
+    const run = async () => {
+        setBusy(true);
+        setOutcomes([]);
+        try {
+            const done: ImportOutcome[] = [];
+            for (const number of numbers) {
+                // One at a time, and on purpose: this asks somebody else's
+                // catalogue and this installation's Server for every entry, and
+                // a burst of parallel requests to a public archive is rude in a
+                // way nobody would notice here and everybody would notice there.
+                const found = await lookUp(number).catch(() => undefined);
+                done.push(found === undefined
+                    ? { number, ok: false, reason: "unknown" }
+                    : await call(scoped => importOne(scoped, found)));
+                setOutcomes([...done]);
+            }
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    const said = (outcome: ImportOutcome) => {
+        if (outcome.ok) return t("Imported as {{slug}}", { slug: outcome.slug });
+        switch (outcome.reason) {
+            case "unknown": return t("The archive knows no problem with that number.");
+            case "duplicate": return t("Already imported.");
+            case "statement": return t("Its statement could not be fetched — the problem may have been withdrawn.");
+            default: return outcome.detail ?? t("It could not be created.");
+        }
+    };
+
+    return (
+        <Card withBorder padding="md">
+            <Stack gap="sm">
+                <Text fw={500}>{t("Import problems from UVa Online Judge")}</Text>
+
+                {enabled === false && (
+                    <Alert color="orange" icon={<IconInfoCircle size={18} />}>
+                        {t("Nothing can be imported while judging by services this installation does not run is switched off.")}
+                    </Alert>
+                )}
+
+                <Text size="sm" c="dimmed">
+                    {t("Problem numbers, separated by commas or spaces. Each becomes a problem of its own, named as the archive names it, visible to the whole installation.")}
+                </Text>
+
+                <Textarea
+                    autosize
+                    minRows={2}
+                    placeholder="100, 101, 272"
+                    value={text}
+                    disabled={busy}
+                    onChange={e => setText(e.currentTarget.value)}
+                />
+
+                <Group justify="space-between">
+                    <Text size="sm" c="dimmed">
+                        {t("{{count}} number(s) read", { count: numbers.length })}
+                    </Text>
+                    <Button
+                        loading={busy}
+                        disabled={enabled !== true || numbers.length === 0}
+                        onClick={() => void run()}
+                    >
+                        {t("Import")}
+                    </Button>
+                </Group>
+
+                {outcomes.length > 0 && (
+                    <Table withTableBorder>
+                        <Table.Tbody>
+                            {outcomes.map(outcome => (
+                                <Table.Tr key={outcome.number}>
+                                    <Table.Td w={90}>{outcome.number}</Table.Td>
+                                    <Table.Td>
+                                        <Text size="sm" c={outcome.ok ? undefined : "red"}>
+                                            {said(outcome)}
+                                        </Text>
+                                    </Table.Td>
+                                </Table.Tr>
+                            ))}
+                        </Table.Tbody>
+                    </Table>
+                )}
+            </Stack>
+        </Card>
     );
 }
