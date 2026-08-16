@@ -35,6 +35,10 @@ const DEFAULTS: InstanceInfo = {
     // installation that has closed it says so when the answer arrives. Starting
     // from `false` would hide a right from everybody for the length of a fetch.
     accountDeletionEnabled: true,
+    // And this one starts `false`, for the mirror-image reason: assuming the
+    // door is open before the answer arrives would be a screen saying work
+    // leaves the building on an installation where it does not.
+    externalJudgingEnabled: false,
 };
 
 export const InstanceProvider: FC<{ children: ReactNode }> = ({ children }) => {

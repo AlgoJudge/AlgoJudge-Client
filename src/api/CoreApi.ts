@@ -129,6 +129,15 @@ export interface InstanceInfo {
      * installation may close it.
      */
     accountDeletionEnabled: boolean,
+    /**
+     * Whether this installation may send submissions to a service it does not
+     * run. Shipped off.
+     *
+     * Public alongside every other instance setting, deliberately: it is the
+     * fact a privacy notice is written from, and it names no service and no
+     * address — only whether the door is open.
+     */
+    externalJudgingEnabled: boolean,
 }
 
 /** What a signed-out screen is told about one provider. */

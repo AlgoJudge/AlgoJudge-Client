@@ -38,6 +38,7 @@ export class FakeInstance {
         requireConfirmedEmail: boolean;
         showLogo: boolean;
         accountDeletionEnabled: boolean;
+        externalJudgingEnabled: boolean;
     }): InstanceInfo {
         this.info = {
             ...this.info,
@@ -47,6 +48,7 @@ export class FakeInstance {
             requireConfirmedEmail: input.requireConfirmedEmail,
             showLogo: input.showLogo,
             accountDeletionEnabled: input.accountDeletionEnabled,
+            externalJudgingEnabled: input.externalJudgingEnabled,
         };
         this.persist();
         return this.read();
@@ -147,6 +149,7 @@ export class FakeInstance {
             requireConfirmedEmail: this.info.requireConfirmedEmail,
             showLogo: this.info.showLogo,
             accountDeletionEnabled: this.info.accountDeletionEnabled,
+            externalJudgingEnabled: this.info.externalJudgingEnabled,
         }));
     }
 
@@ -173,6 +176,8 @@ export class FakeInstance {
             ],
             // A right before it is a feature, so the fake ships it on.
             accountDeletionEnabled: true,
+            // And this one off, exactly as an installation gets it.
+            externalJudgingEnabled: false,
         };
 
         // Merged over the defaults rather than trusting what was stored. A tab

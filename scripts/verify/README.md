@@ -86,6 +86,7 @@ both worth knowing before changing any of it:
 | `verify-submit-modal` | sending from the submissions panel |
 | `verify-sync` | the two halves of the fake agreeing about the same activity |
 | `verify-uva` | a problem judged elsewhere: its statement is a copy served from here, and no participant screen reaches another host |
+| `verify-external-judging` | the instance switch that lets work leave the building: off to begin with, and its saved value survives leaving the screen |
 | `verify-systemic` | systemic users: not counted, not ranked, still able to submit |
 
 ## A single failure is worth re-running
