@@ -174,6 +174,15 @@ export interface SeedAttempt {
     state: JobState;
     verdict?: string;
     score?: number;
+    /**
+     * What the score was marked out of. Absent means {@link RUNNER_SCALE}.
+     *
+     * A Runner reports both, and reading the first without the second means
+     * assuming a scale — which is what the Server was corrected for on
+     * 2026-08-16, where a type marking out of one scored a fiftieth of what it
+     * had earned.
+     */
+    maxScore?: number;
     /** Finished jobs before this one, oldest first — what a rejudge leaves. */
     history?: { verdict: string; score: number }[];
     /** Compiler output or the judge's message. Managers always see it. */
@@ -832,8 +841,23 @@ export const RUNNER_SCALE = 100;
 export const maxPointsOf = (assignment: SeedAssignment): number =>
     assignment.maxPoints ?? RUNNER_SCALE;
 
-export const pointsOf = (assignment: SeedAssignment, score: number | undefined): number | undefined =>
-    score === undefined ? undefined : Math.round(score / RUNNER_SCALE * maxPointsOf(assignment));
+/**
+ * What an attempt is worth, as a fraction of what it was marked out of.
+ *
+ * The unit that crosses this boundary, so a caller cannot forget the scale —
+ * the same correction the Server took on 2026-08-16, mirrored here because this
+ * fixture stands in for it and the two must not drift.
+ */
+export const fractionOf = (attempt: { score?: number; maxScore?: number }): number | undefined => {
+    if (attempt.score === undefined) return undefined;
+    const outOf = attempt.maxScore ?? RUNNER_SCALE;
+    return outOf > 0 ? attempt.score / outOf : undefined;
+};
+
+export const pointsOf = (
+    assignment: SeedAssignment, fraction: number | undefined,
+): number | undefined =>
+    fraction === undefined ? undefined : Math.round(fraction * maxPointsOf(assignment));
 
 /** The reader, where the activity has one. */
 export const meOf = (activity: SeedActivity): SeedContestant | undefined =>

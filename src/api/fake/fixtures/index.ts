@@ -18,7 +18,7 @@ import { attemptFiles, sourceFiles } from "./attachments";
 import { fakeSha } from "./problems";
 import {
     SeedActivity, SeedAssignment, SeedAttempt, SeedSeries, WORLD,
-    attemptId, attemptTime, displayName, maxPointsOf, meOf, pointsOf, RUNNER_SCALE,
+    attemptId, attemptTime, displayName, fractionOf, maxPointsOf, meOf, pointsOf,
 } from "./world";
 
 export { OPENING_SERIES_DELAY } from "./world";
@@ -74,13 +74,16 @@ export interface Dataset {
  */
 const statusOf = (attempts: SeedAttempt[]): ProblemStatus => {
     if (attempts.length === 0) return "untouched";
-    const best = Math.max(...attempts.map(attempt => attempt.score ?? 0));
-    if (best >= RUNNER_SCALE) return "solved";
+    const best = Math.max(...attempts.map(attempt => fractionOf(attempt) ?? 0));
+    // The whole of the scale is a solve, whatever that scale is.
+    if (best >= 1) return "solved";
     return best > 0 ? "partial" : "attempted";
 };
 
+// Compared as fractions: two attempts at one problem may have been marked out
+// of different maxima.
 const bestOf = (attempts: SeedAttempt[]): number | undefined =>
-    attempts.length === 0 ? undefined : Math.max(...attempts.map(attempt => attempt.score ?? 0));
+    attempts.length === 0 ? undefined : Math.max(...attempts.map(attempt => fractionOf(attempt) ?? 0));
 
 /** Where the activity has one, the state its dates put it in. */
 const stateOf = (activity: SeedActivity, now: number): ActivityState => {
@@ -255,7 +258,7 @@ export const createDataset = (files: FakeFiles): Dataset => {
                     language: attempt.language,
                     state: attempt.state,
                     verdict: attempt.verdict,
-                    score: pointsOf(assignment, attempt.score),
+                    score: pointsOf(assignment, fractionOf(attempt)),
                     maxScore: attempt.score === undefined ? undefined : maxPointsOf(assignment),
                 };
                 mine.push(summary);

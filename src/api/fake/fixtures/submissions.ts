@@ -4,7 +4,7 @@ import type { FakeFiles } from "../FileApiFake";
 import { attemptFiles, sourceFiles } from "./attachments";
 import {
     SeedActivity, SeedAttempt, SeedSeries, WORLD,
-    assignmentId, attemptId, attemptTime, displayName, maxPointsOf, pointsOf,
+    assignmentId, attemptId, attemptTime, displayName, fractionOf, maxPointsOf, pointsOf,
 } from "./world";
 
 /**
@@ -91,7 +91,7 @@ const submissionOf = (
         language: attempt.language,
         state: attempt.state,
         verdict: attempt.verdict,
-        score: pointsOf(assignment, attempt.score),
+        score: pointsOf(assignment, fractionOf(attempt)),
         maxScore: maxPointsOf(assignment),
         attempts: (attempt.history?.length ?? 0) + 1,
         problemType: assignment.problem.type ?? "standard-io@1",
