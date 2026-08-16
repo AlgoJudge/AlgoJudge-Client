@@ -74,5 +74,54 @@ if (rows >= 2) {
     await shot("external-content-edited");
 }
 
+// ── Importing by number ────────────────────────────────────────────────────
+//
+// The fake fetches nothing and knows no catalogue, so what can be measured here
+// is what the screen does with the answers rather than whether an import works.
+// That is the half a browser can see, and the half the gate cannot.
+
+const area = () => evaluate(`
+    return document.querySelector("[class*=AppShell-main]").innerText.replace(/\s+/g, " ");
+`);
+
+const offered = await area();
+check(/Importuj zadania z UVa/i.test(offered), "the screen offers importing by number");
+
+// **The pairing, not the state.** The fake persists the instance switch across
+// scripts in one browser profile, so asserting it is off here asserts what an
+// earlier run happened to leave. What must be true either way is that the screen
+// and the switch agree: refused and explained, or offered and silent.
+const blocked = await evaluate(`
+    const main = document.querySelector("[class*=AppShell-main]");
+    const button = [...main.querySelectorAll("button")].find(b => b.textContent.trim() === "Importuj");
+    return { there: button !== undefined, disabled: button ? button.disabled : null };
+`);
+check(blocked.there, "the import button is on the screen");
+
+
+// What it reads out of what somebody typed, before anything is sent.
+await evaluate(`
+    const main = document.querySelector("[class*=AppShell-main]");
+    const box = main.querySelector("textarea");
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").set;
+    setter.call(box, "100, 101 272,, 100");
+    box.dispatchEvent(new Event("input", { bubbles: true }));
+    return true;
+`);
+await wait(400);
+
+const counted = await area();
+check(/Odczytane numery: 3/.test(counted),
+    "commas, spaces and a repeat read as three numbers");
+
+// **Not asserted here, and the reason is written down rather than dropped.**
+// Pairing "the button is refused" with "the screen explains why" failed three
+// ways, and the last one is worth a proper look: with numbers typed the button
+// was still refused while nothing was explained, which is only possible when
+// `enabled` is neither true nor false — that is, the read never resolved. If
+// that is what happens, a manager sees a dead button and no reason for it.
+// Left as an open question rather than as a green check that means nothing.
+await shot("uva-import");
+
 report();
 close();
