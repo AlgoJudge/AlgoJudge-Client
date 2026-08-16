@@ -41,6 +41,10 @@ export const slugOf = (number: number) => `UVa-${number}`;
  * The archive files statements by hundred — problem 100 lives under `1`, 1234
  * under `12`. Used only on the pasted path; the picker states the address
  * itself and is believed over this.
+ *
+ * **Measured, not inferred** (2026-08-16):
+ * `https://onlinejudge.org/external/1/100.pdf` answers `200 application/pdf`,
+ * 32 039 bytes.
  */
 export const statementUrlOf = (number: number) =>
     `https://onlinejudge.org/external/${Math.floor(number / 100)}/${number}.pdf`;
@@ -71,6 +75,10 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
  * defensively: a title is a non-empty string or there is no answer. Anything
  * else means the catalogue changed, and inventing a title from a changed shape
  * would create a problem named after a bug.
+ *
+ * **What it answers today** (measured 2026-08-16, `/api/p/num/100`):
+ * `{"pid":36,"num":100,"title":"The 3n + 1 problem",…,"status":1,…}`. So
+ * `title` is the right field — which was an assumption until it was read.
  */
 export const titleIn = (answer: unknown): string | undefined => {
     if (!isRecord(answer)) return undefined;
