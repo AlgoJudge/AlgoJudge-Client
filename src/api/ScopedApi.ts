@@ -79,6 +79,7 @@ import {
     UserInput,
     InstanceLogoInput,
     AccessKey,
+    AccessKeyValue,
     ExternalContent,
     InstanceSettingsInput,
     NewStatement,
@@ -499,6 +500,12 @@ export class ScopedManagerApi {
     }
     updateInstanceSettings(input: InstanceSettingsInput): Promise<InstanceInfo> {
         return this.managerApi.updateInstanceSettings(input, this.signal);
+    }
+    requestAccessKey(name: string): Promise<AccessKeyValue> {
+        return this.managerApi.requestAccessKey(name, this.signal);
+    }
+    fetchFile(url: string): Promise<UploadedFile> {
+        return this.managerApi.fetchFile(url, this.signal);
     }
     getAccessKeys(): Promise<AccessKey[]> {
         return this.managerApi.getAccessKeys(this.signal);

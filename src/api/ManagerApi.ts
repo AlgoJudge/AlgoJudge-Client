@@ -1,6 +1,6 @@
 import { InstanceDocumentKind, InstanceDocumentRef, InstanceInfo } from "./CoreApi";
 import { Event } from "./Event";
-import { StatementRef } from "./FileApi";
+import { StatementRef, UploadedFile } from "./FileApi";
 import {
     ActivityDocumentKind, ActivityDocumentRef, DisplayName, JobState, JoinPolicy, Page,
     QuestionAnswer, QuestionKind, ScoreVisibility, SubmissionFile,
@@ -1188,6 +1188,13 @@ export interface AccessKey {
     updatedAt: string;
 }
 
+export interface AccessKeyValue {
+    name: string;
+    value: string;
+    /** Absent means it does not expire. Present means do not use it after this. */
+    expiresAt?: string;
+}
+
 export interface ExternalContent {
     /** The instance switch. Set with the rest of the settings, read here. */
     enabled: boolean;
@@ -1433,6 +1440,29 @@ export interface ManagerApi {
      * different call, made by whoever needs the key rather than by this screen.
      */
     setAccessKey(name: string, value: string, signal: AbortSignal): Promise<AccessKey[]>;
+
+    /**
+     * Asks for a key's value, for a caller that needs it.
+     *
+     * **The one call that answers with a stored secret**, and it exists because
+     * the picker runs in this browser. The gate is on the Server and is chosen
+     * by the key's name, so asking for one this manager may not have is a
+     * refusal rather than an answer.
+     *
+     * `expiresAt` is absent while every key is one an administrator typed. When
+     * it is present the value is good only until then — **ask again rather than
+     * keep it.**
+     */
+    requestAccessKey(name: string, signal: AbortSignal): Promise<AccessKeyValue>;
+
+    /**
+     * Has the Server fetch a document and store it as an ordinary file.
+     *
+     * For the one thing a browser cannot do: a host that sends no
+     * `Access-Control-Allow-Origin` cannot be read from here. What comes back is
+     * the same file an upload would have produced.
+     */
+    fetchFile(url: string, signal: AbortSignal): Promise<UploadedFile>;
 
     /** Replaces the list, whole. An empty one means this installation fetches nothing. */
     setExternalContentHosts(hosts: string[], signal: AbortSignal): Promise<ExternalContent>;

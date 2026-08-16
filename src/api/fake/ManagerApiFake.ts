@@ -30,6 +30,7 @@ import {
     ManagedUser,
     InstanceLogoInput,
     AccessKey,
+    AccessKeyValue,
     ExternalContent,
     InstanceSettingsInput,
     NewStatement,
@@ -61,7 +62,7 @@ import {
     MANAGED_USERS,
     PERMISSION_CATALOGUE,
 } from "./fixtures/permissions";
-import { StatementRef } from "../FileApi";
+import { StatementRef, UploadedFile } from "../FileApi";
 import { ActivityDocumentKind, ActivityDocumentRef } from "../ParticipantApi";
 import { FakeActivities } from "./FakeActivities";
 import { FakeAccess } from "./FakeAccess";
@@ -172,6 +173,22 @@ export class ManagerApiFake implements ManagerApi {
                 .filter(problem => problem.problemId === record.problem.id)
                 .length;
         }
+    }
+
+    async requestAccessKey(name: string, signal: AbortSignal): Promise<AccessKeyValue> {
+        await this.settle(signal);
+        // The fake holds no secrets, so it answers with something obviously not
+        // one. A screen that showed this to somebody would be showing it a key,
+        // and the point is that no screen should.
+        return { name: name.trim().toLowerCase(), value: `fake-key-for-${name.trim().toLowerCase()}` };
+    }
+
+    async fetchFile(url: string, signal: AbortSignal): Promise<UploadedFile> {
+        await this.settle(signal);
+        // No network here, and none wanted: what matters to a screen is that a
+        // file comes back with an id it can attach. The bytes stand in.
+        const name = url.split("/").pop() || "fetched";
+        return this.files.seedText(name, "application/pdf", `fetched from ${url}`);
     }
 
     async getAccessKeys(signal: AbortSignal): Promise<AccessKey[]> {
