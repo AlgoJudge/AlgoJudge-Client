@@ -3,7 +3,8 @@ import { IconInfoCircle, IconPlus, IconTrash } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
-import { ImportOutcome, importOne, lookUp, numbersIn } from "./uvaImport";
+import { UvaProblemPicker } from "@algojudge/uva-explorer-react";
+import { ImportOutcome, UvaProblem, importOne, lookUp, numbersIn } from "./uvaImport";
 
 /**
  * Where this installation may fetch documents from.
@@ -151,6 +152,8 @@ function ImportCard({ enabled }: { enabled: boolean | undefined }) {
     const call = useApiCall();
 
     const [text, setText] = useState("");
+    const [picking, setPicking] = useState(false);
+    const [accessKey, setAccessKey] = useState<string | undefined>(undefined);
     const [busy, setBusy] = useState(false);
     const [outcomes, setOutcomes] = useState<ImportOutcome[]>([]);
 
@@ -174,6 +177,33 @@ function ImportCard({ enabled }: { enabled: boolean | undefined }) {
             }
         } finally {
             setBusy(false);
+        }
+    };
+
+    /**
+     * Imports what the picker handed back.
+     *
+     * **Nothing is looked up.** The picker states the number, the title and the
+     * statement's address, so the catalogue is not asked — that call exists only
+     * because a pasted number carries none of it.
+     */
+    const picked = async (problems: { number: number; title: string; urls: { statement_pdf: string } }[]) => {
+        setBusy(true);
+        setOutcomes([]);
+        try {
+            const done: ImportOutcome[] = [];
+            for (const problem of problems) {
+                const found: UvaProblem = {
+                    number: problem.number,
+                    title: problem.title,
+                    statementUrl: problem.urls.statement_pdf,
+                };
+                done.push(await call(scoped => importOne(scoped, found)));
+                setOutcomes([...done]);
+            }
+        } finally {
+            setBusy(false);
+            setPicking(false);
         }
     };
 
@@ -216,6 +246,22 @@ function ImportCard({ enabled }: { enabled: boolean | undefined }) {
                         {t("{{count}} number(s) read", { count: numbers.length })}
                     </Text>
                     <Button
+                        variant="light"
+                        disabled={enabled !== true || busy}
+                        onClick={() => void (async () => {
+                            // Asked for when it is needed and not before: this is
+                            // the one call that answers with a stored secret, and
+                            // a screen nobody opened should not have asked.
+                            if (accessKey === undefined) {
+                                const answer = await call(api => api.managerApi.requestAccessKey("uvaexplorer"));
+                                setAccessKey(answer.value);
+                            }
+                            setPicking(true);
+                        })()}
+                    >
+                        {t("Browse the archive")}
+                    </Button>
+                    <Button
                         loading={busy}
                         disabled={enabled !== true || numbers.length === 0}
                         onClick={() => void run()}
@@ -223,6 +269,17 @@ function ImportCard({ enabled }: { enabled: boolean | undefined }) {
                         {t("Import")}
                     </Button>
                 </Group>
+
+                {picking && (
+                    <UvaProblemPicker
+                        accessKey={accessKey}
+                        language="pl"
+                        style={{ width: "100%", height: 520, border: 0 }}
+                        title={t("Problems in the UVa archive")}
+                        onConfirm={message => void picked(message.problems)}
+                        onCancel={() => setPicking(false)}
+                    />
+                )}
 
                 {outcomes.length > 0 && (
                     <Table withTableBorder>
