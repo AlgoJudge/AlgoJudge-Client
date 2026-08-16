@@ -121,6 +121,13 @@ check(/Odczytane numery: 3/.test(counted),
 // textarea is not reaching React state in this script even though the counter
 // above read three from it a moment earlier. Two measurements of the same thing
 // disagree, and that is worth resolving before either is asserted.
+//
+// **One suspect is already eliminated**, so nobody spends an hour on it again:
+// the counter's key carries `{{count}}`, which makes i18next look for plural
+// forms — but this project has none at all (zero `_one`/`_few`/`_many`/`_other`
+// keys), and `"{{count}} account(s) sign in through it"` renders fine from the
+// same shape in `ProvidersPage`. i18next falls back to the base key. It is not
+// the translation.
 await shot("uva-import");
 
 report();
