@@ -4,7 +4,7 @@ import {
 import { rankingWindow } from "../../rankingWindow";
 import {
     SeedActivity, SeedAttempt, SeedSeries,
-    attemptId, attemptTime, displayName, maxPointsOf, meOf, pointsOf,
+    attemptId, attemptTime, displayName, fractionOf, maxPointsOf, meOf, pointsOf,
 } from "./world";
 
 /**
@@ -79,7 +79,7 @@ export const resultOf = (
     // `extra` goes with the outcome, not beside it: it is measured from the same
     // run, so a metric that survived a freeze would leak what the freeze hides.
     if (withheld(seed, attempt, now, unfrozen)) return { ...base, frozen: true };
-    return { ...base, points: pointsOf(assignment, attempt.score), state: attempt.state, extra: attempt.extra };
+    return { ...base, points: pointsOf(assignment, fractionOf(attempt)), state: attempt.state, extra: attempt.extra };
 };
 
 const seriesOf = (seed: SeedSeries, live: Series, now: number, unfrozen: boolean): ResultSeries => ({
