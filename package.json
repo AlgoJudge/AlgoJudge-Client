@@ -16,7 +16,9 @@
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:api": "node scripts/check-api.mjs",
     "check:ui": "node scripts/verify/run.mjs",
-    "check:e2e": "playwright test"
+    "check:browsers": "node scripts/verify/check-browsers.mjs",
+    "check:e2e": "playwright test",
+    "browsers": "node scripts/verify/browsers.mjs"
   },
   "dependencies": {
     "@mantine/code-highlight": "^7.17.3",

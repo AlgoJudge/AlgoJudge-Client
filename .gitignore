@@ -31,7 +31,8 @@ dist-ssr
 # Output of `npm run check:events`.
 .events-check/
 
-# Screenshots and the browser profile from `npm run check:ui`.
+# Screenshots from `npm run check:ui`. The browser profiles moved out of here to
+# the system temporary directory, beside the pid registry — see `browser.mjs`.
 scripts/verify/out/
 
 # Playwright writes these on a failure; the run itself is the record.

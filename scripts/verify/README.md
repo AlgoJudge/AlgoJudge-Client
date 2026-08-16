@@ -31,14 +31,45 @@ something that never appeared.
 
 Chrome is started and stopped by the runner. Set `CHROME` if it is somewhere the
 runner does not look. To use a browser you started yourself, leave one listening
-on `CDP_PORT` (9333) and the runner will use it and leave it running.
+on `CDP_PORT` (9333): the runner will use it and leave it running, and it can
+tell yours from one of its own that an earlier run left there.
 
     npm run check:ui -- boards     only the scripts whose name contains "boards"
     APP=http://localhost:4173 npm run check:ui       against a preview build
 
-Screenshots and the browser profile go to `out/`, which is not committed. A
-script writes one at each point worth looking at; when something fails, the
-picture usually says why faster than the assertion does.
+Screenshots go to `out/`, which is not committed. A script writes one at each
+point worth looking at; when something fails, the picture usually says why faster
+than the assertion does.
+
+## Browsers are closed by pid, never by name
+
+    npm run browsers -- list          what we started, and what is still alive
+    npm run browsers -- stop --all    close all of it
+
+**Never `taskkill /IM chrome.exe`, `Stop-Process -Name chrome` or `pkill
+chrome`.** They close the browser somebody is reading in — the real cost of that
+has been paid here — and there is no version of them that does not. Every browser
+started by anything in this directory goes through `browser.mjs`, which writes
+its pid to a registry under the system temporary directory, outside every
+repository, so it survives the death of whatever started it. Nothing is closed
+without a pid **and** a live process whose command line still carries our own
+profile path; `npm run check:browsers` drives that against browsers deliberately
+not ours and ends by asserting every other browser on the machine is still
+running.
+
+The profiles live beside the registry rather than in `out/`, which is what makes
+the one-substring test possible. Two things measured on Windows on 2026-08-16,
+both worth knowing before changing any of it:
+
+- a browser started the ordinary way **dies with the process that started it**,
+  even with the shell still alive — good, and the reason a leak has to be staged
+  deliberately to be tested at all;
+- `child.kill()` **terminates** rather than signalling, so no handler in the
+  child runs and a script cannot stage a Ctrl+C. A Ctrl+C typed at a real console
+  does reach the process group, which is a different thing and the one that
+  matters — it is just not something a check here can drive, so the runner's
+  teardown is verified through a clean exit and **Ctrl+C stays `Unable to
+  verify`**. The registry covers it either way.
 
 ## What they cover
 
@@ -119,6 +150,15 @@ keeping rather than rewriting.
 - **Mantine's grouped `Select` wants `{ group, items }`.** A flat option carrying
   a `group` key is read as a group whose `items` are missing, and the component
   throws.
+- **A browser's children repeat its whole command line.** Chrome's renderers
+  carry `--user-data-dir` and Firefox's content processes carry `--profile`, so
+  anything matching on those sees one browser as nine. The parent is the process
+  with no `--type=` and no `-contentproc`.
+- **Firefox has had no DevTools protocol since 129**, so `cdp.mjs` cannot drive
+  it; `browser.mjs` starts one and hands back a WebDriver BiDi endpoint, and
+  writing a client for it is left to whoever needs one. Its `browser.close`
+  wants a session first — without one it answers *"WebDriver session does not
+  exist"* and the browser stays up, which reads exactly like a close that worked.
 
 ## Writing another
 

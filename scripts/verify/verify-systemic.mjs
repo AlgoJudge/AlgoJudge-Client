@@ -80,10 +80,11 @@ await click(`[...document.querySelectorAll("[class*=Modal-content] button")].fin
 await wait(3500);
 
 // The sheet opens in a tab of its own, so it is read from there.
-const before = (await (await fetch("http://127.0.0.1:9333/json/list")).json()).length;
+const DEVTOOLS = `http://127.0.0.1:${process.env.CDP_PORT ?? "9333"}/json/list`;
+const before = (await (await fetch(DEVTOOLS)).json()).length;
 await click(`[...document.querySelectorAll("[class*=Modal-content] button")].find(b => /Drukuj/.test(b.textContent))`);
 await wait(2500);
-const targets = await (await fetch("http://127.0.0.1:9333/json/list")).json();
+const targets = await (await fetch(DEVTOOLS)).json();
 check(targets.length > before, "Print opens a tab of its own rather than printing the screen");
 
 const sheet = targets.find(t => t.type === "page" && !t.url.startsWith("http://localhost:5180"));

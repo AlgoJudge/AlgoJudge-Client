@@ -34,6 +34,8 @@ verified as outdated and removed there.
 | `npm run check:i18n` | every `t("…")` a screen asks for, against every language file |
 | `npm run check:api` | lists every endpoint the HTTP layer calls; checks it against an OpenAPI document when given one |
 | `npm run check:ui` | drives a real browser over the screens, against the fake API |
+| `npm run check:browsers` | that closing our browsers does not close anybody else's |
+| `npm run browsers` | `-- list`, `-- stop <pid>`, `-- stop --all` |
 
 There is no test runner. Lint, `lint:deps`, typecheck and build are the gate and
 all four must exit 0 before anything is merged; the `check:` scripts cover what
@@ -53,6 +55,15 @@ screen should not be harder than adding one.
 only checks them when handed an OpenAPI document —
 `npm run check:api -- openapi.json`. It becomes a gate the day the Server
 publishes one.
+
+**Browsers are closed by pid, never by image name.** `taskkill /IM chrome.exe`,
+`Stop-Process -Name chrome` and `pkill chrome` close whatever somebody is reading
+in, and that has already happened here once. `scripts/verify/browser.mjs` starts
+every browser these scripts use and records its pid in a registry outside the
+repository, so `npm run browsers -- stop --all` can close ours and only ours;
+`check:browsers` proves it, ending on the assertion that every other browser on
+the machine is still running. It also starts Firefox, for measurements the
+DevTools protocol cannot reach.
 
 `check:ui` is not a gate either, and CI does not run it. It drives a real Chrome
 over the screens against the fake, so it needs a dev server and a browser, takes
