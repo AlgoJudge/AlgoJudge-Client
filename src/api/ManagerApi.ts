@@ -1182,6 +1182,12 @@ export interface ManagedRunnerFilter {
  * has named shows the product's name alone, and clearing the field is how an
  * operator says so.
  */
+export interface AccessKey {
+    name: string;
+    /** When it was last set. The value is not here and never will be. */
+    updatedAt: string;
+}
+
 export interface ExternalContent {
     /** The instance switch. Set with the rest of the settings, read here. */
     enabled: boolean;
@@ -1415,6 +1421,18 @@ export interface ManagerApi {
      * destinations is operational detail and is read by a manager only.
      */
     getExternalContent(signal: AbortSignal): Promise<ExternalContent>;
+
+    /** Which named secrets this installation holds. **Names only** — never values. */
+    getAccessKeys(signal: AbortSignal): Promise<AccessKey[]>;
+
+    /**
+     * Sets one, or removes it when the value is empty.
+     *
+     * **Write-only through here.** The answer says which keys are set and when,
+     * never what they are — the one endpoint that hands a value back is a
+     * different call, made by whoever needs the key rather than by this screen.
+     */
+    setAccessKey(name: string, value: string, signal: AbortSignal): Promise<AccessKey[]>;
 
     /** Replaces the list, whole. An empty one means this installation fetches nothing. */
     setExternalContentHosts(hosts: string[], signal: AbortSignal): Promise<ExternalContent>;

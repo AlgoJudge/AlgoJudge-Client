@@ -1,12 +1,12 @@
 import {
-    Alert, Button, Card, Center, FileButton, Group, Image, Stack, Switch, Tabs,
+    Alert, Button, Card, Center, FileButton, Group, Image, PasswordInput, Stack, Switch, Tabs,
     Text, TextInput, Title, Tooltip,
 } from "@mantine/core";
 import { IconAlertTriangle, IconTrash, IconUpload } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { InstanceDocumentKind, InstanceDocumentRef } from "../../../api/CoreApi";
-import { InstanceSettingsInput } from "../../../api/ManagerApi";
+import { AccessKey, InstanceSettingsInput } from "../../../api/ManagerApi";
 import { DOCUMENT_KINDS, LOGO_ATTACHMENT } from "../../../api/instanceDocuments";
 import SharedDocumentsPanel from "../../../components/content/DocumentsPanel";
 import { useApiCall } from "../../../provider/apiContext";
@@ -159,6 +159,8 @@ export default function ManagerInstancePage() {
                             </Group>
                         </Stack>
                     </Card>
+
+                    <AccessKeysCard />
                 </Tabs.Panel>
 
                 <Tabs.Panel value="mark" pt="md">
@@ -313,5 +315,83 @@ function DocumentsPanel({ busy, run, store, logoUrl }: PanelProps & { logoUrl?: 
             unpublish={kind => call(api => api.managerApi.unpublishInstanceDocument(kind))}
             history={kind => call(api => api.managerApi.getInstanceDocumentHistory(kind))}
         />
+    );
+}
+
+/**
+ * The named secrets this installation holds for services it talks to.
+ *
+ * **Write-only here, and the screen has to say so.** Nothing on this page can
+ * read a key back — the one endpoint that hands a value out is called by
+ * whatever needs it, not by this form. An empty field would otherwise read as
+ * "the key was lost" rather than as "the API refuses to disclose it", so the
+ * screen states which keys are set and when, and offers to replace them.
+ */
+function AccessKeysCard() {
+    const { t } = useTranslation();
+    const call = useApiCall();
+
+    const [keys, setKeys] = useState<AccessKey[]>([]);
+    const [name, setName] = useState("uvaexplorer");
+    const [value, setValue] = useState("");
+    const [busy, setBusy] = useState(false);
+
+    useEffect(() => {
+        void (async () => setKeys(await call(api => api.managerApi.getAccessKeys())))();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const save = async () => {
+        setBusy(true);
+        try {
+            setKeys(await call(api => api.managerApi.setAccessKey(name.trim(), value)));
+            setValue("");
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    return (
+        <Card withBorder padding="md">
+            <Stack gap="sm">
+                <Text fw={500}>{t("Access keys")}</Text>
+                <Text size="sm" c="dimmed">
+                    {t("Secrets this installation holds for services it talks to. They are never shown again after being saved — the screen can only say which are set. Saving an empty value removes one.")}
+                </Text>
+
+                {keys.length === 0 && (
+                    <Text size="sm" c="dimmed">{t("No key is set.")}</Text>
+                )}
+
+                {keys.map(key => (
+                    <Group key={key.name} justify="space-between">
+                        <Text ff="monospace">{key.name}</Text>
+                        <Text size="sm" c="dimmed">
+                            {t("Set {{when}}", { when: new Date(key.updatedAt).toLocaleString() })}
+                        </Text>
+                    </Group>
+                ))}
+
+                <Group align="flex-end" gap="sm">
+                    <TextInput
+                        label={t("Key name")}
+                        value={name}
+                        disabled={busy}
+                        onChange={e => setName(e.currentTarget.value)}
+                    />
+                    <PasswordInput
+                        style={{ flex: 1 }}
+                        label={t("Value")}
+                        placeholder={t("Not shown once saved")}
+                        value={value}
+                        disabled={busy}
+                        onChange={e => setValue(e.currentTarget.value)}
+                    />
+                    <Button loading={busy} disabled={name.trim().length === 0} onClick={() => void save()}>
+                        {t("Save")}
+                    </Button>
+                </Group>
+            </Stack>
+        </Card>
     );
 }
