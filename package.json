@@ -21,6 +21,7 @@
     "browsers": "node scripts/verify/browsers.mjs"
   },
   "dependencies": {
+    "@algojudge/uva-explorer-react": "^0.1.0",
     "@mantine/code-highlight": "^7.17.3",
     "@mantine/core": "^7.17.3",
     "@mantine/dates": "^7.17.3",
