@@ -667,6 +667,9 @@ export interface ManagedProblem {
      * with it, so the answer there is archiving.
      */
     attachedCount: number;
+
+    /** Whether judging it sends the submission outside. Set at creation and permanent. */
+    external: boolean;
 }
 
 export interface ManagedProblemVersion {
@@ -710,6 +713,15 @@ export interface ProblemInput {
     slug: string;
     name: string;
     type: string;
+
+    /**
+     * Whether judging it sends the submission outside this installation.
+     *
+     * **Read once, at creation.** There is no call that changes it afterwards:
+     * a local equivalent of an external problem is a new problem with its own
+     * slug, which is something somebody decides rather than a box they clear.
+     */
+    external?: boolean;
 }
 
 export interface ProblemFilter {

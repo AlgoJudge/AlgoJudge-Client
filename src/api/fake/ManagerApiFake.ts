@@ -1236,6 +1236,8 @@ export class ManagerApiFake implements ManagerApi {
         const problem: ManagedProblem = {
             id: newId(),
             ...input,
+            // Absent means local, as it does on the wire.
+            external: input.external ?? false,
             ownerUserId: ME,
             ownerName: "Amy Horsefighter",
             visibility: "private",

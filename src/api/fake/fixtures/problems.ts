@@ -139,7 +139,7 @@ export const createProblemLibrary = (files: FakeFiles): ProblemRecord[] => [
         {
             id: "prob-graf", slug: "spojnosc-grafu", name: "Spójność grafu", type: "standard-io@1",
             ownerUserId: ME, ownerName: "Amy Horsefighter",
-            visibility: "instance", sharedWith: [],
+            visibility: "instance", sharedWith: [], external: false,
             currentVersion: 3, versionCount: 3, createdAt: ago(120),
             // Attached to a running contest: deletion is refused, archiving is not.
             attachedCount: 2,
@@ -155,7 +155,7 @@ export const createProblemLibrary = (files: FakeFiles): ProblemRecord[] => [
         {
             id: "prob-dijkstra", slug: "najkrotsza-sciezka", name: "Najkrótsza ścieżka", type: "standard-io@1",
             ownerUserId: ME, ownerName: "Amy Horsefighter",
-            visibility: "shared", sharedWith: ["user-kowalski", "user-wisniewski"],
+            visibility: "shared", sharedWith: ["user-kowalski", "user-wisniewski"], external: false,
             currentVersion: 2, versionCount: 2, createdAt: ago(90),
             attachedCount: 1,
         },
@@ -171,7 +171,7 @@ export const createProblemLibrary = (files: FakeFiles): ProblemRecord[] => [
             // something being written, and the one the editor is for.
             id: "prob-topo", slug: "sortowanie-topologiczne", name: "Sortowanie topologiczne", type: "standard-io@1",
             ownerUserId: ME, ownerName: "Amy Horsefighter",
-            visibility: "private", sharedWith: [],
+            visibility: "private", sharedWith: [], external: false,
             currentVersion: 1, versionCount: 1, createdAt: ago(4),
             attachedCount: 0,
         },
@@ -184,7 +184,7 @@ export const createProblemLibrary = (files: FakeFiles): ProblemRecord[] => [
         {
             id: "prob-petle", slug: "petle-i-sumy", name: "Pętle i sumy", type: "standard-io@1",
             ownerUserId: "user-kowalski", ownerName: "Jan Kowalski",
-            visibility: "instance", sharedWith: [],
+            visibility: "instance", sharedWith: [], external: false,
             currentVersion: 1, versionCount: 1, createdAt: ago(300),
             attachedCount: 1,
         },
@@ -198,7 +198,7 @@ export const createProblemLibrary = (files: FakeFiles): ProblemRecord[] => [
             // Retired: out of the picker, still working wherever it was used.
             id: "prob-tablice", slug: "tablice", name: "Tablice", type: "standard-io@1",
             ownerUserId: "user-kowalski", ownerName: "Jan Kowalski",
-            visibility: "instance", sharedWith: [],
+            visibility: "instance", sharedWith: [], external: false,
             archivedAt: ago(15),
             currentVersion: 2, versionCount: 2, createdAt: ago(280),
             attachedCount: 1,
