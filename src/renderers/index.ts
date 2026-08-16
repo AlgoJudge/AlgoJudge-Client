@@ -103,6 +103,15 @@ export interface SubmitRenderer {
     file: false | { accept: string[]; label: string; description: string };
     /** Whether a language has to be chosen — an answer file is in no language. */
     language: boolean;
+    /**
+     * What the participant has to be told **before** they submit, as translation
+     * keys.
+     *
+     * Not decoration. A `uva@1` submission leaves the instance for a third party
+     * and is stored there for ever; somebody should learn that before sending
+     * their work, not afterwards.
+     */
+    notices?: string[];
 }
 
 export const submitRenderers = new TypeRegistry<SubmitRenderer | null>(null)
@@ -115,6 +124,16 @@ export const submitRenderers = new TypeRegistry<SubmitRenderer | null>(null)
         code: true,
         // No file: the archive takes source, and only source.
         file: false,
+        notices: [
+            // §10.2: the most significant property of the type, and not a
+            // technical detail. Said before the act, because afterwards it is
+            // news rather than a choice.
+            "This solution is sent to onlinejudge.org to be judged, and is stored there.",
+            // §7.4, measured from the archive's own rules: a genuine surprise for
+            // anybody used to a local judge, and one sentence saves a confused
+            // runtime error.
+            "The program must return 0 to the shell, or the archive reports a runtime error whatever it printed.",
+        ],
         // UVa needs one, and the problem's own configuration says which are on
         // offer — a language it does not accept is refused before anything is
         // sent, and again by the Runner if it arrives anyway.
