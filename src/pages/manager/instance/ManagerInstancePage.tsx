@@ -35,6 +35,7 @@ const settingsOf = (instance: {
     showLogo: boolean;
     showLocalSignIn: boolean;
     accountDeletionEnabled: boolean;
+    externalJudgingEnabled: boolean;
 }): InstanceSettingsInput => ({
     name: instance.name,
     localRegistrationEnabled: instance.localRegistrationEnabled,
@@ -43,6 +44,7 @@ const settingsOf = (instance: {
     showLogo: instance.showLogo,
     showLocalSignIn: instance.showLocalSignIn,
     accountDeletionEnabled: instance.accountDeletionEnabled,
+    externalJudgingEnabled: instance.externalJudgingEnabled,
 });
 
 /** The file a language's text is stored under: `privacy.md`, `privacy-en.md`. */
@@ -140,6 +142,12 @@ export default function ManagerInstancePage() {
                                 description={t("On by default. It is a data-protection right before it is a feature; closing it should be a decision.")}
                                 checked={settings.accountDeletionEnabled}
                                 onChange={e => setSettings({ ...settings, accountDeletionEnabled: e.currentTarget.checked })}
+                            />
+                            <Switch
+                                label={t("Allow judging by services this installation does not run")}
+                                description={t("Off by default, because sending somebody's submission to a third party is a thing to choose rather than to inherit. While it is off no such problem is handed out and the work waits, so turning it on later loses nothing. Turning it on is what the privacy notice has to account for.")}
+                                checked={settings.externalJudgingEnabled}
+                                onChange={e => setSettings({ ...settings, externalJudgingEnabled: e.currentTarget.checked })}
                             />
                             <Group justify="flex-end">
                                 <Button

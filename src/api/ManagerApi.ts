@@ -1191,6 +1191,16 @@ export interface InstanceSettingsInput {
     showLocalSignIn: boolean;
     /** Whether a person may remove their own account. Shipped on. */
     accountDeletionEnabled: boolean;
+    /**
+     * Whether submissions may be judged by a service this installation does not
+     * run. Shipped off.
+     *
+     * **Optional on the wire**, where the rest of this object is not: the Server
+     * reads its absence as "leave it alone" rather than "turn it off", so a
+     * caller that predates the field cannot close the door by saving something
+     * else. This screen always sends it.
+     */
+    externalJudgingEnabled: boolean;
 }
 
 /**
