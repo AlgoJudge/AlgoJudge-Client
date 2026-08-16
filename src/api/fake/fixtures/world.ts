@@ -283,6 +283,20 @@ const TOPO: SeedProblem = {
     samples: [{ input: "3 2\n1 2\n2 3", output: "1 2 3" }],
 };
 
+const uvaStatement = `---
+version: 1
+---
+
+# The 3n + 1 problem
+
+Zadanie pochodzi z archiwum UVa Online Judge i **jest oceniane tam**, nie w tej
+instalacji. Rozwiązanie zostanie przesłane do \`onlinejudge.org\`, a werdykt, który
+zobaczysz, jest werdyktem archiwum.
+
+Program musi zwrócić **0** do powłoki, inaczej archiwum uzna to za błąd wykonania
+niezależnie od tego, co wypisał.
+`;
+
 const LOOPS: SeedProblem = {
     id: "prob-petle", slug: "petle-i-sumy", name: "Pętle i sumy", currentVersion: 1,
     statement: loopsStatement,
@@ -301,6 +315,21 @@ const GUESS: SeedProblem = {
     type: "interactive@9",
     statement: JSON.stringify(unknownTypeStatement, null, 2),
     submitFields: [],
+};
+
+/**
+ * Judged somewhere else entirely: the statement is the archive's, and the
+ * verdict comes from `onlinejudge.org`.
+ *
+ * Here to exercise the one thing nothing else does — **a result marked out of
+ * one**. Every other attempt in this seed is marked out of a hundred, so the
+ * arithmetic that divides by the reported maximum was, until this existed,
+ * indistinguishable from the arithmetic that assumed one.
+ */
+const UVA_3N1: SeedProblem = {
+    id: "prob-uva-100", slug: "UVa-100", name: "The 3n + 1 problem", currentVersion: 1,
+    type: "uva@1",
+    statement: uvaStatement,
 };
 
 // ──────────────────────────────────────────────────────────── the contest
@@ -508,6 +537,9 @@ export const WORLD: SeedActivity[] = [
                     // Attached from an archived library entry: it keeps working
                     // where it was already used, which is the point of archiving.
                     { problem: ARRAYS, slug: "tablice", maxUploadBytes: 1024 * 1024, maxPoints: 200 },
+                    // Worth five, marked out of one. The two numbers are what
+                    // makes this assignment worth having in the seed.
+                    { problem: UVA_3N1, slug: "uva100", maxPoints: 5 },
                 ],
                 attempts: [
                     { contestant: "student-me", problem: "petle", at: 1200, language: "python", state: "completed", verdict: "Wrong answer", score: 60 },
@@ -516,6 +548,12 @@ export const WORLD: SeedActivity[] = [
                     { contestant: "student-me", problem: "tablice", at: 1900, language: "python", state: "completed", verdict: "Wrong answer", score: 50 },
                     { contestant: "student-me", problem: "tablice", at: 2000, language: "python", state: "completed", verdict: "Wrong answer", score: 70 },
                     { contestant: "student-me", problem: "tablice", at: 2100, language: "python", state: "completed", verdict: "Partially accepted", score: 80 },
+
+                    // Accepted by the archive, on the archive's own scale. It is
+                    // worth the whole five points and reads as solved — both of
+                    // which are wrong by a factor of a hundred if the maximum
+                    // goes unread.
+                    { contestant: "student-me", problem: "uva100", at: 2200, language: "python", state: "completed", verdict: "Accepted", score: 1, maxScore: 1 },
 
                     { contestant: "student-1", problem: "petle", at: 1500, language: "python", state: "completed", verdict: "Accepted", score: 100 },
                     { contestant: "student-1", problem: "tablice", at: 2400, language: "python", state: "completed", verdict: "Accepted", score: 100 },
