@@ -29,6 +29,7 @@ import {
     ManagedSubmissionFilter,
     ManagedUser,
     InstanceLogoInput,
+    ExternalContent,
     InstanceSettingsInput,
     NewStatement,
     UserSession,
@@ -124,6 +125,9 @@ const newId = () => `018f2c00-0000-7000-8000-${Math.random().toString(16).slice(
 export class ManagerApiFake implements ManagerApi {
     readonly eventDispatcher = new ManagerEventDispatcherImpl();
 
+    /** Ships as an installation does, and edited from the same screen. */
+    private hosts: string[] = ["onlinejudge.org"];
+
     private templates = createTemplates();
     private library: ProblemRecord[];
     private activities: ActivityRecord[] = createActivityLibrary();
@@ -164,6 +168,29 @@ export class ManagerApiFake implements ManagerApi {
                 .filter(problem => problem.problemId === record.problem.id)
                 .length;
         }
+    }
+
+    async getExternalContent(signal: AbortSignal): Promise<ExternalContent> {
+        await this.settle(signal);
+        return { enabled: this.instance.read().externalJudgingEnabled, hosts: [...this.hosts] };
+    }
+
+    async setExternalContentHosts(hosts: string[], signal: AbortSignal): Promise<ExternalContent> {
+        await this.settle(signal);
+        // Tidied the way the Server tidies it, and no further: blanks dropped,
+        // whitespace trimmed, the same host named twice collapsed. A fake that
+        // is tidier than the real thing hides a screen's rough edges.
+        const seen = new Set<string>();
+        this.hosts = hosts
+            .map(host => host.trim())
+            .filter(host => host.length > 0)
+            .filter(host => {
+                const key = host.toLowerCase();
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+        return { enabled: this.instance.read().externalJudgingEnabled, hosts: [...this.hosts] };
     }
 
     async updateInstanceSettings(input: InstanceSettingsInput, signal: AbortSignal): Promise<InstanceInfo> {

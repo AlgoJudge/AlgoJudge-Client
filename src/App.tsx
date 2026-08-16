@@ -58,6 +58,7 @@ const ManagerSubmissionsPage = lazy(() => import('./pages/manager/submissions/Ma
 const ManagerSubmissionPage = lazy(() => import('./pages/manager/submissions/submission_id/ManagerSubmissionPage'));
 const ManagerQuestionsPage = lazy(() => import('./pages/manager/questions/ManagerQuestionsPage'));
 const ManagerInstancePage = lazy(() => import('./pages/manager/instance/ManagerInstancePage'));
+const ManagerExternalContentPage = lazy(() => import('./pages/manager/external/ManagerExternalContentPage'));
 const ProvidersPage = lazy(() => import('./pages/manager/providers/ProvidersPage'));
 const LtiPlatformsPage = lazy(() => import('./pages/manager/lti/LtiPlatformsPage'));
 
@@ -239,6 +240,7 @@ function App() {
                 managerRoute("/manager/permission-templates", <PermissionTemplatesPage />),
                 managerRoute("/manager/runners", <RunnersPage />),
                 managerRoute("/manager/instance", <ManagerInstancePage />),
+                managerRoute("/manager/external-content", <ManagerExternalContentPage />),
                 managerRoute("/manager/oidc", <ProvidersPage />),
                 managerRoute("/manager/lti", <LtiPlatformsPage />)
             ]

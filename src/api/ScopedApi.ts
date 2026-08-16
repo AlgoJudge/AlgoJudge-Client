@@ -78,6 +78,7 @@ import {
     UserChangedEvent,
     UserInput,
     InstanceLogoInput,
+    ExternalContent,
     InstanceSettingsInput,
     NewStatement,
     UserSession,
@@ -497,6 +498,12 @@ export class ScopedManagerApi {
     }
     updateInstanceSettings(input: InstanceSettingsInput): Promise<InstanceInfo> {
         return this.managerApi.updateInstanceSettings(input, this.signal);
+    }
+    getExternalContent(): Promise<ExternalContent> {
+        return this.managerApi.getExternalContent(this.signal);
+    }
+    setExternalContentHosts(hosts: string[]): Promise<ExternalContent> {
+        return this.managerApi.setExternalContentHosts(hosts, this.signal);
     }
     setInstanceLogo(input: InstanceLogoInput): Promise<InstanceInfo> {
         return this.managerApi.setInstanceLogo(input, this.signal);

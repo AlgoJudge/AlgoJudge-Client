@@ -44,6 +44,7 @@ import {
     SeriesProblemInput,
     UserInput,
     InstanceLogoInput,
+    ExternalContent,
     InstanceSettingsInput,
     NewStatement,
     UserSession,
@@ -235,6 +236,15 @@ export class ManagerApiHttp implements ManagerApi {
 
     updateInstanceSettings(input: InstanceSettingsInput, signal: AbortSignal): Promise<InstanceInfo> {
         return this.http.request<InstanceInfo>("/instance", "PUT", { signal, body: input });
+    }
+
+    getExternalContent(signal: AbortSignal): Promise<ExternalContent> {
+        return this.http.request<ExternalContent>("/instance/external-content", "GET", { signal });
+    }
+
+    setExternalContentHosts(hosts: string[], signal: AbortSignal): Promise<ExternalContent> {
+        return this.http.request<ExternalContent>(
+            "/instance/external-content", "PUT", { signal, body: { hosts } });
     }
 
     setInstanceLogo(input: InstanceLogoInput, signal: AbortSignal): Promise<InstanceInfo> {
