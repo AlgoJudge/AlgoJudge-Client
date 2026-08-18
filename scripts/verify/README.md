@@ -1,45 +1,63 @@
 # Browser checks
 
-Scripts that drive a real Chrome against the application running on the fake
-API, over the DevTools protocol. They exist because the gate — lint, `lint:deps`,
-typecheck, build and the `check:` scripts — cannot see a screen. Nothing it runs
-has ever caught a rendering or a wiring defect; everything here has.
+Scripts that drive a real browser against the application running on the fake
+API. They exist because the gate — lint, `lint:deps`, typecheck, build and the
+`check:` scripts — cannot see a screen. Nothing it runs has ever caught a
+rendering or a wiring defect; everything here has.
 
-## Not a gate
+**They moved onto Playwright on 2026-08-18.** They were written against the
+DevTools protocol directly, with `cdp.mjs` as the shared harness and fifteen of
+the scripts carrying their own copy of it. `harness.mjs` is that harness now,
+Playwright underneath and the same eleven functions on top, so what changed in a
+script is the line that opens the tab. Nothing about what they assert changed,
+and the traps below are the reason it was done that way.
 
-CI does not run these and should not, as things stand:
+## In CI, and not a gate
 
-- they need a dev server **and** a browser, which CI has no orchestration for;
-- a few wait on the clock, because the seed opens a round forty-five seconds
-  after load — a full run is minutes;
-- they match on Polish interface text and on Mantine's generated class names,
-  so a translation or a component upgrade reddens them for no product reason.
+**CI runs them now**, in a job of its own, and **`continue-on-error`** — the
+result is reported on every run and blocks no merge. Two of the three reasons
+they were kept out are gone:
 
-Run them by hand when a screen changes. `check:api` is marked the same way and
-for the same kind of reason: something worth having in the repository that is not
-yet something worth blocking a merge on.
+- ~~they need a dev server **and** a browser, which CI has no orchestration
+  for~~ — `playwright.ui.config.mjs` starts the application with `webServer`,
+  and the browser comes with the dependency;
+- ~~a full run is minutes~~ — it still is, and that is now somebody else's
+  twenty minutes rather than yours.
+
+**The third reason stands, and it is why this does not gate:** they match on
+Polish interface text and on Mantine's generated class names, so a translation
+or a component upgrade reddens them for no product reason. Blocking a merge on
+that would teach everybody to ignore a red mark, which costs more than the
+signal is worth.
+
+**What would make it a gate**: assertions addressed through test ids rather than
+through the words on the screen. Until somebody does that, this is the same
+bargain as `check:api` — worth having in every run, not worth blocking on.
 
 ## Running them
 
-    VITE_APP_USE_FAKE_API=true npm run dev -- --port 5180 --strictPort
     npm run check:ui
 
-**The environment variable is not optional.** `npm run dev` alone serves the real
-HTTP client; every call 404s, the application redirects to the login screen, and
-every script here times out against it saying only that it was waiting for
-something that never appeared.
-
-Chrome is started and stopped by the runner. Set `CHROME` if it is somewhere the
-runner does not look. To use a browser you started yourself, leave one listening
-on `CDP_PORT` (9333): the runner will use it and leave it running, and it can
-tell yours from one of its own that an earlier run left there.
+That is all of it. The dev server is started for you, with
+`VITE_APP_USE_FAKE_API` set — **which is not optional**: without it the Client
+serves the real HTTP client, every call 404s, the application sits on the login
+screen, and every script times out saying only that it waited for something that
+never appeared. One you already have on `5180` is reused rather than fought
+with.
 
     npm run check:ui -- boards     only the scripts whose name contains "boards"
+    npm run check:ui -- --headed   watch it happen
     APP=http://localhost:4173 npm run check:ui       against a preview build
 
 Screenshots go to `out/`, which is not committed. A script writes one at each
 point worth looking at; when something fails, the picture usually says why faster
-than the assertion does.
+than the assertion does — and a failure now also leaves a **trace**, which
+`npx playwright show-trace test-results/<name>/trace.zip` replays step by step.
+
+**Running one with `node` directly does not work any more.** A script has no tab
+of its own: `ui.spec.mjs` makes a test of each and hands it one. `npm run
+check:ui -- <name>` is the way to run a single script, and the harness says so
+when something tries the old way.
 
 ## Browsers are closed by pid, never by name
 
@@ -122,9 +140,11 @@ visible rather than forgotten:
   the harness from before `cdp.mjs` existed. Port them onto it when somebody next
   touches those screens rather than leaving something red in the suite.
 
-Seventeen of the scripts here still carry that older inline harness. They work,
-so they were not rewritten wholesale — but a new script should import `cdp.mjs`,
-and one of the old ones is worth converting whenever it is being edited anyway.
+**None of them carries an inline harness any more.** Fifteen did until
+2026-08-18, each a copy of `cdp.mjs`'s internals at whatever revision it was
+pasted at; the move onto Playwright deleted all fifteen, which is where most of
+that change's eleven hundred removed lines came from. A new script imports
+`harness.mjs`, and there is no longer an older way for one to be written in.
 
 ## Traps these encode
 
@@ -162,35 +182,42 @@ keeping rather than rewriting.
   carry `--user-data-dir` and Firefox's content processes carry `--profile`, so
   anything matching on those sees one browser as nine. The parent is the process
   with no `--type=` and no `-contentproc`.
-- **Firefox has had no DevTools protocol since 129**, so `cdp.mjs` cannot drive
-  it; `browser.mjs` starts one and hands back a WebDriver BiDi endpoint, and
-  writing a client for it is left to whoever needs one. Its `browser.close`
-  wants a session first — without one it answers *"WebDriver session does not
-  exist"* and the browser stays up, which reads exactly like a close that worked.
+- **Firefox has had no DevTools protocol since 129**, which is why the old
+  harness could not drive it; `browser.mjs` starts one and hands back a
+  WebDriver BiDi endpoint, and writing a client for it was left to whoever
+  needed one. Its `browser.close` wants a session first — without one it answers
+  *"WebDriver session does not exist"* and the browser stays up, which reads
+  exactly like a close that worked. **Playwright removes the reason this was a
+  problem** — it drives Firefox and WebKit itself, so a suite that wanted more
+  than Chromium would add a `projects` entry rather than a protocol client. The
+  note stays because `browser.mjs` still starts Firefox for measurements, and
+  the close is still a trap there.
 
 ## Writing another
 
-`cdp.mjs` is the whole harness — a tab, and the few things worth not writing
-twice.
+`harness.mjs` is the whole harness — a tab, and the few things worth not writing
+twice. Drop the file in beside the others as `verify-<something>.mjs` and
+`ui.spec.mjs` picks it up; there is nothing to register.
 
 ```js
-import { open, results } from "./cdp.mjs";
+import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { evaluate, wait, shot, go, visit, click, close } = await open({ out: process.env.OUT ?? "." });
+const { evaluate, wait, shot, go, visit, click } = await open();
 const { check, report } = results();
 
 await go(`${APP}/activities?fakeUser=amy`, `document.body.innerText.includes("Aktywno")`);
 check(await evaluate(`return location.pathname === "/activities";`), "what it should hold to");
 
 report();
-close();
 ```
 
 `go(url, waitFor)` loads and waits for a condition; `visit(path, waitFor)` moves
 within the application; `click(locator)` takes a JavaScript expression returning
 an element and clicks where it actually is; `shot(name)` writes a screenshot.
-`report()` prints the checks and sets a non-zero exit code if any failed.
+`report()` prints the checks that passed — **it no longer decides anything**:
+`check` is a soft assertion, so the runner fails the test on its own and would
+do so even if a script ended without calling `report`.
 
 **Assert against the application, not against a constant.** A check that a name
 matches a string written here only proves the fixture still says what it said;

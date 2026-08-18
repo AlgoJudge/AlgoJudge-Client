@@ -1,62 +1,13 @@
 // A navigation with more entries than window: the middle scrolls, the mark and
 // the foot links stay where they are, and the project is reachable from inside.
+import { open, results } from "./harness.mjs";
+
 import { writeFileSync } from "node:fs";
 
-const PORT = process.env.CDP_PORT ?? "9333";
 const APP = process.env.APP ?? "http://localhost:5180";
-const OUT = process.env.OUT ?? ".";
+const { send, evaluate, wait, shot, go } = await open();
+const { check, report } = results();
 
-const target = await (await fetch(`http://127.0.0.1:${PORT}/json/new?about:blank`, { method: "PUT" })).json();
-const socket = new WebSocket(target.webSocketDebuggerUrl);
-await new Promise(resolve => socket.addEventListener("open", resolve, { once: true }));
-
-let nextId = 0;
-const pending = new Map();
-socket.addEventListener("message", event => {
-    const message = JSON.parse(event.data);
-    if (message.id !== undefined && pending.has(message.id)) {
-        pending.get(message.id)(message);
-        pending.delete(message.id);
-    }
-});
-const send = (method, params = {}) => new Promise(resolve => {
-    const id = ++nextId;
-    pending.set(id, resolve);
-    socket.send(JSON.stringify({ id, method, params }));
-});
-const evaluate = async (expression) => {
-    const reply = await send("Runtime.evaluate", {
-        expression: `(async () => { ${expression} })()`,
-        returnByValue: true,
-        awaitPromise: true,
-    });
-    if (reply.result?.exceptionDetails) {
-        throw new Error(reply.result.exceptionDetails.exception?.description ?? "evaluation failed");
-    }
-    return reply.result?.result?.value;
-};
-const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
-const shot = async (name) => {
-    const reply = await send("Page.captureScreenshot", { format: "png" });
-    writeFileSync(`${OUT}/${name}.png`, Buffer.from(reply.result.data, "base64"));
-};
-const go = async (url, waitFor, tries = 40) => {
-    await send("Page.navigate", { url });
-    await wait(2500);
-    for (let i = 0; i < tries; i++) {
-        if (await evaluate(`return ${waitFor};`)) return;
-        await wait(500);
-    }
-    throw new Error(`timed out on ${url}`);
-};
-const results = [];
-const check = (ok, what) => {
-    results.push(`${ok ? "  ok  " : " FAIL "} ${what}`);
-    if (!ok) process.exitCode = 1;
-};
-
-await send("Page.enable");
-await send("Runtime.enable");
 // Deliberately short: this is the window the entries used to run off the bottom of.
 await send("Page.setDeviceMetricsOverride", { width: 1400, height: 620, deviceScaleFactor: 1, mobile: false });
 
@@ -134,6 +85,4 @@ check(about.target === "_blank" && about.rel === "noreferrer",
 check(about.sameStyle, `drawn like the documents beside it (${about.label})`);
 check(about.first, "and offered before them, as in the public footer");
 
-console.log(results.join("\n"));
-console.log(process.exitCode ? "\nFAILED" : "\nall checks passed");
-socket.close();
+report();

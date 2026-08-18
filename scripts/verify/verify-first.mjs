@@ -1,56 +1,21 @@
 // A brand new problem: statement, attachment and package prepared before any
 // version exists, then published together as version 1.
 import { writeFileSync } from "node:fs";
+import { open, results } from "./harness.mjs";
 
-const PORT = process.env.CDP_PORT ?? "9333";
 const APP = process.env.APP ?? "http://localhost:5180";
-const OUT = process.env.OUT ?? ".";
+// Not the harness's `click`: this one is by button label and calls the element,
+// where the harness's takes an expression and clicks the point. The local one
+// is what this script's steps are written against.
+const { send, evaluate, wait, shot, tab } = await open();
+const { check, report } = results();
 
-const target = await (await fetch(`http://127.0.0.1:${PORT}/json/new?about:blank`, { method: "PUT" })).json();
-const socket = new WebSocket(target.webSocketDebuggerUrl);
-await new Promise(resolve => socket.addEventListener("open", resolve, { once: true }));
-
-let nextId = 0;
-const pending = new Map();
-socket.addEventListener("message", event => {
-    const message = JSON.parse(event.data);
-    if (message.id !== undefined && pending.has(message.id)) {
-        pending.get(message.id)(message);
-        pending.delete(message.id);
-    }
-});
-const send = (method, params = {}) => new Promise(resolve => {
-    const id = ++nextId;
-    pending.set(id, resolve);
-    socket.send(JSON.stringify({ id, method, params }));
-});
-const evaluate = async (expression) => {
-    const reply = await send("Runtime.evaluate", {
-        expression: `(async () => { ${expression} })()`,
-        returnByValue: true,
-        awaitPromise: true,
-    });
-    if (reply.result?.exceptionDetails) {
-        throw new Error(reply.result.exceptionDetails.exception?.description ?? "evaluation failed");
-    }
-    return reply.result?.result?.value;
-};
-const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
-const shot = async (name) => {
-    const reply = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true });
-    writeFileSync(`${OUT}/${name}.png`, Buffer.from(reply.result.data, "base64"));
-};
 const until = async (expression, what, tries = 40) => {
     for (let i = 0; i < tries; i++) {
         if (await evaluate(`return ${expression};`)) return;
         await wait(500);
     }
     throw new Error(`timed out waiting for ${what}`);
-};
-const results = [];
-const check = (ok, what) => {
-    results.push(`${ok ? "  ok  " : " FAIL "} ${what}`);
-    if (!ok) process.exitCode = 1;
 };
 const click = (label) => evaluate(`
     const button = [...document.querySelectorAll("button")].find(b => b.textContent.trim() === "${label}");
@@ -59,8 +24,6 @@ const click = (label) => evaluate(`
     return true;
 `);
 
-await send("Page.enable");
-await send("Runtime.enable");
 await send("Page.setDeviceMetricsOverride", { width: 1500, height: 1400, deviceScaleFactor: 1, mobile: false });
 
 // 1 — create a problem, which starts with no version at all.
@@ -202,6 +165,4 @@ const packageRow = await evaluate(`
 check(packageRow.enabled === 0, `package.zip offers no enabled action in the attachments tab (${packageRow.enabled} of ${packageRow.total})`);
 await shot("f-published");
 
-console.log(results.join("\n"));
-console.log(process.exitCode ? "\nFAILED" : "\nall checks passed");
-socket.close();
+report();

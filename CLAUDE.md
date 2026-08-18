@@ -37,11 +37,17 @@ verified as outdated and removed there.
 | `npm run check:browsers` | that closing our browsers does not close anybody else's |
 | `npm run browsers` | `-- list`, `-- stop <pid>`, `-- stop --all` |
 
-There is no test runner. Lint, `lint:deps`, typecheck and build are the gate and
-all four must exit 0 before anything is merged; the `check:` scripts cover what
-the Client owns and are run when it changes — the two formats
-(`check:content`, `check:package`), the event transport (`check:events`) and the
-translations (`check:i18n`). All four are CI steps.
+Lint, `lint:deps`, typecheck and build are the gate and all four must exit 0
+before anything is merged; the `check:` scripts cover what the Client owns and
+are run when it changes — the two formats (`check:content`, `check:package`),
+the event transport (`check:events`) and the translations (`check:i18n`). All
+four are CI steps.
+
+**There is a test runner now** — Playwright, since 2026-08-18, and it serves two
+suites that must not be confused. `playwright.ui.config.mjs` is `check:ui`: the
+browser checks, against the fake API, with a dev server it starts itself.
+`playwright.config.mjs` is `check:e2e`: one test against a full stack that is
+already up. Neither gates a merge; only the first runs in CI.
 
 `check:i18n` catches the one defect none of the others can. **A missing key is
 not an error**: i18next falls back to the key itself, which *is* the English
@@ -65,13 +71,25 @@ repository, so `npm run browsers -- stop --all` can close ours and only ours;
 the machine is still running. It also starts Firefox, for measurements the
 DevTools protocol cannot reach.
 
-`check:ui` is not a gate either, and CI does not run it. It drives a real Chrome
-over the screens against the fake, so it needs a dev server and a browser, takes
-minutes, and matches on Polish interface text. It is what catches the defects the
-gate structurally cannot see — a rule applied by a screen instead of by the API,
-a control that stopped reaching the keyboard, two halves of the fake disagreeing.
-Run it when a screen changes. `scripts/verify/README.md` says how, and carries
-the traps the scripts encode.
+`check:ui` **runs in CI since 2026-08-18, and still does not gate.** It moved
+onto Playwright the same day: `npm run check:ui` now starts the dev server
+itself, with the fake, and brings its own browser — the two things that had kept
+it out of CI. What kept it from being a gate is untouched: it matches on Polish
+interface text and on Mantine's generated class names, so a translation or a
+component upgrade reddens it for no product reason, and a red mark everybody
+learns to ignore is worth less than no mark. The CI job is
+`continue-on-error`, like `check:api`. Test ids instead of screen text are what
+would promote it.
+
+It is what catches the defects the gate structurally cannot see — a rule applied
+by a screen instead of by the API, a control that stopped reaching the keyboard,
+two halves of the fake disagreeing. Run it when a screen changes;
+`scripts/verify/README.md` carries the traps the scripts encode, and those are
+the most valuable text in that directory.
+
+**A verification script cannot be run with `node` any more.** They have no tab of
+their own: `scripts/verify/ui.spec.mjs` makes a test of each and hands it one.
+One script is `npm run check:ui -- <name>`.
 
 **The dev server does not serve the fake by default.** `npm run dev` uses the
 real HTTP client, so every call 404s and the application sits on the login

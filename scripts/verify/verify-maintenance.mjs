@@ -8,10 +8,10 @@
 // Driven through the fake's `?fakeMaintenance=`, the same way `?fakeUser=` signs
 // somebody in. The real transport reaches this page from a 503; the fake has no
 // network to lose, so the level is stated instead.
-import { open, results } from "./cdp.mjs";
+import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { evaluate, wait, shot, go, close } = await open({ out: process.env.OUT ?? "." });
+const { evaluate, wait, shot, go, close } = await open();
 const { check, report } = results();
 
 const body = () => evaluate(`return document.body.innerText;`);

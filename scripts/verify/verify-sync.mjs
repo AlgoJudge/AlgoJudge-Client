@@ -3,11 +3,11 @@
 // Every check here reads the SAME fact twice — once from /manager/activities/X
 // and once from /activities/X — and asserts the two agree. Nothing asserts a
 // constant: a constant would only prove the fixture still says what it said.
-import { open, results } from "./cdp.mjs";
+import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
 const { evaluate, wait, shot, go, visit, click, close } =
-    await open({ out: process.env.OUT ?? "." });
+    await open();
 const { check, report } = results();
 
 const body = () => evaluate(`return document.body.innerText;`);

@@ -1,10 +1,10 @@
 // The activity's own page, self-enrolment, and the documents behind both.
-import { open, results } from "./cdp.mjs";
+import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
 const PASSWORD = "PROG1-LA";
 const { evaluate, wait, shot, go, visit, click, type, tab, close } =
-    await open({ out: process.env.OUT ?? "." });
+    await open();
 const { check, report } = results();
 
 const navLinks = () => evaluate(`

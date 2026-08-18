@@ -1,45 +1,13 @@
 // Requirement 9: an image menu that offers only images, and a link menu for the
 // rest. Stages one .png and one .md, then reads both menus.
+import { open, results } from "./harness.mjs";
+
 import { writeFileSync } from "node:fs";
 
-const PORT = process.env.CDP_PORT ?? "9333";
 const APP = process.env.APP ?? "http://localhost:5180";
-const OUT = process.env.OUT ?? ".";
+const { send, evaluate, wait, shot } = await open();
+const { check, report } = results();
 
-const target = await (await fetch(`http://127.0.0.1:${PORT}/json/new?about:blank`, { method: "PUT" })).json();
-const socket = new WebSocket(target.webSocketDebuggerUrl);
-await new Promise(resolve => socket.addEventListener("open", resolve, { once: true }));
-
-let nextId = 0;
-const pending = new Map();
-socket.addEventListener("message", event => {
-    const message = JSON.parse(event.data);
-    if (message.id !== undefined && pending.has(message.id)) {
-        pending.get(message.id)(message);
-        pending.delete(message.id);
-    }
-});
-const send = (method, params = {}) => new Promise(resolve => {
-    const id = ++nextId;
-    pending.set(id, resolve);
-    socket.send(JSON.stringify({ id, method, params }));
-});
-const evaluate = async (expression) => {
-    const reply = await send("Runtime.evaluate", {
-        expression: `(async () => { ${expression} })()`,
-        returnByValue: true,
-        awaitPromise: true,
-    });
-    if (reply.result?.exceptionDetails) {
-        throw new Error(reply.result.exceptionDetails.exception?.description ?? "evaluation failed");
-    }
-    return reply.result?.result?.value;
-};
-const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
-const shot = async (name) => {
-    const reply = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true });
-    writeFileSync(`${OUT}/${name}.png`, Buffer.from(reply.result.data, "base64"));
-};
 const until = async (expression, what, tries = 40) => {
     for (let i = 0; i < tries; i++) {
         if (await evaluate(`return ${expression};`)) return;
@@ -47,14 +15,7 @@ const until = async (expression, what, tries = 40) => {
     }
     throw new Error(`timed out waiting for ${what}`);
 };
-const results = [];
-const check = (ok, what) => {
-    results.push(`${ok ? "  ok  " : " FAIL "} ${what}`);
-    if (!ok) process.exitCode = 1;
-};
 
-await send("Page.enable");
-await send("Runtime.enable");
 await send("Page.setDeviceMetricsOverride", { width: 1500, height: 1400, deviceScaleFactor: 1, mobile: false });
 await send("Page.navigate", { url: `${APP}/manager/problems/prob-graf?fakeUser=amy&tab=files` });
 await wait(3000);
@@ -120,6 +81,4 @@ await evaluate(`
 await wait(600);
 await shot("m-image-menu");
 
-console.log(results.join("\n"));
-console.log(process.exitCode ? "\nFAILED" : "\nall checks passed");
-socket.close();
+report();

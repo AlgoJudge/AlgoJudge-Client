@@ -1,8 +1,8 @@
 // The link a manager copies, under each of the three policies.
-import { open, results } from "./cdp.mjs";
+import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { evaluate, wait, shot, go, click, tab, close } = await open({ out: process.env.OUT ?? "." });
+const { evaluate, wait, shot, go, click, tab, close } = await open();
 const { check, report } = results();
 
 /** The one monospace line holding an address, whatever else is on the card. */

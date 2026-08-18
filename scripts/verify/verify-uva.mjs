@@ -7,10 +7,10 @@
 // the code is exactly how it stops being true, so it is measured instead —
 // every `fetch` the page makes and every resource it loaded, compared against
 // its own origin.
-import { open, results } from "./cdp.mjs";
+import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { evaluate, wait, shot, go, close } = await open({ out: process.env.OUT ?? "." });
+const { evaluate, wait, shot, go, close } = await open();
 const { check, report } = results();
 
 /** Records what the page asks for, before it asks for anything. */
