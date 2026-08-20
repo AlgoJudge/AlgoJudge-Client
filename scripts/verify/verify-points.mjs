@@ -1,9 +1,9 @@
 // What a problem is worth in its round, and what it may be written in.
-import { open, results } from "./cdp.mjs";
+import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
 const { evaluate, wait, shot, go, visit, click, close } =
-    await open({ out: process.env.OUT ?? "." });
+    await open();
 const { check, report } = results();
 
 const main = () => evaluate(`

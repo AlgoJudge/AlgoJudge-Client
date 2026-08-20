@@ -1,9 +1,9 @@
 // What a submission carries, and who is allowed to read each part of it.
-import { open, results } from "./cdp.mjs";
+import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
 const { evaluate, wait, shot, go, visit, click, close } =
-    await open({ out: process.env.OUT ?? "." });
+    await open();
 const { check, report } = results();
 
 /** The application's own area. The panel in the corner says "Wyślij" too. */

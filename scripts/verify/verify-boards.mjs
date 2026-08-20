@@ -1,8 +1,8 @@
 // The window per round, the combined board's columns, the clock, and the panel.
-import { open, results } from "./cdp.mjs";
+import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { evaluate, wait, shot, go, visit, click, tab, close } = await open({ out: process.env.OUT ?? "." });
+const { evaluate, wait, shot, go, visit, click, tab, close } = await open();
 const { check, report } = results();
 
 const body = () => evaluate(`return document.body.innerText;`);

@@ -1,10 +1,10 @@
 // What a manager does to an activity: publishes its documents, sets how people
 // join it, and makes accounts for a class that has none.
-import { open, results } from "./cdp.mjs";
+import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
 const { evaluate, wait, shot, go, visit, click, type, setTextarea, tab, close } =
-    await open({ out: process.env.OUT ?? "." });
+    await open();
 const { check, report } = results();
 
 const body = () => evaluate(`return document.body.innerText;`);

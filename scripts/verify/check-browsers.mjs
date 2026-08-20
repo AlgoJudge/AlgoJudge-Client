@@ -17,14 +17,30 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { results } from "./cdp.mjs";
 import { browsers, inventory, killIfOurs, launch, stop, stopAll, stopOne, PROFILES, REGISTRY, ROOT } from "./browser.mjs";
 
 const execute = promisify(execFile);
 const here = dirname(fileURLToPath(import.meta.url));
 const windows = process.platform === "win32";
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
-const { check, report } = results();
+
+// Its own, rather than the browser harness's.
+//
+// It shared `cdp.mjs`'s until 2026-08-18, when that became `harness.mjs` and
+// its `check` became a Playwright soft assertion — which needs a running test
+// and there is none here. **This script is deliberately still a plain script**:
+// it proves that closing our browsers does not close anybody else's, and a
+// safety check that could only run inside the test runner would be unavailable
+// exactly when somebody is changing the runner.
+const lines = [];
+const check = (ok, what) => {
+    lines.push(`${ok ? "  ok  " : " FAIL "} ${what}`);
+    if (!ok) process.exitCode = 1;
+};
+const report = () => {
+    console.log(lines.join("\n"));
+    console.log(process.exitCode ? "\nFAILED" : "\nall checks passed");
+};
 
 const alive = (pid) => {
     try {
@@ -225,40 +241,23 @@ bystander.kill();
 
 // -------------------------------------------------------------- and the runner
 
-const APP = process.env.APP ?? "http://localhost:5180";
-const reachable = await fetch(APP, { signal: AbortSignal.timeout(2000) }).then(() => true).catch(() => false);
-if (!reachable) {
-    console.log(`\n  skipped  the runner's own teardown — no application at ${APP}.`
-        + "\n           VITE_APP_USE_FAKE_API=true npm run dev -- --port 5180 --strictPort");
-} else {
-    const runner = spawn(process.execPath, [join(here, "run.mjs"), "theme"], {
-        stdio: ["ignore", "pipe", "pipe"],
-        env: { ...process.env, CDP_PORT: "9397" },
-    });
-    // **Both of these before the wait below, not after it.** Attaching the
-    // close handler after a thirty-second poll misses a runner that finished
-    // inside it, and then nothing ever settles; draining the pipes matters for
-    // the same kind of reason — a full buffer stops the child instead of it.
-    let output = "";
-    runner.stdout.on("data", chunk => { output += chunk; });
-    runner.stderr.on("data", chunk => { output += chunk; });
-    let over = false;
-    const finished = new Promise(resolve => runner.on("close", code => { over = true; resolve(code); }));
-
-    let noted = false;
-    for (let i = 0; i < 60 && !noted && !over; i++) {
-        await wait(500);
-        noted = registry().some(e => e.startedBy === "check:ui");
-    }
-    check(noted, "the runner records its browser while it is running");
-
-    await finished;
-    // Only when something went wrong: the runner's own output is what says why.
-    if (!noted) console.log(output.replace(/^/gm, "           "));
-    check(registry().every(e => e.startedBy !== "check:ui"), "and closes it again when it finishes");
-    const left = (await inventory()).leaked;
-    check(left.length === 0, "leaving nothing of ours running");
-}
+// **The runner's own teardown used to be checked here, and no longer is.**
+//
+// It drove `run.mjs` at one script, waited for a `startedBy: "check:ui"` entry
+// to appear in the registry, and asserted it was gone again when the run ended.
+// Since 2026-08-18 `check:ui` is a Playwright suite: it starts no browser
+// through `browser.mjs`, writes nothing to the registry, and Playwright closes
+// what it launched down every exit path including a failed test and a Ctrl+C.
+//
+// Keeping the old assertions would have meant asserting `false`; replacing them
+// with the same thing pointed at Playwright would have meant testing
+// Playwright's teardown, which is its job and not a property of this
+// repository. What is still ours is everything above — that the sweep closes
+// our browsers and only ours — and the standing assertion below that nothing on
+// this machine was closed by any of it.
+//
+// `check:ui` leaking a browser is therefore no longer a thing this can catch.
+// If that suite ever starts one by hand again, the check belongs back here.
 
 // A run that failed halfway leaves its browsers behind; this is not the place
 // to be the thing that leaks.

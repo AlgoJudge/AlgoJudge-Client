@@ -4,10 +4,10 @@
 // entry that never reaches the API looks exactly like one that did until the
 // page is left and come back to. So nothing here is asserted from the control
 // that was just clicked.
-import { open, results } from "./cdp.mjs";
+import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { evaluate, wait, shot, go, visit, click, close } = await open({ out: process.env.OUT ?? "." });
+const { evaluate, wait, shot, go, visit, click, close } = await open();
 const { check, report } = results();
 
 const AREA = `document.querySelector("[class*=AppShell-main]")`;
@@ -97,7 +97,6 @@ const blocked = await evaluate(`
     return { there: button !== undefined, disabled: button ? button.disabled : null };
 `);
 check(blocked.there, "the import button is on the screen");
-
 
 // What it reads out of what somebody typed, before anything is sent.
 await evaluate(`

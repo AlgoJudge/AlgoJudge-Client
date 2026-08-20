@@ -8,18 +8,26 @@
 //
 // It runs against the fake, which issues one ticket — `demo` — exactly once, the
 // way the Server does.
-import { open } from "./cdp.mjs";
-
-const OUT = process.env.OUT ?? ".";
-const { evaluate, go, visit, shot, close } = await open({ out: OUT });
-
-// The leading space matters: the runner filters a failed script's output with
-// /^ FAIL|Error/, so a message without it is swallowed and the failure reads as
-// silence. Cost twenty minutes once.
-const fail = message => { console.error(` FAIL ${message}`); process.exitCode = 1; };
-const pass = message => console.log(`  ok  ${message}`);
+import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
+const { evaluate, go, visit, shot, close } = await open();
+const { check, report } = results();
+
+// **Both of these go through `check`, and that is not decoration.**
+//
+// They used to write to `process.exitCode` directly, which is how a script said
+// "I failed" when each one was its own process. Under the test runner it says
+// nothing at all: the process is a worker running thirty-seven of these, and a
+// test passes or fails on its assertions rather than on an exit code. Left as
+// it was, every failure in this file — the longest script here — would have
+// been reported as a pass. Found on 2026-08-18 by comparing a run against the
+// one taken before the move.
+//
+// The shape is kept because this script asserts in two halves, choosing the
+// message from what it found rather than passing one condition and one string.
+const fail = message => check(false, message);
+const pass = message => check(true, message);
 
 // ── A launch that resolves ───────────────────────────────────────────────────
 //
@@ -580,4 +588,4 @@ await new Promise(resolve => setTimeout(resolve, 800));
 await shot("lti-copy-dialogue");
 
 await close();
-console.log(process.exitCode ? "verify-lti: FAILED" : "verify-lti: ok");
+report();

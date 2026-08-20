@@ -1,9 +1,9 @@
 // Who counts as competing, and the sheet a manager cuts up.
-import { open, results } from "./cdp.mjs";
+import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { send, evaluate, wait, shot, go, visit, click, tab, close } =
-    await open({ out: process.env.OUT ?? "." });
+const { send, evaluate, wait, shot, go, visit, click, tab, pages, close } =
+    await open();
 const { check, report } = results();
 
 const MANAGER_LIST = `[...document.querySelectorAll("tbody tr")].some(r => r.innerText.includes("PROG-1-LA"))`;
@@ -80,36 +80,23 @@ await click(`[...document.querySelectorAll("[class*=Modal-content] button")].fin
 await wait(3500);
 
 // The sheet opens in a tab of its own, so it is read from there.
-const DEVTOOLS = `http://127.0.0.1:${process.env.CDP_PORT ?? "9333"}/json/list`;
-const before = (await (await fetch(DEVTOOLS)).json()).length;
+//
+// This used to ask the DevTools endpoint for a target list and then open a
+// WebSocket to the second tab — the one place in the suite that spoke the
+// protocol for something the harness did not carry. `pages()` is that thing
+// now, and the twenty-five lines it replaced are the reason it exists.
+const before = pages().length;
 await click(`[...document.querySelectorAll("[class*=Modal-content] button")].find(b => /Drukuj/.test(b.textContent))`);
 await wait(2500);
-const targets = await (await fetch(DEVTOOLS)).json();
-check(targets.length > before, "Print opens a tab of its own rather than printing the screen");
+const opened = pages();
+check(opened.length > before, "Print opens a tab of its own rather than printing the screen");
 
-const sheet = targets.find(t => t.type === "page" && !t.url.startsWith("http://localhost:5180"));
-let text = "", columns = 0, height = "";
-// Read through a connection to that tab, because it is a document of its own.
-const socket = new WebSocket(sheet.webSocketDebuggerUrl);
-await new Promise(r => socket.addEventListener("open", r, { once: true }));
-const ask = (method, params = {}) => new Promise(res => {
-    const id = Math.floor(Math.random() * 1e9);
-    const onMessage = (event) => {
-        const message = JSON.parse(event.data);
-        if (message.id === id) { socket.removeEventListener("message", onMessage); res(message); }
-    };
-    socket.addEventListener("message", onMessage);
-    socket.send(JSON.stringify({ id, method, params }));
-});
-await ask("Runtime.enable");
-const read = async (expression) => {
-    const reply = await ask("Runtime.evaluate", { expression, returnByValue: true });
-    return reply.result?.result?.value;
-};
-text = await read(`document.body.innerText`);
-columns = await read(`document.querySelectorAll("tr")[0]?.children.length ?? 0`);
-height = await read(`getComputedStyle(document.querySelector("td")).height`);
-socket.close();
+const sheet = opened.find(p => !p.url.startsWith(APP));
+if (!sheet) throw new Error("the print sheet did not open in a tab of its own");
+const read = sheet.evaluate;
+const text = await read(`return document.body.innerText;`);
+const columns = await read(`return document.querySelectorAll("tr")[0]?.children.length ?? 0;`);
+const height = await read(`return getComputedStyle(document.querySelector("td")).height;`);
 
 check(columns === 2, `the sheet is two columns wide (${columns})`);
 check(/druk-001/.test(text) && /Login/.test(text) && /Hasło/.test(text),

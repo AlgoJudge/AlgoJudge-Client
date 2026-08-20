@@ -1,10 +1,10 @@
 // The activity's own page, self-enrolment, and the documents behind both.
-import { open, results } from "./cdp.mjs";
+import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
 const PASSWORD = "PROG1-LA";
 const { evaluate, wait, shot, go, visit, click, type, tab, close } =
-    await open({ out: process.env.OUT ?? "." });
+    await open();
 const { check, report } = results();
 
 const navLinks = () => evaluate(`
@@ -15,7 +15,13 @@ const body = () => evaluate(`return document.body.innerText;`);
 
 // 1 — an activity with a participant page: clicking it lands there, and the
 //     entry sits above the problems.
-await go(`${APP}/activities?fakeUser=amy`, `document.body.innerText.includes("Aktywno")`);
+// **Waits for the cards, not for the word.** "Aktywno" is in the sidebar's own
+// navigation and is true while the list is still being fetched — so under load
+// this clicked at a page that had drawn its shell and nothing else. Found on
+// 2026-08-20, the first time the suite ran four at a time. Waiting for the card
+// is waiting for a precondition, not for what is asserted below.
+await go(`${APP}/activities?fakeUser=amy`,
+    `[...document.querySelectorAll("[class*=Card-root]")].some(c => c.innerText.includes("PROG-1-LA"))`);
 await click(`[...document.querySelectorAll("[class*=Card-root]")]
     .find(c => c.innerText.includes("PROG-1-LA"))`);
 await wait(1500);
