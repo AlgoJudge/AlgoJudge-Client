@@ -2,7 +2,6 @@
 // create form and the settings form — as a problem's type already was.
 import { open, results } from "./harness.mjs";
 
-import { writeFileSync } from "node:fs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
 const { send, evaluate, wait, shot, go, click } = await open();

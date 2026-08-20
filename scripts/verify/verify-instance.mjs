@@ -1,6 +1,5 @@
 // Stage 9: an operator writes what the instance says about itself, and the
 // screens follow — including the state where it says nothing at all.
-import { writeFileSync } from "node:fs";
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";

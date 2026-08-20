@@ -1,6 +1,5 @@
 // A brand new problem: statement, attachment and package prepared before any
 // version exists, then published together as version 1.
-import { writeFileSync } from "node:fs";
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";

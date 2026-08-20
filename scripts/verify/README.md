@@ -21,8 +21,8 @@ they were kept out are gone:
 - ~~they need a dev server **and** a browser, which CI has no orchestration
   for~~ — `playwright.ui.config.mjs` starts the application with `webServer`,
   and the browser comes with the dependency;
-- ~~a full run is minutes~~ — it still is, and that is now somebody else's
-  twenty minutes rather than yours.
+- ~~a full run is minutes~~ — four at a time brought it to about four and a
+  half, and what is left is somebody else's rather than yours.
 
 **The third reason stands, and it is why this does not gate:** they match on
 Polish interface text and on Mantine's generated class names, so a translation
@@ -47,7 +47,15 @@ with.
 
     npm run check:ui -- boards     only the scripts whose name contains "boards"
     npm run check:ui -- --headed   watch it happen
+    npm run check:ui -- --workers=1   one at a time, when a race is suspected
     APP=http://localhost:4173 npm run check:ui       against a preview build
+
+**Four run at once**, which is what makes a full run about four and a half
+minutes rather than seventeen. Nothing is shared between them — each test gets
+its own browser context — but they do share one dev server, and that contention
+is enough to expose a race a script has been carrying quietly. That is the
+script's bug rather than the setting's, and `--workers=1` is how to tell the two
+apart before believing either.
 
 Screenshots go to `out/`, which is not committed. A script writes one at each
 point worth looking at; when something fails, the picture usually says why faster
@@ -122,10 +130,20 @@ the spinner to go, or for either branch to be on screen — then asserting which
 That is not the same as waiting for what is asserted, which would be a check that
 can never fail.
 
-Some residue remains. One red script in an otherwise green run is more likely a
-race than a regression: re-run it on its own —
-`npm run check:ui -- <name>` — before believing it. Two failures in a row, or the
-same assertion twice, is a defect.
+**Running four at a time makes them likelier, and that is useful.** The first
+parallel run, on 2026-08-20, reddened `verify-activity`: `go()` was waiting for
+`innerText.includes("Aktywno")`, which the sidebar's own navigation satisfies
+long before the list arrives, and the click then found no card. The race had
+been there since the script was written; contention only made it probable. It
+was fixed the way this section prescribes — wait for the cards.
+
+Expect more of those the first time a script meets load. **A script that reddens
+only when four are running is that script's bug, not the runner's setting.**
+
+Some residue remains either way. One red script in an otherwise green run is more
+likely a race than a regression: re-run it on its own —
+`npm run check:ui -- <name>`, or the whole suite with `--workers=1` — before
+believing it. Two failures in a row, or the same assertion twice, is a defect.
 
 ## What they do not cover
 

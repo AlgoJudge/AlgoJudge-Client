@@ -2,7 +2,6 @@
 // as a manager, as a per-activity manager, and as somebody with nothing.
 import { open, results } from "./harness.mjs";
 
-import { writeFileSync } from "node:fs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
 const { send, evaluate, wait, shot, go } = await open();

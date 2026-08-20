@@ -2,7 +2,6 @@
 // screen says when there is nothing to show.
 import { open, results } from "./harness.mjs";
 
-import { writeFileSync } from "node:fs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
 const { send, evaluate, wait, shot, go, click, tab } = await open();

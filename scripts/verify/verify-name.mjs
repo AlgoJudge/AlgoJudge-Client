@@ -1,7 +1,6 @@
 // The instance names itself: beside the mark in both shells, and in the tab.
 import { open, results } from "./harness.mjs";
 
-import { writeFileSync } from "node:fs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
 const { send, evaluate, wait, shot, go, tab } = await open();

@@ -2,7 +2,6 @@
 // the foot links stay where they are, and the project is reachable from inside.
 import { open, results } from "./harness.mjs";
 
-import { writeFileSync } from "node:fs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
 const { send, evaluate, wait, shot, go } = await open();

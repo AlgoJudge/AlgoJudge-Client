@@ -29,18 +29,38 @@ export default defineConfig({
     testMatch: "**/ui.spec.mjs",
 
     /**
-     * **One at a time, to begin with.**
+     * **Four at a time, measured on 2026-08-20.**
      *
-     * The fake runs in the browser, so two scripts share nothing and this could
-     * be raised — the reason the old runner was serial (they wrote over each
-     * other's stored preferences in one shared browser) is gone, because each
-     * test gets its own context. It stays at one until a full run has been green
-     * twice: the suite is being moved underneath in the same change, and a
-     * failure that could be either the port or the parallelism is a failure
-     * nobody can attribute.
+     * The old runner was serial because every script shared one browser and
+     * they wrote over each other's stored preferences. Each test has its own
+     * context now, so nothing is shared and the reason is gone: **17.0 minutes
+     * became 4.5**, with the same 447 checks.
+     *
+     * `fullyParallel` is what makes the number do anything. All thirty-seven
+     * tests live in one file — `ui.spec.mjs` — and Playwright distributes whole
+     * files across workers by default, so without this a second worker would
+     * have nothing to take.
+     *
+     * **Two on CI, four here.** This machine has sixteen cores; a GitHub-hosted
+     * `ubuntu-latest` has four, and four workers there would be full
+     * subscription of a box that is also serving the dev server. The CI number
+     * is a judgement rather than a measurement — the run that lands with this
+     * change is what measures it.
+     *
+     * **Raising it further buys little.** `verify-results` alone takes 2.1
+     * minutes, waiting on a round the fake opens forty-five seconds after load,
+     * so it is the floor no number of workers goes under.
+     *
+     * **What parallelism cost, stated because it will happen again**: the first
+     * four-at-a-time run failed `verify-activity`, and it was a race the script
+     * had carried all along — `go()` waiting for a word that the sidebar already
+     * showed, then clicking a list that had not arrived. Contention made it
+     * likely instead of rare. A script that reddens only under load is that bug,
+     * not this setting, and the fix is the one `README.md` prescribes: wait for
+     * the decision rather than for a word that is true too early.
      */
-    workers: 1,
-    fullyParallel: false,
+    workers: process.env.CI ? 2 : 4,
+    fullyParallel: true,
 
     /**
      * No retries, as in the other config and for the same reason.
