@@ -45,8 +45,7 @@ export const sourceName = (language: string | undefined): string =>
  * familiar, and the result screen would draw an empty one and call it a result.
  */
 const externalResultDocument = (attempt: SeedAttempt) => ({
-    kind: "uva",
-    version: 1,
+    type: "uva@1",
     score: attempt.score ?? 0,
     maxScore: attempt.maxScore ?? 1,
     external: {
@@ -65,8 +64,7 @@ const externalResultDocument = (attempt: SeedAttempt) => ({
 });
 
 const resultDocument = (score: number, verdict: string) => ({
-    kind: "standard-io",
-    version: 1,
+    type: "standard-io@1",
     limits: { timeMs: 1000, memoryBytes: 256 * 1024 * 1024 },
     compilation: { status: verdict === "Compilation error" ? "ERROR" : "OK", log: "" },
     groups: [

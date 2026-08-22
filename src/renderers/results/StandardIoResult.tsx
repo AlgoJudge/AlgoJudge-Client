@@ -33,8 +33,17 @@ interface StandardIoTest {
 }
 
 interface StandardIoDocument {
-    kind?: string;
-    version?: number;
+    /**
+     * `standard-io@1`. **One string**, as every type discriminator in the
+     * product is (decided 2026-08-02, applied here 2026-08-22).
+     *
+     * It was `kind` beside `version`, and this renderer parsed both and used
+     * neither — which is how four spellings of one convention survived. Parsed
+     * and still unused: what a renderer is selected by is the *problem's* type,
+     * and a document disagreeing with it is a thing to notice rather than a
+     * thing to switch on.
+     */
+    type?: string;
     limits?: { timeMs?: number; memoryBytes?: number };
     tests?: StandardIoTest[];
 }
@@ -46,8 +55,7 @@ const parse = (raw: unknown): StandardIoDocument | undefined => {
     if (!isRecord(raw)) return undefined;
     const tests = Array.isArray(raw.tests) ? raw.tests.filter(isRecord) as unknown as StandardIoTest[] : [];
     return {
-        kind: typeof raw.kind === "string" ? raw.kind : undefined,
-        version: typeof raw.version === "number" ? raw.version : undefined,
+        type: typeof raw.type === "string" ? raw.type : undefined,
         limits: isRecord(raw.limits) ? raw.limits as StandardIoDocument["limits"] : undefined,
         tests,
     };
