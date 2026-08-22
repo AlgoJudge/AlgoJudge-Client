@@ -7,7 +7,7 @@ import { maySubmit, seriesState } from "../../api/seriesState";
 import { useApiCall } from "../../provider/apiContext";
 import { sha256 } from "../../utils/sha256";
 import { submitRenderers } from "../../renderers";
-import { KNOWN_LANGUAGES, languageLabel, pastedFileName } from "../editor/languages";
+import { knownLanguages, languageLabel, pastedFileName } from "../editor/languages";
 import { offeredLanguages } from "./offered";
 
 // Monaco is large and only this form and the source preview need it, so it is
@@ -48,8 +48,11 @@ export default function SubmissionForm({ activity, problem, series, onSent }: Su
         const named = offeredLanguages(problem.spec, problem.config);
         return named.length > 0
             ? named
-            : KNOWN_LANGUAGES.map(id => ({ id, label: languageLabel(id) }));
-    }, [problem.spec, problem.config]);
+            : knownLanguages(problem.type).map(id => ({
+                id,
+                label: languageLabel(problem.type, id),
+            }));
+    }, [problem.spec, problem.config, problem.type]);
 
     const [language, setLanguage] = useState<string | null>(offered[0]?.id ?? null);
     const [code, setCode] = useState("");
@@ -143,7 +146,7 @@ export default function SubmissionForm({ activity, problem, series, onSent }: Su
                 // meant a Server release per language; a default of `main.txt`
                 // in its place would be a name the Runner refuses for every
                 // toolchain it has.
-                fileName: file ? undefined : pastedFileName(language ?? undefined),
+                fileName: file ? undefined : pastedFileName(problem.type, language ?? undefined),
                 sha256: checksum,
             }));
             onSent(submission);
@@ -212,6 +215,7 @@ export default function SubmissionForm({ activity, problem, series, onSent }: Su
                             value={code}
                             onChange={setCode}
                             language={language ?? undefined}
+                            problemType={problem.type}
                             readOnly={codeLocked}
                         />
                     </Suspense>

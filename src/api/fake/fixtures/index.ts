@@ -246,7 +246,9 @@ export const createDataset = (files: FakeFiles): Dataset => {
                     },
                     props: {
                         type: assignment.problem.type ?? "standard-io@1",
-                        languages: activity.languages.map(languageLabel).join(", "),
+                        languages: activity.languages
+                            .map(id => languageLabel(assignment.problem.type, id))
+                            .join(", "),
                     },
                     maxUploadBytes: assignment.maxUploadBytes ?? activity.maxUploadBytes,
                     // What is left, not what the ceiling is: counted off the same

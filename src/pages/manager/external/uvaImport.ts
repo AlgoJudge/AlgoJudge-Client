@@ -143,29 +143,25 @@ export const importOne = async (
         await api.managerApi.createProblemVersion(created.id, {
             note: `Imported from onlinejudge.org, problem ${problem.number}`,
             statements: [{ fileId: statement.id }],
-            // **The `uva@1` configuration used to be written here, and there is
-            // nowhere to put it at import time any more.**
+            // **Which problem this is**, written once at import.
             //
-            // It went on the version: `{ uva: { problemNumber }, languages }`.
-            // `ProblemVersion.config` was dropped on 2026-08-22 when the
-            // configuration chain collapsed to two layers, and the layer that
-            // remains is the **assignment** — which does not exist yet, because
-            // importing makes a library entry and attaching happens later.
+            // It lived on the version's `config` until 2026-08-22, went nowhere
+            // for a few hours when the configuration chain collapsed to two
+            // layers, and came back the same day as `props` — a different thing
+            // under a different name. `config` is *settings*, and an
+            // assignment's settings are the only ones left; this is *identity*,
+            // a fact about the problem that every assignment inherits rather
+            // than restates.
             //
-            // Consequence, and it is a real one: **an imported problem is not
-            // submittable until somebody sets its configuration on the
-            // assignment.** Without it the Runner refuses the job before
-            // anything leaves, saying the configuration cannot be read — the
-            // failure an end-to-end run on 2026-08-16 already found once.
-            //
-            // What each assignment needs, for problem ${problem.number}:
-            //
-            //   { "uva": { "problemNumber": <number> },
-            //     "languages": { "cpp11-gcc": 5 } }
-            //
-            // One language entry, because `5` is the only archive id anybody
-            // here has watched work; the other five are written down in
-            // `AlgoJudge-Runner-UVa/README.md`.
+            // **There is no language map any more.** `uva@1` defines its own
+            // six, in the Runner, because the list belongs to the archive and
+            // every problem in it shares them. Writing them per problem is what
+            // made an import that forgot produce a problem nobody could submit
+            // to — found in a live run on 2026-08-16.
+            props: {
+                type: "uva@1",
+                uva: { problemNumber: problem.number },
+            },
         });
 
         // Visible to the whole installation: an imported problem is a library

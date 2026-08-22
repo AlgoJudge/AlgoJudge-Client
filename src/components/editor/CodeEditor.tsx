@@ -43,13 +43,19 @@ export interface CodeEditorProps {
     language?: string;
     height?: number | string;
     readOnly?: boolean;
+    /**
+     * The problem type, because a language id means a different compiler under
+     * different types — and a different grammar with it. Absent falls back to
+     * `standard-io@1`'s catalogue.
+     */
+    problemType?: string;
 }
 
-export default function CodeEditor({ value, onChange, language, height = 420, readOnly }: CodeEditorProps) {
+export default function CodeEditor({ value, onChange, language, height = 420, readOnly, problemType }: CodeEditorProps) {
     return (
         <Editor
             height={height}
-            language={monacoLanguage(language)}
+            language={monacoLanguage(problemType, language)}
             // Dark regardless of the application's colour scheme. A code surface
             // is read differently from a page of prose, and every editor a
             // participant already uses looks like this.

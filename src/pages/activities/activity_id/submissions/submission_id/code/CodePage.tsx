@@ -67,7 +67,7 @@ export default function CodePage() {
                 // a default would have made it.
                 props: (submission.props ?? { type: submission.problemType }) as Record<string, unknown>,
                 code: draft,
-                fileName: pastedFileName(language),
+                fileName: pastedFileName(submission.problemType, language),
             }));
             navigate(`/activities/${activity.slug}/submissions/${created.id}`);
         } catch (e) {
@@ -144,6 +144,7 @@ export default function CodePage() {
                     value={shown}
                     onChange={setDraft}
                     language={language}
+                    problemType={submission.problemType}
                     readOnly={!editing}
                     height={520}
                 />

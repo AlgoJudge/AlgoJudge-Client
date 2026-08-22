@@ -8,6 +8,7 @@ import { JobState } from "../../../api/ParticipantApi";
 import LoadState from "../../../components/LoadState";
 import ActivityTime from "../../../components/time/ActivityTime";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
+import { languageText } from "../../../components/submission/offered";
 
 const PAGE_SIZE = 20;
 
@@ -195,7 +196,7 @@ export default function ManagerSubmissionsPage() {
                                         <Text size="xs" c="dimmed">{submission.activitySlug} · {submission.seriesName}</Text>
                                     </Stack>
                                 </Table.Td>
-                                <Table.Td><Text size="sm" ff="monospace">{submission.language ?? "—"}</Text></Table.Td>
+                                <Table.Td><Text size="sm">{languageText(submission.props)}</Text></Table.Td>
                                 <Table.Td>
                                     <Group gap={4} wrap="nowrap">
                                         <Badge variant="light" color={STATE_COLOUR[submission.state]}>

@@ -18,9 +18,23 @@
  * one floor up: an id this file has never seen still submits, still judges, and
  * shows as its own id with plain-text highlighting until somebody adds a row.
  *
- * It mirrors `AlgoJudge-Runner/crates/aj-standard-io/src/language.rs`, which is
- * the catalogue of record. Where they disagree, the Runner is right and this is
- * out of date.
+ * ## One catalogue per problem type
+ *
+ * **The type defines what it offers, and what each is called.** `standard-io@1`
+ * builds and runs eighteen toolchains here; `uva@1` forwards to
+ * onlinejudge.org and offers the six that archive accepts.
+ *
+ * Three ids are shared — `c89-gcc`, `cpp11-gcc`, `python3` — because they mean
+ * the same language, and sharing them lets one screen resolve a label whichever
+ * type produced a submission. **The labels differ, and must**: the compilers
+ * under `uva@1` are the archive's, pinned at the archive's versions. `cpp11-gcc`
+ * is GCC 14 with our flags in one and GCC 5.3.0 with UVa's in the other, and
+ * showing "C++11 (GCC)" in both would say the two were built by the same
+ * compiler.
+ *
+ * It mirrors `AlgoJudge-Runner/crates/aj-standard-io/src/language.rs` and
+ * `AlgoJudge-Runner-UVa/src/language.rs`, which are the catalogues of record.
+ * Where they disagree, the Runner is right and this is out of date.
  */
 
 interface Toolchain {
@@ -47,7 +61,7 @@ interface Toolchain {
  * highlights. Monaco's `cpp` definition registers `c` alongside it, sharing one
  * tokenizer, so nine registrations serve all sixteen native rows.
  */
-const TOOLCHAINS: Record<string, Toolchain> = {
+const STANDARD_IO: Record<string, Toolchain> = {
     "c89-gcc": { label: "C89 / ANSI C (GCC)", monaco: "c", extension: ".c" },
     "c89-clang": { label: "C89 / ANSI C (Clang)", monaco: "c", extension: ".c" },
     "c99-gcc": { label: "C99 (GCC)", monaco: "c", extension: ".c" },
@@ -73,24 +87,53 @@ const TOOLCHAINS: Record<string, Toolchain> = {
     "cpp": { label: "C++20 (GCC)", monaco: "cpp", extension: ".cpp" },
     "python": { label: "Python 3 (CPython)", monaco: "python", extension: ".py" },
 
-    // `uva@1` forwards to onlinejudge.org and builds nothing here. Three of its
-    // six ids are shared with the list above, deliberately, so one label map
-    // serves both problem types.
-    "cpp98-gcc": { label: "C++98 (GCC)", monaco: "cpp", extension: ".cpp" },
-    "java8": { label: "Java 8 (OpenJDK)", monaco: "java", extension: ".java" },
-    "pascal-fpc": { label: "Pascal (Free Pascal)", monaco: "pascal", extension: ".pas" },
 };
+
+/**
+ * What onlinejudge.org accepts, in the order its own form lists them.
+ *
+ * Nothing here is built by this project — a `uva@1` submission is forwarded and
+ * the archive's verdict is reported back — which is why the labels name the
+ * archive's compilers and its versions.
+ */
+const UVA: Record<string, Toolchain> = {
+    "c89-gcc": { label: "C89 / ANSI C (GCC 5.3.0)", monaco: "c", extension: ".c" },
+    "java8": { label: "Java 8 (OpenJDK 1.8.0)", monaco: "java", extension: ".java" },
+    "cpp98-gcc": { label: "C++98 (GCC 5.3.0)", monaco: "cpp", extension: ".cpp" },
+    "pascal-fpc": { label: "Pascal (Free Pascal 3.0.0)", monaco: "pascal", extension: ".pas" },
+    "cpp11-gcc": { label: "C++11 (GCC 5.3.0)", monaco: "cpp", extension: ".cpp" },
+    "python3": { label: "Python 3 (CPython 3.5.1)", monaco: "python", extension: ".py" },
+};
+
+const CATALOGUES: Record<string, Record<string, Toolchain>> = {
+    "standard-io@1": STANDARD_IO,
+    "output-only@1": STANDARD_IO,
+    "uva@1": UVA,
+};
+
+/**
+ * The catalogue for a problem type.
+ *
+ * **A type this build has never heard of falls back to `standard-io@1`'s**,
+ * which is the largest and the one every shared id is in. That is a label being
+ * approximately right rather than a screen going blank, and it is the same
+ * choice the rest of this file makes: a Runner may know a type this Client does
+ * not, and a participant should still read words.
+ */
+const catalogueFor = (type: string | undefined): Record<string, Toolchain> =>
+    (type === undefined ? undefined : CATALOGUES[type]) ?? STANDARD_IO;
 
 /**
  * What to call a toolchain. **An unknown id is its own label**, not an error and
  * not a blank: a Runner that learned a language yesterday must not produce an
  * empty select today.
  */
-export const languageLabel = (id: string): string => TOOLCHAINS[id]?.label ?? id;
+export const languageLabel = (type: string | undefined, id: string): string =>
+    catalogueFor(type)[id]?.label ?? id;
 
 /** An unmapped language shows as plain text rather than failing to load. */
-export const monacoLanguage = (language: string | undefined): string =>
-    (language && TOOLCHAINS[language]?.monaco) ?? "plaintext";
+export const monacoLanguage = (type: string | undefined, language: string | undefined): string =>
+    (language && catalogueFor(type)[language]?.monaco) ?? "plaintext";
 
 /**
  * What pasted source in this toolchain should be called.
@@ -99,8 +142,12 @@ export const monacoLanguage = (language: string | undefined): string =>
  * correctly, and with a message naming what it does accept. Guessing an
  * extension for an unknown language would be guessing at somebody's verdict.
  */
-export const pastedFileName = (id: string | undefined): string =>
-    `main${(id && TOOLCHAINS[id]?.extension) ?? ".txt"}`;
+export const pastedFileName = (type: string | undefined, id: string | undefined): string =>
+    `main${(id && catalogueFor(type)[id]?.extension) ?? ".txt"}`;
 
-/** Every id this build has a label for. For a manager's editor, never for a gate. */
-export const KNOWN_LANGUAGES: string[] = Object.keys(TOOLCHAINS);
+/**
+ * Every id this build has a label for, under one type. For a manager's editor
+ * and for a form with nothing else to offer — never for a gate.
+ */
+export const knownLanguages = (type: string | undefined): string[] =>
+    Object.keys(catalogueFor(type));

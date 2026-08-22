@@ -88,7 +88,7 @@ const submissionOf = (
         userId: contestant.userId,
         userName: contestant.userName,
         submittedAt: attemptTime(series, attempt),
-        language: attempt.language,
+        props: { type: assignment.problem.type ?? "standard-io@1", language: attempt.language },
         state: attempt.state,
         verdict: attempt.verdict,
         score: pointsOf(assignment, fractionOf(attempt)),

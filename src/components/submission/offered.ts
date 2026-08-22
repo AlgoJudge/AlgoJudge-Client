@@ -1,6 +1,19 @@
 import { languageLabel } from "../editor/languages";
 
 /**
+ * The envelope every one of these documents carries: which problem type wrote
+ * it. Decided 2026-08-02 as one string, `name@version`.
+ *
+ * It is what lets a label be resolved from the document alone — `cpp11-gcc` is
+ * a different compiler under `uva@1` than under `standard-io@1`, and a screen
+ * holding only a submission has no other way to know which.
+ */
+export function typeOf(document: unknown): string | undefined {
+    if (!isRecord(document)) return undefined;
+    return typeof document.type === "string" ? document.type : undefined;
+}
+
+/**
  * Reading the three opaque documents an assignment carries, guardedly.
  *
  * They are `unknown` because the Server stores them and never reads them, so
@@ -28,13 +41,16 @@ export interface OfferedLanguage {
  */
 function read(document: unknown): OfferedLanguage[] {
     if (!isRecord(document) || !Array.isArray(document.languages)) return [];
+    const type = typeOf(document);
 
     return document.languages.flatMap((entry): OfferedLanguage[] => {
         if (typeof entry === "string") {
-            return [{ id: entry, label: languageLabel(entry) }];
+            return [{ id: entry, label: languageLabel(type, entry) }];
         }
         if (isRecord(entry) && typeof entry.id === "string") {
-            const label = typeof entry.label === "string" ? entry.label : languageLabel(entry.id);
+            const label = typeof entry.label === "string"
+                ? entry.label
+                : languageLabel(type, entry.id);
             return [{ id: entry.id, label }];
         }
         return [];
@@ -107,5 +123,7 @@ export function languageOf(props: unknown): string | undefined {
  */
 export const languageText = (props: unknown): string => {
     const id = languageOf(props);
-    return id === undefined ? "—" : languageLabel(id);
+    // The type out of the same document, so a `uva@1` submission reads as the
+    // archive's compiler rather than as ours.
+    return id === undefined ? "—" : languageLabel(typeOf(props), id);
 };

@@ -1390,6 +1390,9 @@ export class ManagerApiFake implements ManagerApi {
             createdAt: new Date().toISOString(),
             createdByName: "Amy Horsefighter",
             note: input.note,
+            // Absent carries the previous version's forward: a problem's
+            // identity does not change because somebody fixed a typo.
+            props: input.props ?? previous?.props,
             hasPackage: false,
             files: [],
         };

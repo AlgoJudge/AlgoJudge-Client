@@ -700,10 +700,19 @@ export interface ManagedProblemVersion {
     createdByName?: string;
     /** What changed, for the manager reading the history later. */
     note?: string;
-    // **`config` was here and is gone (2026-08-22).** It was the middle of
-    // three layers — package, version, assignment — and the middle one earned
-    // nothing: a version wanting different limits is a version with a different
-    // package, because limits are calibrated against the tests it ships.
+    /**
+     * What the problem type needs to know about **this version of this
+     * problem** — `uva@1`'s archive problem number, for instance.
+     *
+     * **Not the `config` that was here** and went with the middle layer of the
+     * configuration chain. That was *settings*; this is *identity*, a fact about
+     * the problem that every assignment inherits rather than restates.
+     *
+     * Opaque, and **absent means none** — never `{}`. Optional here and required
+     * by some types: the Server cannot tell which, because it does not read this
+     * and must not branch on a problem type.
+     */
+    props?: unknown;
     /** Whether a Runner package has been uploaded for this version. */
     hasPackage: boolean;
     files: ProblemFile[];
@@ -776,6 +785,8 @@ export interface ProblemVersionInput {
      * statement is a problem nobody can read.
      */
     statements?: NewStatement[];
+    /** Absent carries the previous version's forward. */
+    props?: unknown;
     /** Attached in this version, beside the ones carried forward. */
     files?: NewProblemFile[];
     /** Carried-forward names that must not be. */
@@ -860,7 +871,11 @@ export interface ManagedSubmission {
     userId: string;
     userName: DisplayName;
     submittedAt: string;
-    language?: string;
+    /**
+     * What the participant declared beside the bytes — the language among it.
+     * Opaque: the Server stores it and reads no member of it.
+     */
+    props?: unknown;
     state: JobState;
     /** Short label from the Runner. Its meaning belongs to the problem type. */
     verdict?: string;
