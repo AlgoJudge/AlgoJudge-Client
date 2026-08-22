@@ -86,6 +86,27 @@ const statusOf = (attempts: SeedAttempt[]): ProblemStatus => {
 const bestOf = (attempts: SeedAttempt[]): number | undefined =>
     attempts.length === 0 ? undefined : Math.max(...attempts.map(attempt => fractionOf(attempt) ?? 0));
 
+/**
+ * What the best attempt was marked out of.
+ *
+ * The scale a `bestScore` is reported on where the assignment states no point
+ * value of its own — the best attempt's maximum, not any of them, because two
+ * attempts at one problem may carry different maxima.
+ */
+const bestOutOf = (attempts: SeedAttempt[]): number | undefined => {
+    let best: number | undefined;
+    let outOf: number | undefined;
+    for (const attempt of attempts) {
+        const fraction = fractionOf(attempt);
+        if (fraction === undefined) continue;
+        if (best === undefined || fraction > best) {
+            best = fraction;
+            outOf = attempt.maxScore;
+        }
+    }
+    return outOf;
+};
+
 /** Where the activity has one, the state its dates put it in. */
 const stateOf = (activity: SeedActivity, now: number): ActivityState => {
     if (activity.endDate !== undefined && Date.parse(activity.endDate) <= now) return "finished";
@@ -176,7 +197,7 @@ export const createDataset = (files: FakeFiles): Dataset => {
                     // On the assignment's scale: 80 out of the Runner's hundred
                     // is 40 where the problem is worth 50.
                     bestScore: pointsOf(assignment, bestOf(mine)),
-                    maxScore: maxPointsOf(assignment),
+                    maxScore: maxPointsOf(assignment, bestOutOf(mine)),
                     attempts: mine.length,
                 };
             });
@@ -290,7 +311,9 @@ export const createDataset = (files: FakeFiles): Dataset => {
                     state: attempt.state,
                     verdict: attempt.verdict,
                     score: pointsOf(assignment, fractionOf(attempt)),
-                    maxScore: attempt.score === undefined ? undefined : maxPointsOf(assignment),
+                    maxScore: attempt.score === undefined
+                        ? undefined
+                        : maxPointsOf(assignment, attempt.maxScore),
                 };
                 mine.push(summary);
 

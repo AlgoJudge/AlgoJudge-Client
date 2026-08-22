@@ -899,8 +899,22 @@ export const attemptTime = (series: SeedSeries, attempt: SeedAttempt): string =>
  */
 export const RUNNER_SCALE = 100;
 
-export const maxPointsOf = (assignment: SeedAssignment): number =>
-    assignment.maxPoints ?? RUNNER_SCALE;
+/**
+ * The scale a number is reported on.
+ *
+ * The assignment's point value where it states one, and **what the attempt was
+ * marked out of** where it does not — which is the package's own scale, and what
+ * `SeriesProblem.maxPoints` has always promised.
+ *
+ * It was `?? RUNNER_SCALE` here as it was on the Server, and it was wrong in the
+ * same way: a hundred is a percentage, not the Runner's own scale, so a package
+ * marking out of 70 reported a full solve as 100 / 100. Corrected on both sides
+ * on 2026-08-22 — this fixture stands in for the Server, and a fake that kept
+ * the old rule would be the one place the defect survived, with screens written
+ * against it.
+ */
+export const maxPointsOf = (assignment: SeedAssignment, outOf?: number): number =>
+    assignment.maxPoints ?? outOf ?? RUNNER_SCALE;
 
 /**
  * What an attempt is worth, as a fraction of what it was marked out of.
@@ -916,9 +930,9 @@ export const fractionOf = (attempt: { score?: number; maxScore?: number }): numb
 };
 
 export const pointsOf = (
-    assignment: SeedAssignment, fraction: number | undefined,
+    assignment: SeedAssignment, fraction: number | undefined, outOf?: number,
 ): number | undefined =>
-    fraction === undefined ? undefined : Math.round(fraction * maxPointsOf(assignment));
+    fraction === undefined ? undefined : Math.round(fraction * maxPointsOf(assignment, outOf));
 
 /** The reader, where the activity has one. */
 export const meOf = (activity: SeedActivity): SeedContestant | undefined =>

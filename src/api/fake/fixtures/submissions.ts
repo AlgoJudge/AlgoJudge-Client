@@ -92,7 +92,7 @@ const submissionOf = (
         state: attempt.state,
         verdict: attempt.verdict,
         score: pointsOf(assignment, fractionOf(attempt)),
-        maxScore: maxPointsOf(assignment),
+        maxScore: maxPointsOf(assignment, attempt.maxScore),
         attempts: (attempt.history?.length ?? 0) + 1,
         problemType: assignment.problem.type ?? "standard-io@1",
         attemptList: attemptListOf(files, id, series, attempt),
