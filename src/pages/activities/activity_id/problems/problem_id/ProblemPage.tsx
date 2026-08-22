@@ -13,6 +13,8 @@ import LoadState from "../../../../../components/LoadState";
 import { statementRenderers } from "../../../../../renderers";
 import { languageName, pickLanguage } from "../../../../../components/content/languageName";
 import { isStatementName } from "../../../../../content/types";
+import ProblemLimits from "../../../../../components/problem/ProblemLimits";
+import { baseLimits, showMemory, showTime } from "../../../../../components/problem/limits";
 
 /**
  * The value standing for `content.md`, which has no language of its own. `*`
@@ -110,6 +112,7 @@ export default function ProblemPage() {
     }
 
     const Statement = statementRenderers.resolve(problem.type).value;
+    const base = baseLimits(problem.config);
     const downloads = problem.attachments.filter(a => !isStatementFile(a.name));
     const chosen = chooseStatement(problem.statements, chosenLanguage, i18n.language);
     const holding = series.find(s => s.id === problem.seriesId);
@@ -128,15 +131,25 @@ export default function ProblemPage() {
                             maxScore={problem.maxScore}
                             attempts={problem.attempts}
                         />
-                        {/* Absent when the manager chose not to show them, so the
-                            screen renders nothing rather than "undefined". */}
-                        {problem.limits && (
+                        {/*
+                          * **The assignment's own pair, before any group or
+                          * language narrows it**, and the first time these have
+                          * shown a real number: they came from a contract field
+                          * the Server never filled and rendered against the fake
+                          * alone until 2026-08-22.
+                          *
+                          * Absent means the assignment overrode nothing — not
+                          * "no limit". A package's own numbers are not published
+                          * to a participant, so the badges say nothing rather
+                          * than guessing.
+                          */}
+                        {base && (
                             <>
                                 <Badge variant="light" leftSection={<IconClock size={14} />}>
-                                    {(problem.limits.timeMs / 1000).toFixed(2)} s
+                                    {showTime(base.timeMs)}
                                 </Badge>
                                 <Badge variant="light" leftSection={<IconDatabase size={14} />}>
-                                    {Math.round(problem.limits.memoryBytes / (1024 * 1024))} MiB
+                                    {showMemory(base.memoryBytes)}
                                 </Badge>
                             </>
                         )}
@@ -201,6 +214,13 @@ export default function ProblemPage() {
                     <Statement content={statement} attachments={problem.attachments} />
                 </Suspense>
             )}
+
+            {/*
+              * Below the statement rather than beside the title: the two tables
+              * are what a participant reads while working out whether their
+              * approach fits, which is after they have read the problem.
+              */}
+            <ProblemLimits config={problem.config} />
 
             {problem.samples && problem.samples.length > 0 && (
                 <Text size="sm" c="dimmed">

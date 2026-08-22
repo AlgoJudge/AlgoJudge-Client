@@ -1,4 +1,4 @@
-import { JobState, ProblemLimits, ProblemSample, ScoreVisibility, SubmitField } from "../../ParticipantApi";
+import { JobState, ProblemSample, ScoreVisibility, SubmitField } from "../../ParticipantApi";
 import { AttachmentRule } from "../../ManagerApi";
 import {
     arraysStatement,
@@ -126,8 +126,12 @@ export interface SeedProblem {
     /** Keyed by language subtag, for the switcher above the statement. */
     translations?: Record<string, string>;
     samples?: ProblemSample[];
-    /** Absent means the manager turned them off, which the screen must render. */
-    limits?: ProblemLimits;
+    /**
+     * Seed data, and no longer an API field: it feeds the assignment's
+     * `config.limits`, which is where a participant reads limits from since
+     * 2026-08-22. Absent takes the projection's default.
+     */
+    limits?: { timeMs: number; memoryBytes: number };
     attachments?: { name: string; mimeType: string; sizeBytes: number }[];
     /** The problem type, for the statement and result renderers. */
     type?: string;

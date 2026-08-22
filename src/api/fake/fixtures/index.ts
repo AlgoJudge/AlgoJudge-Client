@@ -225,9 +225,6 @@ export const createDataset = (files: FakeFiles): Dataset => {
                     attachments: (assignment.problem.attachments ?? []).map(file => ({
                         ...file, url: "#", sha256: fakeSha(file.name),
                     })),
-                    // Absent means the manager turned them off, which the screen
-                    // must render rather than print "undefined".
-                    limits: assignment.problem.limits ?? { timeMs: 1000, memoryBytes: 256 * 1024 * 1024 },
                     samples: assignment.problem.samples,
                     // **The three documents, projected from the seed's one
                     // list.** `config` is what the Runner refuses against,
@@ -239,6 +236,18 @@ export const createDataset = (files: FakeFiles): Dataset => {
                         languages: activity.languages,
                         limits: assignment.problem.limits
                             ?? { timeMs: 1000, memoryBytes: 256 * 1024 * 1024 },
+                        // **Both axes, because the screen has to show both and
+                        // one of them is easy to get wrong.** Group 2 states its
+                        // own time, so it is judged under that whatever language
+                        // the solution is in — and the per-language row below
+                        // reaches only the groups that state none. A fixture
+                        // with one axis would let that mistake ship.
+                        groups: [
+                            { group: 0, points: 0, examples: true },
+                            { group: 1, points: 40 },
+                            { group: 2, points: 60, limits: { timeMs: 4000 } },
+                        ],
+                        overrideLimits: { python: { timeMs: 3000 } },
                     },
                     spec: {
                         type: assignment.problem.type ?? "standard-io@1",

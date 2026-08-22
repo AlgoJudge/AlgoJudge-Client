@@ -281,11 +281,6 @@ export interface ProblemSummary {
     attempts: number,
 }
 
-export interface ProblemLimits {
-    timeMs: number,
-    memoryBytes: number,
-}
-
 export interface ProblemSample {
     input: string,
     output: string,
@@ -333,8 +328,14 @@ export interface ProblemDetail {
     statements: StatementRef[],
     /** Everything scoped to participants. Well-known `content.*` files excluded. */
     attachments: Attachment[],
-    /** Absent when the manager chose not to show them. */
-    limits?: ProblemLimits,
+    // **`limits` was here and was filled by nothing**, from the day this file
+    // was written. The Server could not fill it: the numbers live inside a
+    // document it stores and does not read, so there was no value it could put
+    // there without becoming a reader of a problem type's vocabulary. The badges
+    // a participant saw rendered against the fake and against nothing else.
+    //
+    // They come out of `config` below now, which is why that reaches this
+    // screen. See `components/problem/limits.ts`.
     samples?: ProblemSample[],
     /**
      * The signed-in participant's own standing on this problem, the same as the
