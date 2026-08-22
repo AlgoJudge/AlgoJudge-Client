@@ -68,35 +68,50 @@ check(board.rounds[1] === 30,
     `and one marked out of one still counts for its full value (${board.rounds[1]}, from 25 + 5)`);
 await shot("pts-board");
 
-// ── 5. The activity decides the languages ──────────────────────────────────
-// The course takes Python alone. The form offers what the activity allows,
-// **and** the fake refuses anything else — a rule only a form applies is not a
-// rule, though the refusal is not reachable from a form that never offers one.
+// ── 5. The assignment decides the languages, and the form says their names ──
+//
+// **Two things changed here on 2026-08-22**, and this section was asserting the
+// old shape of both.
+//
+// The list is the *assignment's* now, not the activity's: it lives in `spec` for
+// this form and in `config` for the Runner, and `Activity.Languages` is gone. And
+// the select shows **labels** rather than ids — `C++20 (GCC)`, not `cpp` — because
+// an id carries a toolchain now and `cpp17-gcc` is not a thing to show a person.
+//
+// The fake no longer refuses a language either, and that mirrors the Server: the
+// language is one member of an opaque document neither of them reads, so the
+// refusal is the Runner's, against the set the assignment stated.
 await visit("/activities/PROG-1-LA/submit/sortowanie", `document.body.innerText.includes("Język")`);
 await wait(2500);
 await click(`[...document.querySelectorAll("[class*=AppShell-main] input")]
-    .find(i => /python|cpp|java/i.test(i.value))`);
+    .find(i => /python|c\\+\\+/i.test(i.value))`);
 await wait(900);
 const offered = await evaluate(`
     return [...document.querySelectorAll("[class*=Combobox-option], [role=option]")]
         .map(o => o.textContent.trim());
 `);
-check(offered.includes("python") && !offered.includes("cpp") && !offered.includes("java"),
-    `an activity that takes Python alone offers Python alone (${offered.join(", ")})`);
+check(offered.length === 1 && offered[0] === "Python 3 (CPython)",
+    `an assignment that takes Python alone offers Python alone, by name (${offered.join(", ")})`);
 await shot("pts-languages");
 
-// And the contest, which takes three, still offers three.
+// And the contest, which takes three, still offers three — two C++ toolchains
+// that would have been one entry called `cpp` before the catalogue existed.
 await visit("/activities/AMMPZ-2019/submit/D", `document.body.innerText.includes("Język")`);
 await wait(2500);
 await click(`[...document.querySelectorAll("[class*=AppShell-main] input")]
-    .find(i => /python|cpp|java/i.test(i.value))`);
+    .find(i => /python|c\\+\\+/i.test(i.value))`);
 await wait(900);
 const contest = await evaluate(`
     return [...document.querySelectorAll("[class*=Combobox-option], [role=option]")]
         .map(o => o.textContent.trim());
 `);
-check(contest.includes("cpp") && contest.includes("python") && contest.includes("java"),
-    `another activity offers its own three (${contest.join(", ")})`);
+check(contest.includes("C++20 (GCC)") && contest.includes("C++17 (GCC)")
+        && contest.includes("Python 3 (CPython)"),
+    `another assignment offers its own three (${contest.join(", ")})`);
+// The standard alone is not a toolchain, and neither is a bare id. A select
+// showing either is the catalogue not having reached this screen.
+check(!contest.some(o => /^(cpp|python|java|cpp17|cpp20)$/.test(o)),
+    `and none of them is shown as a bare id (${contest.join(", ")})`);
 
 report();
 close();
