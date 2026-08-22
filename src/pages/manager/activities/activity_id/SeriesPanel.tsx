@@ -3,7 +3,7 @@ import {
     Table, Text, TextInput, Title, Tooltip,
 } from "@mantine/core";
 import {
-    IconAlertTriangle, IconArrowDown, IconArrowUp, IconLink, IconPlus, IconTrash,
+    IconAlertTriangle, IconArrowDown, IconArrowUp, IconPlus, IconTrash,
 } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -15,6 +15,7 @@ import ZonedDateTimeInput from "../../../../components/time/ZonedDateTimeInput";
 import { useApiCall } from "../../../../provider/apiContext";
 import PauseSeriesModal, { PauseIntent } from "./PauseSeriesModal";
 import ShiftSeries from "./ShiftSeries";
+import OpaqueDocumentField from "../../../../components/manager/OpaqueDocumentField";
 
 /**
  * Series and what is attached to them.
@@ -47,6 +48,8 @@ const toAssignmentInput = (assignment: ManagedSeriesProblem): SeriesProblemInput
     name: assignment.name,
     pinnedProblemVersionId: assignment.pinnedProblemVersionId,
     config: assignment.config,
+    spec: assignment.spec,
+    props: assignment.props,
     maxPoints: assignment.maxPoints,
     maxUploadBytes: assignment.maxUploadBytes,
     maxAttachments: assignment.maxAttachments,
@@ -619,9 +622,34 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                                 />
                             </Grid.Col>
                         </Grid>
-                        <Alert color="blue" icon={<IconLink size={18} />}>
-                            {t("Time and memory come from the problem's configuration, not from here.")}
-                        </Alert>
+                        {/*
+                          * **The three documents this assignment carries**, each
+                          * with one reader. The Server stores all three and reads
+                          * none of them; what is inside is the problem type's
+                          * vocabulary, which is why these are text areas and not
+                          * forms.
+                          */}
+                        <OpaqueDocumentField
+                            label={t("Configuration")}
+                            description={t("What changes the verdict: limits, and the languages that may be submitted. Laid over the package's own.")}
+                            placeholder={'{ "type": "standard-io@1", "languages": ["cpp20-gcc", "python3"], "limits": { "timeMs": 1000, "memoryBytes": 268435456 } }'}
+                            value={attachment.config}
+                            onChange={config => setAttachment({ ...attachment, config })}
+                        />
+                        <OpaqueDocumentField
+                            label={t("Submit form")}
+                            description={t("What the submit form offers. Where this and the configuration disagree about languages, the configuration is what happens.")}
+                            placeholder={'{ "type": "standard-io@1", "languages": ["cpp20-gcc", "python3"] }'}
+                            value={attachment.spec}
+                            onChange={spec => setAttachment({ ...attachment, spec })}
+                        />
+                        <OpaqueDocumentField
+                            label={t("Display")}
+                            description={t("Shown above the statement. Wrong here means an untidy page and nothing else.")}
+                            placeholder={'{ "type": "standard-io@1", "languages": "C++20 (GCC), Python 3" }'}
+                            value={attachment.props}
+                            onChange={props => setAttachment({ ...attachment, props })}
+                        />
                         <Group justify="space-between">
                             <Button variant="default" onClick={() => { setAttachTo(undefined); setEditing(undefined); }}>
                                 {t("Back")}

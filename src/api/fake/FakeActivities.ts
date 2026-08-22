@@ -36,8 +36,14 @@ export interface ParticipantSettings {
      * moved here.
      */
     attachmentVisibility: AttachmentRule[];
-    /** What a solution may be written in. Narrowing must reach the submit form. */
-    languages: string[];
+    /**
+     * Display metadata a participant sees on the activity list.
+     *
+     * It was `languages` — the list a submit form offered — until 2026-08-22.
+     * That list is per assignment now, in three documents with three readers,
+     * so nothing about it crosses here any more.
+     */
+    props?: unknown;
 }
 
 export interface SeriesRelay {

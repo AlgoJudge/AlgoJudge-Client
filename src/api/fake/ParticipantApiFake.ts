@@ -33,6 +33,7 @@ import { ForbiddenError } from "../ApiError";
 import { Utils } from "./Utils";
 import { sha256 } from "../../utils/sha256";
 import { checksumMismatch, notFound } from "./refuse";
+import { languageOf } from "../../components/submission/offered";
 
 const DEFAULT_PAGE_SIZE = 5;
 
@@ -425,26 +426,10 @@ class FakeParticipantState {
         return undefined;
     }
 
-    /**
-     * Which attachment names a participant may read here.
-     *
-     * Whatever a manager last saved beats the seed — the same arrangement the
-     * other participant-visible settings have, and for the same reason: a table
-     * saved in the panel that never crossed is a table that looks like it did
-     * nothing.
-     */
-    /**
-     * What this activity accepts, with whatever a manager last saved winning.
-     *
-     * The same arrangement as the attachment table beside it: a narrowing saved
-     * in the panel that never crossed would leave the submit form offering a
-     * language the Server now refuses.
-     */
-    languagesFor(activityId: string): string[] {
-        return this.shared.settingsOf(activityId)?.languages
-            ?? this.data.seeds.get(activityId)?.languages
-            ?? [];
-    }
+    // **`languagesFor` was here and is gone.** It answered "what may this
+    // activity be written in", which stopped being an activity's question on
+    // 2026-08-22: the allowed set is on the assignment, in `config` for the
+    // Runner and `spec` for the form, and both travel with the problem.
 
     rulesFor(activityId: string): AttachmentRule[] {
         return this.shared.settingsOf(activityId)?.attachmentVisibility
@@ -596,9 +581,6 @@ export class ParticipantApiFake implements ParticipantApi {
         await this.settle(signal);
         const problem = this.state.dataset().problems.get(`${activityId}/${problemSlug}`);
         if (!problem) return notFound("Problem");
-        // Read here rather than baked in when the dataset was built, so a
-        // manager narrowing the list changes what the form offers next.
-        const languages = this.state.languagesFor(activityId);
         // The address of a problem is guessable and gets shared, so the series
         // is asked here and not only where the list is drawn. A series whose
         // problems are withheld withholds them from everybody who types the
@@ -607,7 +589,7 @@ export class ParticipantApiFake implements ParticipantApi {
         const series = this.state.dataset().series.get(activityId)
             ?.find(s => s.id === problem.seriesId);
         if (series && !mayReadProblems(this.timingOf(series), activity ?? {})) return notFound("Problem");
-        return copy({ ...problem, languages });
+        return copy(problem);
     }
 
     async getSubmissions(activityId: string, filter: SubmissionFilter, signal: AbortSignal): Promise<Page<SubmissionSummary>> {
@@ -661,14 +643,14 @@ export class ParticipantApiFake implements ParticipantApi {
                 "This series is not accepting submissions", "series.closed");
         }
 
-        // Refused here as the Server refuses it. The form offers only what the
-        // activity allows, but a rule only a form applies is not a rule — and
-        // this address is reachable without one.
-        const allowed = this.state.languagesFor(activityId);
-        if (payload.language !== undefined && !allowed.includes(payload.language)) {
-            throw new ForbiddenError(
-                `This activity does not accept ${payload.language}`, "submission.language");
-        }
+        // **The language is not refused here any more, and that mirrors the
+        // Server.** It read a `language` field and compared it with a list on
+        // the activity; the language is one member of an opaque document now,
+        // and the refusal is the Runner's — against the assignment's `config`,
+        // where a language id means something.
+        //
+        // A fake that still refused would be the one place in the product where
+        // the old rule survived, and screens would be written against it.
 
         // Same rule as every other upload: the Server recomputes and refuses a
         // mismatch rather than storing a claim about the bytes.
@@ -680,8 +662,11 @@ export class ParticipantApiFake implements ParticipantApi {
         // Recorded in the seed first, because that is what the results feed and
         // every count are built from — and the id comes from where it landed, so
         // the submissions list and the board name the same submission.
-        const id = this.state.countAttempt(activityId, problem.seriesId, problem.slug, payload.language ?? "");
-        const fileName = payload.file?.name ?? `solution.${payload.language ?? "txt"}`;
+        const language = languageOf(payload.props) ?? "";
+        const id = this.state.countAttempt(activityId, problem.seriesId, problem.slug, language);
+        // The sender names pasted source now; the Server has no table to do it
+        // with. A fake that invented one would hide the field going missing.
+        const fileName = payload.file?.name ?? payload.fileName ?? "main.txt";
         const summary: SubmissionSummary = {
             id,
             problemId: problem.id,
@@ -689,7 +674,7 @@ export class ParticipantApiFake implements ParticipantApi {
             problemName: problem.name,
             seriesId: problem.seriesId,
             submittedAt: new Date().toISOString(),
-            language: payload.language,
+            props: payload.props,
             state: "queued",
         };
 
@@ -711,7 +696,6 @@ export class ParticipantApiFake implements ParticipantApi {
                 return {
                     name: SUBMISSION_SOURCE,
                     fileName,
-                    language: payload.language,
                     fileId: stored.id,
                     sha256: stored.sha256,
                     sizeBytes: stored.sizeBytes,

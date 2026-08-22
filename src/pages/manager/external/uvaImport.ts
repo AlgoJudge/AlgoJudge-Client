@@ -143,19 +143,29 @@ export const importOne = async (
         await api.managerApi.createProblemVersion(created.id, {
             note: `Imported from onlinejudge.org, problem ${problem.number}`,
             statements: [{ fileId: statement.id }],
-            config: {
-                uva: { problemNumber: problem.number },
-                // **Without this the problem cannot be submitted at all.** The
-                // Runner reads a language name and sends the archive its own
-                // numeric id; an imported problem with no map is refused before
-                // anything leaves, which an end-to-end run on 2026-08-16 showed
-                // as "the problem's configuration cannot be read".
-                //
-                // One entry, and only the one whose id has been seen accepted.
-                // Guessing the rest of the archive's table would put numbers in
-                // here that nobody has watched work.
-                languages: { cpp: 5 },
-            },
+            // **The `uva@1` configuration used to be written here, and there is
+            // nowhere to put it at import time any more.**
+            //
+            // It went on the version: `{ uva: { problemNumber }, languages }`.
+            // `ProblemVersion.config` was dropped on 2026-08-22 when the
+            // configuration chain collapsed to two layers, and the layer that
+            // remains is the **assignment** — which does not exist yet, because
+            // importing makes a library entry and attaching happens later.
+            //
+            // Consequence, and it is a real one: **an imported problem is not
+            // submittable until somebody sets its configuration on the
+            // assignment.** Without it the Runner refuses the job before
+            // anything leaves, saying the configuration cannot be read — the
+            // failure an end-to-end run on 2026-08-16 already found once.
+            //
+            // What each assignment needs, for problem ${problem.number}:
+            //
+            //   { "uva": { "problemNumber": <number> },
+            //     "languages": { "cpp11-gcc": 5 } }
+            //
+            // One language entry, because `5` is the only archive id anybody
+            // here has watched work; the other five are written down in
+            // `AlgoJudge-Runner-UVa/README.md`.
         });
 
         // Visible to the whole installation: an imported problem is a library

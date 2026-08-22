@@ -506,7 +506,7 @@ export class ManagerApiFake implements ManagerApi {
             hideEndedSeriesProblems: input.hideEndedSeriesProblems,
             scoreVisibility: input.scoreVisibility,
             attachmentVisibility: input.attachmentVisibility,
-            languages: input.languages,
+            props: input.props,
         });
         return this.announceActivity(record.activity);
     }
@@ -1390,7 +1390,6 @@ export class ManagerApiFake implements ManagerApi {
             createdAt: new Date().toISOString(),
             createdByName: "Amy Horsefighter",
             note: input.note,
-            config: input.config ?? previous?.config ?? {},
             hasPackage: false,
             files: [],
         };
@@ -1553,27 +1552,21 @@ export class ManagerApiFake implements ManagerApi {
         // assembles one — with the same builder the manager screen uses, so what
         // comes back opens.
         //
-        // `ProblemVersion.config` is a **layer of the same document** the package
-        // carries, not a different one: the chain decided 2026-08-04 is package,
-        // then version, then assignment, each overriding the one before, and
-        // overriding needs one set of field names. A hand-written translation
-        // stood here until 2026-08-08, converting `scoring.groups` to `groups`
-        // and megabytes to kibibytes, because the fixture and
-        // `docs/specs/PACKAGE_FORMAT.md` had drifted apart.
+        // **A version states no configuration any more** (2026-08-22). The
+        // chain decided 2026-08-04 was package, then version, then assignment;
+        // the middle layer is gone, because a version wanting different limits
+        // is a version with a different package — the limits are calibrated
+        // against the tests it ships.
         //
-        // What is left is the layering itself, which is real: a version states
-        // what it changes, and the defaults fill the rest.
-        const versionConfig = version.config as Partial<PackageConfig> | undefined;
+        // So what a built package carries is the package's own defaults, and
+        // the assignment lays its overrides on top of them at judging time.
         const defaults = emptyConfig();
         const config: PackageConfig = {
             ...defaults,
-            ...versionConfig,
-            limits: { ...defaults.limits, ...versionConfig?.limits },
-            // Group 0 is the examples, which no version states and every package
-            // has.
+            // Group 0 is the examples, which every package has.
             groups: [
                 { group: 0, points: 0, examples: true },
-                ...(versionConfig?.groups ?? [{ group: 1, points: 100 }]),
+                { group: 1, points: 100 },
             ],
         };
         const archive = await buildPackage({

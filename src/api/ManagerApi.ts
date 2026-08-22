@@ -379,14 +379,15 @@ export interface ManagedActivity {
      */
     attachmentVisibility: AttachmentRule[];
     /**
-     * The languages a solution may be written in here.
+     * Free display metadata for the activity list, e.g. `Prowadzący: Jan
+     * Kowalski`. Opaque and **absent means none**, never `{}`.
      *
-     * The activity's answer, and the only one: nothing declares a problem's own
-     * languages yet, so this is what the submit form offers and what the Server
-     * accepts. Narrowing it **leaves what has already been sent alone** — a
-     * result belongs to what it was judged against.
+     * It replaces `languages`, which lived here and is now three documents on
+     * the assignment: `config` for the Runner, `spec` for the submit form,
+     * `props` for a header. A fourth copy on the activity would be the one
+     * nothing reads and nothing enforces.
      */
-    languages: string[];
+    props?: unknown;
     joinPolicy: JoinPolicy;
     /**
      * Hidden from the activity list of anybody not enrolled — reachable by its
@@ -450,7 +451,8 @@ export interface ActivityInput {
     modules: { questions: boolean };
     scoreVisibility: ScoreVisibility;
     attachmentVisibility: AttachmentRule[];
-    languages: string[];
+    /** Display metadata. Opaque; absent means none. */
+    props?: unknown;
     joinPolicy: JoinPolicy;
     unlisted: boolean;
     /** Absent or empty removes it. Meaningful only under `joinPolicy: "password"`. */
@@ -586,11 +588,28 @@ export interface ManagedSeriesProblem {
      */
     submissionCount: number;
     /**
-     * Per-assignment configuration. Opaque to the Server, and **absent means
-     * none** — see `docs/specs/OPAQUE_DOCUMENTS.md`. An object or absent, never
-     * a scalar or an array.
+     * **What changes the verdict** — limits, and the toolchains that may be
+     * submitted. Opaque to the Server, laid over the package's own `config.yml`
+     * by the Runner, and **absent means none** — see
+     * `docs/specs/OPAQUE_DOCUMENTS.md`. An object or absent, never a scalar or
+     * an array.
      */
     config?: unknown;
+    /**
+     * **What the submit form is drawn from** — its fields, the toolchains its
+     * select offers and their labels. Read by the Client alone.
+     *
+     * Separate from `config` because they fail differently: a wrong `config` is
+     * a wrong result, a wrong `spec` is a broken form. Where they disagree about
+     * languages, `config` is what happens — the Runner refuses regardless of
+     * what the form offered.
+     */
+    spec?: unknown;
+    /**
+     * **Display only** — captions, the languages written out for the header
+     * above a statement. Wrong here means an ugly screen and nothing else.
+     */
+    props?: unknown;
     /**
      * What this problem is worth **here**.
      *
@@ -621,6 +640,8 @@ export interface SeriesProblemInput {
     pinnedProblemVersionId?: string;
     /** Absent leaves the assignment with none. */
     config?: unknown;
+    spec?: unknown;
+    props?: unknown;
     /** Absent keeps the problem's own scale. */
     maxPoints?: number;
     maxUploadBytes?: number;
@@ -679,12 +700,10 @@ export interface ManagedProblemVersion {
     createdByName?: string;
     /** What changed, for the manager reading the history later. */
     note?: string;
-    /**
-     * Limits and scoring for this version. Opaque to the Server, and **absent
-     * means none** — see `docs/specs/OPAQUE_DOCUMENTS.md`. An object or absent,
-     * never a scalar or an array.
-     */
-    config?: unknown;
+    // **`config` was here and is gone (2026-08-22).** It was the middle of
+    // three layers — package, version, assignment — and the middle one earned
+    // nothing: a version wanting different limits is a version with a different
+    // package, because limits are calibrated against the tests it ships.
     /** Whether a Runner package has been uploaded for this version. */
     hasPackage: boolean;
     files: ProblemFile[];
@@ -757,7 +776,6 @@ export interface ProblemVersionInput {
      * statement is a problem nobody can read.
      */
     statements?: NewStatement[];
-    config?: unknown;
     /** Attached in this version, beside the ones carried forward. */
     files?: NewProblemFile[];
     /** Carried-forward names that must not be. */

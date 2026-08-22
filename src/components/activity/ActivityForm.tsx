@@ -1,5 +1,5 @@
 import {
-    ActionIcon, Alert, Card, Grid, Group, MultiSelect, NumberInput, SegmentedControl,
+    ActionIcon, Alert, Card, Grid, Group, NumberInput, SegmentedControl,
     Select, Stack, Switch, Text, TextInput, Title, Tooltip,
 } from "@mantine/core";
 import { useClipboard } from "@mantine/hooks";
@@ -8,7 +8,6 @@ import { useTranslation } from "react-i18next";
 import { ActivityInput, AttachmentVisibility, JoinPolicy, ScoreVisibility } from "../../api/ManagerApi";
 import ZonedDateTimeInput from "../time/ZonedDateTimeInput";
 import { MB } from "./activityInput";
-import { LANGUAGES } from "../editor/languages";
 import { activityTypes } from "../../renderers";
 
 /**
@@ -158,16 +157,14 @@ export default function ActivityForm({ value, onChange, slugLocked, disabled }: 
                         />
                     </Grid.Col>
                     <Grid.Col span={{ base: 12, sm: 8 }}>
-                        <MultiSelect
-                            label={t("Languages accepted")}
-                            description={t("Narrowing this leaves what has already been sent alone")}
-                            data={LANGUAGES}
-                            value={value.languages}
-                            onChange={languages => set({ languages })}
-                            disabled={disabled}
-                            searchable
-                            clearable
-                        />
+                        {/*
+                          * **The language list was here and is on the assignment
+                          * now** (2026-08-22), in three documents with three
+                          * readers: `config` is what the Runner refuses against,
+                          * `spec` is what the submit form offers, `props` is what
+                          * a header reads out. A fourth copy on the activity
+                          * would be the one nothing enforces.
+                          */}
                     </Grid.Col>
                 </Grid>
 

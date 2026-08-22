@@ -20,6 +20,7 @@ import {
     SeedActivity, SeedAssignment, SeedAttempt, SeedSeries, WORLD,
     attemptId, attemptTime, displayName, fractionOf, maxPointsOf, meOf, pointsOf,
 } from "./world";
+import { languageLabel } from "../../../components/editor/languages";
 
 export { OPENING_SERIES_DELAY } from "./world";
 
@@ -228,9 +229,25 @@ export const createDataset = (files: FakeFiles): Dataset => {
                     // must render rather than print "undefined".
                     limits: assignment.problem.limits ?? { timeMs: 1000, memoryBytes: 256 * 1024 * 1024 },
                     samples: assignment.problem.samples,
-                    // The activity's answer, and the only one: nothing declares
-                    // a problem's own languages yet.
-                    languages: activity.languages,
+                    // **The three documents, projected from the seed's one
+                    // list.** `config` is what the Runner refuses against,
+                    // `spec` is what the select offers, `props` is what a
+                    // header reads out. They agree here; a fixture where they
+                    // disagreed would be describing a misconfigured assignment.
+                    config: {
+                        type: assignment.problem.type ?? "standard-io@1",
+                        languages: activity.languages,
+                        limits: assignment.problem.limits
+                            ?? { timeMs: 1000, memoryBytes: 256 * 1024 * 1024 },
+                    },
+                    spec: {
+                        type: assignment.problem.type ?? "standard-io@1",
+                        languages: activity.languages,
+                    },
+                    props: {
+                        type: assignment.problem.type ?? "standard-io@1",
+                        languages: activity.languages.map(languageLabel).join(", "),
+                    },
                     maxUploadBytes: assignment.maxUploadBytes ?? activity.maxUploadBytes,
                     // What is left, not what the ceiling is: counted off the same
                     // attempts the list is built from.
@@ -259,7 +276,6 @@ export const createDataset = (files: FakeFiles): Dataset => {
                     problemName: displayName(assignment),
                     seriesId: seed.id,
                     submittedAt: attemptTime(seed, attempt),
-                    language: attempt.language,
                     state: attempt.state,
                     verdict: attempt.verdict,
                     score: pointsOf(assignment, fractionOf(attempt)),

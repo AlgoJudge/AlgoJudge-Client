@@ -101,7 +101,7 @@ const activityOf = (activity: SeedActivity): ManagedActivity => ({
     hideEndedSeriesProblems: activity.hideEndedSeriesProblems,
     maxUploadBytes: activity.maxUploadBytes,
     maxAttachments: activity.maxAttachments,
-    languages: activity.languages,
+    props: activity.props,
     maxSubmissionsPerProblem: activity.maxSubmissionsPerProblem,
     archivedAt: activity.archivedAt,
     // **Published, except the workshop.** Everything the fixtures describe has

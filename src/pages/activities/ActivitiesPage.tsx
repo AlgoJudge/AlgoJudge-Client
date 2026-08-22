@@ -9,6 +9,7 @@ import { useApiEffect } from "../../provider/apiContext";
 import LoadState from "../../components/LoadState";
 import { typeName } from "../../renderers";
 import classes from "./ActivitiesPage.module.css";
+import { displayProps } from "../../components/submission/offered";
 
 const PAGE_SIZE = 5;
 
@@ -128,7 +129,9 @@ export default function ActivitiesPage() {
                                     {t("Result")}: {item.finalScore}{item.maxScore !== undefined ? ` / ${item.maxScore}` : ""}
                                 </Text>
                             )}
-                            {item.props.map(p => <Text key={p.key}>{p.key}: {p.value}</Text>)}
+                            {displayProps(item.props).map(p => (
+                                <Text key={p.key}>{p.key}: {p.value}</Text>
+                            ))}
                         </Stack>
                     </Group>
                 </Card>
