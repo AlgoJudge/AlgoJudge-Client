@@ -7,6 +7,7 @@ import ActivityTime from "../../../../components/time/ActivityTime";
 import { useApiEffect } from "../../../../provider/apiContext";
 import LoadState from "../../../../components/LoadState";
 import StateBadge from "../../../../components/submission/StateBadge";
+import { languageText } from "../../../../components/submission/offered";
 
 const PAGE_SIZE = 10;
 
@@ -120,7 +121,7 @@ export default function SubmissionsPage() {
                                         <ActivityTime value={s.submittedAt} timeZone={activity.timeZone} />
                                     </Table.Td>
                                     <Table.Td>[{s.problemSlug}] {s.problemName}</Table.Td>
-                                    <Table.Td>{s.language ?? "—"}</Table.Td>
+                                    <Table.Td>{languageText(s.props)}</Table.Td>
                                     <Table.Td><StateBadge state={s.state} verdict={s.verdict} score={s.score} maxScore={s.maxScore} /></Table.Td>
                                     <Table.Td>
                                         {s.score === undefined ? "—" : `${s.score} / ${s.maxScore ?? "?"}`}

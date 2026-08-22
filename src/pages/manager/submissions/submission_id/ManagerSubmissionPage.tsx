@@ -12,6 +12,7 @@ import { resultRenderers } from "../../../../renderers";
 import { ManagedAttempt } from "../../../../api/ManagerApi";
 import { SUBMISSION_DETAILS, SUBMISSION_LOG } from "../../../../api/ParticipantApi";
 import { useAttachment, useResultDocument } from "../../../../components/submission/useAttachment";
+import { languageOf, typeOf } from "../../../../components/submission/offered";
 
 const CodeEditor = lazy(() => import("../../../../components/editor/CodeEditor"));
 
@@ -228,7 +229,13 @@ export default function ManagerSubmissionPage() {
                     </Text>
                 </Group>
                 <Suspense fallback={<Center my="xl"><Loader /></Center>}>
-                    <CodeEditor value={source} language={submission.language} readOnly height={420} />
+                    <CodeEditor
+                        value={source}
+                        language={languageOf(submission.props)}
+                        problemType={typeOf(submission.props)}
+                        readOnly
+                        height={420}
+                    />
                 </Suspense>
             </Card>
         </Stack>

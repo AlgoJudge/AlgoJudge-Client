@@ -79,7 +79,12 @@ export const resultOf = (
     // `extra` goes with the outcome, not beside it: it is measured from the same
     // run, so a metric that survived a freeze would leak what the freeze hides.
     if (withheld(seed, attempt, now, unfrozen)) return { ...base, frozen: true };
-    return { ...base, points: pointsOf(assignment, fractionOf(attempt)), state: attempt.state, extra: attempt.extra };
+    return {
+        ...base,
+        points: pointsOf(assignment, fractionOf(attempt), attempt.maxScore),
+        state: attempt.state,
+        extra: attempt.extra,
+    };
 };
 
 const seriesOf = (seed: SeedSeries, live: Series, now: number, unfrozen: boolean): ResultSeries => ({
@@ -95,7 +100,15 @@ const seriesOf = (seed: SeedSeries, live: Series, now: number, unfrozen: boolean
         id: `problem-${assignment.slug}`,
         slug: assignment.slug,
         name: displayName(assignment),
-        maxPoints: maxPointsOf(assignment),
+        // The scale every entry in this column sits on. Where the assignment
+        // states no point value it is the package's own, which is knowable only
+        // from an attempt — so it is read off the attempts rather than assumed.
+        // A column and its entries computing this differently is a board whose
+        // rows do not add up to its header.
+        maxPoints: maxPointsOf(
+            assignment,
+            (seed.attempts ?? [])
+                .find(a => a.problem === assignment.slug && a.maxScore !== undefined)?.maxScore),
     })),
 });
 

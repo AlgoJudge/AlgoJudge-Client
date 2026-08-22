@@ -91,7 +91,11 @@ export class ParticipantApiHttp implements ParticipantApi {
         // Multipart, because a submission may be a file. The transport leaves
         // FormData alone and lets the browser set the boundary.
         const form = new FormData();
-        if (payload.language) form.append("language", payload.language);
+        // One document, as text: every part of a multipart form is a string,
+        // including the one carrying JSON. The Server checks it is an object and
+        // fits the ceiling, and reads no member of it.
+        if (payload.props) form.append("props", JSON.stringify(payload.props));
+        if (payload.fileName) form.append("fileName", payload.fileName);
         if (payload.code !== undefined) form.append("code", payload.code);
         if (payload.file) form.append("file", payload.file, payload.file.name);
         // The checksum the caller computed. It was left out until 2026-08-06,

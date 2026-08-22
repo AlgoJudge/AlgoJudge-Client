@@ -1,12 +1,14 @@
 import { Alert, Button, Center, FileInput, Group, Loader, Select, Stack, Text } from "@mantine/core";
 import { IconAlertCircle, IconSend, IconX } from "@tabler/icons-react";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Activity, ProblemDetail, Series, SubmissionSummary } from "../../api/ParticipantApi";
 import { maySubmit, seriesState } from "../../api/seriesState";
 import { useApiCall } from "../../provider/apiContext";
 import { sha256 } from "../../utils/sha256";
 import { submitRenderers } from "../../renderers";
+import { knownLanguages, languageLabel, pastedFileName } from "../editor/languages";
+import { offeredLanguages } from "./offered";
 
 // Monaco is large and only this form and the source preview need it, so it is
 // split out of the main bundle rather than paid for on every page load.
@@ -38,7 +40,21 @@ export default function SubmissionForm({ activity, problem, series, onSent }: Su
     const { t } = useTranslation();
     const call = useApiCall();
 
-    const [language, setLanguage] = useState<string | null>(problem.languages[0] ?? null);
+    // What the select offers: the assignment's `spec`, then its `config`, then
+    // every id this build has a label for. See `offered.ts` — none of the three
+    // is a permission, and the last one only happens where the assignment named
+    // no languages at all, which the Runner reads as "accept anything I build".
+    const offered = useMemo(() => {
+        const named = offeredLanguages(problem.spec, problem.config);
+        return named.length > 0
+            ? named
+            : knownLanguages(problem.type).map(id => ({
+                id,
+                label: languageLabel(problem.type, id),
+            }));
+    }, [problem.spec, problem.config, problem.type]);
+
+    const [language, setLanguage] = useState<string | null>(offered[0]?.id ?? null);
     const [code, setCode] = useState("");
     const [file, setFile] = useState<File | null>(null);
     const [error, setError] = useState<string | undefined>(undefined);
@@ -51,8 +67,8 @@ export default function SubmissionForm({ activity, problem, series, onSent }: Su
         setCode("");
         setFile(null);
         setError(undefined);
-        setLanguage(problem.languages[0] ?? null);
-    }, [problem.slug, problem.languages]);
+        setLanguage(offered[0]?.id ?? null);
+    }, [problem.slug, offered]);
 
     // The series this problem belongs to. A round that has not started, was
     // stopped, or has ended is refused here rather than by the Server after
@@ -113,12 +129,24 @@ export default function SubmissionForm({ activity, problem, series, onSent }: Su
             // mismatch, so a truncated upload fails instead of being judged.
             const checksum = file ? await sha256(file) : await sha256(new TextEncoder().encode(code));
             const submission = await call(api => api.participantApi.submit(activity.id, problem.slug, {
+                // **One document the Server stores and never reads.** The
+                // language is a member of it; the envelope names the type whose
+                // vocabulary the rest of it is written in.
+                //
                 // Absent for a type that has no language: an answer file is not
                 // written in one, and sending a made-up value would put it on a
                 // submission for ever.
-                language: wantsLanguage ? (language ?? undefined) : undefined,
+                props: wantsLanguage && language
+                    ? { type: problem.type, language }
+                    : { type: problem.type },
                 code: file ? undefined : code,
                 file: file ?? undefined,
+                // **Only the sender can name pasted source.** The Server named
+                // it from a table of seven languages until 2026-08-22, which
+                // meant a Server release per language; a default of `main.txt`
+                // in its place would be a name the Runner refuses for every
+                // toolchain it has.
+                fileName: file ? undefined : pastedFileName(problem.type, language ?? undefined),
                 sha256: checksum,
             }));
             onSent(submission);
@@ -151,7 +179,7 @@ export default function SubmissionForm({ activity, problem, series, onSent }: Su
                     <Select
                         label={t("Programming language")}
                         description={t("Select the language your solution is written in")}
-                        data={problem.languages.map(l => ({ value: l, label: l }))}
+                        data={offered.map(l => ({ value: l.id, label: l.label }))}
                         value={language}
                         onChange={setLanguage}
                         allowDeselect={false}
@@ -187,6 +215,7 @@ export default function SubmissionForm({ activity, problem, series, onSent }: Su
                             value={code}
                             onChange={setCode}
                             language={language ?? undefined}
+                            problemType={problem.type}
                             readOnly={codeLocked}
                         />
                     </Suspense>

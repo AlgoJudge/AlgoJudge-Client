@@ -121,7 +121,8 @@ anything else fails the run.
 
 - One Client supports users, managers, and administrators.
 - New activity and task types use renderer registries.
-- Renderers are selected using `typeId + typeVersion`.
+- Renderers are selected by the type discriminator, one string formatted
+  `name@version` — not two fields. See `renderers/TypeRegistry.ts`.
 - Never execute untrusted code supplied by a task package.
 - An unknown type must not break the application.
 - WebSocket accelerates updates; REST remains the reproducible source of state.
@@ -162,17 +163,63 @@ never saw it" defect came from that. Anything one side derives is derived:
 a problem's status and best score, `submissionCount`, `attachedCount`, and every
 board.
 
-### Values the Server never reads (2026-08-07)
+### Values the Server never reads (2026-08-07, corrected 2026-08-22)
 
-Seven of them: `config` on a problem version and on an assignment, `detail` on an
-attempt and on a submission, `extra` on a result. Each exists so that adding a
-problem or ranking type needs no Server release.
+**This said "seven" and then named five**, two of which had left the set the same
+day it was written: `detail` on an attempt and on a submission became attachments
+on 2026-08-07, because a per-test table is a hundred and twenty bytes a row times
+two thousand tests times every attempt.
+
+There are **eight**, and one name covers them:
+
+| Value | Written by | Read by |
+|---|---|---|
+| `Activity.props` | manager | everyone |
+| `ProblemVersion.props` | manager | the Runner — which problem this is, e.g. `uva@1`'s archive number |
+| `SeriesProblem.config` | manager | the Runner, and shown to the participant |
+| `SeriesProblem.spec` | manager | this Client, to draw the submit form |
+| `SeriesProblem.props` | manager | everyone who may see the problem |
+| `Submission.props` | **the participant** | the Runner, the manager |
+| `Result.props` | the Runner | the one participant it belongs to |
+| `Result.extra` | the Runner | **everyone** who may see the board |
+
+Each exists so that adding a problem or ranking type needs no Server release.
+The assignment's three are separated by what breaking each costs: a wrong
+`config` is a wrong result, a wrong `spec` is a broken form, wrong `props` is an
+untidy screen. **Where `config` and `spec` disagree about languages, `config` is
+what happens** — the Runner refuses whatever the assignment excluded, whatever
+this form offered.
 
 One rule for all of them: **optional, and absent means none** — never `{}` beside
 `undefined`, which is two ways of saying the same nothing. An object or absent,
 never a scalar or an array, so the `isRecord` guard every reader writes matches
 what can arrive. `docs/specs/OPAQUE_DOCUMENTS.md` carries the rule and the two
 ceilings the Server holds them to; the Client enforces neither and authors none.
+
+### One language catalogue per problem type (2026-08-22)
+
+`components/editor/languages.ts` says what each toolchain id is **called** and
+which Monaco grammar colours it. It says nothing about what may be submitted:
+the select is drawn from the assignment's `spec`, and the **Runner** refuses
+anything outside its `config`.
+
+That separation is the point. A Server release per language was what the old
+arrangement cost, and a Client release per language would be the same mistake one
+floor up — an id this file has never seen still submits, still judges, and shows
+as its own id until somebody adds a row.
+
+**One catalogue per type, because the labels differ.** `standard-io@1` builds
+eighteen toolchains here; `uva@1` forwards to onlinejudge.org and offers its six.
+Three ids are shared, deliberately, so one screen resolves a label whichever type
+produced a submission — but `cpp11-gcc` is GCC 14 with our flags in one and GCC
+5.3.0 with UVa's in the other, and one label for both would say they were built
+by the same compiler. The envelope on each opaque document names its type, which
+is how a screen holding only a submission knows which catalogue to ask.
+
+**Pasted source is named here.** The Server had a table of seven language
+extensions and no longer knows the language, so only this side can name the file
+— and it must, because the Runner refuses a file whose extension its toolchain
+does not accept.
 
 ### A submission's parts are files (2026-08-07)
 
@@ -199,8 +246,14 @@ there is an answer, the freeze withholds outcomes, and `scoreVisibility` decides
 whose results are in it. A board is assembled here, so anything sent has already
 been disclosed — never add a field to the feed without asking who may read it.
 
-Not implemented yet: no renderer registry and no `typeId`/`typeVersion`
-selection.
+**Corrected 2026-08-22.** This said there was no renderer registry and no
+`typeId`/`typeVersion` selection. There are **five registries** —
+`activityRenderers`, `statementRenderers`, `resultRenderers`, `submitRenderers`,
+`rankingRenderers` — all `TypeRegistry`, which resolves a type in three steps:
+the exact `name@version`, then `name@*`, then the fallback. The type
+discriminator is one string, as decided 2026-08-02, rather than two fields — the
+rule at the top of this file said `typeId + typeVersion` until the same day, and
+that is a shape this repository has never had.
 
 ### The socket is live (corrected 2026-08-09)
 

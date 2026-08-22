@@ -181,8 +181,14 @@ export interface Activity {
     /** Present once the activity has finished. */
     finalScore?: number,
     maxScore?: number,
-    /** Free display metadata, e.g. `Prowadzący: Jan Kowalski`. Never queried. */
-    props: { key: string, value: string }[],
+    /**
+     * Free display metadata, e.g. `Prowadzący: Jan Kowalski`. Never queried.
+     *
+     * **Opaque since 2026-08-22** and typed `{ key, value }[]` before it — a
+     * shape the Server invented for a value it does not read, and could not
+     * enforce, because nothing wrote it: the field had no write path at all.
+     */
+    props?: unknown,
 }
 
 /**
@@ -275,11 +281,6 @@ export interface ProblemSummary {
     attempts: number,
 }
 
-export interface ProblemLimits {
-    timeMs: number,
-    memoryBytes: number,
-}
-
 export interface ProblemSample {
     input: string,
     output: string,
@@ -327,8 +328,14 @@ export interface ProblemDetail {
     statements: StatementRef[],
     /** Everything scoped to participants. Well-known `content.*` files excluded. */
     attachments: Attachment[],
-    /** Absent when the manager chose not to show them. */
-    limits?: ProblemLimits,
+    // **`limits` was here and was filled by nothing**, from the day this file
+    // was written. The Server could not fill it: the numbers live inside a
+    // document it stores and does not read, so there was no value it could put
+    // there without becoming a reader of a problem type's vocabulary. The badges
+    // a participant saw rendered against the fake and against nothing else.
+    //
+    // They come out of `config` below now, which is why that reaches this
+    // screen. See `components/problem/limits.ts`.
     samples?: ProblemSample[],
     /**
      * The signed-in participant's own standing on this problem, the same as the
@@ -339,8 +346,24 @@ export interface ProblemDetail {
     bestScore?: number,
     maxScore?: number,
     attempts: number,
-    /** Configured on the assignment, so the same problem may differ between series. */
-    languages: string[],
+    /**
+     * **What changes the verdict** — the limits, the toolchains that may be
+     * submitted. Enforced by the Runner and shown here; a header reads limits
+     * off it, and where it and `spec` disagree about languages, this one is what
+     * actually happens.
+     */
+    config?: unknown,
+    /**
+     * **What this form is drawn and validated from** — which fields it has,
+     * which toolchains the select offers and what each is called.
+     *
+     * Read by the Client and by nothing else. It is not a permission: a
+     * participant editing it in a console changes what their own select shows
+     * and nothing about what the Runner accepts.
+     */
+    spec?: unknown,
+    /** **Display only** — captions, the languages written out above a statement. */
+    props?: unknown,
     maxUploadBytes: number,
     submitFields: SubmitField[],
     /** Absent means unlimited. */
@@ -356,7 +379,11 @@ export interface SubmissionSummary {
     problemName: string,
     seriesId: string,
     submittedAt: string,
-    language?: string,
+    /**
+     * What the participant declared beside the bytes — the language among it.
+     * Opaque: the type's renderer reads it, the Server never did.
+     */
+    props?: unknown,
     state: JobState,
     score?: number,
     maxScore?: number,
@@ -373,6 +400,12 @@ export interface EvaluationAttempt {
     state: JobState,
     verdict?: string,
     score?: number,
+    /**
+     * What the type wants shown beside **this** result. The pair to the board's
+     * `extra`, and the difference between them is the audience rather than the
+     * content: `extra` reaches everyone who may see the ranking.
+     */
+    props?: unknown,
     /**
      * What the Runner attached for this attempt — its log, its per-test
      * document, whatever else the problem type produces.
@@ -446,7 +479,22 @@ export interface SubmissionFilter {
 
 /** What the participant sends. Which fields are set is decided by the problem type. */
 export interface SubmitPayload {
-    language?: string,
+    /**
+     * What the participant declared, as one document the Server stores and never
+     * reads. For `standard-io@1` that is `{ type, language }`.
+     *
+     * It was a `language` field the Server read, and the Server refused a
+     * language the activity did not list. The refusal is the Runner's now, which
+     * is what removed a Server release per language.
+     */
+    props?: Record<string, unknown>,
+    /**
+     * **Required when `code` is used**, because nothing else can supply it. The
+     * Server named pasted source from a table of seven languages compiled into a
+     * controller; that table is gone with the language, and a guess of
+     * `main.txt` is a name the Runner refuses for every toolchain it has.
+     */
+    fileName?: string,
     /** Pasted source, when the participant used the editor. */
     code?: string,
     /** Uploaded file, when they used the file field instead. Never both. */

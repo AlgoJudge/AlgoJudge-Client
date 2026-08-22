@@ -143,18 +143,24 @@ export const importOne = async (
         await api.managerApi.createProblemVersion(created.id, {
             note: `Imported from onlinejudge.org, problem ${problem.number}`,
             statements: [{ fileId: statement.id }],
-            config: {
+            // **Which problem this is**, written once at import.
+            //
+            // It lived on the version's `config` until 2026-08-22, went nowhere
+            // for a few hours when the configuration chain collapsed to two
+            // layers, and came back the same day as `props` — a different thing
+            // under a different name. `config` is *settings*, and an
+            // assignment's settings are the only ones left; this is *identity*,
+            // a fact about the problem that every assignment inherits rather
+            // than restates.
+            //
+            // **There is no language map any more.** `uva@1` defines its own
+            // six, in the Runner, because the list belongs to the archive and
+            // every problem in it shares them. Writing them per problem is what
+            // made an import that forgot produce a problem nobody could submit
+            // to — found in a live run on 2026-08-16.
+            props: {
+                type: "uva@1",
                 uva: { problemNumber: problem.number },
-                // **Without this the problem cannot be submitted at all.** The
-                // Runner reads a language name and sends the archive its own
-                // numeric id; an imported problem with no map is refused before
-                // anything leaves, which an end-to-end run on 2026-08-16 showed
-                // as "the problem's configuration cannot be read".
-                //
-                // One entry, and only the one whose id has been seen accepted.
-                // Guessing the rest of the archive's table would put numbers in
-                // here that nobody has watched work.
-                languages: { cpp: 5 },
             },
         });
 

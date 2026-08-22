@@ -1,4 +1,4 @@
-import { JobState, ProblemLimits, ProblemSample, ScoreVisibility, SubmitField } from "../../ParticipantApi";
+import { JobState, ProblemSample, ScoreVisibility, SubmitField } from "../../ParticipantApi";
 import { AttachmentRule } from "../../ManagerApi";
 import {
     arraysStatement,
@@ -87,8 +87,14 @@ const COURSE_ATTACHMENTS: AttachmentRule[] = [
  * before the narrowing. That submission and its result stay: a result belongs to
  * what it was judged against.
  */
-const CONTEST_LANGUAGES = ["cpp", "python", "java"];
-const COURSE_LANGUAGES = ["python"];
+// **Toolchain ids since 2026-08-22**, because that is what a submission
+// carries and what the Runner refuses against. `java` left with them: nothing
+// judges Java, and a fixture offering it described a form nobody could submit.
+//
+// Seed data, not an API field. The activity no longer carries a language list;
+// this is projected onto each assignment's three documents in `index.ts`.
+const CONTEST_LANGUAGES = ["cpp20-gcc", "cpp17-gcc", "python3"];
+const COURSE_LANGUAGES = ["python3"];
 
 export const COURSE_JOIN_PASSWORD = "PROG1-LA";
 
@@ -120,8 +126,12 @@ export interface SeedProblem {
     /** Keyed by language subtag, for the switcher above the statement. */
     translations?: Record<string, string>;
     samples?: ProblemSample[];
-    /** Absent means the manager turned them off, which the screen must render. */
-    limits?: ProblemLimits;
+    /**
+     * Seed data, and no longer an API field: it feeds the assignment's
+     * `config.limits`, which is where a participant reads limits from since
+     * 2026-08-22. Absent takes the projection's default.
+     */
+    limits?: { timeMs: number; memoryBytes: number };
     attachments?: { name: string; mimeType: string; sizeBytes: number }[];
     /** The problem type, for the statement and result renderers. */
     type?: string;
@@ -244,8 +254,8 @@ export interface SeedActivity {
     /** What a solution may be written in here. */
     languages: string[];
     archivedAt?: string;
-    /** Free display metadata on the participant's side. Never queried. */
-    props?: { key: string; value: string }[];
+    /** Free display metadata on the participant's side. Never queried. Opaque. */
+    props?: Record<string, unknown>;
     /** The reader's own standing to it, where they have not joined during the visit. */
     membership: "enrolled" | "invited" | "open";
     /**
@@ -507,7 +517,7 @@ export const WORLD: SeedActivity[] = [
         maxAttachments: 1,
         languages: CONTEST_LANGUAGES,
         maxSubmissionsPerProblem: 20,
-        props: [{ key: "Organizator", value: "Politechnika Poznańska" }],
+        props: { "Organizator": "Politechnika Poznańska" },
         membership: "enrolled",
         managed: true,
         contestants: CONTEST_TEAMS,
@@ -536,10 +546,7 @@ export const WORLD: SeedActivity[] = [
         maxUploadBytes: 4 * 1024 * 1024,
         maxAttachments: 3,
         languages: COURSE_LANGUAGES,
-        props: [
-            { key: "Prowadzący", value: "Jan Kowalski" },
-            { key: "Grupa", value: "LA" },
-        ],
+        props: { "Prowadzący": "Jan Kowalski", "Grupa": "LA" },
         membership: "enrolled",
         managed: true,
         contestants: COURSE_STUDENTS,
@@ -626,7 +633,6 @@ export const WORLD: SeedActivity[] = [
         maxUploadBytes: 8 * 1024 * 1024,
         maxAttachments: 1,
         languages: CONTEST_LANGUAGES,
-        props: [],
         // Joinable, not joined. The list is also how somebody finds this.
         membership: "open",
         managed: true,
@@ -661,7 +667,6 @@ export const WORLD: SeedActivity[] = [
         maxUploadBytes: 8 * 1024 * 1024,
         maxAttachments: 1,
         languages: CONTEST_LANGUAGES,
-        props: [],
         membership: "invited",
         managed: true,
         // With results, so the unsupported-ranking fallback has something to
@@ -717,7 +722,6 @@ export const WORLD: SeedActivity[] = [
         // Still readable, accepting nothing new. The state the manager list's
         // "include archived" control exists for.
         archivedAt: at(-days(380)),
-        props: [],
         membership: "invited",
         managed: true,
         contestants: [],
@@ -741,7 +745,7 @@ export const WORLD: SeedActivity[] = [
         maxUploadBytes: 8 * 1024 * 1024,
         maxAttachments: 1,
         languages: CONTEST_LANGUAGES,
-        props: [{ key: "Miejsce", value: "12 / 64" }],
+        props: { "Miejsce": "12 / 64" },
         membership: "enrolled",
         // Somebody else's contest from last year: the reader competed in it and
         // does not run it.
@@ -793,7 +797,7 @@ export const WORLD: SeedActivity[] = [
         maxUploadBytes: 4 * 1024 * 1024,
         maxAttachments: 3,
         languages: CONTEST_LANGUAGES,
-        props: [{ key: "Prowadzący", value: "Jan Kowalski" }],
+        props: { "Prowadzący": "Jan Kowalski" },
         // Not in it. This is the one the enrolment form is for.
         membership: "open",
         managed: false,
@@ -826,7 +830,6 @@ export const WORLD: SeedActivity[] = [
         maxUploadBytes: 8 * 1024 * 1024,
         maxAttachments: 1,
         languages: CONTEST_LANGUAGES,
-        props: [],
         membership: "enrolled",
         managed: false,
         contestants: [],
@@ -896,8 +899,22 @@ export const attemptTime = (series: SeedSeries, attempt: SeedAttempt): string =>
  */
 export const RUNNER_SCALE = 100;
 
-export const maxPointsOf = (assignment: SeedAssignment): number =>
-    assignment.maxPoints ?? RUNNER_SCALE;
+/**
+ * The scale a number is reported on.
+ *
+ * The assignment's point value where it states one, and **what the attempt was
+ * marked out of** where it does not — which is the package's own scale, and what
+ * `SeriesProblem.maxPoints` has always promised.
+ *
+ * It was `?? RUNNER_SCALE` here as it was on the Server, and it was wrong in the
+ * same way: a hundred is a percentage, not the Runner's own scale, so a package
+ * marking out of 70 reported a full solve as 100 / 100. Corrected on both sides
+ * on 2026-08-22 — this fixture stands in for the Server, and a fake that kept
+ * the old rule would be the one place the defect survived, with screens written
+ * against it.
+ */
+export const maxPointsOf = (assignment: SeedAssignment, outOf?: number): number =>
+    assignment.maxPoints ?? outOf ?? RUNNER_SCALE;
 
 /**
  * What an attempt is worth, as a fraction of what it was marked out of.
@@ -913,9 +930,9 @@ export const fractionOf = (attempt: { score?: number; maxScore?: number }): numb
 };
 
 export const pointsOf = (
-    assignment: SeedAssignment, fraction: number | undefined,
+    assignment: SeedAssignment, fraction: number | undefined, outOf?: number,
 ): number | undefined =>
-    fraction === undefined ? undefined : Math.round(fraction * maxPointsOf(assignment));
+    fraction === undefined ? undefined : Math.round(fraction * maxPointsOf(assignment, outOf));
 
 /** The reader, where the activity has one. */
 export const meOf = (activity: SeedActivity): SeedContestant | undefined =>

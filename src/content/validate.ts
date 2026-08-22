@@ -1,7 +1,9 @@
 import { assertLatexSubset } from "./latex";
 import { createMarkdown, Token } from "./markdown";
 import { referenceName } from "./reference";
-import { ContentDocument, ContentError, CONTENT_VERSION, frontMatterLines, splitFrontMatter } from "./types";
+import {
+    ContentDocument, ContentError, CONTENT_TYPE, CONTENT_VERSION, frontMatterLines, splitFrontMatter,
+} from "./types";
 
 /**
  * Validates a `content.md` statement.
@@ -11,6 +13,14 @@ import { ContentDocument, ContentError, CONTENT_VERSION, frontMatterLines, split
  * tell the first from a complete statement.
  */
 
+/**
+ * `type: "content@1"`, and the bare `version: 1` that used to say the same.
+ *
+ * **Both read, one written.** A statement written before 2026-08-22 carries the
+ * old spelling, and refusing it would take a problem's text away from everybody
+ * who could read it yesterday — for a change of punctuation.
+ */
+const TYPE = /^\s*type\s*:\s*["']?([A-Za-z0-9-]+)@(\d+)["']?\s*$/m;
 const VERSION = /^\s*version\s*:\s*(\d+)\s*$/m;
 
 /**
@@ -159,11 +169,17 @@ export const validateContent = (source: unknown, rules: ContentRules = {}): Cont
     }
 
     const { frontMatter, body } = splitFrontMatter(source);
-    const match = VERSION.exec(frontMatter);
-    if (!match) {
-        throw new ContentError('Brakuje nagłówka z wersją: "---\\nversion: 1\\n---"');
+
+    const typed = TYPE.exec(frontMatter);
+    const older = typed ? undefined : VERSION.exec(frontMatter);
+    if (!typed && !older) {
+        throw new ContentError('Brakuje nagłówka z typem: "---\\ntype: \\\\"content@1\\\\"\\n---"');
     }
-    const version = Number(match[1]);
+    if (typed && typed[1] !== 'content') {
+        throw new ContentError(`Nieobsługiwany typ treści: ${typed[1]}`);
+    }
+
+    const version = Number(typed ? typed[2] : older![1]);
     if (version !== CONTENT_VERSION) {
         // Refused rather than guessed: a renderer that does not know a version
         // cannot know what it would be leaving out.
@@ -179,7 +195,7 @@ export const validateContent = (source: unknown, rules: ContentRules = {}): Cont
         validateBrokenImages(tokens, offset);
     }
 
-    return { version, body };
+    return { type: CONTENT_TYPE, version, body };
 };
 
 /** Non-throwing form, for a view that renders the reason instead of failing. */

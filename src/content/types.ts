@@ -8,7 +8,22 @@
 
 export const CONTENT_VERSION = 1;
 
+/**
+ * What a statement says it is, as **one string** — `content@1`.
+ *
+ * The type envelope was decided as one string on 2026-08-02 and this format
+ * wrote a bare `version` until 2026-08-22 — the fourth of four spellings of one
+ * convention, beside `Activity.type`, `format`+`version` in `config.yml` and
+ * `kind`+`version` in a result document.
+ *
+ * A statement written before that date still reads: the bare `version` is
+ * accepted and never written. See `validate.ts`.
+ */
+export const CONTENT_TYPE = `content@${CONTENT_VERSION}`;
+
 export interface ContentDocument {
+    /** `content@1`. See {@link CONTENT_TYPE}. */
+    type: string;
     version: number;
     /** The Markdown body, with the front matter already removed. */
     body: string;
@@ -62,7 +77,7 @@ export const frontMatterLines = (source: string): number => {
 };
 
 export const emptyDocument = (): string => `---
-version: ${CONTENT_VERSION}
+type: "${CONTENT_TYPE}"
 ---
 
 `;

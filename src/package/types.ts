@@ -10,6 +10,20 @@ export const PACKAGE_FORMAT = "standard-io";
 export const PACKAGE_VERSION = 1;
 
 /**
+ * What a package says it is, as **one string**.
+ *
+ * The type envelope was decided as one string on 2026-08-02 and the product
+ * wrote it four different ways until 2026-08-22 — `Activity.type` as
+ * `name@version`, `format` plus `version` here, `kind` plus `version` in a
+ * result document, and a bare `version` in `content.md`. A convention with four
+ * spellings is not a convention.
+ *
+ * The Runner still **reads** the two-field form, so a package built before that
+ * date judges unchanged; nothing writes it any more.
+ */
+export const PACKAGE_TYPE = `${PACKAGE_FORMAT}@${PACKAGE_VERSION}`;
+
+/**
  * The two files a version's package owns.
  *
  * Both are derived from what the builder holds — the archive the Runner
@@ -122,8 +136,8 @@ export const DEFAULT_CALIBRATION: { time: CalibrationRule; memory: CalibrationRu
 };
 
 export interface PackageConfig {
-    format: string;
-    version: number;
+    /** `standard-io@1`. One string — see {@link PACKAGE_TYPE}. */
+    type: string;
     limits: PackageLimits;
     overrideLimits?: Record<string, Partial<PackageLimits>>;
     groups: PackageGroup[];
@@ -166,8 +180,7 @@ export interface PackageIssue {
 }
 
 export const emptyConfig = (): PackageConfig => ({
-    format: PACKAGE_FORMAT,
-    version: PACKAGE_VERSION,
+    type: PACKAGE_TYPE,
     limits: { timeMs: 1000, memoryBytes: 256 * BYTES_PER_MIB },
     groups: [],
 });

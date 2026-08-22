@@ -11,6 +11,7 @@ import { resultRenderers } from "../../../../../renderers";
 import StateBadge from "../../../../../components/submission/StateBadge";
 import { useAttachment, useResultDocument } from "../../../../../components/submission/useAttachment";
 import { SUBMISSION_DETAILS, SUBMISSION_LOG } from "../../../../../api/ParticipantApi";
+import { languageText } from "../../../../../components/submission/offered";
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
     <Text>
@@ -91,7 +92,7 @@ export default function SubmissionPage() {
                         <Field label={t("Submission date")}>
                             <ActivityTime value={submission.submittedAt} timeZone={activity.timeZone} />
                         </Field>
-                        <Field label={t("Language")}>{submission.language ?? "—"}</Field>
+                        <Field label={t("Language")}>{languageText(submission.props)}</Field>
                         <Field label={t("ID")}><Code>{submission.id}</Code></Field>
                         <Field label={t("Result")}>
                             {submission.score === undefined ? "—" : `${submission.score} / ${submission.maxScore ?? "?"}`}

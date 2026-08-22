@@ -54,12 +54,15 @@ export const ME = "user-me";
  * `groups` until 2026-08-08, and a hand-written translation in
  * `ManagerApiFake` stood between them.
  *
+ * The chain is **two layers** since 2026-08-22 — the package and the assignment
+ * — and the envelope is one string, `type: standard-io@1`, rather than `format`
+ * beside `version`.
+ *
  * Kibibytes rather than megabytes because that is what the format speaks; a
  * screen showing megabytes divides where it shows them.
  */
 const standardIoConfig = (timeMs: number, memoryMib: number, groups: number[]) => ({
-    format: "standard-io",
-    version: 1,
+    type: "standard-io@1",
     limits: { timeMs, memoryBytes: memoryMib * 1024 * 1024 },
     groups: groups.map((points, i) => ({ group: i + 1, points })),
 });

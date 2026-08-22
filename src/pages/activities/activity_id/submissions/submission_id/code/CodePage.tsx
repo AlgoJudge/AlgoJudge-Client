@@ -7,6 +7,8 @@ import { Activity, SubmissionDetail } from "../../../../../../api/ParticipantApi
 import { CopyButton, DownloadButton } from "../../../../../../components/buttons";
 import { useApiCall, useApiEffect } from "../../../../../../provider/apiContext";
 import LoadState from "../../../../../../components/LoadState";
+import { languageOf } from "../../../../../../components/submission/offered";
+import { pastedFileName } from "../../../../../../components/editor/languages";
 
 const CodeEditor = lazy(() => import("../../../../../../components/editor/CodeEditor"));
 
@@ -47,7 +49,7 @@ export default function CodePage() {
     }
 
     const current = files[active] ?? "";
-    const language = submission.files.find(f => f.fileName === active)?.language ?? submission.language;
+    const language = languageOf(submission.props);
     const shown = editing ? draft : current;
 
     const startEditing = () => {
@@ -60,8 +62,12 @@ export default function CodePage() {
         setError(undefined);
         try {
             const created = await call(api => api.participantApi.submit(activity.id, submission.problemSlug, {
-                language: submission.language,
+                // The same declaration the original carried, so a
+                // resubmission is judged as what it is rather than as whatever
+                // a default would have made it.
+                props: (submission.props ?? { type: submission.problemType }) as Record<string, unknown>,
                 code: draft,
+                fileName: pastedFileName(submission.problemType, language),
             }));
             navigate(`/activities/${activity.slug}/submissions/${created.id}`);
         } catch (e) {
@@ -138,6 +144,7 @@ export default function CodePage() {
                     value={shown}
                     onChange={setDraft}
                     language={language}
+                    problemType={submission.problemType}
                     readOnly={!editing}
                     height={520}
                 />

@@ -256,7 +256,7 @@ if (JSON.stringify(sampleEntries) !== JSON.stringify(["0a.in", "0a.out"])) {
 {
     const encoder = new TextEncoder();
     const bare = new Blob([zipSync({
-        "config.yml": encoder.encode("format: algojudge-package\nversion: 1\n"),
+        "config.yml": encoder.encode('type: "algojudge-package@1"\n'),
         "tests/1a.in": encoder.encode("1 0"),
         "tests/1a.out": encoder.encode("TAK"),
     })]);

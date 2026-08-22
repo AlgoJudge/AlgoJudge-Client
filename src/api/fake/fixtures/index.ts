@@ -20,6 +20,7 @@ import {
     SeedActivity, SeedAssignment, SeedAttempt, SeedSeries, WORLD,
     attemptId, attemptTime, displayName, fractionOf, maxPointsOf, meOf, pointsOf,
 } from "./world";
+import { languageLabel } from "../../../components/editor/languages";
 
 export { OPENING_SERIES_DELAY } from "./world";
 
@@ -84,6 +85,27 @@ const statusOf = (attempts: SeedAttempt[]): ProblemStatus => {
 // of different maxima.
 const bestOf = (attempts: SeedAttempt[]): number | undefined =>
     attempts.length === 0 ? undefined : Math.max(...attempts.map(attempt => fractionOf(attempt) ?? 0));
+
+/**
+ * What the best attempt was marked out of.
+ *
+ * The scale a `bestScore` is reported on where the assignment states no point
+ * value of its own — the best attempt's maximum, not any of them, because two
+ * attempts at one problem may carry different maxima.
+ */
+const bestOutOf = (attempts: SeedAttempt[]): number | undefined => {
+    let best: number | undefined;
+    let outOf: number | undefined;
+    for (const attempt of attempts) {
+        const fraction = fractionOf(attempt);
+        if (fraction === undefined) continue;
+        if (best === undefined || fraction > best) {
+            best = fraction;
+            outOf = attempt.maxScore;
+        }
+    }
+    return outOf;
+};
 
 /** Where the activity has one, the state its dates put it in. */
 const stateOf = (activity: SeedActivity, now: number): ActivityState => {
@@ -175,7 +197,7 @@ export const createDataset = (files: FakeFiles): Dataset => {
                     // On the assignment's scale: 80 out of the Runner's hundred
                     // is 40 where the problem is worth 50.
                     bestScore: pointsOf(assignment, bestOf(mine)),
-                    maxScore: maxPointsOf(assignment),
+                    maxScore: maxPointsOf(assignment, bestOutOf(mine)),
                     attempts: mine.length,
                 };
             });
@@ -224,13 +246,40 @@ export const createDataset = (files: FakeFiles): Dataset => {
                     attachments: (assignment.problem.attachments ?? []).map(file => ({
                         ...file, url: "#", sha256: fakeSha(file.name),
                     })),
-                    // Absent means the manager turned them off, which the screen
-                    // must render rather than print "undefined".
-                    limits: assignment.problem.limits ?? { timeMs: 1000, memoryBytes: 256 * 1024 * 1024 },
                     samples: assignment.problem.samples,
-                    // The activity's answer, and the only one: nothing declares
-                    // a problem's own languages yet.
-                    languages: activity.languages,
+                    // **The three documents, projected from the seed's one
+                    // list.** `config` is what the Runner refuses against,
+                    // `spec` is what the select offers, `props` is what a
+                    // header reads out. They agree here; a fixture where they
+                    // disagreed would be describing a misconfigured assignment.
+                    config: {
+                        type: assignment.problem.type ?? "standard-io@1",
+                        languages: activity.languages,
+                        limits: assignment.problem.limits
+                            ?? { timeMs: 1000, memoryBytes: 256 * 1024 * 1024 },
+                        // **Both axes, because the screen has to show both and
+                        // one of them is easy to get wrong.** Group 2 states its
+                        // own time, so it is judged under that whatever language
+                        // the solution is in — and the per-language row below
+                        // reaches only the groups that state none. A fixture
+                        // with one axis would let that mistake ship.
+                        groups: [
+                            { group: 0, points: 0, examples: true },
+                            { group: 1, points: 40 },
+                            { group: 2, points: 60, limits: { timeMs: 4000 } },
+                        ],
+                        overrideLimits: { python: { timeMs: 3000 } },
+                    },
+                    spec: {
+                        type: assignment.problem.type ?? "standard-io@1",
+                        languages: activity.languages,
+                    },
+                    props: {
+                        type: assignment.problem.type ?? "standard-io@1",
+                        languages: activity.languages
+                            .map(id => languageLabel(assignment.problem.type, id))
+                            .join(", "),
+                    },
                     maxUploadBytes: assignment.maxUploadBytes ?? activity.maxUploadBytes,
                     // What is left, not what the ceiling is: counted off the same
                     // attempts the list is built from.
@@ -259,11 +308,12 @@ export const createDataset = (files: FakeFiles): Dataset => {
                     problemName: displayName(assignment),
                     seriesId: seed.id,
                     submittedAt: attemptTime(seed, attempt),
-                    language: attempt.language,
                     state: attempt.state,
                     verdict: attempt.verdict,
                     score: pointsOf(assignment, fractionOf(attempt)),
-                    maxScore: attempt.score === undefined ? undefined : maxPointsOf(assignment),
+                    maxScore: attempt.score === undefined
+                        ? undefined
+                        : maxPointsOf(assignment, attempt.maxScore),
                 };
                 mine.push(summary);
 
