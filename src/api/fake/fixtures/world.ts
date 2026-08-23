@@ -206,6 +206,15 @@ export interface SeedAttempt {
     /** Compiler output or the judge's message. Managers always see it. */
     log?: string;
     /**
+     * A manager ruled that it counts towards no standing.
+     *
+     * It stays in every list with its verdict and keeps its place against the
+     * ceiling; what it leaves is the board, the best score and the status.
+     */
+    excluded?: boolean;
+    /** Why. The manager's screen only — the participant sees the marker alone. */
+    exclusionReason?: string;
+    /**
      * What the Runner measured beyond the score, for a board that wants it.
      *
      * Public: it reaches everybody who may see the ranking. Only a few attempts
@@ -568,6 +577,12 @@ export const WORLD: SeedActivity[] = [
                     { contestant: "student-me", problem: "tablice", at: 1900, language: "python", state: "completed", verdict: "Wrong answer", score: 50 },
                     { contestant: "student-me", problem: "tablice", at: 2000, language: "python", state: "completed", verdict: "Wrong answer", score: 70 },
                     { contestant: "student-me", problem: "tablice", at: 2100, language: "python", state: "completed", verdict: "Partially accepted", score: 80 },
+                    // **A perfect run a manager ruled out**, and deliberately the
+                    // best there is: if the exclusion stops working it becomes
+                    // this person's best score and their board row, so
+                    // `verify-points` reddens on 200/200 without being told
+                    // anything about exclusions.
+                    { contestant: "student-me", problem: "tablice", at: 2200, language: "python", state: "completed", verdict: "Accepted", score: 100, excluded: true, exclusionReason: "Rozwiązanie identyczne z cudzym" },
 
                     // Accepted by the archive, on the archive's own scale. It is
                     // worth the whole five points and reads as solved — both of

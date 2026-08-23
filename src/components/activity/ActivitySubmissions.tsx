@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Group, Paper, ScrollArea, Stack, Text, UnstyledButton } from "@mantine/core";
+import { ActionIcon, Badge, Button, Group, Paper, ScrollArea, Stack, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import { IconChevronDown, IconChevronUp, IconBox, IconSend } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -167,6 +167,13 @@ export default function ActivitySubmissions({ activity, series }: ActivitySubmis
                                             <Text size="xs" c="dimmed" ff="monospace">
                                                 {submission.score} / {submission.maxScore ?? "?"}
                                             </Text>
+                                        )}
+                                        {submission.excluded && (
+                                            <Tooltip label={t("Not counted in the ranking")}>
+                                                <Badge variant="light" color="orange" size="sm">
+                                                    {t("Not counted")}
+                                                </Badge>
+                                            </Tooltip>
                                         )}
                                         <StateBadge
                                             state={submission.state}

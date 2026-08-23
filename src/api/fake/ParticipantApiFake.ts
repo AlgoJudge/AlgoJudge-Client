@@ -22,6 +22,7 @@ import {
 } from "../ParticipantApi";
 import { FakeActivities, SeriesRelay } from "./FakeActivities";
 import { FakeAccess } from "./FakeAccess";
+import { FakeExclusions } from "./FakeExclusions";
 import { AttachmentRule } from "../ManagerApi";
 import { maySubmit, mayReadProblems, SeriesTiming } from "../seriesState";
 import { FakeFiles } from "./FileApiFake";
@@ -469,6 +470,8 @@ export class ParticipantApiFake implements ParticipantApi {
         private readonly shared: FakeActivities,
         /** And one owner for the grants, so this feed can enforce them. */
         private readonly access: FakeAccess,
+        /** And one owner for which submissions count. */
+        private readonly exclusions: FakeExclusions,
         private sleepMs: number = 300,
     ) {
         this.state = new FakeParticipantState(this.eventDispatcher, files, shared, access);
@@ -628,7 +631,10 @@ export class ParticipantApiFake implements ParticipantApi {
             (!filter.problemId || s.problemId === filter.problemId) &&
             (!filter.seriesId || s.seriesId === filter.seriesId) &&
             (states.length === 0 || states.includes(s.state)));
-        return copy(paginate(matched, filter.page, filter.pageSize ?? 10));
+        // **Stamped here**, where it leaves, rather than in the dataset: a
+        // manager's ruling arrives during the visit, and a row built before it
+        // would keep saying the submission counts.
+        return copy(paginate(matched.map(s => this.ruled(s)), filter.page, filter.pageSize ?? 10));
     }
 
     // The activity is part of the route and of the real endpoint's authorisation,
@@ -643,7 +649,7 @@ export class ParticipantApiFake implements ParticipantApi {
         // yesterday's submissions against today's setting.
         const rules = this.state.rulesFor(activityId);
         return copy({
-            ...detail,
+            ...this.ruled(detail),
             files: readableBy(rules, detail.files, false),
             attempts: detail.attempts.map(attempt => ({
                 ...attempt,
@@ -704,6 +710,7 @@ export class ParticipantApiFake implements ParticipantApi {
             submittedAt: new Date().toISOString(),
             props: payload.props,
             state: "queued",
+            excluded: false,
         };
 
         data.submissions.set(activityId, [summary, ...(data.submissions.get(activityId) ?? [])]);
@@ -771,7 +778,15 @@ export class ParticipantApiFake implements ParticipantApi {
                     })),
                 showMembers: this.access.showGroupMembers.has(activityId),
             },
+            // And which submissions count, read off the same store the manager
+            // screen rules on.
+            excluded: id => this.exclusions.has(id),
         }));
+    }
+
+    /** One submission, carrying whatever ruling stands against it now. */
+    private ruled<T extends SubmissionSummary>(submission: T): T {
+        return { ...submission, excluded: this.exclusions.has(submission.id) };
     }
 
     async getQuestions(activityId: string, filter: QuestionFilter, signal: AbortSignal): Promise<Page<Question>> {

@@ -521,6 +521,14 @@ export class ManagerApiHttp implements ManagerApi {
             "POST", { signal });
     }
 
+    setSubmissionExcluded(
+        id: string, excluded: boolean, reason: string | undefined, signal: AbortSignal,
+    ): Promise<ManagedSubmissionDetail> {
+        return this.http.request<ManagedSubmissionDetail>(
+            `/submissions/${encodeURIComponent(id)}/excluded`,
+            "POST", { signal, body: { excluded, reason } });
+    }
+
     getProblems(filter: ProblemFilter, signal: AbortSignal): Promise<Page<ManagedProblem>> {
         const query: Record<string, string | number | boolean> = {};
         if (filter.page !== undefined) query.page = filter.page;

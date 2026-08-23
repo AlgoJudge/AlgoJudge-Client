@@ -207,6 +207,16 @@ export default function ManagerSubmissionsPage() {
                                                 <Badge variant="outline" color="gray" size="sm">×{submission.attempts}</Badge>
                                             </Tooltip>
                                         )}
+                                        {/* On the list because a judge scanning
+                                            two hundred rows should see which
+                                            were ruled out without opening each. */}
+                                        {submission.excluded && (
+                                            <Tooltip label={t("Not counted in the ranking")}>
+                                                <Badge variant="light" color="orange" size="sm">
+                                                    {t("Not counted")}
+                                                </Badge>
+                                            </Tooltip>
+                                        )}
                                     </Group>
                                 </Table.Td>
                                 <Table.Td><Text size="sm">{submission.verdict ?? "—"}</Text></Table.Td>

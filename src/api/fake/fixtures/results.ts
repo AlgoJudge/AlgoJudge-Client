@@ -147,10 +147,18 @@ export interface ResultsQuery {
         of: Map<string, { id: string; name: string; description?: string; isSystem: boolean }>;
         showMembers: boolean;
     };
+    /**
+     * Submission ids a manager has ruled out.
+     *
+     * Passed in for the reason `groups` is: a ruling made during this visit is
+     * not in the seed, and a board built from the seed alone would keep scoring
+     * a submission a manager removed a moment ago.
+     */
+    excluded?: (submissionId: string) => boolean;
 }
 
 export const activityResults = (
-    { seed, live, seriesId, scoreVisibility, unfrozen, now, groups }: ResultsQuery,
+    { seed, live, seriesId, scoreVisibility, unfrozen, now, groups, excluded }: ResultsQuery,
 ): ActivityResults => {
     const me = meOf(seed);
 
@@ -207,9 +215,16 @@ export const activityResults = (
     const rowOf = (contestantId: string): string =>
         groups?.of.get(contestantId)?.id ?? contestantId;
 
-    // 3. The freeze, applied per attempt as it leaves.
+    /** The seed's own ruling, or one a manager made during this visit. */
+    const ruledOut = (part: SeedSeries, attempt: SeedAttempt): boolean =>
+        attempt.excluded === true || (excluded?.(attemptId(part.id, attempt)) ?? false);
+
+    // 3. The freeze, applied per attempt as it leaves. An excluded attempt goes
+    //    first and differently: a freeze keeps the row and withholds the
+    //    outcome, this leaves no row at all, because it counts for nothing.
     const results: ContestantResult[] = offered.flatMap(part =>
         (part.seed.attempts ?? [])
+            .filter(attempt => !ruledOut(part.seed, attempt))
             .filter(attempt => visible.has(rowOf(attempt.contestant)))
             .flatMap(attempt =>
                 resultOf(part.seed, attempt, now, unfrozen, rowOf(attempt.contestant)) ?? []));
