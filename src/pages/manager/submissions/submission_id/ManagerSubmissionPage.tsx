@@ -1,5 +1,5 @@
 import { Alert, Badge, Button, Card, Center, Code, Group, Loader, Stack, Table, Text, Title, Tooltip } from "@mantine/core";
-import { IconArrowLeft, IconExternalLink, IconPlayerStop, IconRefresh } from "@tabler/icons-react";
+import { IconArrowLeft, IconDeviceDesktop, IconExternalLink, IconPlayerStop, IconRefresh, IconWorld } from "@tabler/icons-react";
 import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -15,6 +15,50 @@ import { useAttachment, useResultDocument } from "../../../../components/submiss
 import { languageOf, typeOf } from "../../../../components/submission/offered";
 
 const CodeEditor = lazy(() => import("../../../../components/editor/CodeEditor"));
+
+/**
+ * Where a submission was sent from, for a judge auditing a contest.
+ *
+ * **Only what is there.** Each of the three is absent on its own terms: the
+ * address and the device once the Server's retention window has passed, the
+ * session on the first request a brand-new browser makes. `Group` drops falsy
+ * children, so an absent value leaves no gap and no stray separator.
+ *
+ * The device is labelled as the browser rather than as the machine, and that is
+ * the whole of what may be claimed for it: a page writes it, so it is forgeable,
+ * and a room of machines imaged from one disk reports one for all of them. It
+ * answers *the same browser, two accounts*.
+ */
+function SubmissionOrigin({ submission }: { submission: ManagedSubmissionDetail }) {
+    const { t } = useTranslation();
+    const { ipAddress, sessionId, deviceId } = submission;
+
+    if (!ipAddress && !sessionId && !deviceId) return null;
+
+    return (
+        <Group gap="xs" mt={2}>
+            {ipAddress && (
+                <Tooltip label={t("The address this submission arrived from")}>
+                    <Badge variant="default" size="sm" leftSection={<IconWorld size={12} />}>
+                        {ipAddress}
+                    </Badge>
+                </Tooltip>
+            )}
+            {deviceId && (
+                <Tooltip label={t("The browser said it was this one. It can be changed by whoever uses it, so it is a hint and not proof.")}>
+                    <Badge variant="default" size="sm" leftSection={<IconDeviceDesktop size={12} />}>
+                        {deviceId.slice(0, 8)}
+                    </Badge>
+                </Tooltip>
+            )}
+            {sessionId && (
+                <Tooltip label={t("The browser session it was sent in")}>
+                    <Badge variant="default" size="sm">{sessionId.slice(0, 8)}</Badge>
+                </Tooltip>
+            )}
+        </Group>
+    );
+}
 
 const STATE_COLOUR: Record<JobState, string> = {
     queued: "gray",
@@ -123,6 +167,7 @@ export default function ManagerSubmissionPage() {
                         {submission.userName} · {submission.activitySlug} · {submission.seriesName} ·{" "}
                         <ActivityTime value={submission.submittedAt} timeZone="Europe/Warsaw" />
                     </Text>
+                    <SubmissionOrigin submission={submission} />
                 </Stack>
                 <Group gap="xs">
                     <Button

@@ -908,6 +908,29 @@ export interface ManagedAttempt {
 export interface ManagedSubmissionDetail extends ManagedSubmission {
     /** Selects the result renderer, as it does on the participant's screen. */
     problemType: string;
+    /**
+     * Where this arrived from — for a judge asking whether a solution came from
+     * outside the examination room.
+     *
+     * **On the detail and deliberately not on the list.** A column of addresses
+     * across two hundred rows is exposure for a question nobody asked of most of
+     * them; a judge who wants one opens one.
+     *
+     * Absent once past the Server's retention window, which is the honest
+     * answer: it is not held any more.
+     */
+    ipAddress?: string;
+    /** The browser session, or absent if it had none yet. */
+    sessionId?: string;
+    /**
+     * The name the browser gave itself.
+     *
+     * **Not evidence.** A page writes it, so it is editable and forgeable by
+     * whoever is using the browser, and a room of machines imaged from one disk
+     * reports one for all of them. It answers *the same browser, two accounts*
+     * and nothing else — do not present it as anything stronger.
+     */
+    deviceId?: string;
     /** Newest first. */
     attemptList: ManagedAttempt[];
     /** What was sent. The attachments an evaluation produced are on the attempt. */

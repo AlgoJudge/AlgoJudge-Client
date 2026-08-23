@@ -101,10 +101,19 @@ const sortByGiven = <T extends { id: string }>(items: T[], orderedIds: string[])
     ...items.filter(i => !orderedIds.includes(i.id)),
 ];
 
-/** The list carries no attempts and no files: a page of them is a page of rows. */
+/**
+ * The list carries no attempts and no files: a page of them is a page of rows.
+ *
+ * **And no origin either**, which is a rule rather than a saving. The Server
+ * puts the address, the session and the device on the detail alone, because a
+ * column of addresses across two hundred rows is exposure for a question nobody
+ * asked of most of them — a fake that carried them on the list would be a fake
+ * disagreeing with the Server about who may see what.
+ */
 const summary = (detail: ManagedSubmissionDetail): ManagedSubmission => {
-    const { attemptList, files, problemType, ...rest } = detail;
+    const { attemptList, files, problemType, ipAddress, sessionId, deviceId, ...rest } = detail;
     void attemptList; void files; void problemType;
+    void ipAddress; void sessionId; void deviceId;
     return rest;
 };
 

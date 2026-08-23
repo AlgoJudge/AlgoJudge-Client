@@ -95,6 +95,13 @@ const submissionOf = (
         maxScore: maxPointsOf(assignment, attempt.maxScore),
         attempts: (attempt.history?.length ?? 0) + 1,
         problemType: assignment.problem.type ?? "standard-io@1",
+        // Where it was sent from, so the judge's screen has something to draw.
+        // Two addresses in the laboratory's own range and one outside it: the
+        // whole point of showing this is that a judge can tell them apart, and a
+        // fixture where every row looks the same proves nothing.
+        ipAddress: attempt.at % 3 === 0 ? "203.0.113.44" : `10.0.5.${10 + (attempt.at % 40)}`,
+        sessionId: `01a02000-0000-7000-8000-${String(contestant.userId).padStart(12, "0").slice(-12)}`,
+        deviceId: `01a02001-0000-7000-8000-${String(contestant.userId).padStart(12, "0").slice(-12)}`,
         attemptList: attemptListOf(files, id, series, attempt),
         files: sourceFiles(files, series, attempt),
     };

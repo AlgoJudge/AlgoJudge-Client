@@ -1106,5 +1106,8 @@
     "with an account here": "with an account here",
     "your login": "your login",
     "{{count}} account(s) sign in through it": "{{count}} account(s) sign in through it",
-    "{{count}} number(s) read": "{{count}} number(s) read"
+    "{{count}} number(s) read": "{{count}} number(s) read",
+    "The address this submission arrived from": "The address this submission arrived from",
+    "The browser said it was this one. It can be changed by whoever uses it, so it is a hint and not proof.": "The browser said it was this one. It can be changed by whoever uses it, so it is a hint and not proof.",
+    "The browser session it was sent in": "The browser session it was sent in"
 }

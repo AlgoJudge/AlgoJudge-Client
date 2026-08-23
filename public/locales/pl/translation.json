@@ -1106,5 +1106,8 @@
     "with an account here": "z kontem tutaj",
     "your login": "twój login",
     "{{count}} account(s) sign in through it": "Loguje się przez niego kont: {{count}}",
-    "{{count}} number(s) read": "Odczytane numery: {{count}}"
+    "{{count}} number(s) read": "Odczytane numery: {{count}}",
+    "The address this submission arrived from": "Adres, z którego przyszło to zgłoszenie",
+    "The browser said it was this one. It can be changed by whoever uses it, so it is a hint and not proof.": "Przeglądarka podała się za tę. Może to zmienić każdy, kto jej używa, więc jest to poszlaka, a nie dowód.",
+    "The browser session it was sent in": "Sesja przeglądarki, w której je wysłano"
 }
