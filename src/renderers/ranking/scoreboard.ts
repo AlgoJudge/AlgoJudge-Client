@@ -100,6 +100,14 @@ export interface IcpcRow {
     rank?: number;
     contestantId: string;
     name: string;
+    /**
+     * A group's short line and its roster, when the activity prints one.
+     *
+     * Carried on the row rather than looked up while drawing, so both boards
+     * render a group the same way without either knowing where it came from.
+     */
+    description?: string;
+    members?: string[];
     solved: number;
     penalty: number;
     cells: Record<string, IcpcCell>;
@@ -147,7 +155,15 @@ export const icpcBoard = (results: ActivityResults, ranked: boolean): IcpcRow[] 
             }
             cells[column.slug] = cell;
         }
-        return { contestantId: contestant.id, name: contestant.name, solved, penalty, cells };
+        return {
+            contestantId: contestant.id,
+            name: contestant.name,
+            description: contestant.description,
+            members: contestant.members,
+            solved,
+            penalty,
+            cells,
+        };
     });
 
     // Most solved first, then least time.
@@ -167,6 +183,14 @@ export interface PointsRow {
     rank?: number;
     contestantId: string;
     name: string;
+    /**
+     * A group's short line and its roster, when the activity prints one.
+     *
+     * Carried on the row rather than looked up while drawing, so both boards
+     * render a group the same way without either knowing where it came from.
+     */
+    description?: string;
+    members?: string[];
     solved: number;
     total: number;
     bySeries: Record<string, { total: number; byProblem: Record<string, PointsCell> }>;
@@ -201,7 +225,15 @@ export const pointsBoard = (results: ActivityResults, ranked: boolean): PointsRo
             bySeries[series.id] = { total: roundTotal, byProblem };
             total += roundTotal;
         }
-        return { contestantId: contestant.id, name: contestant.name, solved, total, bySeries };
+        return {
+            contestantId: contestant.id,
+            name: contestant.name,
+            description: contestant.description,
+            members: contestant.members,
+            solved,
+            total,
+            bySeries,
+        };
     });
 
     rows.sort((a, b) => b.total - a.total);

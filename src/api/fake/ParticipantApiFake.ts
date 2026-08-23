@@ -2,6 +2,7 @@ import { ParticipantEventDispatcherImpl } from "../impl/ParticipantEventDispatch
 import {
     Activity,
     ActivityFilter,
+    MyGroup,
     ActivityResults,
     AskQuestionInput,
     EnrolInput,
@@ -524,6 +525,32 @@ export class ParticipantApiFake implements ParticipantApi {
      * from the shared store, so publishing one in the manager screen shows up
      * here without a reload.
      */
+    /**
+     * The reader's own group here, with everyone in it.
+     *
+     * **Their own only.** Whose roster anybody else may read is the ranking's
+     * question, and the activity's roster setting answers it.
+     */
+    private myGroupOf(activityId: string): MyGroup | undefined {
+        const me = this.access.me();
+        const mine = this.access.grants.find(
+            g => g.activityId === activityId && g.userId === me);
+        const group = mine?.groupId
+            ? this.access.groups.find(g => g.id === mine.groupId)
+            : undefined;
+        if (group === undefined) return undefined;
+
+        return {
+            id: group.id,
+            name: group.name,
+            description: group.description,
+            members: this.access.grants
+                .filter(g => g.groupId === group.id)
+                .map(g => g.userName)
+                .sort((a, b) => a.localeCompare(b)),
+        };
+    }
+
     private dressed(activity: Activity): Activity {
         // Whatever a manager last saved wins over what the fixtures said: the
         // two halves keep their own activity, and a setting that never crossed
@@ -535,6 +562,7 @@ export class ParticipantApiFake implements ParticipantApi {
             membership: this.isMember(activity) ? "enrolled" : activity.membership,
             joinPolicy: this.shared.enrolmentOf(activity.id).policy,
             documents: this.shared.documentsOf(activity.id),
+            group: this.myGroupOf(activity.id),
         };
     }
 
@@ -732,6 +760,17 @@ export class ParticipantApiFake implements ParticipantApi {
             // of: five rows, no columns, everybody on nought.
             unfrozen: this.access.holds("ranking:read:unfrozen", activityId),
             now: Date.now(),
+            // Who competes as whom, read off the grants the manager screens
+            // write — so a group made a moment ago is a row a moment later.
+            groups: {
+                of: new Map(this.access.grants
+                    .filter(g => g.activityId === activityId && g.groupId !== undefined)
+                    .flatMap(g => {
+                        const group = this.access.groups.find(x => x.id === g.groupId);
+                        return group ? [[g.userId, group] as const] : [];
+                    })),
+                showMembers: this.access.showGroupMembers.has(activityId),
+            },
         }));
     }
 

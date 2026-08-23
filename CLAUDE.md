@@ -255,6 +255,27 @@ discriminator is one string, as decided 2026-08-02, rather than two fields — t
 rule at the top of this file said `typeId + typeVersion` until the same day, and
 that is a shape this repository has never had.
 
+### A board's rows are not always people (2026-08-23)
+
+A **group** is a contestant: it submits, it spends one submission allowance, and
+it holds one ranking row while its members hold none. `Contestant` carries a
+`kind` for that reason — a row's id is a user id or a group id, and guessing from
+the shape would be guessing, because `User.id` is a UUID too.
+
+Three things follow, and each is easy to undo by accident:
+
+- **A member has no row of their own**, and `results.me` is their **group's** id.
+  Highlighting on the reader's own id looks right and highlights nothing.
+- **The roster is printed under the group's name**, never as rows: a row per
+  member would score the same points twice in one table. `ContestantName` renders
+  it once for both boards, so ICPC and points cannot drift apart.
+- **The description and the roster ride on the row**, put there by
+  `scoreboard.ts`, so neither board has to know where a group came from.
+
+What a participant sees of their own group is on `Activity.group` — theirs only.
+Whose roster anybody else may read is the ranking's question, and the activity's
+setting answers it.
+
 ### The socket is live (corrected 2026-08-09)
 
 This section claimed there was no WebSocket and that nothing dispatched over the

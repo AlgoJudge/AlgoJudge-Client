@@ -1,4 +1,5 @@
 import { Alert, Stack, Table, Text, Tooltip, UnstyledButton } from "@mantine/core";
+import ContestantName from "./ContestantName";
 import { IconChevronDown, IconChevronRight, IconInfoCircle } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -118,7 +119,7 @@ export default function PointsRanking({ results, timeZone, ranked }: RankingProp
                                 className={row.contestantId === results.me ? classes.me : undefined}
                             >
                                 {placed && <Table.Td className={classes.stickyPlace}>{row.rank}</Table.Td>}
-                                <Table.Td className={classes.stickyName} style={nameLeft}>{row.name}</Table.Td>
+                                <Table.Td className={classes.stickyName} style={nameLeft}><ContestantName name={row.name} description={row.description} members={row.members} /></Table.Td>
                                 <Table.Td>{row.solved}</Table.Td>
                                 <Table.Td><Text fw={600}>{row.total}</Text></Table.Td>
                                 {results.series.map(s => {

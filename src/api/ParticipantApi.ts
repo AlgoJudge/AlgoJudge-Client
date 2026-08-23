@@ -124,6 +124,21 @@ export interface ActivityDocumentRef {
     sizeBytes: number,
 }
 
+/**
+ * The group a participant competes as, on their own screens.
+ *
+ * Shown because **sending as the group is compulsory rather than a choice**:
+ * without it somebody cannot tell why an allowance they never spent has gone
+ * down, or why their name is not in the ranking.
+ */
+export interface MyGroup {
+    id: string,
+    name: string,
+    description?: string,
+    /** Everyone in it, this reader included. */
+    members: string[],
+}
+
 export interface Activity {
     id: string,
     /** Alias used in URLs, for example `AMMPZ-2019`. */
@@ -137,6 +152,12 @@ export interface Activity {
     timeZone: string,
     state: ActivityState,
     membership: ActivityMembership,
+    /**
+     * The group this reader competes as here, or absent when they compete as
+     * themselves. **Their own only** — anybody else's roster is the ranking's
+     * business and the activity's setting.
+     */
+    group?: MyGroup,
     /**
      * How somebody not enrolled may get in. Carried to the participant because
      * the activity's own page draws the enrolment form from it — the Server
@@ -515,9 +536,28 @@ export interface SubmitPayload {
  * for it. Who typed a particular solution is the submissions screen's business
  * and is not disclosed here.
  */
+/**
+ * One row of a board: a person competing as themselves, or a group.
+ *
+ * The ranking has always been abstract over this — neither ICPC penalties nor
+ * points scoring ask who a contestant is — which is why a group needed no new
+ * shape here, only a way to say which kind a row is.
+ */
 export interface Contestant {
     id: string,
     name: string,
+    /** `user` or `group`. */
+    kind: "user" | "group",
+    /** A group's short line beside its name. Absent for a person. */
+    description?: string,
+    /**
+     * Who is in the group, when the activity says to print it.
+     *
+     * **Under the group's own name, never as rows of their own.** Somebody
+     * competing in a group does not appear as themselves, and a row per member
+     * would score the same points twice in one table.
+     */
+    members?: string[],
 }
 
 /** A problem as a board's column: what it is called and what it is worth. */

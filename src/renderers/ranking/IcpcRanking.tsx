@@ -1,4 +1,5 @@
 import { Alert, Stack, Table, Text, Tooltip } from "@mantine/core";
+import ContestantName from "./ContestantName";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { FindMeButton, FreezeBanner } from "./common";
@@ -126,7 +127,7 @@ export default function IcpcRanking({ results, timeZone, ranked }: RankingProps)
                                 className={row.contestantId === results.me ? classes.me : undefined}
                             >
                                 {placed && <Table.Td className={classes.stickyPlace}>{row.rank}</Table.Td>}
-                                <Table.Td className={classes.stickyName} style={nameLeft}>{row.name}</Table.Td>
+                                <Table.Td className={classes.stickyName} style={nameLeft}><ContestantName name={row.name} description={row.description} members={row.members} /></Table.Td>
                                 <Table.Td>{row.solved}</Table.Td>
                                 <Table.Td>{minutesAsClock(row.penalty)}</Table.Td>
                                 {columns.map(column => (

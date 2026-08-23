@@ -65,12 +65,17 @@ export const resultOf = (
     attempt: SeedAttempt,
     now: number,
     unfrozen: boolean,
+    /**
+     * The row this attempt belongs to — the sender's group, where they have
+     * one. Defaulted so every other caller reads as it did.
+     */
+    contestantId: string = attempt.contestant,
 ): ContestantResult | undefined => {
     const assignment = seed.assignments.find(a => a.slug === attempt.problem);
     if (!assignment) return undefined;
     const base = {
         id: attemptId(seed.id, attempt),
-        contestantId: attempt.contestant,
+        contestantId,
         seriesId: seed.id,
         problemId: `problem-${assignment.slug}`,
         problemSlug: assignment.slug,
@@ -130,10 +135,22 @@ export interface ResultsQuery {
      */
     unfrozen: boolean;
     now: number;
+    /**
+     * Who competes as whom, and whether the roster is printed.
+     *
+     * Passed in rather than read off the seed, because membership is a field on
+     * a **grant** — which the manager screens write during a visit — and a board
+     * built from the seed alone would not notice a group made a moment ago.
+     */
+    groups?: {
+        /** Contestant id → the group they compete as. */
+        of: Map<string, { id: string; name: string; description?: string; isSystem: boolean }>;
+        showMembers: boolean;
+    };
 }
 
 export const activityResults = (
-    { seed, live, seriesId, scoreVisibility, unfrozen, now }: ResultsQuery,
+    { seed, live, seriesId, scoreVisibility, unfrozen, now, groups }: ResultsQuery,
 ): ActivityResults => {
     const me = meOf(seed);
 
@@ -148,24 +165,60 @@ export const activityResults = (
     // 2. Who has a row. `managersOnly` reaches here with nothing to show, and
     //    `participantOnly` reduces to the reader — sending everybody's rows with
     //    the places stripped would disclose exactly what the setting withholds.
-    const everyone: Contestant[] = (seed.contestants ?? [])
-        .map(contestant => ({ id: contestant.id, name: contestant.name }));
+    // **A group is a contestant, and so its members are not.** Somebody in a
+    // group has no row of their own; the group has one, fed by every member's
+    // work. A system group contributes nothing at all — the rule that keeps
+    // staff out of a ranking, one level up.
+    const seeded = seed.contestants ?? [];
+    const grouped = new Map<string, Contestant>();
+    const alone: Contestant[] = [];
+
+    for (const contestant of seeded) {
+        const group = groups?.of.get(contestant.id);
+        if (group === undefined) {
+            alone.push({ id: contestant.id, name: contestant.name, kind: "user" });
+            continue;
+        }
+        if (group.isSystem) continue;
+
+        const row = grouped.get(group.id) ?? {
+            id: group.id,
+            name: group.name,
+            kind: "group" as const,
+            description: group.description,
+            members: [],
+        };
+        if (groups?.showMembers) row.members = [...(row.members ?? []), contestant.name];
+        grouped.set(group.id, row);
+    }
+
+    const everyone: Contestant[] = [...grouped.values(), ...alone];
+
+    // **The reader is not a contestant where they are in a group — the group
+    // is.** Their own row would never highlight otherwise.
+    const rowOfMe = me === undefined ? undefined : groups?.of.get(me.id)?.id ?? me.id;
     const contestants = scoreVisibility === "everyone"
         ? everyone
-        : everyone.filter(contestant => contestant.id === me?.id);
+        : everyone.filter(contestant => contestant.id === rowOfMe);
 
     const visible = new Set(contestants.map(contestant => contestant.id));
+
+    /** A person's row is their group's, where they have one. */
+    const rowOf = (contestantId: string): string =>
+        groups?.of.get(contestantId)?.id ?? contestantId;
 
     // 3. The freeze, applied per attempt as it leaves.
     const results: ContestantResult[] = offered.flatMap(part =>
         (part.seed.attempts ?? [])
-            .filter(attempt => visible.has(attempt.contestant))
-            .flatMap(attempt => resultOf(part.seed, attempt, now, unfrozen) ?? []));
+            .filter(attempt => visible.has(rowOf(attempt.contestant)))
+            .flatMap(attempt =>
+                resultOf(part.seed, attempt, now, unfrozen, rowOf(attempt.contestant)) ?? []));
 
     return {
         series: offered.map(part => seriesOf(part.seed, part.live, now, unfrozen)),
         contestants,
         results,
-        me: me?.id,
+        // Their group, where they are in one, or their own row never highlights.
+        me: rowOfMe,
     };
 };

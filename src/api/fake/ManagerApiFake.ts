@@ -1,5 +1,7 @@
 import { ManagerEventDispatcherImpl } from "../impl/ManagerEventDispatcher";
 import {
+    ActivityGroup,
+    ActivityGroupInput,
     ActivityInput,
     DeletionRequest,
     DeletionRequestFilter,
@@ -382,6 +384,101 @@ export class ManagerApiFake implements ManagerApi {
                 || (filter.scope === "global" && g.activityId === undefined)
                 || (filter.scope === "activity" && g.activityId !== undefined)));
         return copy(paginate(matched, filter.page, filter.pageSize));
+    }
+
+    // ── groups ──────────────────────────────────────────────────────────────
+
+    async getGroups(activityId: string, signal: AbortSignal): Promise<ActivityGroup[]> {
+        await this.settle(signal);
+        return copy(this.access.groups
+            .filter(g => g.activityId === activityId)
+            .sort((a, b) => a.name.localeCompare(b.name)));
+    }
+
+    async createGroup(
+        activityId: string, input: ActivityGroupInput, signal: AbortSignal
+    ): Promise<ActivityGroup> {
+        await this.settle(signal);
+        // Two rows in one ranking may not carry one name, as the Server says.
+        if (this.access.groups.some(g => g.activityId === activityId && g.name === input.name)) {
+            throw conflict("group.name.taken", "Another group here is already called that");
+        }
+        const made: ActivityGroup = {
+            id: `group-${crypto.randomUUID()}`,
+            activityId,
+            name: input.name,
+            description: input.description,
+            isSystem: input.isSystem,
+            memberCount: 0,
+            submissionCount: 0,
+            createdAt: new Date().toISOString(),
+        };
+        this.access.groups.push(made);
+        return copy(made);
+    }
+
+    async updateGroup(
+        activityId: string, groupId: string, input: ActivityGroupInput, signal: AbortSignal
+    ): Promise<ActivityGroup> {
+        await this.settle(signal);
+        const group = this.access.groups.find(g => g.id === groupId && g.activityId === activityId)
+            ?? notFound("Group");
+        if (this.access.groups.some(
+            g => g.activityId === activityId && g.name === input.name && g.id !== groupId)) {
+            throw conflict("group.name.taken", "Another group here is already called that");
+        }
+        Object.assign(group, {
+            name: input.name,
+            description: input.description,
+            isSystem: input.isSystem,
+        });
+        return copy(group);
+    }
+
+    /**
+     * **Refused where anything was sent under it**, as the Server refuses it:
+     * the group stamped on a submission is the record of what competed.
+     */
+    async deleteGroup(activityId: string, groupId: string, signal: AbortSignal): Promise<void> {
+        await this.settle(signal);
+        const group = this.access.groups.find(g => g.id === groupId && g.activityId === activityId)
+            ?? notFound("Group");
+        if (group.submissionCount > 0) {
+            throw conflict(
+                "group.hasSubmissions",
+                "This group has submissions and is part of their record. Mark it as a system group instead.");
+        }
+        this.access.groups = this.access.groups.filter(g => g.id !== groupId);
+        for (const grant of this.access.grants) {
+            if (grant.groupId === groupId) {
+                grant.groupId = undefined;
+                grant.groupName = undefined;
+            }
+        }
+    }
+
+    async setParticipantGroup(
+        activityId: string, userId: string, groupId: string | undefined, signal: AbortSignal
+    ): Promise<Grant> {
+        await this.settle(signal);
+        const grant = this.access.grants.find(
+            g => g.activityId === activityId && g.userId === userId) ?? notFound("Grant");
+        const group = groupId
+            ? this.access.groups.find(g => g.id === groupId && g.activityId === activityId)
+                ?? notFound("Group")
+            : undefined;
+
+        grant.groupId = group?.id;
+        grant.groupName = group?.name;
+        this.recountGroups(activityId);
+        return copy(grant);
+    }
+
+    /** Membership is a field on a grant, so the counts are derived from those. */
+    private recountGroups(activityId: string): void {
+        for (const group of this.access.groups.filter(g => g.activityId === activityId)) {
+            group.memberCount = this.access.grants.filter(g => g.groupId === group.id).length;
+        }
     }
 
     async setGrant(input: GrantInput, signal: AbortSignal): Promise<Grant> {

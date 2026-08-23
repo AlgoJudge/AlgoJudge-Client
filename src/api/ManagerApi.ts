@@ -72,6 +72,40 @@ export type GrantState = "invited" | "active";
  * What one user may do within one scope — and, for an activity, the membership
  * itself. A null `activityId` is the system scope.
  */
+/**
+ * Several people competing as one, inside one activity.
+ *
+ * A group is a **contestant**: it submits, it spends one allowance, and it holds
+ * one row in the ranking while its members hold none.
+ */
+export interface ActivityGroup {
+    id: string;
+    activityId: string;
+    name: string;
+    /** A short line beside the name, shown in the ranking. */
+    description?: string;
+    /**
+     * Kept out of results and out of the ranking — the rule `isSystem` on a
+     * grant applies to a person, one level up. **It still submits and still
+     * spends its allowance**; what it does not do is appear.
+     */
+    isSystem: boolean;
+    memberCount: number;
+    /**
+     * How many submissions were sent under it. **Any at all and it cannot be
+     * deleted**: the group stamped on a submission is the record of what
+     * competed. Retiring one means marking it system.
+     */
+    submissionCount: number;
+    createdAt: string;
+}
+
+export interface ActivityGroupInput {
+    name: string;
+    description?: string;
+    isSystem: boolean;
+}
+
 export interface Grant {
     id: string;
     userId: string;
@@ -88,6 +122,9 @@ export interface Grant {
     userLogin: string;
     activityId?: string;
     activityName?: string;
+    /** The group this person competes as here, or absent for themselves. */
+    groupId?: string;
+    groupName?: string;
     permissions: string[];
     /**
      * A membership that is not a participation: whoever runs the activity, a
@@ -1418,6 +1455,20 @@ export interface ManagerApi {
     deletePermissionTemplate(id: string, signal: AbortSignal): Promise<void>;
 
     getGrants(filter: GrantFilter, signal: AbortSignal): Promise<Page<Grant>>;
+
+    /** Every group competing in an activity. */
+    getGroups(activityId: string, signal: AbortSignal): Promise<ActivityGroup[]>;
+    createGroup(activityId: string, input: ActivityGroupInput, signal: AbortSignal): Promise<ActivityGroup>;
+    updateGroup(activityId: string, groupId: string, input: ActivityGroupInput, signal: AbortSignal): Promise<ActivityGroup>;
+    /** Refused with `group.hasSubmissions` where anything was sent under it. */
+    deleteGroup(activityId: string, groupId: string, signal: AbortSignal): Promise<void>;
+    /**
+     * Moves somebody into a group, or out of every one with `undefined`.
+     *
+     * Allowed at any time and it moves nothing already sent: each submission
+     * stamped its group when it was made.
+     */
+    setParticipantGroup(activityId: string, userId: string, groupId: string | undefined, signal: AbortSignal): Promise<Grant>;
     setGrant(input: GrantInput, signal: AbortSignal): Promise<Grant>;
     revokeGrant(id: string, signal: AbortSignal): Promise<void>;
 
