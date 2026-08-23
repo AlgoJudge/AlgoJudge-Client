@@ -181,7 +181,7 @@ test("a submission reaches a verdict, and the screen shows it without a reload",
     // there can say whether this travels — and the submission is the request
     // that most wants it, and the one whose `FormData` body used to mean no
     // headers of ours were set.
-    const device = (await response.request().allHeaders())["algojudge-device"];
+    const device = (await response.request().allHeaders())["device-id"];
     expect(device, "a submission says which browser sent it")
         .toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     const submission = await response.json();

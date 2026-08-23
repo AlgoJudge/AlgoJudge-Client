@@ -22,10 +22,15 @@ const KEY = "aj.deviceId";
 /**
  * The header it travels in.
  *
- * No `X-` prefix: RFC 6648 deprecated that convention for new parameters, and a
- * name that says who owns it reads better than one that says it is unofficial.
+ * No `X-` prefix: RFC 6648 deprecated that convention for new parameters.
+ *
+ * The name is generic enough that something upstream could in principle set one
+ * of its own, which is why the Server **parses it as a UUID and discards
+ * anything else** rather than storing what arrived. That guard is needed against
+ * the page itself regardless — a script can write this — so the generic name
+ * costs nothing that was not already being paid.
  */
-export const DEVICE_HEADER = "AlgoJudge-Device";
+export const DEVICE_HEADER = "Device-Id";
 
 /**
  * A v4 UUID, without needing a secure context.
