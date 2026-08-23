@@ -175,6 +175,15 @@ test("a submission reaches a verdict, and the screen shows it without a reload",
 
     const response = await submitted;
     expect(response.status(), await response.text()).toBe(201);
+
+    // **The only place the device header can be seen.** `check:ui` runs against
+    // the fake, where `ApiFactory` builds no `HttpClient` at all, so nothing
+    // there can say whether this travels — and the submission is the request
+    // that most wants it, and the one whose `FormData` body used to mean no
+    // headers of ours were set.
+    const device = (await response.request().allHeaders())["algojudge-device"];
+    expect(device, "a submission says which browser sent it")
+        .toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     const submission = await response.json();
     expect(submission.state, "a fresh submission is queued").toBe("queued");
 

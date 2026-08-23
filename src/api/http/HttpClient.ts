@@ -6,6 +6,7 @@ import {
     UnauthorizedError,
     UnreachableError,
 } from "../ApiError";
+import { DEVICE_HEADER, deviceId } from "../../utils/deviceId";
 
 export type SystemMessageType = "success" | "info" | "warning" | "error";
 
@@ -69,12 +70,24 @@ export class HttpClient {
         // upload, and the browser has to set the multipart boundary itself.
         const isForm = options.body instanceof FormData;
 
+        // **Headers on both branches now, and only `content-type` is the
+        // FormData exception.** It used to be `isForm ? undefined : …`, which
+        // meant an upload could carry no header of ours at all — and the one
+        // request that most wants the device id is the submission, which is a
+        // FormData. What must still be omitted is `content-type`: the browser
+        // writes it itself, with the multipart boundary, and ours would replace
+        // a boundary the body actually uses with one it does not.
+        const headers = new Headers();
+        if (!isForm) headers.set("content-type", "application/json");
+        const device = deviceId();
+        if (device) headers.set(DEVICE_HEADER, device);
+
         const response = await this.send(url, {
             method,
             body: options.body === undefined
                 ? undefined
                 : isForm ? options.body as FormData : JSON.stringify(options.body),
-            headers: isForm ? undefined : new Headers({ "content-type": "application/json" }),
+            headers,
             credentials: "include",
             signal: options.signal,
         });
