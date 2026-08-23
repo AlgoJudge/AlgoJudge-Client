@@ -49,6 +49,23 @@ const alerts = () => evaluate(`
     return [...document.querySelectorAll("[class*=Alert]")].map(a => a.textContent).join(" / ");
 `);
 
+/**
+ * Waits for something to become true, rather than sleeping for as long as it
+ * could take.
+ *
+ * **The panel needs about two seconds to redraw** — `useApiEffect` makes six
+ * sequential calls and the fake sleeps 300 ms in each — and a fixed pause long
+ * enough for that on a loaded machine is dead time on every run. Two of them
+ * were enough to push a neighbouring check past its own timeout in CI.
+ */
+const until = async (expression, tries = 30) => {
+    for (let attempt = 0; attempt < tries; attempt++) {
+        if (await evaluate(`return ${expression};`)) return true;
+        await wait(200);
+    }
+    return false;
+};
+
 // Reached the way `verify-activity-manager` reaches the same screen: through the
 // list and the row, because the manager's activity page opens from a table cell
 // rather than from a link anybody can address.
@@ -71,22 +88,22 @@ check(
 // ── one is made, and it appears ─────────────────────────────────────────────
 
 check(await addGroup(NAME) === "clicked", "a group is created from the panel");
-await wait(4500);
 
 // Uppercased by the badge, so matched without case.
 check(
-    (await body()).toLowerCase().includes(NAME.toLowerCase()),
+    await until(`document.body.innerText.toLowerCase().includes(${JSON.stringify(NAME.toLowerCase())})`),
     "and it appears in the roster");
 
 // ── two rows in one ranking may not carry one name ──────────────────────────
 
 check(await addGroup(NAME) === "clicked", "a second group of the same name is offered");
-await wait(4500);
 
-const refused = await alerts();
+const conflicted = await until(
+    `[...document.querySelectorAll("[class*=Alert]")]
+        .some(a => a.textContent.includes("group.name.taken"))`);
 check(
-    refused.includes("group.name.taken"),
-    `and refused, which also proves the first one landed (${refused.slice(0, 80)})`);
+    conflicted,
+    `and refused, which also proves the first one landed (${(await alerts()).slice(0, 60)})`);
 
 // ── and every participant may be put in one ─────────────────────────────────
 //
