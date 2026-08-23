@@ -1,5 +1,5 @@
 import { Accordion, Alert, Button, Card, Code, Grid, Group, Loader, Stack, Text, Title } from "@mantine/core";
-import { IconClockPlay, IconFileText, IconTerminal2 } from "@tabler/icons-react";
+import { IconCircleMinus, IconClockPlay, IconFileText, IconTerminal2 } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -101,6 +101,17 @@ export default function SubmissionPage() {
                             <Text fw={700}>{t("Status")}:</Text>
                             <StateBadge state={submission.state} verdict={submission.verdict} score={submission.score} maxScore={submission.maxScore} />
                         </Group>
+                        {/* Said outright, because the result above stays what it
+                            was: judged, a verdict, a score, and no points on the
+                            board. Without this that reads as a fault. */}
+                        {submission.excluded && (
+                            <Alert
+                                color="orange"
+                                icon={<IconCircleMinus size={18} />}
+                            >
+                                {t("This submission is not counted in the ranking. It still counts against your submission limit.")}
+                            </Alert>
+                        )}
                     </Stack>
                 </Grid.Col>
             </Grid>

@@ -68,6 +68,7 @@ import { StatementRef, UploadedFile } from "../FileApi";
 import { ActivityDocumentKind, ActivityDocumentRef } from "../ParticipantApi";
 import { FakeActivities } from "./FakeActivities";
 import { FakeAccess } from "./FakeAccess";
+import { FakeExclusions } from "./FakeExclusions";
 import { systemicByDefault } from "../permissions";
 import { ActivityRecord, createActivityLibrary } from "./fixtures/activities";
 import { signedInUserId } from "./CoreApiFake";
@@ -167,6 +168,8 @@ export class ManagerApiFake implements ManagerApi {
         private readonly shared: FakeActivities,
         /** And one owner for the grants, because the feeds have to enforce them. */
         private readonly access: FakeAccess,
+        /** And one for which submissions count, which this screen rules on. */
+        private readonly exclusions: FakeExclusions,
         private sleepMs: number = 300,
     ) {
         this.library = createProblemLibrary(files);
@@ -1311,6 +1314,24 @@ export class ManagerApiFake implements ManagerApi {
         attempt.state = "cancelled";
         attempt.finishedAt = new Date().toISOString();
         submission.state = "cancelled";
+        this.announceSubmission(submission);
+        return copy(submission);
+    }
+
+    async setSubmissionExcluded(
+        id: string, excluded: boolean, reason: string | undefined, signal: AbortSignal,
+    ): Promise<ManagedSubmissionDetail> {
+        await this.settle(signal);
+        const submission = this.findSubmission(id);
+
+        this.exclusions.set(id, excluded, reason, "Anna Kowalska");
+        const ruling = this.exclusions.of(id);
+
+        submission.excluded = ruling !== undefined;
+        submission.excludedAt = ruling?.at;
+        submission.excludedBy = ruling?.by;
+        submission.exclusionReason = ruling?.reason;
+
         this.announceSubmission(submission);
         return copy(submission);
     }

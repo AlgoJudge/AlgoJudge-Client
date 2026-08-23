@@ -920,6 +920,12 @@ export interface ManagedSubmission {
     maxScore?: number;
     /** How many evaluation jobs it has had. A rejudge adds one. */
     attempts: number;
+    /**
+     * A manager ruled that this counts towards no standing. On the list as well
+     * as the detail, unlike `ipAddress`: no disclosure question, and a manager
+     * scanning two hundred rows should not open each.
+     */
+    excluded: boolean;
 }
 
 /** One evaluation job. The unit a rejudge creates and a cancellation stops. */
@@ -968,6 +974,16 @@ export interface ManagedSubmissionDetail extends ManagedSubmission {
      * and nothing else — do not present it as anything stronger.
      */
     deviceId?: string;
+    /** When the ruling was made, and by whom. Absent unless `excluded`. */
+    excludedAt?: string;
+    excludedBy?: string;
+    /**
+     * Why, in the manager's own words.
+     *
+     * Not on the participant's screen — theirs carries the marker alone — but
+     * writing about them, so their data export carries it. The form says so.
+     */
+    exclusionReason?: string;
     /** Newest first. */
     attemptList: ManagedAttempt[];
     /** What was sent. The attachments an evaluation produced are on the attempt. */
@@ -1724,6 +1740,15 @@ export interface ManagerApi {
     rejudgeSeries(seriesId: string, signal: AbortSignal): Promise<number>;
     /** Stops a job that has not finished. A finished one is history. */
     cancelAttempt(submissionId: string, attemptId: string, signal: AbortSignal): Promise<ManagedSubmissionDetail>;
+    /**
+     * Rules that a submission counts towards no standing, or lifts the ruling.
+     *
+     * Neither a rejudge nor a cancellation — those are about evaluating, this
+     * about what the evaluation counts for. Lifting clears the reason with it.
+     */
+    setSubmissionExcluded(
+        id: string, excluded: boolean, reason: string | undefined, signal: AbortSignal,
+    ): Promise<ManagedSubmissionDetail>;
 
     getProblems(filter: ProblemFilter, signal: AbortSignal): Promise<Page<ManagedProblem>>;
     getProblem(id: string, signal: AbortSignal): Promise<ManagedProblem>;

@@ -4,6 +4,8 @@ import { NullEventConnection } from "../EventConnection";
 import { CoreApiFake } from "./CoreApiFake";
 import { FakeActivities } from "./FakeActivities";
 import { FakeAccess } from "./FakeAccess";
+import { FakeExclusions } from "./FakeExclusions";
+import { WORLD } from "./fixtures/world";
 import { FakeInstance } from "./FakeInstance";
 import { FakeFiles, FileApiFake } from "./FileApiFake";
 import { LtiApiFake } from "./LtiApiFake";
@@ -28,10 +30,14 @@ export class FakeApiFactory {
         // leaves from `ranking:read:unfrozen`, so a second copy would let a
         // revoked permission still open a door.
         const access = new FakeAccess();
+        // And one owner for which submissions count. The manager rules and the
+        // participant's board reads the ruling; two copies would leave a
+        // submission ruled out in one screen and still scoring in another.
+        const exclusions = new FakeExclusions(WORLD);
         return {
             authApi: new CoreApiFake(instance),
-            participantApi: new ParticipantApiFake(files, activities, access),
-            managerApi: new ManagerApiFake(files, instance, activities, access),
+            participantApi: new ParticipantApiFake(files, activities, access, exclusions),
+            managerApi: new ManagerApiFake(files, instance, activities, access, exclusions),
             fileApi: new FileApiFake(files),
             ltiApi: new LtiApiFake(),
             // The fake dispatches its own events as it changes things, so there

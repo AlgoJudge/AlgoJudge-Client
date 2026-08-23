@@ -1,5 +1,5 @@
-import { Alert, Badge, Button, Card, Center, Code, Group, Loader, Stack, Table, Text, Title, Tooltip } from "@mantine/core";
-import { IconArrowLeft, IconDeviceDesktop, IconExternalLink, IconPlayerStop, IconRefresh, IconWorld } from "@tabler/icons-react";
+import { Alert, Badge, Button, Card, Center, Code, Group, Loader, Modal, Stack, Table, Text, Textarea, Title, Tooltip } from "@mantine/core";
+import { IconArrowLeft, IconCircleMinus, IconCirclePlus, IconDeviceDesktop, IconExternalLink, IconPlayerStop, IconRefresh, IconWorld } from "@tabler/icons-react";
 import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -57,6 +57,81 @@ function SubmissionOrigin({ submission }: { submission: ManagedSubmissionDetail 
                 </Tooltip>
             )}
         </Group>
+    );
+}
+
+/**
+ * Ruling a submission out of every standing, or lifting the ruling.
+ *
+ * A modal rather than a switch, because the reason is the point: a judge reading
+ * this row in a month needs to know why, and a control that set the flag without
+ * asking would make the reason the exception.
+ *
+ * **The note under the field is not decoration.** The reason travels in the
+ * participant's own data export, so a manager has to know that before writing
+ * one — the alternative is finding out from a subject access request.
+ */
+function ExclusionModal(
+    { submission, busy, onSubmit }: {
+        submission: ManagedSubmissionDetail;
+        busy: boolean;
+        onSubmit: (excluded: boolean, reason?: string) => void;
+    },
+) {
+    const { t } = useTranslation();
+    const [open, setOpen] = useState(false);
+    const [reason, setReason] = useState("");
+
+    if (submission.excluded) {
+        return (
+            <Button
+                variant="default"
+                leftSection={<IconCirclePlus size={16} />}
+                loading={busy}
+                onClick={() => onSubmit(false)}
+            >
+                {t("Count it again")}
+            </Button>
+        );
+    }
+
+    return (
+        <>
+            <Button
+                variant="default"
+                color="orange"
+                leftSection={<IconCircleMinus size={16} />}
+                loading={busy}
+                onClick={() => { setReason(""); setOpen(true); }}
+            >
+                {t("Do not count")}
+            </Button>
+            <Modal opened={open} onClose={() => setOpen(false)} title={t("Do not count this submission")}>
+                <Stack gap="sm">
+                    <Text size="sm">
+                        {t("It keeps its verdict and its place in the list, and it stays counted against the submission limit. It stops counting towards the ranking, the best score and the grade sent to the LMS.")}
+                    </Text>
+                    <Textarea
+                        label={t("Reason")}
+                        description={t("Seen by managers. It is also part of the participant's own data export, so write it as something they may read.")}
+                        autosize
+                        minRows={2}
+                        value={reason}
+                        onChange={event => setReason(event.currentTarget.value)}
+                    />
+                    <Group justify="flex-end">
+                        <Button variant="default" onClick={() => setOpen(false)}>{t("Cancel")}</Button>
+                        <Button
+                            color="orange"
+                            loading={busy}
+                            onClick={() => { setOpen(false); onSubmit(true, reason); }}
+                        >
+                            {t("Do not count")}
+                        </Button>
+                    </Group>
+                </Stack>
+            </Modal>
+        </>
     );
 }
 
@@ -162,6 +237,18 @@ export default function ManagerSubmissionPage() {
                         <Badge variant="light" color={STATE_COLOUR[submission.state]}>
                             {t(`jobState.${submission.state}`)}
                         </Badge>
+                        {submission.excluded && (
+                            <Tooltip
+                                label={[
+                                    submission.exclusionReason,
+                                    submission.excludedBy && t("Ruled by {{who}}", { who: submission.excludedBy }),
+                                ].filter(Boolean).join(" · ") || t("Not counted in the ranking")}
+                            >
+                                <Badge variant="light" color="orange">
+                                    {t("Not counted")}
+                                </Badge>
+                            </Tooltip>
+                        )}
                     </Group>
                     <Text size="sm" c="dimmed">
                         {submission.userName} · {submission.activitySlug} · {submission.seriesName} ·{" "}
@@ -178,6 +265,15 @@ export default function ManagerSubmissionPage() {
                     >
                         {t("Problem")}
                     </Button>
+                    {/* Through the page's own `run`, which catches. A handler
+                        with its own try/catch-less copy is how the participants
+                        panel swallowed every failure it had. */}
+                    <ExclusionModal
+                        submission={submission}
+                        busy={busy}
+                        onSubmit={(excluded, reason) => run(() => call(api =>
+                            api.managerApi.setSubmissionExcluded(submission.id, excluded, reason)))}
+                    />
                     <Button
                         leftSection={<IconRefresh size={16} />}
                         loading={busy}

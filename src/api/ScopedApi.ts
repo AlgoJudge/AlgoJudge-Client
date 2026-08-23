@@ -656,6 +656,11 @@ export class ScopedManagerApi {
     cancelAttempt(submissionId: string, attemptId: string): Promise<ManagedSubmissionDetail> {
         return this.managerApi.cancelAttempt(submissionId, attemptId, this.signal);
     }
+    setSubmissionExcluded(
+        id: string, excluded: boolean, reason?: string,
+    ): Promise<ManagedSubmissionDetail> {
+        return this.managerApi.setSubmissionExcluded(id, excluded, reason, this.signal);
+    }
 
     getProblems(filter: ProblemFilter = {}): Promise<Page<ManagedProblem>> {
         return this.managerApi.getProblems(filter, this.signal);

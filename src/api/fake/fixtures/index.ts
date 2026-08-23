@@ -73,8 +73,20 @@ export interface Dataset {
  * Judged on the Runner's scale — full marks is full marks whatever the problem
  * counts for — and only the numbers beside it are rescaled.
  */
-const statusOf = (attempts: SeedAttempt[]): ProblemStatus => {
-    if (attempts.length === 0) return "untouched";
+/**
+ * What a standing may be computed from — everything a manager has not ruled out.
+ *
+ * Mirrors the Server, where the filter sits inside `Scoring.BestOf`: the three
+ * readers below share it, while **counting** attempts does not. The allowance
+ * stays spent, so `attempts` and `submissionsLeft` still see everything.
+ */
+const counting = (attempts: SeedAttempt[]): SeedAttempt[] =>
+    attempts.filter(attempt => attempt.excluded !== true);
+
+const statusOf = (all: SeedAttempt[]): ProblemStatus => {
+    if (all.length === 0) return "untouched";
+    const attempts = counting(all);
+    if (attempts.length === 0) return "attempted";
     const best = Math.max(...attempts.map(attempt => fractionOf(attempt) ?? 0));
     // The whole of the scale is a solve, whatever that scale is.
     if (best >= 1) return "solved";
@@ -83,8 +95,12 @@ const statusOf = (attempts: SeedAttempt[]): ProblemStatus => {
 
 // Compared as fractions: two attempts at one problem may have been marked out
 // of different maxima.
-const bestOf = (attempts: SeedAttempt[]): number | undefined =>
-    attempts.length === 0 ? undefined : Math.max(...attempts.map(attempt => fractionOf(attempt) ?? 0));
+const bestOf = (all: SeedAttempt[]): number | undefined => {
+    const attempts = counting(all);
+    return attempts.length === 0
+        ? undefined
+        : Math.max(...attempts.map(attempt => fractionOf(attempt) ?? 0));
+};
 
 /**
  * What the best attempt was marked out of.
@@ -93,10 +109,10 @@ const bestOf = (attempts: SeedAttempt[]): number | undefined =>
  * value of its own — the best attempt's maximum, not any of them, because two
  * attempts at one problem may carry different maxima.
  */
-const bestOutOf = (attempts: SeedAttempt[]): number | undefined => {
+const bestOutOf = (all: SeedAttempt[]): number | undefined => {
     let best: number | undefined;
     let outOf: number | undefined;
-    for (const attempt of attempts) {
+    for (const attempt of counting(all)) {
         const fraction = fractionOf(attempt);
         if (fraction === undefined) continue;
         if (best === undefined || fraction > best) {
@@ -314,6 +330,9 @@ export const createDataset = (files: FakeFiles): Dataset => {
                     maxScore: attempt.score === undefined
                         ? undefined
                         : maxPointsOf(assignment, attempt.maxScore),
+                    // The row stays and keeps its verdict: an exclusion rules on
+                    // what it counts for, not on what the judge said.
+                    excluded: attempt.excluded === true,
                 };
                 mine.push(summary);
 

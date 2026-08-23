@@ -410,6 +410,18 @@ export interface SubmissionSummary {
     maxScore?: number,
     /** Short label from the Runner, e.g. `Accepted`. Meaning is the type's business. */
     verdict?: string,
+    /**
+     * A manager ruled that this counts towards no standing.
+     *
+     * **The score above stays what it was**: an exclusion rules on what a
+     * submission counts for, not on what the judge said. Told rather than left
+     * to be inferred — without it this screen and the ranking describe one
+     * submission differently, with no way to find out why.
+     *
+     * The flag, never the reason: that is on the manager's screen and in this
+     * person's own data export.
+     */
+    excluded: boolean,
 }
 
 /** One attempt at evaluating a submission. A rejudge adds an attempt. */

@@ -94,6 +94,10 @@ const submissionOf = (
         score: pointsOf(assignment, fractionOf(attempt)),
         maxScore: maxPointsOf(assignment, attempt.maxScore),
         attempts: (attempt.history?.length ?? 0) + 1,
+        excluded: attempt.excluded === true,
+        excludedAt: attempt.excluded ? attemptTime(series, attempt) : undefined,
+        excludedBy: attempt.excluded ? "Anna Kowalska" : undefined,
+        exclusionReason: attempt.excluded ? attempt.exclusionReason : undefined,
         problemType: assignment.problem.type ?? "standard-io@1",
         // Where it was sent from, so the judge's screen has something to draw.
         // Two addresses in the laboratory's own range and one outside it: the
