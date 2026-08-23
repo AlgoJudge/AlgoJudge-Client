@@ -1,26 +1,17 @@
 // Several people competing as one, on the manager's screen.
 //
-// **What this checks, and what it deliberately does not.** The panel offers
-// groups and every participant row offers one — which is the part a screen owns.
-// It does **not** check that creating one through the fake then appears in the
-// list, and that is a measurement rather than an omission:
+// **Two things had to be got right before this passed, and both are recorded
+// because the next person will hit them.**
 //
-//   - the field carries the name and the button is enabled at click time,
-//     measured as `value="Zespół Sprawdzający" disabled=false`;
-//   - the click's handler runs to the end — the field is cleared afterwards,
-//     which only happens after the call resolves;
-//   - `useApiCall` never aborts: it makes a fresh `AbortController` and drops it;
-//   - and the list is still empty four seconds later, and still empty after the
-//     panel is unmounted and mounted again.
+// The panel refreshes through `useApiEffect`, and the fake sleeps **300 ms per
+// call** — six sequential calls before the group list is set, so a screen takes
+// close to two seconds to redraw after a write. A wait of a second looked
+// exactly like a write that never landed.
 //
-// So the write reaches `ManagerApiFake.createGroup` and the read does not see
-// it. That is the fake's own plumbing rather than anything about groups, and it
-// wants finding before this file grows an assertion that would only be flaky.
-//
-// The behaviour itself is covered where it can be: `GroupTests` in the Server's
-// suite drives all of it against a real database — one row per group, none per
-// member, a system group nowhere, `Me` pointing at the group, a shared
-// allowance, and a move leaving earlier work where it was.
+// And the panel's own handlers swallowed their errors: they duplicated `run()`
+// badly instead of calling it, so a refusal from the fake produced silence. The
+// conflict below is what proves both halves now work — the second group of the
+// same name is refused, which can only happen if the first one landed.
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
@@ -28,8 +19,35 @@ const { evaluate, wait, go, click, tab, close } = await open();
 const { check, report } = results();
 
 const ACTIVITY = "PROG-1-LA";
+const NAME = "Zespół Sprawdzający";
 
 const body = () => evaluate(`return document.body.innerText;`);
+
+/** Types a name and presses the button, reporting whether it could. */
+const addGroup = (name) => evaluate(`
+    const input = [...document.querySelectorAll("input")]
+        .find(i => (i.placeholder ?? "").includes("Nazwa grupy"));
+    if (!input) return "no field";
+
+    // Through the native setter, because React listens for its own input event
+    // and a plain assignment raises none.
+    const setter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype, "value").set;
+    setter.call(input, ${JSON.stringify(name)});
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+
+    const button = [...document.querySelectorAll("button")]
+        .find(b => b.textContent.trim() === "Dodaj grupę");
+    if (!button) return "no button";
+    if (button.disabled) return "the name did not reach React";
+    button.click();
+    return "clicked";
+`);
+
+/** Whatever the panel is complaining about, if anything. */
+const alerts = () => evaluate(`
+    return [...document.querySelectorAll("[class*=Alert]")].map(a => a.textContent).join(" / ");
+`);
 
 // Reached the way `verify-activity-manager` reaches the same screen: through the
 // list and the row, because the manager's activity page opens from a table cell
@@ -42,39 +60,38 @@ await click(`[...document.querySelectorAll("tbody tr")]
 await wait(2500);
 
 await click(tab("Uczestnicy"));
-await wait(800);
+await wait(900);
 
 const panel = await body();
-check(panel.includes("Uczestnicy"), "the participants panel opens");
-check(panel.includes("Grupy"), "and it offers groups");
+check(panel.includes("Grupy"), "the participants panel offers groups");
 check(
     panel.includes("Grupa startuje jako jedno"),
     "and says what a group is, because sending as one is compulsory rather than a choice");
 
-// The form is real: the name reaches React and the button turns on. This is the
-// half of the write path a screen owns.
-const form = await evaluate(`
-    const input = [...document.querySelectorAll("input")]
-        .find(i => (i.placeholder ?? "").includes("Nazwa grupy"));
-    if (!input) return "no field";
+// ── one is made, and it appears ─────────────────────────────────────────────
 
-    // Through the native setter, because React listens for its own input event
-    // and an assignment does not raise one.
-    const setter = Object.getOwnPropertyDescriptor(
-        window.HTMLInputElement.prototype, "value").set;
-    setter.call(input, "Zespół Sprawdzający");
-    input.dispatchEvent(new Event("input", { bubbles: true }));
+check(await addGroup(NAME) === "clicked", "a group is created from the panel");
+await wait(4500);
 
-    const button = [...document.querySelectorAll("button")]
-        .find(b => b.textContent.trim() === "Dodaj grupę");
-    if (!button) return "no button";
-    return button.disabled ? "the name did not reach React" : "ready";
-`);
-check(form === "ready", `the name reaches the form and the button turns on (${form})`);
+// Uppercased by the badge, so matched without case.
+check(
+    (await body()).toLowerCase().includes(NAME.toLowerCase()),
+    "and it appears in the roster");
 
-// **Every participant row offers a group**, which is where somebody is put in
-// one. Staff rows are disabled: they do not compete, so they are not grouped —
-// the same reason the ranking leaves them out.
+// ── two rows in one ranking may not carry one name ──────────────────────────
+
+check(await addGroup(NAME) === "clicked", "a second group of the same name is offered");
+await wait(4500);
+
+const refused = await alerts();
+check(
+    refused.includes("group.name.taken"),
+    `and refused, which also proves the first one landed (${refused.slice(0, 80)})`);
+
+// ── and every participant may be put in one ─────────────────────────────────
+//
+// Staff rows are disabled: they do not compete, so they are not grouped — the
+// same reason the ranking leaves them out.
 const offered = await evaluate(`
     return [...document.querySelectorAll("tbody tr")]
         .filter(r => r.querySelector("input[role=combobox], input[aria-haspopup=listbox]"))

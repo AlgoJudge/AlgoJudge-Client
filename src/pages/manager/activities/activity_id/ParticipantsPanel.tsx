@@ -144,16 +144,13 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                                     <IconX
                                         size={12}
                                         style={{ cursor: "pointer" }}
-                                        onClick={() => void (async () => {
-                                            setBusy(true);
-                                            try {
-                                                await call(api =>
-                                                    api.managerApi.deleteGroup(activity.id, group.id));
-                                                setReload(r => r + 1);
-                                            } finally {
-                                                setBusy(false);
-                                            }
-                                        })()}
+                                        // Through `run`, like every other write
+                                        // here: it catches, reports and reloads.
+                                        // Three handlers duplicated it badly and
+                                        // swallowed their errors, so a refusal
+                                        // from the Server produced silence.
+                                        onClick={() => void run(() => call(api =>
+                                            api.managerApi.deleteGroup(activity.id, group.id)))}
                                     />
                                 }
                             >
@@ -175,17 +172,11 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                             size="xs"
                             variant="default"
                             disabled={busy || newGroup.trim().length === 0}
-                            onClick={() => void (async () => {
-                                setBusy(true);
-                                try {
-                                    await call(api => api.managerApi.createGroup(
-                                        activity.id, { name: newGroup.trim(), isSystem: false }));
-                                    setNewGroup("");
-                                    setReload(r => r + 1);
-                                } finally {
-                                    setBusy(false);
-                                }
-                            })()}
+                            onClick={() => void run(async () => {
+                                await call(api => api.managerApi.createGroup(
+                                    activity.id, { name: newGroup.trim(), isSystem: false }));
+                                setNewGroup("");
+                            })}
                         >
                             {t("Add group")}
                         </Button>
@@ -282,16 +273,9 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                                         // grouped either — the same reason the
                                         // ranking leaves them out.
                                         disabled={busy || isStaffGrant(grant.permissions, catalogue)}
-                                        onChange={value => void (async () => {
-                                            setBusy(true);
-                                            try {
-                                                await call(api => api.managerApi.setParticipantGroup(
-                                                    activity.id, grant.userId, value || undefined));
-                                                setReload(r => r + 1);
-                                            } finally {
-                                                setBusy(false);
-                                            }
-                                        })()}
+                                        onChange={value => void run(() => call(api =>
+                                            api.managerApi.setParticipantGroup(
+                                                activity.id, grant.userId, value || undefined)))}
                                     />
                                 </Table.Td>
                                 <Table.Td><Badge variant="light">{grant.permissions.length}</Badge></Table.Td>
