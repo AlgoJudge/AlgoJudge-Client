@@ -1,9 +1,10 @@
-import { Alert, Badge, Button, Group, Modal, Pagination, Select, Stack, Switch, Table, Text, Title } from "@mantine/core";
-import { IconPlus, IconTrash, IconUsersPlus } from "@tabler/icons-react";
+import { Alert, Badge, Button, Group, Modal, Pagination, Paper, Select, Stack, Switch, Table, Text, TextInput, Title } from "@mantine/core";
+import { IconPlus, IconTrash, IconUsersPlus, IconX } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    Grant, ManagedActivity, ManagedUserSummary, PermissionDefinition, PermissionTemplate,
+    ActivityGroup, Grant, ManagedActivity, ManagedUserSummary, PermissionDefinition,
+    PermissionTemplate,
 } from "../../../../api/ManagerApi";
 import LoadState from "../../../../components/LoadState";
 import { isStaffGrant } from "../../../../api/permissions";
@@ -54,6 +55,8 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
     const [bulk, setBulk] = useState(false);
     const [busy, setBusy] = useState(false);
     const [reload, setReload] = useState(0);
+    const [groups, setGroups] = useState<ActivityGroup[]>([]);
+    const [newGroup, setNewGroup] = useState("");
 
     const loadError = useApiEffect(async (api) => {
         setCatalogue(await api.managerApi.getPermissionCatalogue());
@@ -62,6 +65,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
         // What may be handed out here is what the signed-in manager holds **in
         // this activity**, which is not the same set as their system rights.
         setGrantable(await api.managerApi.getMyPermissions(activity.id));
+        setGroups(await api.managerApi.getGroups(activity.id));
 
         // The previous list stays on screen while the next one loads. Blanking it
         // would take the whole panel down to a spinner on every save — and with
@@ -119,6 +123,76 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
 
     return (
         <Stack gap="md">
+            {/* **Groups, above the roster that assigns to them.** A group is a
+                contestant: it submits, it spends one allowance, and it holds one
+                ranking row while its members hold none. One person in a group is
+                legitimate — it is how somebody gets a name and a description in
+                the ranking. */}
+            <Paper withBorder p="md">
+                <Stack gap="xs">
+                    <Text size="sm" fw={500}>{t("Groups")}</Text>
+                    <Text size="xs" c="dimmed">
+                        {t("A group competes as one: one row in the ranking, one submission allowance, and the same grade for every member.")}
+                    </Text>
+                    <Group gap="xs" wrap="wrap">
+                        {groups.map(group => (
+                            <Badge
+                                key={group.id}
+                                variant={group.isSystem ? "outline" : "light"}
+                                color={group.isSystem ? "gray" : undefined}
+                                rightSection={
+                                    <IconX
+                                        size={12}
+                                        style={{ cursor: "pointer" }}
+                                        onClick={() => void (async () => {
+                                            setBusy(true);
+                                            try {
+                                                await call(api =>
+                                                    api.managerApi.deleteGroup(activity.id, group.id));
+                                                setReload(r => r + 1);
+                                            } finally {
+                                                setBusy(false);
+                                            }
+                                        })()}
+                                    />
+                                }
+                            >
+                                {group.name} · {group.memberCount}
+                            </Badge>
+                        ))}
+                        {groups.length === 0 && (
+                            <Text size="xs" c="dimmed">{t("No groups yet — everybody competes on their own.")}</Text>
+                        )}
+                    </Group>
+                    <Group gap="xs">
+                        <TextInput
+                            size="xs"
+                            placeholder={t("Group name")}
+                            value={newGroup}
+                            onChange={event => setNewGroup(event.currentTarget.value)}
+                        />
+                        <Button
+                            size="xs"
+                            variant="default"
+                            disabled={busy || newGroup.trim().length === 0}
+                            onClick={() => void (async () => {
+                                setBusy(true);
+                                try {
+                                    await call(api => api.managerApi.createGroup(
+                                        activity.id, { name: newGroup.trim(), isSystem: false }));
+                                    setNewGroup("");
+                                    setReload(r => r + 1);
+                                } finally {
+                                    setBusy(false);
+                                }
+                            })()}
+                        >
+                            {t("Add group")}
+                        </Button>
+                    </Group>
+                </Stack>
+            </Paper>
+
             <Group justify="space-between" wrap="wrap">
                 <Text size="sm" c="dimmed">
                     {t("A grant in this activity is the membership: holding one is being in it.")}
@@ -163,6 +237,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                         <Table.Tr>
                             <Table.Th>{t("User")}</Table.Th>
                             <Table.Th>{t("Started from")}</Table.Th>
+                            <Table.Th>{t("Group")}</Table.Th>
                             <Table.Th>{t("Permissions")}</Table.Th>
                             <Table.Th>{t("State")}</Table.Th>
                             <Table.Th>{t("Date")}</Table.Th>
@@ -188,6 +263,36 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                                 </Table.Td>
                                 <Table.Td>
                                     <Text size="sm" c="dimmed">{grant.createdFromTemplate ?? "—"}</Text>
+                                </Table.Td>
+                                <Table.Td>
+                                    {/* **Compulsory once set, so this is where it
+                                        is chosen and nowhere else.** Moving
+                                        somebody is allowed at any time and moves
+                                        nothing already sent: each submission
+                                        stamped its group when it was made. */}
+                                    <Select
+                                        size="xs"
+                                        w={160}
+                                        data={[
+                                            { value: "", label: t("On their own") },
+                                            ...groups.map(g => ({ value: g.id, label: g.name })),
+                                        ]}
+                                        value={grant.groupId ?? ""}
+                                        // Staff do not compete, so they are not
+                                        // grouped either — the same reason the
+                                        // ranking leaves them out.
+                                        disabled={busy || isStaffGrant(grant.permissions, catalogue)}
+                                        onChange={value => void (async () => {
+                                            setBusy(true);
+                                            try {
+                                                await call(api => api.managerApi.setParticipantGroup(
+                                                    activity.id, grant.userId, value || undefined));
+                                                setReload(r => r + 1);
+                                            } finally {
+                                                setBusy(false);
+                                            }
+                                        })()}
+                                    />
                                 </Table.Td>
                                 <Table.Td><Badge variant="light">{grant.permissions.length}</Badge></Table.Td>
                                 <Table.Td>

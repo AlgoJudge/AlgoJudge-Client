@@ -1109,5 +1109,12 @@
     "{{count}} number(s) read": "{{count}} number(s) read",
     "The address this submission arrived from": "The address this submission arrived from",
     "The browser said it was this one. It can be changed by whoever uses it, so it is a hint and not proof.": "The browser said it was this one. It can be changed by whoever uses it, so it is a hint and not proof.",
-    "The browser session it was sent in": "The browser session it was sent in"
+    "The browser session it was sent in": "The browser session it was sent in",
+    "You are competing as a group": "You are competing as a group",
+    "Submissions and limits are the group's, whoever sends them.": "Submissions and limits are the group's, whoever sends them.",
+    "A group competes as one: one row in the ranking, one submission allowance, and the same grade for every member.": "A group competes as one: one row in the ranking, one submission allowance, and the same grade for every member.",
+    "Add group": "Add group",
+    "Group name": "Group name",
+    "No groups yet — everybody competes on their own.": "No groups yet — everybody competes on their own.",
+    "On their own": "On their own"
 }

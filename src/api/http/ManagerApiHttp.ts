@@ -1,5 +1,7 @@
 import { InstanceDocumentKind, InstanceDocumentRef, InstanceInfo } from "../CoreApi";
 import {
+    ActivityGroup,
+    ActivityGroupInput,
     ActivityInput,
     DeletionRequest,
     DeletionRequestFilter,
@@ -111,6 +113,39 @@ export class ManagerApiHttp implements ManagerApi {
         if (filter.activityId) query.activityId = filter.activityId;
         if (filter.scope) query.scope = filter.scope;
         return this.http.request<Page<Grant>>("/grants", "GET", { signal, query });
+    }
+
+    // ── groups ──────────────────────────────────────────────────────────────
+    //
+    // Under the activity rather than under `/groups`, matching the Server: a
+    // group has no meaning outside one.
+
+    getGroups(activityId: string, signal: AbortSignal): Promise<ActivityGroup[]> {
+        return this.http.request<ActivityGroup[]>(
+            `/activities/${encodeURIComponent(activityId)}/groups`, "GET", { signal });
+    }
+
+    createGroup(activityId: string, input: ActivityGroupInput, signal: AbortSignal): Promise<ActivityGroup> {
+        return this.http.request<ActivityGroup>(
+            `/activities/${encodeURIComponent(activityId)}/groups`, "POST", { signal, body: input });
+    }
+
+    updateGroup(activityId: string, groupId: string, input: ActivityGroupInput, signal: AbortSignal): Promise<ActivityGroup> {
+        return this.http.request<ActivityGroup>(
+            `/activities/${encodeURIComponent(activityId)}/groups/${encodeURIComponent(groupId)}`,
+            "PUT", { signal, body: input });
+    }
+
+    async deleteGroup(activityId: string, groupId: string, signal: AbortSignal): Promise<void> {
+        await this.http.request<void>(
+            `/activities/${encodeURIComponent(activityId)}/groups/${encodeURIComponent(groupId)}`,
+            "DELETE", { signal });
+    }
+
+    setParticipantGroup(activityId: string, userId: string, groupId: string | undefined, signal: AbortSignal): Promise<Grant> {
+        return this.http.request<Grant>(
+            `/activities/${encodeURIComponent(activityId)}/participants/${encodeURIComponent(userId)}/group`,
+            "PUT", { signal, body: { groupId: groupId ?? null } });
     }
 
     setGrant(input: GrantInput, signal: AbortSignal): Promise<Grant> {

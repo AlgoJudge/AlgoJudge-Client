@@ -1,4 +1,4 @@
-import { Grant } from "../ManagerApi";
+import { ActivityGroup, Grant } from "../ManagerApi";
 import { signedInUserId } from "./CoreApiFake";
 import { createGrants, MY_SYSTEM_PERMISSIONS, PERMISSION_CATALOGUE } from "./fixtures/permissions";
 import { ME } from "./fixtures/problems";
@@ -18,6 +18,26 @@ import { ME } from "./fixtures/problems";
 export class FakeAccess {
     /** Mutable: the grant editor adds, edits and revokes during a visit. */
     grants: Grant[] = createGrants();
+
+    /**
+     * Mutable too: the participants panel makes and retires groups during a
+     * visit, and the ranking has to answer with what it just made.
+     *
+     * Held here beside the grants because membership **is** a field on a grant —
+     * the same reason the Server put it there — so the two would drift apart if
+     * they lived in different objects.
+     */
+    groups: ActivityGroup[] = [];
+
+    /**
+     * Activities whose ranking prints a group's roster under its name.
+     *
+     * Kept here rather than on the participant's activity because **the Server
+     * never sends this flag to a participant** — it sends its effect. A fake
+     * that put it on the participant's model would be answering a question the
+     * Server refuses.
+     */
+    showGroupMembers = new Set<string>();
 
     /** The account this browser is signed in as, or the fixtures' own manager. */
     me(): string {

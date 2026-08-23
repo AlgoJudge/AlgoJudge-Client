@@ -130,6 +130,26 @@ export default function ActivityPage() {
                 )}
             </Group>
 
+            {/* **Shown because sending as the group is compulsory rather than a
+                choice.** Without it somebody cannot tell why an allowance they
+                never spent has gone down, or why their name is not in the
+                ranking — the group's is. */}
+            {activity.group && (
+                <Paper withBorder p="md">
+                    <Stack gap={4}>
+                        <Text size="sm" c="dimmed">{t("You are competing as a group")}</Text>
+                        <Text fw={500}>{activity.group.name}</Text>
+                        {activity.group.description && (
+                            <Text size="sm" c="dimmed">{activity.group.description}</Text>
+                        )}
+                        <Text size="sm">{activity.group.members.join(", ")}</Text>
+                        <Text size="xs" c="dimmed">
+                            {t("Submissions and limits are the group's, whoever sends them.")}
+                        </Text>
+                    </Stack>
+                </Paper>
+            )}
+
             {/* An activity whose organiser wrote nothing shows nothing: not a
                 placeholder and not an apology. Somebody not enrolled still gets
                 the form, which is what they came for. */}

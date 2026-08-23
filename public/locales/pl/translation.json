@@ -1109,5 +1109,12 @@
     "{{count}} number(s) read": "Odczytane numery: {{count}}",
     "The address this submission arrived from": "Adres, z którego przyszło to zgłoszenie",
     "The browser said it was this one. It can be changed by whoever uses it, so it is a hint and not proof.": "Przeglądarka podała się za tę. Może to zmienić każdy, kto jej używa, więc jest to poszlaka, a nie dowód.",
-    "The browser session it was sent in": "Sesja przeglądarki, w której je wysłano"
+    "The browser session it was sent in": "Sesja przeglądarki, w której je wysłano",
+    "You are competing as a group": "Startujesz w grupie",
+    "Submissions and limits are the group's, whoever sends them.": "Zgłoszenia i limity należą do grupy, niezależnie od tego, kto je wysyła.",
+    "A group competes as one: one row in the ranking, one submission allowance, and the same grade for every member.": "Grupa startuje jako jedno: jeden wiersz w rankingu, jedna pula zgłoszeń i ta sama ocena dla każdego członka.",
+    "Add group": "Dodaj grupę",
+    "Group name": "Nazwa grupy",
+    "No groups yet — everybody competes on their own.": "Nie ma jeszcze grup — każdy startuje sam.",
+    "On their own": "Samodzielnie"
 }

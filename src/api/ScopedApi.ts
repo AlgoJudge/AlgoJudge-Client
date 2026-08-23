@@ -28,6 +28,8 @@ import {
     DeletionRequestFilter,
     IdentityProvider,
     IdentityProviderInput,
+    ActivityGroup,
+    ActivityGroupInput,
     Grant,
     GrantChangedEvent,
     GrantFilter,
@@ -419,6 +421,21 @@ export class ScopedManagerApi {
 
     getGrants(filter: GrantFilter = {}): Promise<Page<Grant>> {
         return this.managerApi.getGrants(filter, this.signal);
+    }
+    getGroups(activityId: string): Promise<ActivityGroup[]> {
+        return this.managerApi.getGroups(activityId, this.signal);
+    }
+    createGroup(activityId: string, input: ActivityGroupInput): Promise<ActivityGroup> {
+        return this.managerApi.createGroup(activityId, input, this.signal);
+    }
+    updateGroup(activityId: string, groupId: string, input: ActivityGroupInput): Promise<ActivityGroup> {
+        return this.managerApi.updateGroup(activityId, groupId, input, this.signal);
+    }
+    deleteGroup(activityId: string, groupId: string): Promise<void> {
+        return this.managerApi.deleteGroup(activityId, groupId, this.signal);
+    }
+    setParticipantGroup(activityId: string, userId: string, groupId: string | undefined): Promise<Grant> {
+        return this.managerApi.setParticipantGroup(activityId, userId, groupId, this.signal);
     }
     setGrant(input: GrantInput): Promise<Grant> {
         return this.managerApi.setGrant(input, this.signal);
