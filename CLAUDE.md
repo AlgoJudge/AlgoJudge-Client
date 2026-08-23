@@ -276,6 +276,24 @@ What a participant sees of their own group is on `Activity.group` — theirs onl
 Whose roster anybody else may read is the ranking's question, and the activity's
 setting answers it.
 
+### A submission may be ruled out of every standing (2026-08-24)
+
+A manager marks one submission as **not counted**, and it leaves the board, the
+best score and the LMS grade. `docs/specs/EXCLUDED_SUBMISSIONS.md` owns the rule.
+Three things reach this repository:
+
+- **The result stays what it was.** Judged, a verdict, a score — and no points
+  anywhere. That is why the participant's screen says so outright: without the
+  notice, the screen and the ranking describe one submission differently and the
+  person reading has no way to find out why.
+- **The flag travels to the participant, the reason does not.** The reason is on
+  the manager's screen, and in that person's own data export — the form says so
+  under the field, because a manager has to know it before writing one.
+- **`FakeExclusions` is a shared owner**, as `FakeAccess` is: the manager screen
+  writes the ruling and the participant's board reads it. The seed's own excluded
+  attempt is deliberately the best run there is, so `verify-points` reddens on
+  200/200 if the filter ever stops working.
+
 ### The socket is live (corrected 2026-08-09)
 
 This section claimed there was no WebSocket and that nothing dispatched over the
