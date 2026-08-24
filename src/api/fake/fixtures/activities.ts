@@ -1,4 +1,5 @@
 import { ManagedActivity, ManagedSeries, ManagedSeriesProblem } from "../../ManagerApi";
+import { DEFAULT_IMPORTANCE_SCOPE } from "../../seriesImportance";
 import { openByClock } from "../../seriesState";
 import {
     SeedActivity, SeedSeries, WORLD,
@@ -79,6 +80,7 @@ const seriesOf = (activity: SeedActivity, series: SeedSeries): ManagedSeries => 
     rankingVisibleFrom: series.rankingVisibleFrom,
     rankingVisibleTo: series.rankingVisibleTo,
     importance: series.importance ?? 0,
+    importanceScope: series.importanceScope ?? DEFAULT_IMPORTANCE_SCOPE,
     addressRules: series.addressRules ?? [],
     // Nothing in the seed ships switched off: the switch is for a wrong list on
     // the day, and a fixture that started in that state would hide the rule it

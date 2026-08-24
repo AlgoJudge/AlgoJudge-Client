@@ -299,6 +299,20 @@ in for where a browser is: a browser cannot know its own address, and a check ha
 to stand inside the room and outside it. **Absent is not "anywhere"** — it is an
 address the Server could not read, which admits nobody and locks nobody.
 
+**Amended the same day.** A rank now carries a **scope**: `activity` — the
+default — displaces the other rounds of its own activity and nothing else;
+`installation` reaches every activity the reader is in. Three things follow here:
+
+- **An activity scope never locks a card**, so `Series.locked` is the only signal
+  there is. It was rendered by nothing until 2026-08-24 and a displaced round
+  fell through to *"not started yet"* under a countdown to a start already past.
+- **`Activity.locked` is drawn on the activity's own page too**, not only on the
+  list card: the card refuses to open, but the address is typed and bookmarked.
+- **The seed's examination activity runs two rounds.** Every seeded activity ran
+  exactly one until then, which is why no screen ever drew a displaced round and
+  why neither gap above was caught. A fixture that cannot express a shape is a
+  check that cannot fail on it.
+
 ### A submission may be ruled out of every standing (2026-08-24)
 
 A manager marks one submission as **not counted**, and it leaves the board, the

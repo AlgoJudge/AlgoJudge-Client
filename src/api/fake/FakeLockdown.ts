@@ -1,5 +1,5 @@
 import { AddressRule, ManagedSeries } from "../ManagerApi";
-import { NORMAL_IMPORTANCE } from "../seriesImportance";
+import { NORMAL_IMPORTANCE, SeriesImportanceScope } from "../seriesImportance";
 
 /** What a round says about itself, from wherever the fake keeps it. */
 export interface Restricted {
@@ -7,6 +7,7 @@ export interface Restricted {
     activityId: string;
     name: string;
     importance: number;
+    importanceScope: SeriesImportanceScope;
     addressRules: AddressRule[];
     restrictionsEnabled: boolean;
     isOpen: boolean;
@@ -49,6 +50,7 @@ export class FakeLockdown {
             activityId: series.activityId,
             name: series.name,
             importance: series.importance,
+            importanceScope: series.importanceScope,
             addressRules: series.addressRules,
             restrictionsEnabled: series.restrictionsEnabled,
             isOpen: series.isOpen,
@@ -65,12 +67,16 @@ export class FakeLockdown {
      * **It follows the grant, not the room**: only a round somebody takes part
      * in can displace anything, so a student sitting in the same laboratory and
      * not writing the examination loses nothing.
+     *
+     * Two floors now. An `installation` round sets one that reaches every
+     * activity the reader is in; an `activity` round sets one inside its own.
      */
     state(activityIds: string[], exemptIn: string[] = []): LockdownState {
         if (!this.enabled) return OPEN;
 
         const mine = new Set(activityIds);
         const hidden = new Set<string>();
+        const local = new Map<string, Displacer>();
         let top: Restricted | undefined;
 
         for (const round of this.rounds.values()) {
@@ -82,24 +88,34 @@ export class FakeLockdown {
                 hidden.add(round.id);
                 continue;
             }
-            if (round.importance > (top?.importance ?? 0)) top = round;
+            if (round.importance === NORMAL_IMPORTANCE) continue;
+
+            if (round.importanceScope === "installation") {
+                if (round.importance > (top?.importance ?? 0)) top = round;
+            } else if (round.importance > (local.get(round.activityId)?.floor ?? 0)) {
+                local.set(round.activityId, { floor: round.importance, seriesName: round.name });
+            }
         }
 
-        if (!top) return { floor: 0, hidden, exempt: false };
+        // Staff are exempt from what their own activity's round does, settled
+        // here so nothing downstream has to ask again.
+        if (top && exemptIn.includes(top.activityId)) top = undefined;
+        for (const activityId of exemptIn) local.delete(activityId);
+
         return {
-            floor: top.importance,
-            bySeriesName: top.name,
+            global: top ? { floor: top.importance, seriesName: top.name } : undefined,
+            local,
             hidden,
-            exempt: exemptIn.includes(top.activityId),
         };
     }
 
-    /** Whether an activity runs anything that survives the floor. */
+    /** Whether an activity runs anything that survives its floor. */
     locksActivity(state: LockdownState, activityId: string): boolean {
-        if (state.floor === 0 || state.exempt) return false;
+        const floor = floorFor(state, activityId);
+        if (floor === 0) return false;
         for (const round of this.rounds.values()) {
             if (round.activityId !== activityId || !round.isOpen) continue;
-            if (round.importance >= state.floor && !state.hidden.has(round.id)) return false;
+            if (round.importance >= floor && !state.hidden.has(round.id)) return false;
         }
         return true;
     }
@@ -129,15 +145,37 @@ export class FakeLockdown {
     }
 }
 
-export interface LockdownState {
+/** The round that set a floor, and the floor it set. */
+export interface Displacer {
     floor: number;
-    bySeriesName?: string;
-    hidden: Set<string>;
-    exempt: boolean;
+    seriesName: string;
 }
 
-const OPEN: LockdownState = { floor: 0, hidden: new Set(), exempt: false };
+export interface LockdownState {
+    global?: Displacer;
+    local: Map<string, Displacer>;
+    hidden: Set<string>;
+}
 
-/** Whether a round of this rank is displaced. */
-export const isLocked = (state: LockdownState, importance: number): boolean =>
-    !state.exempt && importance < state.floor;
+const OPEN: LockdownState = { local: new Map(), hidden: new Set() };
+
+/**
+ * What displaces the lower ranks of this activity, or nothing. The higher of
+ * the two floors, the global one winning a tie.
+ */
+export const displacerFor = (
+    state: LockdownState, activityId: string,
+): Displacer | undefined => {
+    const local = state.local.get(activityId);
+    if (!state.global) return local;
+    if (!local) return state.global;
+    return local.floor > state.global.floor ? local : state.global;
+};
+
+const floorFor = (state: LockdownState, activityId: string): number =>
+    displacerFor(state, activityId)?.floor ?? 0;
+
+/** Whether a round of this rank is displaced within this activity. */
+export const isLocked = (
+    state: LockdownState, activityId: string, importance: number,
+): boolean => importance < floorFor(state, activityId);

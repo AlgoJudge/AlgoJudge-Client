@@ -1,5 +1,6 @@
 import { JobState, ProblemSample, ScoreVisibility, SubmitField } from "../../ParticipantApi";
 import { AttachmentRule } from "../../ManagerApi";
+import { SeriesImportanceScope } from "../../seriesImportance";
 import {
     arraysStatement,
     graphConnectivityStatement,
@@ -246,6 +247,11 @@ export interface SeedSeries {
      * part in it, and equal ranks survive together.
      */
     importance?: number;
+    /**
+     * How far that rank reaches. Absent is `activity` — the other rounds of this
+     * activity and nothing else.
+     */
+    importanceScope?: SeriesImportanceScope;
     /**
      * The ranges it may be reached from, e.g. `10.0.5.0/24`. Absent means
      * anywhere; present means **nowhere else**, whatever grant somebody holds.
@@ -872,13 +878,25 @@ export const WORLD: SeedActivity[] = [
                 id: "series-k2", slug: "kolokwium", name: "Kolokwium 2", order: 1,
                 startDate: at(-hours(1)), endDate: at(hours(2)),
                 revealProblemCount: true,
-                // Above the ordinary, so everything else this reader takes part
-                // in is displaced while it runs.
+                // Above the ordinary, and **only inside this course** — which
+                // is what makes the ordinary round below it the visible signal
+                // while `PROG-1-LA` carries on untouched.
                 importance: 30,
+                importanceScope: "activity",
                 // And only from the laboratory. Outside it the round is absent
                 // entirely — from the list, and from anything addressed by name.
                 addressRules: [{ network: "10.0.5.0/24", note: "Laboratorium 3.1.4" }],
                 assignments: [{ problem: ARRAYS, slug: "stos", name: "Stos i kolejka" }],
+            },
+            // **The neighbour, and the reason it is here.** Every seeded
+            // activity ran exactly one round, so no screen ever drew a
+            // displaced round — which is how a locked one came to render as
+            // "not started yet" under a countdown to a start already past.
+            {
+                id: "series-k2-cw", slug: "cwiczenia", name: "Ćwiczenia 4", order: 2,
+                startDate: at(-days(3)), endDate: at(days(4)),
+                revealProblemCount: true,
+                assignments: [{ problem: LOOPS, slug: "petle", name: "Pętle i złożoność" }],
             },
         ],
     },

@@ -23,7 +23,7 @@ import {
 import { FakeActivities, SeriesRelay } from "./FakeActivities";
 import { FakeAccess } from "./FakeAccess";
 import { FakeExclusions } from "./FakeExclusions";
-import { FakeLockdown, isLocked } from "./FakeLockdown";
+import { displacerFor, FakeLockdown, isLocked } from "./FakeLockdown";
 import { WORLD } from "./fixtures/world";
 import { AttachmentRule } from "../ManagerApi";
 import { maySubmit, mayReadProblems, SeriesTiming } from "../seriesState";
@@ -574,7 +574,7 @@ export class ParticipantApiFake implements ParticipantApi {
             // **Here, where every activity leaves.** The list and the page are
             // the same seam, so neither can say something the other does not.
             locked: this.lockdown.locksActivity(state, activity.id)
-                ? { seriesName: state.bySeriesName ?? "" }
+                ? { seriesName: displacerFor(state, activity.id)?.seriesName ?? "" }
                 : undefined,
         };
     }
@@ -609,6 +609,22 @@ export class ParticipantApiFake implements ParticipantApi {
             .filter(a => this.isMember(a))
             .map(a => a.id);
         return this.lockdown.state(mine);
+    }
+
+    /**
+     * The rounds of one activity this reader cannot reach.
+     *
+     * **An activity-scoped floor leaves the activity open**, so the board, the
+     * submission list and the questions stopped being answerable with "all of it
+     * or none of it". Mirrors `ISeriesLockdown.UnreachableRoundsAsync`.
+     */
+    private unreachableRounds(activityId: string): Set<string> {
+        const state = this.lockdownState();
+        const rounds = this.state.dataset().series.get(activityId) ?? [];
+        return new Set(rounds
+            .filter(series => state.hidden.has(series.id)
+                || isLocked(state, activityId, this.importanceOf(series.id)))
+            .map(series => series.id));
     }
 
     /**
@@ -653,13 +669,15 @@ export class ParticipantApiFake implements ParticipantApi {
         return copy(rounds
             .filter(series => !state.hidden.has(series.id))
             .map(series => {
-                const displaced = isLocked(state, this.importanceOf(series.id));
+                const displaced = isLocked(state, activityId, this.importanceOf(series.id));
                 const readable = !displaced && mayReadProblems(this.timingOf(series), activity ?? {});
                 return {
                     ...series,
                     problems: readable ? series.problems : undefined,
                     problemCount: displaced ? undefined : series.problemCount,
-                    locked: displaced ? { seriesName: state.bySeriesName ?? "" } : undefined,
+                    locked: displaced
+                        ? { seriesName: displacerFor(state, activityId)?.seriesName ?? "" }
+                        : undefined,
                 };
             }));
     }
@@ -683,9 +701,14 @@ export class ParticipantApiFake implements ParticipantApi {
         await this.settle(signal);
         const all = this.state.dataset().submissions.get(activityId) ?? [];
         const states = filter.states ?? [];
+        // Their own work in a round out of reach goes with the round — during an
+        // examination, re-reading last week's accepted solution is the thing
+        // this exists to stop.
+        const unreachable = this.unreachableRounds(activityId);
         const matched = all.filter(s =>
             (!filter.problemId || s.problemId === filter.problemId) &&
             (!filter.seriesId || s.seriesId === filter.seriesId) &&
+            !unreachable.has(s.seriesId) &&
             (states.length === 0 || states.includes(s.state)));
         // **Stamped here**, where it leaves, rather than in the dataset: a
         // manager's ruling arrives during the visit, and a row built before it
@@ -813,9 +836,11 @@ export class ParticipantApiFake implements ParticipantApi {
         // and the timing comes from the **live** series, so a round a manager
         // just moved is counted from where it now starts.
         const activity = this.activityOf(activityId);
+        // The displaced round loses its column and the rest of the board stays.
+        const unreachable = this.unreachableRounds(activityId);
         return copy(activityResults({
             seed,
-            live: data.series.get(activityId) ?? [],
+            live: (data.series.get(activityId) ?? []).filter(s => !unreachable.has(s.id)),
             seriesId,
             scoreVisibility: activity?.scoreVisibility ?? "managersOnly",
             // Decided here because the Server decides it here. It used to be the
@@ -851,10 +876,15 @@ export class ParticipantApiFake implements ParticipantApi {
         const search = filter.search?.trim().toLowerCase();
         // Filtering happens before paging. The reverse — which the old screen
         // did — silently filters only the page that happens to be visible.
+        // A question about a round out of reach goes with it; one about the
+        // activity carries no round and stays, because an announcement is how
+        // the organiser explains the lockdown.
+        const unreachable = this.unreachableRounds(activityId);
         const matched = all.filter(q =>
             (!search || q.topic.toLowerCase().includes(search)) &&
             (!filter.kind || q.kind === filter.kind) &&
             (!filter.seriesId || q.seriesId === filter.seriesId) &&
+            (q.seriesId === undefined || !unreachable.has(q.seriesId)) &&
             (!filter.problemId || q.problemId === filter.problemId));
 
         // Sorted on the Server, because the page is cut afterwards: sorting in

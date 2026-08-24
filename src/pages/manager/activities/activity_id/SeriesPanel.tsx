@@ -7,7 +7,10 @@ import {
 } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { NORMAL_IMPORTANCE, SERIES_IMPORTANCE_RANKS } from "../../../../api/seriesImportance";
+import {
+    DEFAULT_IMPORTANCE_SCOPE, NORMAL_IMPORTANCE, SERIES_IMPORTANCE_RANKS,
+    SERIES_IMPORTANCE_SCOPES, SeriesImportanceScope,
+} from "../../../../api/seriesImportance";
 import {
     ManagedActivity, ManagedProblem, ManagedProblemVersion, ManagedSeries, ManagedSeriesProblem,
     SeriesInput, SeriesProblemInput,
@@ -50,9 +53,17 @@ const importanceName = (rank: number, t: (key: string) => string): string => {
     }
 };
 
+/**
+ * What each scope is called. Written out for the same reason the ranks are:
+ * `check:i18n` reads only calls it can see.
+ */
+const scopeName = (scope: SeriesImportanceScope, t: (key: string) => string): string =>
+    scope === "installation" ? t("Across the whole system") : t("Within this activity only");
+
 const emptySeries = (): SeriesInput => ({
     slug: "", name: "", revealProblemCount: true,
-    importance: NORMAL_IMPORTANCE, addressRules: [], restrictionsEnabled: true,
+    importance: NORMAL_IMPORTANCE, importanceScope: DEFAULT_IMPORTANCE_SCOPE,
+    addressRules: [], restrictionsEnabled: true,
 });
 
 const toSeriesInput = (series: ManagedSeries): SeriesInput => ({
@@ -66,6 +77,7 @@ const toSeriesInput = (series: ManagedSeries): SeriesInput => ({
     rankingVisibleFrom: series.rankingVisibleFrom,
     rankingVisibleTo: series.rankingVisibleTo,
     importance: series.importance,
+    importanceScope: series.importanceScope,
     addressRules: series.addressRules,
     restrictionsEnabled: series.restrictionsEnabled,
 });
@@ -333,7 +345,7 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                                         manager choosing one has to see what it
                                         loses to. */}
                                     <Grid mt="sm">
-                                        <Grid.Col span={{ base: 12, md: 6 }}>
+                                        <Grid.Col span={{ base: 12, md: 4 }}>
                                             <Select
                                                 label={t("Importance")}
                                                 description={t("While this round runs, anything of a lower importance is locked for whoever takes part in it.")}
@@ -347,7 +359,28 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                                                 allowDeselect={false}
                                             />
                                         </Grid.Col>
-                                        <Grid.Col span={{ base: 12, md: 6 }}>
+                                        {/* Disabled at `normal`, where it decides
+                                            nothing: an enabled control that
+                                            changes no outcome is a control
+                                            somebody reads as broken. */}
+                                        <Grid.Col span={{ base: 12, md: 3 }}>
+                                            <Select
+                                                label={t("Importance reaches")}
+                                                description={t("Whether the lock reaches other activities the participant takes part in.")}
+                                                data={SERIES_IMPORTANCE_SCOPES.map(scope => ({
+                                                    value: scope,
+                                                    label: scopeName(scope, t),
+                                                }))}
+                                                value={draftFor(s).importanceScope ?? DEFAULT_IMPORTANCE_SCOPE}
+                                                onChange={value => setDraft(s, {
+                                                    importanceScope: (value ?? DEFAULT_IMPORTANCE_SCOPE) as SeriesImportanceScope,
+                                                })}
+                                                disabled={locked
+                                                    || (draftFor(s).importance ?? NORMAL_IMPORTANCE) === NORMAL_IMPORTANCE}
+                                                allowDeselect={false}
+                                            />
+                                        </Grid.Col>
+                                        <Grid.Col span={{ base: 12, md: 5 }}>
                                             <TextInput
                                                 label={t("Reachable only from")}
                                                 description={t("Address ranges, separated by commas, e.g. 10.0.5.0/24. Empty means anywhere. Elsewhere the round is not shown at all.")}

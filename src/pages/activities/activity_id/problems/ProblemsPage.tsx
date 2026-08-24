@@ -66,7 +66,11 @@ const ClosedSeries = ({ series, timeZone, onOpen }: { series: Series; timeZone: 
     // it has not started, a manager took the statements away, or it is over and
     // the activity closes finished rounds.
     const state = seriesState(series);
-    const stopped = state === "paused" || state === "ended";
+    // **A fourth, and it wins over the dates.** A displaced round is running,
+    // so the clock says "open" and the payload is empty, which this read as
+    // "not started yet" — under a countdown to a moment already gone.
+    const displaced = series.locked;
+    const stopped = state === "paused" || state === "ended" || displaced !== undefined;
     return (
         // Without a floor the container collapses when the problem count is
         // withheld too, and the overlay lands on top of the series heading.
@@ -84,7 +88,8 @@ const ClosedSeries = ({ series, timeZone, onOpen }: { series: Series; timeZone: 
                     <Group gap="xs">
                         <IconLock size={18} />
                         <Text size="lg" fw={700}>
-                            {state === "paused" ? t("The series is paused")
+                            {displaced ? t("Locked by {{series}}", { series: displaced.seriesName })
+                                : state === "paused" ? t("The series is paused")
                                 : state === "ended" ? t("The series has ended")
                                 : count === undefined ? t("Not started yet")
                                 : `${t("Problems")}: ${count}`}
