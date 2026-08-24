@@ -253,6 +253,12 @@ export interface SeedSeries {
      */
     importanceScope?: SeriesImportanceScope;
     /**
+     * Which Runners judge this round, overriding its activity's. Absent
+     * inherits; there is no empty override, so a round wanting the general
+     * Runners while its course is pinned carries `["default"]`.
+     */
+    runnerTags?: string[];
+    /**
      * The ranges it may be reached from, e.g. `10.0.5.0/24`. Absent means
      * anywhere; present means **nowhere else**, whatever grant somebody holds.
      */
@@ -283,6 +289,8 @@ export interface SeedActivity {
     archivedAt?: string;
     /** Free display metadata on the participant's side. Never queried. Opaque. */
     props?: Record<string, unknown>;
+    /** Which Runners judge this activity. Absent is the default pool. */
+    runnerTags?: string[];
     /** The reader's own standing to it, where they have not joined during the visit. */
     membership: "enrolled" | "invited" | "open";
     /**
@@ -886,6 +894,13 @@ export const WORLD: SeedActivity[] = [
                 // And only from the laboratory. Outside it the round is absent
                 // entirely — from the list, and from anything addressed by name.
                 addressRules: [{ network: "10.0.5.0/24", note: "Laboratorium 3.1.4" }],
+                // **Judged in that room too**, and this is the shape the
+                // feature exists for: the examination goes to the laboratory's
+                // machines, `Ćwiczenia 4` below inherits nothing and stays on
+                // the general ones. A course pinned whole would send the
+                // homework there as well, including whatever is sent from home
+                // at night while those machines are off.
+                runnerTags: ["lab-a"],
                 assignments: [{ problem: ARRAYS, slug: "stos", name: "Stos i kolejka" }],
             },
             // **The neighbour, and the reason it is here.** Every seeded

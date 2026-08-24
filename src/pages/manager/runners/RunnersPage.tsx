@@ -7,6 +7,7 @@ import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import { ManagedRunner, RunnerAttachment, RunnerState } from "../../../api/ManagerApi";
+import { MAX_RUNNER_TAGS } from "../../../api/runnerTags";
 import LoadState from "../../../components/LoadState";
 import ActivityTime from "../../../components/time/ActivityTime";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
@@ -28,10 +29,15 @@ const textAttachments = (runner: ManagedRunner): RunnerAttachment[] =>
 /**
  * The Runners an installation has, and what each one said about itself.
  *
- * Everything but the tags is reported by the Runner: product, version, the
+ * Everything but the tags is the Runner's own report: product, version, the
  * problem types it accepts, its address, its key fingerprint and its machine.
  * The screen displays the report and never fills a gap in it — a Runner that has
  * not connected has no machine, and saying so is the honest answer.
+ *
+ * **The tags are the exception, and only half of one.** A Runner may name its
+ * pools in its own configuration, and the Server takes that at its **first**
+ * registration and never again — from then on this screen owns them. That is
+ * why they decide what work a machine is given and a restart cannot change it.
  *
  * Approval and connection are shown separately. An approved Runner that is
  * offline is an outage; a connected Runner that is not approved evaluates
@@ -387,12 +393,14 @@ export default function RunnersPage() {
                         </Card>
 
                         <Alert color="blue">
-                            {t("Everything above is what the Runner reported about itself. Only the tags are set here.")}
+                            {t("Everything above is what the Runner reported about itself. The tags are set here — a Runner may suggest them at its first registration, and this screen owns them afterwards.")}
                         </Alert>
 
                         <TagsInput
                             label={t("Tags")}
-                            description={t("Used to steer work at particular machines")}
+                            description={t("This Runner is given work sharing at least one of these tags. Empty means the general pool — and naming any takes it out of that pool.")}
+                            placeholder={t("e.g. lab-a")}
+                            maxTags={MAX_RUNNER_TAGS}
                             value={tags}
                             onChange={setTags}
                         />

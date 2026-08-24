@@ -211,6 +211,22 @@ keeping rather than rewriting.
   note stays because `browser.mjs` still starts Firefox for measurements, and
   the close is still a trap there.
 
+- **A manager row opens from a `<Text onClick>`, not from the row or the cell.**
+  Clicking the middle of the first `td` lands beside the handler as often as on
+  it, which reads as a screen that stopped opening. Click
+  `td [style*=pointer]`.
+- **A mounted tab panel's buttons come first in the document.** Every round in
+  the rounds tab has a `Zapisz`, so an unscoped `find(b => b.textContent ===
+  "Zapisz")` on the settings tab saves a round and leaves the form untouched —
+  and the check then passes or fails for a reason that has nothing to do with
+  it. Scope to the `[role=tabpanel]` with an `offsetParent`.
+- **A `TagsInput`'s wrapper ends at its own description.** Anything rendered
+  under the field — a count, a warning — is a sibling, so
+  `InputWrapper-root.textContent` finds the label and never the number. Read the
+  card.
+- **Its pills are not in `innerText` either**, for the same reason an input's
+  value is not: read `[class*=Pill-label]`.
+
 ## Writing another
 
 `harness.mjs` is the whole harness — a tab, and the few things worth not writing
