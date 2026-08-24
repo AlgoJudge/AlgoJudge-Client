@@ -313,6 +313,17 @@ default — displaces the other rounds of its own activity and nothing else;
   why neither gap above was caught. A fixture that cannot express a shape is a
   check that cannot fail on it.
 
+### An account that has been stopped ends the session (2026-08-24)
+
+`account.blocked` and `account.expired` take the same road a 401 does: the
+provider hears `sessionExpired` and the login screen appears. **Not a toast** —
+an account that can make no request would collect one on every request, in the
+Server's own English, over a screen that will never finish loading.
+
+`UsersPage.stateOf` has drawn `expired` from `ExpiresAt` since long before the
+Server enforced it, which is why the refusal carries its own code rather than
+calling both states blocked.
+
 ### One account's work may be carried onto another (2026-08-24)
 
 A manager moves a temporary account's submissions, points and questions onto the
