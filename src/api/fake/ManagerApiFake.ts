@@ -70,7 +70,7 @@ import { FakeActivities } from "./FakeActivities";
 import { FakeAccess } from "./FakeAccess";
 import { FakeExclusions } from "./FakeExclusions";
 import { FakeLockdown } from "./FakeLockdown";
-import { NORMAL_IMPORTANCE } from "../seriesImportance";
+import { DEFAULT_IMPORTANCE_SCOPE, NORMAL_IMPORTANCE } from "../seriesImportance";
 import { systemicByDefault } from "../permissions";
 import { ActivityRecord, createActivityLibrary } from "./fixtures/activities";
 import { signedInUserId } from "./CoreApiFake";
@@ -793,6 +793,7 @@ export class ManagerApiFake implements ManagerApi {
             // it exists.
             isOpen: input.startDate === undefined || Date.parse(input.startDate) <= Date.now(),
             importance: 0,
+            importanceScope: DEFAULT_IMPORTANCE_SCOPE,
             addressRules: [],
             restrictionsEnabled: true,
             ...input,

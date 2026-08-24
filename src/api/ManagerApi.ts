@@ -1,6 +1,7 @@
 import { InstanceDocumentKind, InstanceDocumentRef, InstanceInfo } from "./CoreApi";
 import { Event } from "./Event";
 import { StatementRef, UploadedFile } from "./FileApi";
+import { SeriesImportanceScope } from "./seriesImportance";
 import {
     ActivityDocumentKind, ActivityDocumentRef, DisplayName, JobState, JoinPolicy, Page,
     QuestionAnswer, QuestionKind, ScoreVisibility, SubmissionFile,
@@ -574,6 +575,15 @@ export interface ManagedSeries {
      * has to see what it loses to.
      */
     importance: number;
+    /**
+     * How far that rank reaches: this activity's own rounds, or every activity
+     * the reader takes part in.
+     *
+     * A course marking one round an examination should not lock its students out
+     * of every other course; a laboratory contest should. Both are wanted, so the
+     * manager chooses, and `activity` is what a round starts as.
+     */
+    importanceScope: SeriesImportanceScope;
     /** The ranges it may be reached from. Empty means anywhere. */
     addressRules: AddressRule[];
     /**
@@ -615,6 +625,7 @@ export interface SeriesInput {
     rankingVisibleTo?: string;
     /** Absent leaves it alone; on a new round that means `normal`. */
     importance?: number;
+    importanceScope?: SeriesImportanceScope;
     /** The whole list, replaced. Absent leaves it alone; empty clears it. */
     addressRules?: AddressRule[];
     restrictionsEnabled?: boolean;

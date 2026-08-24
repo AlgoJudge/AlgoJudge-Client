@@ -118,8 +118,9 @@ export default function ActivityPage() {
             <Group justify="space-between" align="center" wrap="wrap">
                 <Title>{activity.name}</Title>
                 {/* What somebody in the activity came for. Not offered to
-                    anybody else: there is nothing there for them yet. */}
-                {enrolled && (
+                    anybody else: there is nothing there for them yet, and not
+                    while it is locked: everything under it refuses. */}
+                {enrolled && !activity.locked && (
                     <Button
                         component={Link}
                         to={`/activities/${activity.slug}/problems`}
@@ -129,6 +130,20 @@ export default function ActivityPage() {
                     </Button>
                 )}
             </Group>
+
+            {/* **The reason, on the page as well as on the card.** The card
+                refuses to open, but the address is typed and bookmarked, and
+                landing on tabs that all fail says nothing about why. */}
+            {activity.locked && (
+                <Alert color="orange" icon={<IconLock size={18} />} title={t("This activity is locked")}>
+                    <Text size="sm">
+                        {t("Locked by {{series}}", { series: activity.locked.seriesName })}
+                    </Text>
+                    <Text size="sm" c="dimmed">
+                        {t("The problems, submissions, questions and ranking come back when it ends.")}
+                    </Text>
+                </Alert>
+            )}
 
             {/* **Shown because sending as the group is compulsory rather than a
                 choice.** Without it somebody cannot tell why an allowance they
