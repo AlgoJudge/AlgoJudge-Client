@@ -313,6 +313,25 @@ default — displaces the other rounds of its own activity and nothing else;
   why neither gap above was caught. A fixture that cannot express a shape is a
   check that cannot fail on it.
 
+### One account's work may be carried onto another (2026-08-24)
+
+A manager moves a temporary account's submissions, points and questions onto the
+participant's permanent account. `docs/specs/ACCOUNT_MERGE.md` owns the rule.
+Two things reach this repository:
+
+- **The preview is the guard, so it is a screen rather than a confirmation.** A
+  merge is one person asserting that two accounts are the same person, and
+  nothing can check that for them — so the dialog states whose work, how much of
+  it, and onto whom, with both names and both logins, and the button is not
+  offered until that statement is on screen.
+- **A verification check reading `document.body` is reading the page behind the
+  dialog.** Two checks here passed for the wrong reason: the word *Zgłoszenia* is
+  in the dialog's own opening sentence and the target's name is in the table
+  underneath, so blanking the whole preview left both green. `verify-merge.mjs`
+  reads `[class*=Modal-content]` and asserts on the **numbers** rather than the
+  words. An input's value is not in `innerText`, which is why the chosen target
+  does not leak in through the select.
+
 ### A submission may be ruled out of every standing (2026-08-24)
 
 A manager marks one submission as **not counted**, and it leaves the board, the
