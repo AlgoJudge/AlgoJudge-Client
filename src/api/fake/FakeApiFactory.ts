@@ -5,6 +5,7 @@ import { CoreApiFake } from "./CoreApiFake";
 import { FakeActivities } from "./FakeActivities";
 import { FakeAccess } from "./FakeAccess";
 import { FakeExclusions } from "./FakeExclusions";
+import { FakeLockdown } from "./FakeLockdown";
 import { WORLD } from "./fixtures/world";
 import { FakeInstance } from "./FakeInstance";
 import { FakeFiles, FileApiFake } from "./FileApiFake";
@@ -34,10 +35,14 @@ export class FakeApiFactory {
         // participant's board reads the ruling; two copies would leave a
         // submission ruled out in one screen and still scoring in another.
         const exclusions = new FakeExclusions(WORLD);
+        // And one owner for what a running round puts out of reach. The manager
+        // panel writes a round's rank and ranges; the participant's screens read
+        // what they do.
+        const lockdown = new FakeLockdown();
         return {
             authApi: new CoreApiFake(instance),
-            participantApi: new ParticipantApiFake(files, activities, access, exclusions),
-            managerApi: new ManagerApiFake(files, instance, activities, access, exclusions),
+            participantApi: new ParticipantApiFake(files, activities, access, exclusions, lockdown),
+            managerApi: new ManagerApiFake(files, instance, activities, access, exclusions, lockdown),
             fileApi: new FileApiFake(files),
             ltiApi: new LtiApiFake(),
             // The fake dispatches its own events as it changes things, so there

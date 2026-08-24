@@ -1,5 +1,5 @@
 import { Badge, Card, Chip, Group, Pagination, Stack, Text, Title } from "@mantine/core";
-import { IconQuestionMark, IconSchool, IconTrophy } from "@tabler/icons-react";
+import { IconLock, IconQuestionMark, IconSchool, IconTrophy } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -110,7 +110,11 @@ export default function ActivitiesPage() {
                     // Its own page where somebody wrote one, its problems
                     // otherwise: the rule lives in one place so the list and the
                     // front page cannot come to disagree about it.
-                    onClick={() => navigate(activityEntryPath(item))}
+                    // **A locked card does not open.** The Server refuses
+                    // everything under it anyway; navigating would land somebody
+                    // on a page of refusals instead of on the reason.
+                    onClick={() => { if (!item.locked) navigate(activityEntryPath(item)); }}
+                    style={item.locked ? { cursor: "default" } : undefined}
                 >
                     <Group justify="space-between" wrap="nowrap">
                         <Group wrap="nowrap" style={{ minWidth: 0 }}>
@@ -120,6 +124,18 @@ export default function ActivitiesPage() {
                                 <Group gap="xs">
                                     <Badge variant="outline" size="sm">{item.slug}</Badge>
                                     {membershipBadge(item)}
+                                    {/* Shown rather than hidden, and saying
+                                        which round did it: a row that vanished
+                                        during an examination reads as a fault. */}
+                                    {item.locked && (
+                                        <Badge
+                                            color="orange"
+                                            variant="light"
+                                            leftSection={<IconLock size={12} />}
+                                        >
+                                            {t("Locked by {{series}}", { series: item.locked.seriesName })}
+                                        </Badge>
+                                    )}
                                 </Group>
                             </Stack>
                         </Group>

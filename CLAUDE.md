@@ -276,6 +276,29 @@ What a participant sees of their own group is on `Activity.group` — theirs onl
 Whose roster anybody else may read is the ranking's question, and the activity's
 setting answers it.
 
+### A running round may put the rest out of reach (2026-08-24)
+
+`docs/specs/SERIES_LOCKDOWN.md` owns the rule. Four things reach this repository:
+
+- **Locked is shown, hidden is not there.** A locked activity keeps its card,
+  says which round displaced it, and does not open — the Server refuses
+  everything under it, so navigating would land somebody on a page of refusals
+  instead of on the reason. A round hidden by an address rule leaves no trace.
+- **The Server sends a round's name and this side writes the sentence.** A Server
+  composing interface text would need a release to change a comma.
+- **The importance select prints the rank beside the name**, because the ordering
+  *is* what the list means — `Egzamin lub kolokwium (30)` loses to `Seria próbna
+  zawodów (40)`, and a manager has to see that before choosing.
+- **The names are written out, never assembled from a rank.** `check:i18n` reads
+  only calls written in full, so a key built at run time is a translation nothing
+  checks — and a missing one renders as English on a Polish screen with nothing
+  else noticing.
+
+`FakeLockdown` is a shared owner, as `FakeAccess` is, and `?fakeAddress=` stands
+in for where a browser is: a browser cannot know its own address, and a check has
+to stand inside the room and outside it. **Absent is not "anywhere"** — it is an
+address the Server could not read, which admits nobody and locks nobody.
+
 ### A submission may be ruled out of every standing (2026-08-24)
 
 A manager marks one submission as **not counted**, and it leaves the board, the

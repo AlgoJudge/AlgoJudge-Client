@@ -69,6 +69,8 @@ import { ActivityDocumentKind, ActivityDocumentRef } from "../ParticipantApi";
 import { FakeActivities } from "./FakeActivities";
 import { FakeAccess } from "./FakeAccess";
 import { FakeExclusions } from "./FakeExclusions";
+import { FakeLockdown } from "./FakeLockdown";
+import { NORMAL_IMPORTANCE } from "../seriesImportance";
 import { systemicByDefault } from "../permissions";
 import { ActivityRecord, createActivityLibrary } from "./fixtures/activities";
 import { signedInUserId } from "./CoreApiFake";
@@ -170,6 +172,8 @@ export class ManagerApiFake implements ManagerApi {
         private readonly access: FakeAccess,
         /** And one for which submissions count, which this screen rules on. */
         private readonly exclusions: FakeExclusions,
+        /** And one for what a running round puts out of reach. */
+        private readonly lockdown: FakeLockdown,
         private sleepMs: number = 300,
     ) {
         this.library = createProblemLibrary(files);
@@ -186,6 +190,13 @@ export class ManagerApiFake implements ManagerApi {
                 .flatMap(series => series.problems)
                 .filter(problem => problem.problemId === record.problem.id)
                 .length;
+        }
+
+        // The seed's own rounds, so a restricted one is in force from the first
+        // request rather than from the first time somebody edits it.
+        for (const record of this.activities)
+        {
+            for (const series of record.series) this.lockdown.remember(series);
         }
     }
 
@@ -744,6 +755,22 @@ export class ManagerApiFake implements ManagerApi {
         this.eventDispatcher.dispatchEvent({ type: "activityChanged", data: { deletedId: id } });
     }
 
+    /**
+     * The one write-time rule, mirrored from the Server.
+     *
+     * A round with no end imposes a lockdown that never lifts, and one with no
+     * start has nothing to say when it begins — so a round may restrict nothing
+     * until it is bounded in time.
+     */
+    private static assertRestrictable(series: ManagedSeries): void {
+        const restricts = series.importance !== NORMAL_IMPORTANCE || series.addressRules.length > 0;
+        if (restricts && (!series.startDate || !series.endDate)) {
+            invalid(
+                "A round that restricts anything needs a start and an end",
+                "series.restrictions.needDates");
+        }
+    }
+
     async getSeries(activityId: string, signal: AbortSignal): Promise<ManagedSeries[]> {
         await this.settle(signal);
         return copy(this.findActivity(activityId).series);
@@ -765,10 +792,15 @@ export class ManagerApiFake implements ManagerApi {
             // created with a start already behind it is running from the moment
             // it exists.
             isOpen: input.startDate === undefined || Date.parse(input.startDate) <= Date.now(),
+            importance: 0,
+            addressRules: [],
+            restrictionsEnabled: true,
             ...input,
         };
+        ManagerApiFake.assertRestrictable(series);
         record.series = [...record.series, series];
         this.recount(record);
+        this.lockdown.remember(series);
         this.announceSeries(record, series);
         return copy(series);
     }
@@ -778,6 +810,8 @@ export class ManagerApiFake implements ManagerApi {
         const { record, series } = this.findSeries(seriesId);
         this.assertSeriesSlugFree(record, input.slug, series.id);
         Object.assign(series, input);
+        ManagerApiFake.assertRestrictable(series);
+        this.lockdown.remember(series);
         this.announceSeries(record, series);
         // And the participant side, which keeps its own view of the series.
         // Editing the dates here is the ordinary way a round is moved — the

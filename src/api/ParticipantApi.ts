@@ -210,6 +210,26 @@ export interface Activity {
      * enforce, because nothing wrote it: the field had no write path at all.
      */
     props?: unknown,
+    /**
+     * Something more important is running, so nothing here is reachable.
+     *
+     * The activity's own answer still loads — it is what carries the reason.
+     * Everything under it refuses, and the screens do not decide that: the
+     * Server does.
+     */
+    locked?: Locked,
+}
+
+/**
+ * Why something is out of reach.
+ *
+ * **A name, and the sentence is ours.** The Server sends which round displaced
+ * it and nothing else; composing the wording there would put interface text in
+ * an API and mean a release to change a comma.
+ */
+export interface Locked {
+    /** The round that displaced it. */
+    seriesName: string,
 }
 
 /**
@@ -287,6 +307,14 @@ export interface Series {
      */
     problemCount?: number,
     problems?: ProblemSummary[],
+    /**
+     * Displaced by something more important running now. Its problems go with
+     * it, the way a closed round's do.
+     *
+     * A round **hidden** by an address rule is not in the list at all — this
+     * says "not now", and that says nothing.
+     */
+    locked?: Locked,
 }
 
 export interface ProblemSummary {
