@@ -1,5 +1,6 @@
 import {
     ApiError,
+    ForbiddenError,
     ProblemDocument,
     ServiceUnavailableError,
     toApiError,
@@ -149,9 +150,15 @@ export class HttpClient {
             // person asking did, and a toast saying so would be one more thing
             // on a screen that is about to be replaced anyway.
             this.onUnavailable(error);
-        } else if (error instanceof UnauthorizedError) {
+        } else if (error instanceof UnauthorizedError || endsTheSession(error)) {
             // Not a message to show; a session that ended, which the provider
             // has to hear about.
+            //
+            // **An account that has been stopped ends it too**, though the
+            // Server answers 403 rather than 401. The alternative is a toast on
+            // every request from an account that can make none of them, in the
+            // Server's own English, over a screen that will never finish
+            // loading. The login screen is the honest destination.
             this.onUnauthorized();
         } else {
             this.report(error.message, "error");
@@ -159,6 +166,17 @@ export class HttpClient {
         return error;
     }
 }
+
+/**
+ * Whether the refusal is about the account rather than about the request.
+ *
+ * Two codes, and both mean the same thing to a screen: nothing this person asks
+ * for will work until somebody changes the account. `Authorization/BlockedGate`
+ * on the Server is what answers them.
+ */
+const endsTheSession = (error: ApiError): boolean =>
+    error instanceof ForbiddenError
+    && (error.code === "account.blocked" || error.code === "account.expired");
 
 /**
  * `Retry-After`, seconds form only.
