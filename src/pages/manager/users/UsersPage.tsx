@@ -1,5 +1,5 @@
 import { Alert, Badge, Button, Card, Center, Group, Loader, Modal, Pagination, Stack, Switch, Table, Tabs, TagsInput, Text, Textarea, TextInput, Title, Tooltip } from "@mantine/core";
-import { IconKey, IconLock, IconLockOpen, IconPlus, IconSearch, IconUsersPlus } from "@tabler/icons-react";
+import { IconArrowMerge, IconKey, IconLock, IconLockOpen, IconPlus, IconSearch, IconUsersPlus } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -10,6 +10,7 @@ import LoadState from "../../../components/LoadState";
 import ActivityTime from "../../../components/time/ActivityTime";
 import CredentialsModal from "../../../components/users/CredentialsModal";
 import TemporaryAccountsModal from "../../../components/users/TemporaryAccountsModal";
+import MergeAccountModal from "../../../components/users/MergeAccountModal";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
 import { useInstance } from "../../../provider/instanceContext";
 
@@ -55,6 +56,8 @@ export default function UsersPage() {
     const [edited, setEdited] = useState({ firstName: "", lastName: "", email: "", note: "" });
     const [tags, setTags] = useState<string[]>([]);
 
+    /** The account whose work is being moved. Undefined closes the dialog. */
+    const [merging, setMerging] = useState<ManagedUser | undefined>(undefined);
     const [creating, setCreating] = useState(false);
     const [draft, setDraft] = useState({ username: "", firstName: "", lastName: "", email: "" });
     const [bulk, setBulk] = useState({ open: false });
@@ -277,6 +280,19 @@ export default function UsersPage() {
                                         <Button variant="light" size="compact-sm" onClick={() => open(user)}>
                                             {t("Open")}
                                         </Button>
+                                        {/* Offered on a blocked account too: an
+                                            account merged away is blocked, and
+                                            the manager may be here to merge a
+                                            second one onto the same target. */}
+                                        <Tooltip label={t("Move this account's work to another")}>
+                                            <Button
+                                                variant="subtle"
+                                                size="compact-sm"
+                                                onClick={() => setMerging(user)}
+                                            >
+                                                <IconArrowMerge size={14} />
+                                            </Button>
+                                        </Tooltip>
                                         <Tooltip label={user.blockedAt ? t("Unblock") : t("Block")}>
                                             <Button
                                                 variant="subtle"
@@ -615,6 +631,13 @@ export default function UsersPage() {
                     </Group>
                 </Stack>
             </Modal>
+
+            <MergeAccountModal
+                source={merging}
+                candidates={items}
+                onClose={() => setMerging(undefined)}
+                onMerged={() => setReload(n => n + 1)}
+            />
 
             <CredentialsModal
                 credentials={credentials}

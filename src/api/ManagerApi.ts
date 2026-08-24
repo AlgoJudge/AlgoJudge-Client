@@ -1244,6 +1244,45 @@ export interface BulkUserInput {
 }
 
 /** Handed over once. The Server keeps a hash; this is the only readable copy. */
+export interface MergePreview {
+    sourceUserId: string;
+    sourceLogin: string;
+    sourceName: string;
+    sourceIsTemporary: boolean;
+    targetUserId: string;
+    targetLogin: string;
+    targetName: string;
+    submissions: number;
+    questions: number;
+    activities: number;
+    activityNames: string[];
+    /**
+     * Why it would be refused. Empty means it would go through.
+     *
+     * One reason, and it is not about the work: an account holding permissions
+     * over the whole installation is refused, because grants move with a merge
+     * and a system grant is privilege rather than work.
+     */
+    blockers: string[];
+}
+
+export interface AccountMerge {
+    id: string;
+    sourceUserId: string;
+    targetUserId: string;
+    mergedAt: string;
+    mergedByUserId: string;
+    /**
+     * When the emptied account is anonymised, which is also when an undo stops
+     * being offered. Until then it is only blocked, so an undo gives it back
+     * whole.
+     */
+    anonymiseAfter: string;
+    sourceAnonymisedAt?: string;
+    undoneAt?: string;
+    canUndo: boolean;
+}
+
 export interface CreatedCredential {
     userId: string;
     username: string;
@@ -1575,6 +1614,22 @@ export interface ManagerApi {
     updateUser(id: string, input: UserUpdateInput, signal: AbortSignal): Promise<ManagedUser>;
     /** Lets a pending account in, where approval is by hand rather than by email. */
     approveUser(id: string, signal: AbortSignal): Promise<ManagedUser>;
+
+    /**
+     * What carrying one account's work onto another would move, and what would
+     * stop it. Changes nothing.
+     *
+     * **The preview is the guard.** A manager asserts that two accounts are one
+     * person, and nothing but their own care stands behind that — so the screen
+     * has to say whose work, how much of it, and onto whom, before anything
+     * moves.
+     */
+    previewMerge(id: string, targetUserId: string, signal: AbortSignal): Promise<MergePreview>;
+
+    mergeAccount(id: string, targetUserId: string, signal: AbortSignal): Promise<AccountMerge>;
+
+    /** Offered only while the emptied account is still whole — the day after. */
+    undoMerge(mergeId: string, signal: AbortSignal): Promise<AccountMerge>;
     /**
      * The sessions of one account, as the Server holds them at the moment it
      * answers. Read under `user:read:all`, like everything else on that screen:

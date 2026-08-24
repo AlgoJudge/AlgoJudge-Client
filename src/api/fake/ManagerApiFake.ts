@@ -29,7 +29,9 @@ import {
     ManagedSubmission,
     ManagedSubmissionDetail,
     ManagedSubmissionFilter,
+    AccountMerge,
     ManagedUser,
+    MergePreview,
     InstanceLogoInput,
     AccessKey,
     AccessKeyValue,
@@ -90,6 +92,7 @@ import { createSubmissions } from "./fixtures/submissions";
 import { sha256 } from "../../utils/sha256";
 import { Utils } from "./Utils";
 import { conflict, forbidden, invalid, notFound } from "./refuse";
+import { WORLD } from "./fixtures/world";
 
 const copy = <T>(value: T): T => structuredClone(value);
 
@@ -1189,6 +1192,94 @@ export class ManagerApiFake implements ManagerApi {
         return copy(this.withGrantCount(user));
     }
 
+    /**
+     * What a merge would move, and what would stop it.
+     *
+     * Counted off the grants and the seed rather than held, so the numbers on
+     * the screen are the ones a merge would move. The one refusal mirrors the
+     * Server: an account holding permissions over the whole installation,
+     * because grants move with a merge and a system grant is privilege rather
+     * than work.
+     */
+    async previewMerge(id: string, targetUserId: string, signal: AbortSignal): Promise<MergePreview> {
+        await this.settle(signal);
+        if (id === targetUserId) invalid("An account cannot be merged into itself", "merge.same");
+
+        const source = this.findUser(id);
+        const target = this.findUser(targetUserId);
+
+        const held = this.access.grants.filter(g => g.userId === source.id);
+        const system = held.filter(g => g.activityId === undefined && g.permissions.length > 0);
+        const inActivities = held.filter(g => g.activityId !== undefined);
+
+        return copy({
+            sourceUserId: source.id,
+            sourceLogin: source.username,
+            sourceName: displayName(source),
+            sourceIsTemporary: source.isTemporary === true,
+            targetUserId: target.id,
+            targetLogin: target.username,
+            targetName: displayName(target),
+            submissions: WORLD
+                .flatMap(a => a.series)
+                .flatMap(series => series.attempts ?? [])
+                .filter(attempt => attempt.contestant === source.id).length,
+            questions: 0,
+            activities: inActivities.length,
+            activityNames: inActivities
+                .map(g => this.activities.find(r => r.activity.id === g.activityId)?.activity.name)
+                .filter((name): name is string => name !== undefined)
+                .sort((a, b) => a.localeCompare(b)),
+            blockers: system.length > 0 ? ["holds permissions over the whole installation"] : [],
+        });
+    }
+
+    async mergeAccount(id: string, targetUserId: string, signal: AbortSignal): Promise<AccountMerge> {
+        await this.settle(signal);
+        const preview = await this.previewMerge(id, targetUserId, signal);
+        if (preview.blockers.length > 0) {
+            conflict(
+                `This account cannot be merged away because it ${preview.blockers.join(", ")}`,
+                "merge.blocked");
+        }
+
+        // **Blocked, and that is the whole of what a merge does to the account
+        // here.** Moving the work is the Server's, and the fake keeps one copy
+        // of a submission rather than a per-account ledger to move it through.
+        const source = this.findUser(id);
+        source.blockedAt = new Date().toISOString();
+        source.blockedReason = `Merged into ${this.findUser(targetUserId).username}`;
+        this.announceUser(source);
+
+        const now = Date.now();
+        const merge: AccountMerge = {
+            id: newId(),
+            sourceUserId: id,
+            targetUserId,
+            mergedAt: new Date(now).toISOString(),
+            mergedByUserId: "user-john",
+            anonymiseAfter: new Date(now + 24 * 3600_000).toISOString(),
+            canUndo: true,
+        };
+        this.merges.set(merge.id, merge);
+        return copy(merge);
+    }
+
+    async undoMerge(mergeId: string, signal: AbortSignal): Promise<AccountMerge> {
+        await this.settle(signal);
+        const merge = this.merges.get(mergeId) ?? notFound("Merge");
+        if (!merge.canUndo) conflict("This merge has already been undone", "merge.undone");
+
+        const source = this.findUser(merge.sourceUserId);
+        source.blockedAt = undefined;
+        source.blockedReason = undefined;
+        this.announceUser(source);
+
+        merge.undoneAt = new Date().toISOString();
+        merge.canUndo = false;
+        return copy(merge);
+    }
+
     async approveUser(id: string, signal: AbortSignal): Promise<ManagedUser> {
         await this.settle(signal);
         const user = this.findUser(id);
@@ -1753,6 +1844,9 @@ export class ManagerApiFake implements ManagerApi {
     private announceRunner(runner: ManagedRunner): void {
         this.eventDispatcher.dispatchEvent({ type: "runnerChanged", data: { runner: copy(runner) } });
     }
+
+    /** What a merge did, so an undo has something to name. */
+    private readonly merges = new Map<string, AccountMerge>();
 
     private findUser(id: string): ManagedUser {
         return this.users.find(u => u.id === id) ?? notFound("User");

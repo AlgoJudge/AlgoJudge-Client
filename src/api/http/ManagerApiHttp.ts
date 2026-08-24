@@ -10,6 +10,7 @@ import {
     IdentityProviderInput,
     GrantFilter,
     GrantInput,
+    AccountMerge,
     ManagedActivity,
     ManagedActivityFilter,
     ManagedActivitySummary,
@@ -28,6 +29,7 @@ import {
     ManagedRunner,
     ManagedRunnerFilter,
     ManagedUser,
+    MergePreview,
     ManagedUserFilter,
     ManagedUserSummary,
     ManagerApi,
@@ -257,6 +259,21 @@ export class ManagerApiHttp implements ManagerApi {
 
     updateUser(id: string, input: UserUpdateInput, signal: AbortSignal): Promise<ManagedUser> {
         return this.http.request<ManagedUser>(`/users/${encodeURIComponent(id)}`, "PUT", { signal, body: input });
+    }
+
+    previewMerge(id: string, targetUserId: string, signal: AbortSignal): Promise<MergePreview> {
+        return this.http.request<MergePreview>(
+            `/users/${encodeURIComponent(id)}/merge-preview`, "POST", { signal, body: { targetUserId } });
+    }
+
+    mergeAccount(id: string, targetUserId: string, signal: AbortSignal): Promise<AccountMerge> {
+        return this.http.request<AccountMerge>(
+            `/users/${encodeURIComponent(id)}/merge`, "POST", { signal, body: { targetUserId } });
+    }
+
+    undoMerge(mergeId: string, signal: AbortSignal): Promise<AccountMerge> {
+        return this.http.request<AccountMerge>(
+            `/users/merges/${encodeURIComponent(mergeId)}/undo`, "POST", { signal });
     }
 
     approveUser(id: string, signal: AbortSignal): Promise<ManagedUser> {

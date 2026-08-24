@@ -35,6 +35,7 @@ import {
     GrantFilter,
     GrantInput,
     NewTrial,
+    AccountMerge,
     ManagedActivity,
     ManagedActivityFilter,
     ManagedActivitySummary,
@@ -66,6 +67,7 @@ import {
     ManagedRunner,
     ManagedRunnerFilter,
     ManagedUser,
+    MergePreview,
     ManagedUserFilter,
     ProblemChangedEvent,
     QuestionChangedEvent,
@@ -497,6 +499,18 @@ export class ScopedManagerApi {
     createTemporaryUsers(input: BulkUserInput): Promise<CreatedCredential[]> {
         return this.managerApi.createTemporaryUsers(input, this.signal);
     }
+    previewMerge(id: string, targetUserId: string): Promise<MergePreview> {
+        return this.managerApi.previewMerge(id, targetUserId, this.signal);
+    }
+
+    mergeAccount(id: string, targetUserId: string): Promise<AccountMerge> {
+        return this.managerApi.mergeAccount(id, targetUserId, this.signal);
+    }
+
+    undoMerge(mergeId: string): Promise<AccountMerge> {
+        return this.managerApi.undoMerge(mergeId, this.signal);
+    }
+
     setUserBlocked(id: string, blocked: boolean, reason?: string): Promise<ManagedUser> {
         return this.managerApi.setUserBlocked(id, blocked, reason, this.signal);
     }
