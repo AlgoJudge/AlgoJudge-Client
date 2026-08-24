@@ -36,7 +36,7 @@ import { rankingWindow } from "../rankingWindow";
 import { ForbiddenError } from "../ApiError";
 import { Utils } from "./Utils";
 import { sha256 } from "../../utils/sha256";
-import { checksumMismatch, notFound } from "./refuse";
+import { checksumMismatch, forbidden, notFound } from "./refuse";
 import { languageOf } from "../../components/submission/offered";
 
 const DEFAULT_PAGE_SIZE = 5;
@@ -722,6 +722,11 @@ export class ParticipantApiFake implements ParticipantApi {
         await this.settle(signal);
         const detail = this.state.dataset().submissionDetails.get(submissionId);
         if (!detail) return notFound("Submission");
+        // Addressed by id, so it walks past the list that hides it — the Server
+        // refuses it here and so must this.
+        if (this.unreachableRounds(activityId).has(detail.seriesId)) {
+            return forbidden("This round is out of reach", "series.displaced");
+        }
         // **Here**, where it leaves. The activity says which names a participant
         // may read; a name it does not name is theirs to see only if somebody
         // said so. Filtering when the dataset was built would have frozen
