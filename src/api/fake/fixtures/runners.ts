@@ -91,7 +91,9 @@ export const createRunners = (files: FakeFiles): ManagedRunner[] => [
         product: "AlgoJudge-Runner",
         version: "0.0.1",
         problemTypes: ["standard-io@1"],
-        tags: ["all"],
+        // Written out rather than left empty: both mean the general pool, and
+        // a screen has to be able to show that they do.
+        tags: ["default"],
         address: "192.168.1.1",
         publicKey: "AAAAC3NzaC1lZDI1NTE5AAAAIAmzA7ZZl6oCe3yrEHL24w0O/sUwD7p6m7P57jKU3Pxm",
         fingerprint: "43:51:43:a1:b5:fc:8b:b7:0a:3a:a9:b1:0f:66:73:a8",
@@ -115,7 +117,10 @@ export const createRunners = (files: FakeFiles): ManagedRunner[] => [
         product: "AlgoJudge-Runner",
         version: "0.0.1",
         problemTypes: ["standard-io@1"],
-        tags: ["lab"],
+        // **Reserved.** Tagging a Runner takes it out of the general pool as
+        // well as putting it in this one, which is what the examination in
+        // `KOLOKWIUM-2` relies on.
+        tags: ["lab-a"],
         address: "192.168.1.24",
         publicKey: "AAAAC3NzaC1lZDI1NTE5AAAAIB7uHqfWjLTz1p0nQKcQ2mF3xCkq8Rk7YvJm1sN0oPqR",
         fingerprint: "b2:0d:77:3e:41:9a:c5:18:6f:2b:84:d0:53:aa:1e:97",
@@ -139,7 +144,7 @@ export const createRunners = (files: FakeFiles): ManagedRunner[] => [
         product: "AlgoJudge-Runner-Judge0",
         version: "0.2.0",
         problemTypes: ["standard-io@1", "interactive@9"],
-        tags: ["judge0"],
+        tags: ["default"],
         address: "10.0.4.7",
         publicKey: "AAAAC3NzaC1lZDI1NTE5AAAAIC9pQ2wRzT4vX8mK1nB5hD7sL0aF6yE3uJ2cV4rG8iOd",
         fingerprint: "1f:88:d3:06:b7:4c:2a:95:e1:70:39:cb:6d:12:5f:a4",

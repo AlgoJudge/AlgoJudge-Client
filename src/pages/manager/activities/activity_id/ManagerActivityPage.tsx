@@ -143,6 +143,7 @@ export default function ManagerActivityPage() {
                             onChange={setDraft}
                             slugLocked
                             disabled={activity.archivedAt !== undefined}
+                            matchingRunners={activity.matchingRunners}
                         />
                         <Group justify="flex-end">
                             <Button

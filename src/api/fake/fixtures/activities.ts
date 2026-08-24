@@ -86,6 +86,11 @@ const seriesOf = (activity: SeedActivity, series: SeedSeries): ManagedSeries => 
     // the day, and a fixture that started in that state would hide the rule it
     // exists to demonstrate.
     restrictionsEnabled: true,
+    runnerTags: series.runnerTags,
+    // Recomputed by the fake against the Runners it holds, as the count on the
+    // activity is: two answers to one question would drift the moment somebody
+    // retags a machine.
+    matchingRunners: 0,
     problems: problemsOf(series),
 });
 
@@ -122,6 +127,8 @@ const activityOf = (activity: SeedActivity): ManagedActivity => ({
     seriesCount: activity.series.length,
     problemCount: activity.series.reduce((sum, series) => sum + series.assignments.length, 0),
     participantCount: 0,
+    runnerTags: activity.runnerTags ?? [],
+    matchingRunners: 0,
 });
 
 export const createActivityLibrary = (): ActivityRecord[] => WORLD

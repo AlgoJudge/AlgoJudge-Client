@@ -361,6 +361,34 @@ Three things reach this repository:
   attempt is deliberately the best run there is, so `verify-points` reddens on
   200/200 if the filter ever stops working.
 
+### Which Runners judge which work (2026-08-24)
+
+A Runner carries tags and so does the work, and they are paired when the two
+lists **share at least one** — unlike GitLab, whose runner must hold every tag a
+job asks for. `docs/specs/RUNNER_ROUTING.md` owns the rule. Three things reach
+this repository:
+
+- **Empty means `default` on both sides, and that is the whole of the
+  exclusivity.** `api/runnerTags.ts` states it once so a screen can say what a
+  tag will do and the fake can answer the numbers the Server would. Tagging a
+  Runner takes it out of the general pool as surely as it puts it into a
+  reserved one.
+- **A round has two states and a `TagsInput` can only draw one of them.**
+  Inheriting and empty look identical in it, and they are the two a manager most
+  needs to tell apart — so a switch decides and the field appears only once it
+  has. A round wanting the general Runners while its course is pinned writes
+  `default`.
+- **The count is the only warning there is.** An activity tagged with a pool
+  nothing carries accepts submissions, queues them, and never has them judged.
+  It counts tags and **not** problem types, so zero is a promise and a larger
+  number is not — and it is a warning rather than a refusal, because the tags are
+  typed before the machines are approved.
+
+The seed states the shape: `KOLOKWIUM-2` pins its examination to `lab-a` and
+leaves `Ćwiczenia 4` inheriting, with one fixture Runner in that pool. Pinning
+the course instead would send its homework to the laboratory too, including
+whatever is sent from home at night.
+
 ### The socket is live (corrected 2026-08-09)
 
 This section claimed there was no WebSocket and that nothing dispatched over the

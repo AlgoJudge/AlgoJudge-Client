@@ -1,12 +1,13 @@
 import {
     ActionIcon, Alert, Card, Grid, Group, NumberInput, SegmentedControl,
-    Select, Stack, Switch, Text, TextInput, Title, Tooltip,
+    Select, Stack, Switch, TagsInput, Text, TextInput, Title, Tooltip,
 } from "@mantine/core";
 import { useClipboard } from "@mantine/hooks";
 import { IconCheck, IconCopy, IconInfoCircle } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { ActivityInput, AttachmentVisibility, JoinPolicy, ScoreVisibility } from "../../api/ManagerApi";
 import ZonedDateTimeInput from "../time/ZonedDateTimeInput";
+import { MAX_RUNNER_TAGS } from "../../api/runnerTags";
 import { MB } from "./activityInput";
 import { activityTypes } from "../../renderers";
 
@@ -82,9 +83,19 @@ export interface ActivityFormProps {
     /** Set once the activity exists: a slug in a URL cannot change under people. */
     slugLocked?: boolean;
     disabled?: boolean;
+    /**
+     * How many approved Runners the tags below reach, from the Server.
+     *
+     * Absent on a new activity, which has no id to count against yet. Zero is
+     * the answer worth showing: an activity whose tags nothing carries accepts
+     * submissions, queues them, and never has them judged.
+     */
+    matchingRunners?: number;
 }
 
-export default function ActivityForm({ value, onChange, slugLocked, disabled }: ActivityFormProps) {
+export default function ActivityForm(
+    { value, onChange, slugLocked, disabled, matchingRunners }: ActivityFormProps,
+) {
     const { t } = useTranslation();
     const set = (patch: Partial<ActivityInput>) => onChange({ ...value, ...patch });
     const chosenType = activityTypes().find(type => type.id === value.type);
@@ -336,6 +347,38 @@ export default function ActivityForm({ value, onChange, slugLocked, disabled }: 
                         </Grid.Col>
                     </Grid>
                 )}
+            </Card>
+
+            <Card withBorder radius="sm">
+                <Title order={5} mb="sm">{t("Which Runners judge this activity")}</Title>
+                <TagsInput
+                    label={t("Runner tags")}
+                    description={t("A submission goes to a Runner sharing at least one of these tags. Empty means the general Runners.")}
+                    placeholder={t("e.g. lab-a")}
+                    maxTags={MAX_RUNNER_TAGS}
+                    value={value.runnerTags ?? []}
+                    onChange={runnerTags => set({ runnerTags })}
+                    disabled={disabled}
+                />
+                {matchingRunners !== undefined && (
+                    matchingRunners === 0
+                        ? (
+                            // Not a refusal: the tags may be typed before the
+                            // machines are approved, and a form that would not
+                            // save that is a form nobody can prepare with.
+                            <Alert color="orange" mt="sm" icon={<IconInfoCircle size={16} />}>
+                                {t("No approved Runner carries any of these tags. Submissions will wait in the queue until one does.")}
+                            </Alert>
+                        )
+                        : (
+                            <Text size="xs" c="dimmed" mt="xs">
+                                {t("Runners reached: {{count}}", { count: matchingRunners })}
+                            </Text>
+                        )
+                )}
+                <Text size="xs" c="dimmed" mt="xs">
+                    {t("A round may override this, which is usually where the tag belongs: pinning a whole course sends its homework to those machines too.")}
+                </Text>
             </Card>
 
             <Card withBorder radius="sm">

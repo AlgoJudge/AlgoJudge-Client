@@ -476,6 +476,22 @@ export interface ManagedActivity {
     seriesCount: number;
     problemCount: number;
     participantCount: number;
+    /**
+     * Which Runners judge this activity's submissions. Empty is the default
+     * pool — every Runner nobody has reserved.
+     */
+    runnerTags: string[];
+    /**
+     * How many approved Runners those tags reach.
+     *
+     * **It counts tags and nothing else**: not problem types, not whether a
+     * Runner forwards work. So a number above zero promises nothing, and zero
+     * promises that nothing here can be judged — which is the answer worth
+     * having on the screen where the tags are typed, because the failure is
+     * otherwise silent. The submissions are accepted, queued, and never
+     * claimed.
+     */
+    matchingRunners: number;
 }
 
 export interface ActivityInput {
@@ -507,6 +523,8 @@ export interface ActivityInput {
     maxUploadBytes: number;
     maxAttachments: number;
     maxSubmissionsPerProblem?: number;
+    /** Which Runners judge this activity. Empty is the default pool. */
+    runnerTags?: string[];
 }
 
 export interface ManagedActivityFilter {
@@ -591,6 +609,17 @@ export interface ManagedSeries {
      * it back on restores them. The switch for a wrong list on the day.
      */
     restrictionsEnabled: boolean;
+    /**
+     * This round's own Runner pools, or **absent** where it takes its
+     * activity's.
+     *
+     * Two states, not three: a round wanting the general Runners while its
+     * activity is pinned to a laboratory carries `["default"]` rather than an
+     * empty list, so one meaning keeps one spelling.
+     */
+    runnerTags?: string[];
+    /** How many approved Runners the tags in force here reach. */
+    matchingRunners: number;
     problems: ManagedSeriesProblem[];
 }
 
@@ -629,6 +658,12 @@ export interface SeriesInput {
     /** The whole list, replaced. Absent leaves it alone; empty clears it. */
     addressRules?: AddressRule[];
     restrictionsEnabled?: boolean;
+    /**
+     * Which Runners judge this round, overriding the activity's. Absent leaves
+     * it alone; **empty goes back to inheriting**, as `addressRules` clears
+     * itself.
+     */
+    runnerTags?: string[];
 }
 
 /**

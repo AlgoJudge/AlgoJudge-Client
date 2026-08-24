@@ -1,6 +1,6 @@
 import {
     Accordion, Alert, Badge, Button, Card, Grid, Group, Modal, NumberInput, Select, Stack, Switch,
-    Table, Text, TextInput, Title, Tooltip,
+    Table, TagsInput, Text, TextInput, Title, Tooltip,
 } from "@mantine/core";
 import {
     IconAlertTriangle, IconArrowDown, IconArrowUp, IconPlus, IconTrash,
@@ -11,6 +11,7 @@ import {
     DEFAULT_IMPORTANCE_SCOPE, NORMAL_IMPORTANCE, SERIES_IMPORTANCE_RANKS,
     SERIES_IMPORTANCE_SCOPES, SeriesImportanceScope,
 } from "../../../../api/seriesImportance";
+import { DEFAULT_RUNNER_TAG, MAX_RUNNER_TAGS } from "../../../../api/runnerTags";
 import {
     ManagedActivity, ManagedProblem, ManagedProblemVersion, ManagedSeries, ManagedSeriesProblem,
     SeriesInput, SeriesProblemInput,
@@ -64,6 +65,8 @@ const emptySeries = (): SeriesInput => ({
     slug: "", name: "", revealProblemCount: true,
     importance: NORMAL_IMPORTANCE, importanceScope: DEFAULT_IMPORTANCE_SCOPE,
     addressRules: [], restrictionsEnabled: true,
+    // Absent, not empty: a new round inherits its activity's Runners.
+    runnerTags: undefined,
 });
 
 const toSeriesInput = (series: ManagedSeries): SeriesInput => ({
@@ -80,6 +83,7 @@ const toSeriesInput = (series: ManagedSeries): SeriesInput => ({
     importanceScope: series.importanceScope,
     addressRules: series.addressRules,
     restrictionsEnabled: series.restrictionsEnabled,
+    runnerTags: series.runnerTags,
 });
 
 const toAssignmentInput = (assignment: ManagedSeriesProblem): SeriesProblemInput => ({
@@ -397,6 +401,43 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                                                 disabled={locked}
                                             />
                                         </Grid.Col>
+                                    </Grid>
+                                    {/* **Two states, and a `TagsInput` alone
+                                        cannot express them.** Empty and
+                                        inherited would look identical in it,
+                                        and they are the two things a manager
+                                        most needs to tell apart — so the choice
+                                        is made by the switch and the field only
+                                        appears once it has been made. A round
+                                        that wants the general Runners while its
+                                        activity is pinned writes `default`. */}
+                                    <Grid mt="sm">
+                                        <Grid.Col span={{ base: 12, md: 5 }}>
+                                            <Switch
+                                                label={t("Judged by its own Runners")}
+                                                description={t("Off, this round is judged by whatever the activity says.")}
+                                                checked={draftFor(s).runnerTags !== undefined}
+                                                onChange={e => setDraft(s, {
+                                                    runnerTags: e.currentTarget.checked
+                                                        ? [DEFAULT_RUNNER_TAG]
+                                                        : undefined,
+                                                })}
+                                                disabled={locked}
+                                            />
+                                        </Grid.Col>
+                                        {draftFor(s).runnerTags !== undefined && (
+                                            <Grid.Col span={{ base: 12, md: 7 }}>
+                                                <TagsInput
+                                                    label={t("Runner tags")}
+                                                    description={t("Runners reached: {{count}}", { count: s.matchingRunners })}
+                                                    placeholder={t("e.g. lab-a")}
+                                                    maxTags={MAX_RUNNER_TAGS}
+                                                    value={draftFor(s).runnerTags ?? []}
+                                                    onChange={runnerTags => setDraft(s, { runnerTags })}
+                                                    disabled={locked}
+                                                />
+                                            </Grid.Col>
+                                        )}
                                     </Grid>
                                     <Group justify="space-between" mt="sm" wrap="wrap">
                                         <Switch

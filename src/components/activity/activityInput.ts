@@ -29,6 +29,8 @@ export const emptyActivity = (): ActivityInput => ({
     hideEndedSeriesProblems: false,
     maxUploadBytes: 8 * MB,
     maxAttachments: 1,
+    // The general Runners, which is where an activity nobody has pinned belongs.
+    runnerTags: [],
 });
 
 export const toInput = (activity: ManagedActivity): ActivityInput => ({
@@ -49,5 +51,6 @@ export const toInput = (activity: ManagedActivity): ActivityInput => ({
     maxUploadBytes: activity.maxUploadBytes,
     maxAttachments: activity.maxAttachments,
     maxSubmissionsPerProblem: activity.maxSubmissionsPerProblem,
+    runnerTags: [...activity.runnerTags],
 });
 

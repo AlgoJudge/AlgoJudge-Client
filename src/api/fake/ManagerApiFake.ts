@@ -73,6 +73,7 @@ import { FakeAccess } from "./FakeAccess";
 import { FakeExclusions } from "./FakeExclusions";
 import { FakeLockdown } from "./FakeLockdown";
 import { DEFAULT_IMPORTANCE_SCOPE, NORMAL_IMPORTANCE } from "../seriesImportance";
+import { normaliseRunnerTags, runnerReaches, tagsInForce } from "../runnerTags";
 import { systemicByDefault } from "../permissions";
 import { ActivityRecord, createActivityLibrary } from "./fixtures/activities";
 import { signedInUserId } from "./CoreApiFake";
@@ -610,6 +611,8 @@ export class ManagerApiFake implements ManagerApi {
             seriesCount: 0,
             problemCount: 0,
             participantCount: 0,
+            runnerTags: input.runnerTags ?? [],
+            matchingRunners: 0,
         };
         this.activities = [{ activity, series: [] }, ...this.activities];
         this.shared.setEnrolment(activity.id, input.joinPolicy, input.joinPassword, input.unlisted);
@@ -621,6 +624,7 @@ export class ManagerApiFake implements ManagerApi {
         const record = this.findActivity(id);
         this.assertActivitySlugFree(input.slug, record.activity.id);
         Object.assign(record.activity, input);
+        record.activity.runnerTags = normaliseRunnerTags(input.runnerTags);
         // The enrolment settings belong to the shared store, because the
         // participant side decides what to show from them — and so does
         // everything else about the activity a participant can see.
@@ -776,7 +780,8 @@ export class ManagerApiFake implements ManagerApi {
 
     async getSeries(activityId: string, signal: AbortSignal): Promise<ManagedSeries[]> {
         await this.settle(signal);
-        return copy(this.findActivity(activityId).series);
+        const record = this.findActivity(activityId);
+        return copy(record.series.map(series => this.dress(record, series)));
     }
 
     async createSeries(activityId: string, input: SeriesInput, signal: AbortSignal): Promise<ManagedSeries> {
@@ -797,6 +802,7 @@ export class ManagerApiFake implements ManagerApi {
             isOpen: input.startDate === undefined || Date.parse(input.startDate) <= Date.now(),
             importance: 0,
             importanceScope: DEFAULT_IMPORTANCE_SCOPE,
+            matchingRunners: 0,
             addressRules: [],
             restrictionsEnabled: true,
             ...input,
@@ -806,7 +812,7 @@ export class ManagerApiFake implements ManagerApi {
         this.recount(record);
         this.lockdown.remember(series);
         this.announceSeries(record, series);
-        return copy(series);
+        return copy(this.dress(record, series));
     }
 
     async updateSeries(seriesId: string, input: SeriesInput, signal: AbortSignal): Promise<ManagedSeries> {
@@ -814,6 +820,10 @@ export class ManagerApiFake implements ManagerApi {
         const { record, series } = this.findSeries(seriesId);
         this.assertSeriesSlugFree(record, input.slug, series.id);
         Object.assign(series, input);
+        // Empty goes back to inheriting rather than being stored as an empty
+        // override — the Server does the same, and two spellings of one state
+        // would leave a manager unable to tell which they had chosen.
+        series.runnerTags = input.runnerTags?.length ? normaliseRunnerTags(input.runnerTags) : undefined;
         ManagerApiFake.assertRestrictable(series);
         this.lockdown.remember(series);
         this.announceSeries(record, series);
@@ -829,7 +839,7 @@ export class ManagerApiFake implements ManagerApi {
             endDate: series.endDate,
             name: series.name,
         });
-        return copy(series);
+        return copy(this.dress(record, series));
     }
 
     async shiftSeries(seriesId: string, minutes: number, signal: AbortSignal): Promise<ManagedSeries> {
@@ -853,7 +863,7 @@ export class ManagerApiFake implements ManagerApi {
             startDate: series.startDate,
             endDate: series.endDate,
         });
-        return copy(series);
+        return copy(this.dress(record, series));
     }
 
     async pauseSeries(seriesId: string, input: PauseInput, signal: AbortSignal): Promise<ManagedSeries> {
@@ -877,7 +887,7 @@ export class ManagerApiFake implements ManagerApi {
             isOpen: false,
             hideProblems: input.hideProblems === true,
         });
-        return copy(series);
+        return copy(this.dress(record, series));
     }
 
     async resumeSeries(seriesId: string, input: ResumeInput, signal: AbortSignal): Promise<ManagedSeries> {
@@ -905,7 +915,7 @@ export class ManagerApiFake implements ManagerApi {
             isOpen: series.isOpen,
             endDate: series.endDate,
         });
-        return copy(series);
+        return copy(this.dress(record, series));
     }
 
     async deleteSeries(seriesId: string, signal: AbortSignal): Promise<void> {
@@ -962,7 +972,7 @@ export class ManagerApiFake implements ManagerApi {
         this.countAttachment(source.problem.id, 1);
         this.recount(record);
         this.announceSeries(record, series);
-        return copy(series);
+        return copy(this.dress(record, series));
     }
 
     async updateSeriesProblem(seriesProblemId: string, input: SeriesProblemInput, signal: AbortSignal): Promise<ManagedSeries> {
@@ -978,7 +988,7 @@ export class ManagerApiFake implements ManagerApi {
             hasPackage: version?.hasPackage ?? false,
         });
         this.announceSeries(record, series);
-        return copy(series);
+        return copy(this.dress(record, series));
     }
 
     async detachProblem(seriesProblemId: string, signal: AbortSignal): Promise<ManagedSeries> {
@@ -995,7 +1005,7 @@ export class ManagerApiFake implements ManagerApi {
         this.countAttachment(assignment.problemId, -1);
         this.recount(record);
         this.announceSeries(record, series);
-        return copy(series);
+        return copy(this.dress(record, series));
     }
 
     async reorderSeriesProblems(seriesId: string, orderedIds: string[], signal: AbortSignal): Promise<ManagedSeries> {
@@ -1003,7 +1013,7 @@ export class ManagerApiFake implements ManagerApi {
         const { record, series } = this.findSeries(seriesId);
         series.problems = sortByGiven(series.problems, orderedIds).map((p, i) => ({ ...p, order: i + 1 }));
         this.announceSeries(record, series);
-        return copy(series);
+        return copy(this.dress(record, series));
     }
 
     async getRunners(filter: ManagedRunnerFilter, signal: AbortSignal): Promise<Page<ManagedRunner>> {
@@ -2019,7 +2029,23 @@ export class ManagerApiFake implements ManagerApi {
             joinPolicy: enrolment.policy,
             unlisted: enrolment.unlisted,
             joinPassword: enrolment.password,
+            matchingRunners: this.matchingRunners(activity.runnerTags),
         };
+    }
+
+    /**
+     * How many approved Runners those pools reach.
+     *
+     * Computed against the Runners this fake holds rather than stored, so
+     * retagging a machine on the Runners screen changes the number on the
+     * activity screen — which is the defect a second stored number would
+     * reintroduce.
+     */
+    private matchingRunners(work: string[] | undefined): number {
+        return this.runners
+            .filter(runner => runner.state === "approved")
+            .filter(runner => runnerReaches(runner.tags, work))
+            .length;
     }
 
     private announceActivity(activity: ManagedActivity): ManagedActivity {
@@ -2034,8 +2060,24 @@ export class ManagerApiFake implements ManagerApi {
     private announceSeries(record: ActivityRecord, series: ManagedSeries): void {
         this.eventDispatcher.dispatchEvent({
             type: "managerSeriesChanged",
-            data: { activityId: record.activity.id, series: copy(series) },
+            data: { activityId: record.activity.id, series: copy(this.dress(record, series)) },
         });
+    }
+
+    /**
+     * The round as it leaves the fake: its Runner count worked out against the
+     * tags in force for it, which are its own where it has any and its
+     * activity's where it does not.
+     *
+     * Derived on the way out rather than stored, so retagging a Runner or the
+     * activity moves every round's number at once.
+     */
+    private dress(record: ActivityRecord, series: ManagedSeries): ManagedSeries {
+        return {
+            ...series,
+            matchingRunners: this.matchingRunners(
+                tagsInForce(series.runnerTags, record.activity.runnerTags)),
+        };
     }
 
     private find(id: string): ProblemRecord {
