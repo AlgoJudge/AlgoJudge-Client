@@ -239,6 +239,18 @@ export interface SeedSeries {
     rankingVisibleTo?: string;
     assignments: SeedAssignment[];
     attempts?: SeedAttempt[];
+    /**
+     * How much this round outranks the rest while it runs. Absent is `normal`.
+     *
+     * While it is running, anything of a lower rank is locked for whoever takes
+     * part in it, and equal ranks survive together.
+     */
+    importance?: number;
+    /**
+     * The ranges it may be reached from, e.g. `10.0.5.0/24`. Absent means
+     * anywhere; present means **nowhere else**, whatever grant somebody holds.
+     */
+    addressRules?: { network: string; note?: string }[];
 }
 
 export interface SeedActivity {
@@ -823,6 +835,50 @@ export const WORLD: SeedActivity[] = [
                 startDate: at(-days(14)), endDate: at(days(7)),
                 revealProblemCount: true,
                 assignments: [{ problem: LOOPS, slug: "petle" }],
+            },
+        ],
+    },
+    // **The examination, and the reason this activity exists.**
+    //
+    // One round, running now, restricted to a laboratory and ranked above the
+    // ordinary. It is its own activity rather than a flag on an existing one so
+    // that the checks which read `AMMPZ-2019` and `PROG-1-LA` keep reading what
+    // they always did: a restriction bolted onto those would have reddened a
+    // dozen scripts for a rule none of them is about.
+    {
+        id: "018f2c00-0000-7000-8000-000000000030",
+        slug: "KOLOKWIUM-2",
+        name: "Kolokwium 2 — struktury danych",
+        type: "course@1",
+        rankingType: "points",
+        timeZone: "Europe/Warsaw",
+        startDate: at(-hours(1)),
+        endDate: at(hours(2)),
+        modules: { questions: true },
+        scoreVisibility: "participantOnly",
+        attachmentVisibility: COURSE_ATTACHMENTS,
+        joinPolicy: "closed",
+        unlisted: false,
+        hideEndedSeriesProblems: false,
+        maxUploadBytes: 4 * 1024 * 1024,
+        maxAttachments: 1,
+        languages: COURSE_LANGUAGES,
+        props: { "Sala": "Laboratorium 3.1.4" },
+        membership: "enrolled",
+        managed: true,
+        contestants: COURSE_STUDENTS,
+        series: [
+            {
+                id: "series-k2", slug: "kolokwium", name: "Kolokwium 2", order: 1,
+                startDate: at(-hours(1)), endDate: at(hours(2)),
+                revealProblemCount: true,
+                // Above the ordinary, so everything else this reader takes part
+                // in is displaced while it runs.
+                importance: 30,
+                // And only from the laboratory. Outside it the round is absent
+                // entirely — from the list, and from anything addressed by name.
+                addressRules: [{ network: "10.0.5.0/24", note: "Laboratorium 3.1.4" }],
+                assignments: [{ problem: ARRAYS, slug: "stos", name: "Stos i kolejka" }],
             },
         ],
     },

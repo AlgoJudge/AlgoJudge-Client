@@ -515,6 +515,14 @@ export interface ManagedActivityFilter {
     includeArchived?: boolean;
 }
 
+/** One address range a round may be reached from. */
+export interface AddressRule {
+    /** `10.0.5.0/24`, `2001:db8::/32`. A single machine is a `/32`. */
+    network: string,
+    /** What a manager calls it — a room number, a building. */
+    note?: string,
+}
+
 export interface ManagedSeries {
     id: string;
     activityId: string;
@@ -556,6 +564,23 @@ export interface ManagedSeries {
      */
     rankingVisibleFrom?: string;
     rankingVisibleTo?: string;
+    /**
+     * How much this round outranks the rest while it runs.
+     *
+     * **A number, and the number is the meaning.** While it is running, anything
+     * of a lower rank is locked for whoever takes part in it; equal ranks survive
+     * together, which is what lets two contests share one room. The select prints
+     * the rank beside the name for exactly that reason — a manager choosing one
+     * has to see what it loses to.
+     */
+    importance: number;
+    /** The ranges it may be reached from. Empty means anywhere. */
+    addressRules: AddressRule[];
+    /**
+     * Off, this round neither hides nor locks — and keeps its rules, so turning
+     * it back on restores them. The switch for a wrong list on the day.
+     */
+    restrictionsEnabled: boolean;
     problems: ManagedSeriesProblem[];
 }
 
@@ -588,6 +613,11 @@ export interface SeriesInput {
      */
     rankingVisibleFrom?: string;
     rankingVisibleTo?: string;
+    /** Absent leaves it alone; on a new round that means `normal`. */
+    importance?: number;
+    /** The whole list, replaced. Absent leaves it alone; empty clears it. */
+    addressRules?: AddressRule[];
+    restrictionsEnabled?: boolean;
 }
 
 /**

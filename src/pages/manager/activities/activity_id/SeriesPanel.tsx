@@ -7,6 +7,7 @@ import {
 } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { NORMAL_IMPORTANCE, SERIES_IMPORTANCE_RANKS } from "../../../../api/seriesImportance";
 import {
     ManagedActivity, ManagedProblem, ManagedProblemVersion, ManagedSeries, ManagedSeriesProblem,
     SeriesInput, SeriesProblemInput,
@@ -28,7 +29,31 @@ import OpaqueDocumentField from "../../../../components/manager/OpaqueDocumentFi
 
 const MB = 1024 * 1024;
 
-const emptySeries = (): SeriesInput => ({ slug: "", name: "", revealProblemCount: true });
+/**
+ * What each rank is called.
+ *
+ * Written out in full, so `check:i18n` can see them: a key assembled from a
+ * rank would be a translation nothing checks, and a missing one renders as
+ * English on a Polish screen with nothing else noticing. A rank this does not
+ * know shows as its own number, which is the honest answer and keeps an unknown
+ * one from breaking the select.
+ */
+const importanceName = (rank: number, t: (key: string) => string): string => {
+    switch (rank) {
+        case 0: return t("Ordinary");
+        case 10: return t("Warm-up in class");
+        case 20: return t("Contest in class");
+        case 30: return t("Exam or midterm");
+        case 40: return t("Trial round of a real contest");
+        case 50: return t("Official contest");
+        default: return String(rank);
+    }
+};
+
+const emptySeries = (): SeriesInput => ({
+    slug: "", name: "", revealProblemCount: true,
+    importance: NORMAL_IMPORTANCE, addressRules: [], restrictionsEnabled: true,
+});
 
 const toSeriesInput = (series: ManagedSeries): SeriesInput => ({
     slug: series.slug,
@@ -40,6 +65,9 @@ const toSeriesInput = (series: ManagedSeries): SeriesInput => ({
     rankingRevealAt: series.rankingRevealAt,
     rankingVisibleFrom: series.rankingVisibleFrom,
     rankingVisibleTo: series.rankingVisibleTo,
+    importance: series.importance,
+    addressRules: series.addressRules,
+    restrictionsEnabled: series.restrictionsEnabled,
 });
 
 const toAssignmentInput = (assignment: ManagedSeriesProblem): SeriesProblemInput => ({
@@ -299,11 +327,58 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                                             />
                                         </Grid.Col>
                                     </Grid>
+                                    {/* **What this round puts out of reach.**
+                                        The rank prints its number, because the
+                                        ordering is what the list means — a
+                                        manager choosing one has to see what it
+                                        loses to. */}
+                                    <Grid mt="sm">
+                                        <Grid.Col span={{ base: 12, md: 6 }}>
+                                            <Select
+                                                label={t("Importance")}
+                                                description={t("While this round runs, anything of a lower importance is locked for whoever takes part in it.")}
+                                                data={SERIES_IMPORTANCE_RANKS.map(rank => ({
+                                                    value: String(rank),
+                                                    label: `${importanceName(rank, t)} (${rank})`,
+                                                }))}
+                                                value={String(draftFor(s).importance ?? NORMAL_IMPORTANCE)}
+                                                onChange={value => setDraft(s, { importance: Number(value) })}
+                                                disabled={locked}
+                                                allowDeselect={false}
+                                            />
+                                        </Grid.Col>
+                                        <Grid.Col span={{ base: 12, md: 6 }}>
+                                            <TextInput
+                                                label={t("Reachable only from")}
+                                                description={t("Address ranges, separated by commas, e.g. 10.0.5.0/24. Empty means anywhere. Elsewhere the round is not shown at all.")}
+                                                placeholder="10.0.5.0/24"
+                                                value={(draftFor(s).addressRules ?? [])
+                                                    .map(rule => rule.network).join(", ")}
+                                                onChange={e => setDraft(s, {
+                                                    addressRules: e.currentTarget.value
+                                                        .split(",")
+                                                        .map(part => part.trim())
+                                                        .filter(part => part.length > 0)
+                                                        .map(network => ({ network })),
+                                                })}
+                                                disabled={locked}
+                                            />
+                                        </Grid.Col>
+                                    </Grid>
                                     <Group justify="space-between" mt="sm" wrap="wrap">
                                         <Switch
                                             label={t("Reveal the problem count while closed")}
                                             checked={draftFor(s).revealProblemCount}
                                             onChange={e => setDraft(s, { revealProblemCount: e.currentTarget.checked })}
+                                            disabled={locked}
+                                        />
+                                        {/* The switch for a wrong list on the
+                                            day: it lifts the round's rank and
+                                            its ranges at once and keeps both. */}
+                                        <Switch
+                                            label={t("Restrictions in force")}
+                                            checked={draftFor(s).restrictionsEnabled !== false}
+                                            onChange={e => setDraft(s, { restrictionsEnabled: e.currentTarget.checked })}
                                             disabled={locked}
                                         />
                                         <Group gap="xs">

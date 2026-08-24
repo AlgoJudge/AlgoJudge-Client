@@ -23,6 +23,8 @@ import {
 import { FakeActivities, SeriesRelay } from "./FakeActivities";
 import { FakeAccess } from "./FakeAccess";
 import { FakeExclusions } from "./FakeExclusions";
+import { FakeLockdown, isLocked } from "./FakeLockdown";
+import { WORLD } from "./fixtures/world";
 import { AttachmentRule } from "../ManagerApi";
 import { maySubmit, mayReadProblems, SeriesTiming } from "../seriesState";
 import { FakeFiles } from "./FileApiFake";
@@ -472,6 +474,8 @@ export class ParticipantApiFake implements ParticipantApi {
         private readonly access: FakeAccess,
         /** And one owner for which submissions count. */
         private readonly exclusions: FakeExclusions,
+        /** And one for what a running round puts out of reach. */
+        private readonly lockdown: FakeLockdown,
         private sleepMs: number = 300,
     ) {
         this.state = new FakeParticipantState(this.eventDispatcher, files, shared, access);
@@ -559,6 +563,7 @@ export class ParticipantApiFake implements ParticipantApi {
         // two halves keep their own activity, and a setting that never crossed
         // is a setting that looks like it did nothing.
         const settings = this.shared.settingsOf(activity.id);
+        const state = this.lockdownState();
         return {
             ...activity,
             ...settings,
@@ -566,7 +571,44 @@ export class ParticipantApiFake implements ParticipantApi {
             joinPolicy: this.shared.enrolmentOf(activity.id).policy,
             documents: this.shared.documentsOf(activity.id),
             group: this.myGroupOf(activity.id),
+            // **Here, where every activity leaves.** The list and the page are
+            // the same seam, so neither can say something the other does not.
+            locked: this.lockdown.locksActivity(state, activity.id)
+                ? { seriesName: state.bySeriesName ?? "" }
+                : undefined,
         };
+    }
+
+    /**
+     * A round's rank, from the seed.
+     *
+     * The participant's `Series` carries no rank and must not: it is the
+     * manager's setting, and what reaches a participant is its **effect**. A
+     * fake that put it on their model would be answering a question the Server
+     * refuses.
+     */
+    private importanceOf(seriesId: string): number {
+        for (const activity of WORLD) {
+            for (const series of activity.series) {
+                if (series.id === seriesId) return series.importance ?? 0;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * What is out of reach for this reader now.
+     *
+     * Computed per call rather than held, because the address is a property of
+     * the request in the real thing and a round opens while somebody is looking
+     * at the screen. **Nobody is exempt here**: the fake's participant is never
+     * the staff of anything, and `Grant.IsSystem` is the manager panel's.
+     */
+    private lockdownState() {
+        const mine = this.state.dataset().activities
+            .filter(a => this.isMember(a))
+            .map(a => a.id);
+        return this.lockdown.state(mine);
     }
 
     /**
@@ -602,10 +644,24 @@ export class ParticipantApiFake implements ParticipantApi {
         // be the fixtures' business — a series was withheld by having no
         // problems written on it — so a setting that withholds them, like an
         // activity closing its finished rounds, had nowhere to take effect.
-        return copy((this.state.dataset().series.get(activityId) ?? []).map(series =>
-            mayReadProblems(this.timingOf(series), activity ?? {})
-                ? series
-                : { ...series, problems: undefined }));
+        // **Hidden is absent, displaced is present and says so.** A round
+        // restricted to an address this reader is not at leaves no trace — its
+        // dates and its problem count are exactly what it withholds.
+        const state = this.lockdownState();
+        const rounds = this.state.dataset().series.get(activityId) ?? [];
+
+        return copy(rounds
+            .filter(series => !state.hidden.has(series.id))
+            .map(series => {
+                const displaced = isLocked(state, this.importanceOf(series.id));
+                const readable = !displaced && mayReadProblems(this.timingOf(series), activity ?? {});
+                return {
+                    ...series,
+                    problems: readable ? series.problems : undefined,
+                    problemCount: displaced ? undefined : series.problemCount,
+                    locked: displaced ? { seriesName: state.bySeriesName ?? "" } : undefined,
+                };
+            }));
     }
 
     async getProblem(activityId: string, problemSlug: string, signal: AbortSignal): Promise<ProblemDetail> {

@@ -78,6 +78,12 @@ const seriesOf = (activity: SeedActivity, series: SeedSeries): ManagedSeries => 
     rankingRevealAt: series.rankingRevealAt,
     rankingVisibleFrom: series.rankingVisibleFrom,
     rankingVisibleTo: series.rankingVisibleTo,
+    importance: series.importance ?? 0,
+    addressRules: series.addressRules ?? [],
+    // Nothing in the seed ships switched off: the switch is for a wrong list on
+    // the day, and a fixture that started in that state would hide the rule it
+    // exists to demonstrate.
+    restrictionsEnabled: true,
     problems: problemsOf(series),
 });
 
