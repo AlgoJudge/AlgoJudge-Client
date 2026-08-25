@@ -98,23 +98,20 @@ const record = (
         note: v.note,
         config: v.config,
         hasPackage: v.hasPackage,
+        // **Every file is really stored, and its address really answers.** The
+        // list used to state an invented `sha256` and no `url` at all, so the
+        // fake described files nothing could fetch — two halves of one fake
+        // disagreeing, which is the defect `check:ui` exists to catch and could
+        // not, because nothing fetched them until the export did.
         files: [
-            ...(v.content ? [{
-                name: "content.md", scope: "participant" as const, mimeType: "text/markdown",
-                sizeBytes: 2048, sha256: fakeSha(`${v.id}/content.md`),
-            }] : []),
-            ...Object.keys(v.translations ?? {}).map(language => ({
-                name: `content-${language}.md`, scope: "participant" as const, mimeType: "text/markdown",
-                sizeBytes: 2048, sha256: fakeSha(`${v.id}/content-${language}.md`),
-            })),
-            ...(v.hasPackage ? [{
-                name: "package.zip", scope: "runner" as const, mimeType: "application/zip",
-                sizeBytes: 1_450_000, sha256: fakeSha(`${v.id}/package.zip`),
-            }] : []),
-            ...(v.hasPackage ? [{
-                name: "model.cpp", scope: "manager" as const, mimeType: "text/x-c++src",
-                sizeBytes: 1200, sha256: fakeSha(`${v.id}/model.cpp`),
-            }] : []),
+            ...(v.content ? [stored(files, v.id, "content.md", "text/markdown", "participant", v.content)] : []),
+            ...Object.entries(v.translations ?? {}).map(([language, text]) =>
+                stored(files, v.id, `content-${language}.md`, "text/markdown", "participant", text)),
+            ...(v.hasPackage ? [
+                stored(files, v.id, "package.zip", "application/zip", "runner", `package-${v.id}`),
+                stored(files, v.id, "model.cpp", "text/x-c++src", "manager", `// model for ${v.id}
+`),
+            ] : []),
         ],
     })).sort((a, b) => b.version - a.version),
     content: new Map(versions.filter(v => v.content).map(v => [v.id, [
@@ -123,6 +120,30 @@ const record = (
             statementRef(files, v.id, language, text)),
     ]])),
 });
+
+/**
+ * Seeds one version file and answers with the row a manager's screen reads.
+ *
+ * The checksum and the address are the store's own rather than invented, so
+ * anything that fetches the file — the export, a download link — gets the bytes
+ * the list says are there.
+ */
+const stored = (
+    files: FakeFiles,
+    versionId: string,
+    name: string,
+    mimeType: string,
+    scope: "participant" | "manager" | "runner",
+    text: string,
+) => {
+    const seed = files.seedText(`${versionId}/${name}`, mimeType, text);
+    return files.mirror({
+        name, scope, mimeType,
+        sizeBytes: seed.sizeBytes,
+        sha256: seed.sha256,
+        url: files.url(seed.id),
+    }, seed.id);
+};
 
 /** Stores one language's text and answers with the reference the editor reads. */
 const statementRef = (

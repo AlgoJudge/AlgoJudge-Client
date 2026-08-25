@@ -16,10 +16,61 @@ export class FakeFiles {
     private readonly urls = new Map<string, string>();
     private next = 1;
 
-    /** Seeds a fixture. The checksum is deterministic, as fixtures' checksums are. */
+    /**
+     * Seeds a fixture.
+     *
+     * **The checksum is a placeholder until `settleChecksums` replaces it**, and
+     * that is not tidiness. `upload` computes the real SHA-256 and refuses a
+     * mismatch, exactly as the Server does — so a seeded file carrying an
+     * invented digest is a fake that disagrees with itself: anything reading a
+     * seeded digest and handing it back to `upload` is refused. The export and
+     * import of §8 are the first things to do that, and they could not run at
+     * all until this was true.
+     */
     seedText(name: string, mimeType: string, text: string): UploadedFile {
         const bytes = new Blob([text], { type: mimeType });
-        return this.store(`file-${this.next++}`, name, mimeType, bytes, fixtureChecksum(name + text));
+        const stored = this.store(`file-${this.next++}`, name, mimeType, bytes, fixtureChecksum(name + text));
+        this.unsettled.add(stored.id);
+        return stored;
+    }
+
+    private readonly unsettled = new Set<string>();
+    private readonly mirrors: { row: { sha256: string }; id: string }[] = [];
+
+    /**
+     * Remembers a fixture row that copied a seeded digest, so settling reaches
+     * it too.
+     *
+     * A row is a plain object the fixture keeps, and the digest in it is a copy
+     * made before the real one existed. Every fixture that states a `sha256`
+     * goes through here — a version's file list, an activity's documents, the
+     * instance's.
+     */
+    mirror<T extends { sha256: string }>(row: T, id: string): T {
+        this.mirrors.push({ row, id });
+        return row;
+    }
+
+    /**
+     * Replaces every placeholder with the digest of the bytes behind it.
+     *
+     * Asynchronous because `crypto.subtle` is, and called from the API surface
+     * rather than the constructor for the same reason. Idempotent, and cheap
+     * after the first pass: the set empties.
+     */
+    async settleChecksums(): Promise<void> {
+        if (this.unsettled.size === 0) return;
+        for (const id of [...this.unsettled]) {
+            const entry = this.files.get(id);
+            if (entry) entry.meta = { ...entry.meta, sha256: await sha256(entry.bytes) };
+            this.unsettled.delete(id);
+        }
+        for (const { row, id } of this.mirrors) row.sha256 = this.checksumOf(id);
+    }
+
+    /** The digest a seeded file ended up with, once settled. */
+    checksumOf(id: string): string {
+        return this.files.get(id)?.meta.sha256 ?? "";
     }
 
     seedBlob(name: string, mimeType: string, bytes: Blob, checksum: string): UploadedFile {

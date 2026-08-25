@@ -2392,6 +2392,13 @@ export class ManagerApiFake implements ManagerApi {
     }
 
     private async settle(signal: AbortSignal): Promise<void> {
+        // **The seeded digests are made real here**, on the first read, because
+        // `crypto.subtle` is asynchronous and a fixture is not. Until it has
+        // run, a version's file list states a digest the store would not agree
+        // with, and `FileApiFake.upload` refuses a mismatch exactly as the
+        // Server does — so an export reading those digests and an import
+        // handing them back refuse each other.
+        await this.files.settleChecksums();
         await Utils.sleep(this.sleepMs);
         signal.throwIfAborted();
     }

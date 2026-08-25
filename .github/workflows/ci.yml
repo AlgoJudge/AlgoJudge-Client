@@ -49,12 +49,18 @@ jobs:
       - name: Build
         run: npm run build
 
-      # The two formats the Client owns, and the event transport.
+      # The three formats the Client owns, and the event transport.
       - name: Check the statement format
         run: npm run check:content
 
       - name: Check the package format
         run: npm run check:package
+
+      # The exchange bundle, and the partition it is: every field of the four
+      # manager shapes is carried or deliberately left, and the compiler will
+      # not let that list fall behind the API.
+      - name: Check the exchange format
+        run: npm run check:exchange
 
       - name: Check the event socket
         run: npm run check:events

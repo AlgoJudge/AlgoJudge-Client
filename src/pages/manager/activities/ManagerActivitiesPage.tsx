@@ -1,5 +1,5 @@
 import { Alert, Badge, Button, Group, Modal, Pagination, Select, Stack, Switch, Table, Text, TextInput, Title, Tooltip } from "@mantine/core";
-import { IconArchive, IconArchiveOff, IconPlus, IconSearch, IconTrash } from "@tabler/icons-react";
+import { IconArchive, IconArchiveOff, IconPlus, IconSearch, IconTrash, IconUpload } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -8,6 +8,9 @@ import LoadState from "../../../components/LoadState";
 import ActivityTime from "../../../components/time/ActivityTime";
 import { emptyActivity } from "../../../components/activity/activityInput";
 import CleanCopyModal from "../../../components/copy/CleanCopyModal";
+import ExportButton from "../../../components/exchange/ExportButton";
+import ImportBundleModal from "../../../components/exchange/ImportBundleModal";
+import { collectActivity } from "../../../exchange/collect";
 import { activityTypes } from "../../../renderers";
 
 /** The first type this Client can present, so the form opens on a working one. */
@@ -33,6 +36,7 @@ export default function ManagerActivitiesPage() {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const [copying, setCopying] = useState<ManagedActivity | undefined>(undefined);
+    const [importing, setImporting] = useState(false);
     const call = useApiCall();
 
     const [items, setItems] = useState<ManagedActivity[] | undefined>(undefined);
@@ -101,9 +105,14 @@ export default function ManagerActivitiesPage() {
                         {t("A contest, a course, a practice set — one place where problems are given to people.")}
                     </Text>
                 </Stack>
-                <Button leftSection={<IconPlus size={16} />} onClick={() => setCreating(true)}>
-                    {t("New activity")}
-                </Button>
+                <Group gap="sm">
+                    <Button variant="default" leftSection={<IconUpload size={16} />} onClick={() => setImporting(true)}>
+                        {t("Import from a file")}
+                    </Button>
+                    <Button leftSection={<IconPlus size={16} />} onClick={() => setCreating(true)}>
+                        {t("New activity")}
+                    </Button>
+                </Group>
             </Group>
 
             {error && <Alert color="red" withCloseButton onClose={() => setError(undefined)}>{error}</Alert>}
@@ -233,6 +242,13 @@ export default function ManagerActivitiesPage() {
                                         >
                                             {t("Copy for a new run")}
                                         </Button>
+                                        <ExportButton
+                                            compact
+                                            label={t("Export to a file")}
+                                            filename={`algojudge-${activity.slug}`}
+                                            collect={api => collectActivity(api, activity.id)}
+                                            onError={message => setError(message || undefined)}
+                                        />
                                         <Tooltip label={activity.archivedAt ? t("Restore") : t("Archive")}>
                                             <Button
                                                 variant="subtle"
@@ -332,6 +348,12 @@ export default function ManagerActivitiesPage() {
                     await call(api => api.managerApi.duplicateActivity(id, chosen.name, chosen.date));
                     setCopying(undefined);
                 })}
+            />
+
+            <ImportBundleModal
+                opened={importing}
+                onClose={() => setImporting(false)}
+                onImported={() => { setImporting(false); setReload(n => n + 1); }}
             />
         </Stack>
     );

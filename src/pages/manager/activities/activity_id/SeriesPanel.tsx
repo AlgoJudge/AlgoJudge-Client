@@ -18,6 +18,8 @@ import {
 } from "../../../../api/ManagerApi";
 import ZonedDateTimeInput from "../../../../components/time/ZonedDateTimeInput";
 import CleanCopyModal from "../../../../components/copy/CleanCopyModal";
+import ExportButton from "../../../../components/exchange/ExportButton";
+import { collectSeries } from "../../../../exchange/collect";
 import { useApiCall } from "../../../../provider/apiContext";
 import PauseSeriesModal, { PauseIntent } from "./PauseSeriesModal";
 import ShiftSeries from "./ShiftSeries";
@@ -494,6 +496,13 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                                                     <IconCopy size={14} />
                                                 </Button>
                                             </Tooltip>
+                                            <ExportButton
+                                                compact
+                                                label={t("Export this round")}
+                                                filename={`algojudge-${activity.slug}-${s.slug}`}
+                                                collect={api => collectSeries(api, activity.id, s.id)}
+                                                onError={onError}
+                                            />
                                             <Button
                                                 variant="subtle"
                                                 color="red"
