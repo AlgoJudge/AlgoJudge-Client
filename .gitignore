@@ -25,6 +25,7 @@ dist-ssr
 
 # Output of `npm run check:package`.
 .package-check/
+.exchange-check/
 
 # Output of `npm run check:content`.
 .content-check/

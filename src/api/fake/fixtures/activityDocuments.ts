@@ -84,7 +84,10 @@ export const seedActivityDocuments = (files: FakeFiles): Map<string, ActivityDoc
                 ? `${document.kind}-${document.language}.md`
                 : `${document.kind}.md`;
             const stored = files.seedText(`${activityId}/${name}`, "text/markdown", document.content);
-            return {
+            // Mirrored, so the digest becomes the store's real one when the
+            // fake settles: a row stating a checksum `upload` would refuse is a
+            // fake that disagrees with itself.
+            return files.mirror({
                 kind: document.kind,
                 language: document.language,
                 title: document.title,
@@ -92,7 +95,7 @@ export const seedActivityDocuments = (files: FakeFiles): Map<string, ActivityDoc
                 fileId: stored.id,
                 sha256: stored.sha256,
                 sizeBytes: stored.sizeBytes,
-            };
+            }, stored.id);
         }));
     }
 

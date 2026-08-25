@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "check:package": "node scripts/check-package.mjs",
+    "check:exchange": "node scripts/check-exchange.mjs",
     "check:content": "node scripts/check-content.mjs",
     "check:events": "node scripts/check-events.mjs",
     "check:i18n": "node scripts/check-i18n.mjs",

@@ -1,5 +1,5 @@
 import { Alert, Badge, Button, Group, Modal, Pagination, Select, Stack, Switch, Table, Text, TextInput, Title, Tooltip } from "@mantine/core";
-import { IconArchive, IconArchiveOff, IconCopy, IconLock, IconPlus, IconSearch, IconTrash, IconUsers, IconWorld } from "@tabler/icons-react";
+import { IconArchive, IconArchiveOff, IconCopy, IconLock, IconPlus, IconSearch, IconTrash, IconUpload, IconUsers, IconWorld } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -7,6 +7,9 @@ import { ManagedProblem, ProblemVisibility } from "../../../api/ManagerApi";
 import LoadState from "../../../components/LoadState";
 import ActivityTime from "../../../components/time/ActivityTime";
 import CleanCopyModal from "../../../components/copy/CleanCopyModal";
+import ExportButton from "../../../components/exchange/ExportButton";
+import ImportBundleModal from "../../../components/exchange/ImportBundleModal";
+import { collectProblemOnly } from "../../../exchange/collect";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
 import { problemTypes } from "../../../renderers";
 
@@ -36,6 +39,7 @@ export default function ManagerProblemsPage() {
     const call = useApiCall();
 
     const [copying, setCopying] = useState<ManagedProblem | undefined>(undefined);
+    const [importing, setImporting] = useState(false);
     const [items, setItems] = useState<ManagedProblem[] | undefined>(undefined);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
@@ -98,9 +102,14 @@ export default function ManagerProblemsPage() {
                         {t("A problem is private until you share it. Only its author can attach a private problem.")}
                     </Text>
                 </Stack>
-                <Button leftSection={<IconPlus size={16} />} onClick={() => setCreating(true)}>
-                    {t("New problem")}
-                </Button>
+                <Group gap="sm">
+                    <Button variant="default" leftSection={<IconUpload size={16} />} onClick={() => setImporting(true)}>
+                        {t("Import from a file")}
+                    </Button>
+                    <Button leftSection={<IconPlus size={16} />} onClick={() => setCreating(true)}>
+                        {t("New problem")}
+                    </Button>
+                </Group>
             </Group>
 
             {error && <Alert color="red" withCloseButton onClose={() => setError(undefined)}>{error}</Alert>}
@@ -182,6 +191,13 @@ export default function ManagerProblemsPage() {
                                                 <IconCopy size={14} />
                                             </Button>
                                         </Tooltip>
+                                        <ExportButton
+                                            compact
+                                            label={t("Export to a file")}
+                                            filename={`algojudge-${problem.slug}`}
+                                            collect={api => collectProblemOnly(api, problem.id)}
+                                            onError={message => setError(message || undefined)}
+                                        />
                                         <Tooltip label={problem.archivedAt ? t("Restore") : t("Archive")}>
                                             <Button
                                                 variant="subtle"
@@ -274,6 +290,12 @@ export default function ManagerProblemsPage() {
                     await call(api => api.managerApi.duplicateProblem(id));
                     setCopying(undefined);
                 })}
+            />
+
+            <ImportBundleModal
+                opened={importing}
+                onClose={() => setImporting(false)}
+                onImported={() => { setImporting(false); setReload(n => n + 1); }}
             />
         </Stack>
     );
