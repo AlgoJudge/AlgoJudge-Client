@@ -16,7 +16,7 @@
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { evaluate, wait, shot, go, click, close } = await open();
+const { evaluate, wait, shot, go, visit, click, close } = await open();
 const { check, report } = results();
 
 const body = () => evaluate(`return document.body.innerText;`);
@@ -172,13 +172,179 @@ check(/AMMPZ-2027/.test(listed), "the imported activity is in the list");
 await shot("exchange-imported");
 
 // It arrived with its rounds, which is the half a row in a list does not prove.
+//
+// **The name, not the cell.** A manager row opens from a `<Text onClick>`, so a
+// click at the centre of the first `td` lands beside the handler as often as on
+// it — this passed by luck once and failed the next run. The pointer style is
+// what the handler is on.
 await click(`[...document.querySelectorAll("tbody tr")]
-    .find(r => r.innerText.includes("AMMPZ-2027"))?.querySelector("td")`);
+    .find(r => r.innerText.includes("AMMPZ-2027"))
+    ?.querySelector("td [style*='cursor']")`);
 await wait(3000);
 
-const opened = await body();
+// Polled, like the list above: the panel fetches its rounds after the page
+// mounts, and a single read a fixed time later measures whichever won.
+let opened = "";
+for (let attempt = 0; attempt < 10; attempt++) {
+    opened = await body();
+    if (/Runda 1/.test(opened)) break;
+    await wait(1000);
+}
 check(/Runda 1/.test(opened), "with the rounds it was exported with");
 await shot("exchange-arrived");
+
+// ── 4. A ZawodyWeb archive takes the same road ──────────────────────────────
+//
+// **The point of §9 in one check.** The converter turns a foreign archive into
+// the bundle §8 defined, so everything after the file input — the loss report,
+// the plan against the library, the compulsory dates, every write — is the code
+// already exercised above. A second import path would be a second place for
+// "already here" to mean something slightly different.
+//
+// The archive is built **in the page**, stored rather than deflated, because
+// `fflate` is bundled into the application and not exposed on `window`. Whether
+// the bytes are a real zip is not assumed: if they were not, the application's
+// own reader would refuse them and every assertion below would fail.
+
+// **Back to the list, in the application rather than through the address bar.**
+// The section above ended inside the activity it imported; a reload would
+// rebuild the fake and take the signed-in manager with it, which is what a `go`
+// here did — it timed out waiting for a list nobody was signed in to see.
+await visit("/manager/activities",
+    `[...document.querySelectorAll("tbody tr")].some(r => r.innerText.includes("AMMPZ-2019"))`);
+await wait(1500);
+
+await click(`[...document.querySelectorAll("button")]
+    .find(b => b.textContent.trim() === "Importuj z pliku")`);
+await wait(1200);
+
+await evaluate(`
+    const CRC = (() => {
+        const table = new Uint32Array(256);
+        for (let n = 0; n < 256; n++) {
+            let c = n;
+            for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+            table[n] = c >>> 0;
+        }
+        return (bytes) => {
+            let c = 0xffffffff;
+            for (const byte of bytes) c = table[(c ^ byte) & 0xff] ^ (c >>> 8);
+            return (c ^ 0xffffffff) >>> 0;
+        };
+    })();
+
+    // A zip of stored entries, which is all this needs and all it claims to be.
+    const zip = (files) => {
+        const encoder = new TextEncoder();
+        const locals = [];
+        const central = [];
+        let offset = 0;
+
+        for (const [name, text] of Object.entries(files)) {
+            const bytes = encoder.encode(text);
+            const nameBytes = encoder.encode(name);
+            const crc = CRC(bytes);
+
+            const local = new DataView(new ArrayBuffer(30));
+            local.setUint32(0, 0x04034b50, true);
+            local.setUint16(4, 20, true);
+            local.setUint32(14, crc, true);
+            local.setUint32(18, bytes.length, true);
+            local.setUint32(22, bytes.length, true);
+            local.setUint16(26, nameBytes.length, true);
+            locals.push(new Uint8Array(local.buffer), nameBytes, bytes);
+
+            const entry = new DataView(new ArrayBuffer(46));
+            entry.setUint32(0, 0x02014b50, true);
+            entry.setUint16(4, 20, true);
+            entry.setUint16(6, 20, true);
+            entry.setUint32(16, crc, true);
+            entry.setUint32(20, bytes.length, true);
+            entry.setUint32(24, bytes.length, true);
+            entry.setUint16(28, nameBytes.length, true);
+            entry.setUint32(42, offset, true);
+            central.push(new Uint8Array(entry.buffer), nameBytes);
+
+            offset += 30 + nameBytes.length + bytes.length;
+        }
+
+        const centralBytes = central.reduce((n, part) => n + part.length, 0);
+        const end = new DataView(new ArrayBuffer(22));
+        end.setUint32(0, 0x06054b50, true);
+        end.setUint16(8, Object.keys(files).length, true);
+        end.setUint16(10, Object.keys(files).length, true);
+        end.setUint32(12, centralBytes, true);
+        end.setUint32(16, offset, true);
+
+        return new Blob([...locals, ...central, new Uint8Array(end.buffer)], { type: "application/zip" });
+    };
+
+    const blob = zip({
+        "contest.xml": \`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<contest xmlns="http://zawodyweb.mat.umk.pl/">
+  <name>Konkurs z ZawodyWeb</name><type>0</type><subtype>0</subtype>
+  <startdate>2026-03-02T09:00:00.000+01:00</startdate>
+  <rules>Kara 20 minut.</rules><visible>true</visible>
+  <series><serie>
+    <name>Etap I</name>
+    <startdate>2026-03-02T09:00:00.000+01:00</startdate>
+    <enddate>2026-03-02T14:00:00.000+01:00</enddate>
+    <penaltytime>1200</penaltytime><visible>true</visible>
+    <openips></openips><hiddenblocked>false</hiddenblocked>
+    <problems><problem>
+      <name>Suma dwoch liczb</name><abbrev>A</abbrev><text>problem001.html</text>
+      <memlimit>64</memlimit><codesize>64</codesize><diff>NormalDiff</diff>
+      <visible>true</visible><viewpdf>false</viewpdf>
+      <languages><language>C++</language><language>Java</language></languages>
+      <tests><test><input>in001.txt</input><output>out001.txt</output>
+        <maxpoints>100</maxpoints><timelimit>1000</timelimit><order>00</order></test></tests>
+    </problem></problems>
+  </serie></series>
+</contest>\`,
+        "problem001.html": "<h2>Suma</h2><p>Zsumuj <b>dwie</b> liczby.</p>",
+        "in001.txt": "2 3",
+        "out001.txt": "5",
+    });
+
+    const input = document.querySelector("[class*=Modal-content] input[type=file]");
+    if (!input) throw new Error("no file input in the dialog");
+    const data = new DataTransfer();
+    data.items.add(new File([blob], "zawodyweb-contest.zip", { type: "application/zip" }));
+    input.files = data.files;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    return true;
+`);
+await wait(7000);
+
+const converted = await modal();
+check(/Skonwertowane z archiwum ZawodyWeb/.test(converted),
+    `the archive is recognised and converted (${converted.slice(0, 60)})`);
+
+// **The losses are the point.** ZawodyWeb drops an unknown language in silence;
+// this says which one, before anything is written.
+check(/Java/.test(converted), "Java is named as having no equivalent here");
+check(/strefy czasowej/.test(converted), "and the time zone the format never carried");
+check(/skonwertowana z HTML/.test(converted), "and that the statement was machine-converted");
+await shot("exchange-zawodyweb");
+
+check(/do utworzenia/.test(converted), "the same plan follows, against the same library");
+check(/Kiedy zaczyna si\u0119 pierwsza runda/.test(converted),
+    "and the same compulsory date, because it is the same importer");
+
+await fill("Własna nazwa", "ZW-2027");
+await fill("Kiedy zaczyna się pierwsza runda", "2027-09-14T10:00");
+await wait(600);
+await click(modalButton("Importuj"));
+await wait(8000);
+
+let arrived = "";
+for (let attempt = 0; attempt < 10; attempt++) {
+    arrived = await body();
+    if (/ZW-2027/.test(arrived)) break;
+    await wait(1000);
+}
+check(/ZW-2027/.test(arrived), "the converted contest is in the list");
+await shot("exchange-zawodyweb-imported");
 
 report();
 await close();
