@@ -1809,6 +1809,21 @@ export interface ManagerApi {
     deleteSeries(seriesId: string, signal: AbortSignal): Promise<void>;
 
     /**
+     * Copies a round with the problems assigned to it, into this activity or
+     * another. `targetActivityId` absent copies in place.
+     *
+     * **The problems are referenced, not copied.** Two activities setting the
+     * same problem is what the library is for; duplicating it would mean a
+     * correction reaching one of them.
+     *
+     * An assignment slug is unique across an *activity*, so a copy made in
+     * place is suffixed — the answer comes back with the slugs it actually got.
+     */
+    duplicateSeries(
+        seriesId: string, targetActivityId: string | undefined, slug: string, startsAt: string,
+        signal: AbortSignal): Promise<ManagedSeries>;
+
+    /**
      * Moves every instant the series holds by `minutes` — its start, its end,
      * and the ranking freeze and reveal with them.
      *
