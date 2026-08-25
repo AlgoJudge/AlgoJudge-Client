@@ -90,6 +90,20 @@ const parser = new XMLParser({
     // format depends on. Every number here is converted deliberately below.
     parseTagValue: false,
     trimValues: true,
+    /**
+     * **Both spellings of the namespace, which is not a preference.**
+     *
+     * `FORMAT.md` §3: *"the prefix does not matter. The default-namespace form
+     * and the prefixed form are equivalent; which one appears depends on the
+     * JAXB implementation."* Without this, `<ns2:contest>` parses to the key
+     * `ns2:contest` and every lookup below misses — an export from one JAXB
+     * version converts and from another does not.
+     *
+     * **The five reference archives would not have caught it**: all five use
+     * the default form, so the fixture that does is written here rather than
+     * taken from them.
+     */
+    removeNSPrefix: true,
 });
 
 const text = (value: unknown): string | undefined =>
@@ -421,6 +435,23 @@ export const convertArchive = async (entries: Entries): Promise<Conversion> => {
     }
 
     const parsed = parser.parse(decoder.decode(entries[descriptor])) as Record<string, unknown>;
+
+    /**
+     * The root element the descriptor is named after.
+     *
+     * **Checked rather than assumed**, because the failure without it is a
+     * `TypeError` on `undefined` several functions deeper — which is what a
+     * reader gets today for a document this cannot read, and tells them
+     * nothing. The one case that reached it was a namespace prefix the parser
+     * was keeping; the guard outlives that fix, because the next surprise in
+     * somebody else's format will not be the same one.
+     */
+    const root = descriptor.replace(/\.xml$/, "");
+    if (!parsed[root] || typeof parsed[root] !== "object") {
+        throw new Error(
+            `${descriptor} has no <${root}> this reader can find. `
+            + "It may be a variant of the format this does not know.");
+    }
 
     const bundle: Bundle = {
         type: BUNDLE_TYPE,

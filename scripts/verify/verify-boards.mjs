@@ -95,7 +95,21 @@ const row = await evaluate(`
     const first = panel?.querySelector("[class*=row]");
     return first ? first.innerText.replace(/\\s+/g, " ").trim() : null;
 `);
-check(row !== null && /^\d{2}:\d{2}/.test(row), `the row starts with the hour (${row})`);
+// **The hour, and the one exception is named rather than inferred.**
+// `ActivitySubmissions` prints the hour for a submission made today and the date
+// for an older one; the seed's newest is a couple of minutes old, so a run that
+// crosses midnight finds *yesterday's* date and this failed for that alone, at
+// 00:00 on 2026-08-26.
+//
+// The exception admits **yesterday's date and nothing else**. Deciding it from
+// "does the row start with a date" instead would be circular: a regression to
+// the full form on any ordinary day would satisfy its own exception and pass.
+const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toLocaleDateString("pl-PL");
+const crossedMidnight = row !== null && row.startsWith(yesterday);
+check(row !== null && (crossedMidnight ? /^\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}/ : /^\d{2}:\d{2}/).test(row),
+    crossedMidnight
+        ? `the run crossed midnight, so the row carries yesterday's date (${row})`
+        : `the row starts with the hour (${row})`);
 check(row !== null && /\[[A-Z]\]/.test(row), "carries the slug");
 // The name the row gives has to be the name the problems screen gives.
 const slug = row?.match(/\[([A-Z])\]/)?.[1];
