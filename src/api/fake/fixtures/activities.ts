@@ -112,6 +112,7 @@ const activityOf = (activity: SeedActivity): ManagedActivity => ({
     joinPassword: activity.joinPassword,
     unlisted: activity.unlisted,
     hideEndedSeriesProblems: activity.hideEndedSeriesProblems,
+    showGroupMembers: activity.showGroupMembers,
     maxUploadBytes: activity.maxUploadBytes,
     maxAttachments: activity.maxAttachments,
     props: activity.props,

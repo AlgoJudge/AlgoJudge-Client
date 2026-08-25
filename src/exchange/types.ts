@@ -113,6 +113,7 @@ export interface BundledActivity {
     joinPolicy: JoinPolicy;
     unlisted: boolean;
     hideEndedSeriesProblems: boolean;
+    showGroupMembers: boolean;
     maxUploadBytes: number;
     maxAttachments: number;
     maxSubmissionsPerProblem?: number;
@@ -193,7 +194,8 @@ export const CARRIED = {
     activity: [
         "slug", "name", "type", "rankingType", "timeZone", "startDate", "endDate",
         "modules", "scoreVisibility", "attachmentVisibility", "props", "joinPolicy",
-        "unlisted", "hideEndedSeriesProblems", "maxUploadBytes", "maxAttachments",
+        "unlisted", "hideEndedSeriesProblems", "showGroupMembers",
+        "maxUploadBytes", "maxAttachments",
         "maxSubmissionsPerProblem", "runnerTags",
     ],
     series: [
@@ -268,7 +270,8 @@ export const FIELDS = {
         id: true, slug: true, name: true, type: true, rankingType: true, timeZone: true,
         startDate: true, endDate: true, modules: true, documents: true, scoreVisibility: true,
         attachmentVisibility: true, props: true, joinPolicy: true, unlisted: true,
-        joinPassword: true, hideEndedSeriesProblems: true, maxUploadBytes: true,
+        joinPassword: true, hideEndedSeriesProblems: true, showGroupMembers: true,
+        maxUploadBytes: true,
         maxAttachments: true, maxSubmissionsPerProblem: true, archivedAt: true,
         publishedAt: true, seriesCount: true, problemCount: true, participantCount: true,
         runnerTags: true, matchingRunners: true,

@@ -323,6 +323,22 @@ export default function ActivityForm(
                     </Grid.Col>
                 </Grid>
 
+                {/* Beside "who sees scores", because it is the same question one
+                    level down: that one decides whether there is a ranking, this
+                    one decides whether a group's row names the people in it.
+                    Inert where nobody competes as a group, which is why the
+                    description says so rather than the control hiding itself —
+                    a setting that appears only sometimes is one a manager
+                    cannot find when they go looking for it. */}
+                <Switch
+                    mt="sm"
+                    label={t("Name the members of a group on the ranking")}
+                    description={t("Off, a group's row carries its name alone. Nothing here changes an activity nobody competes in as a group.")}
+                    checked={value.showGroupMembers}
+                    onChange={e => set({ showGroupMembers: e.currentTarget.checked })}
+                    disabled={disabled}
+                />
+
                 {/* Both policies that admit self-enrolment get the link. Only
                     `closed` has nobody to give it to. */}
                 {value.joinPolicy !== "closed" && (

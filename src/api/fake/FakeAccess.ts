@@ -2,6 +2,7 @@ import { ActivityGroup, Grant } from "../ManagerApi";
 import { signedInUserId } from "./CoreApiFake";
 import { createGrants, MY_SYSTEM_PERMISSIONS, PERMISSION_CATALOGUE } from "./fixtures/permissions";
 import { ME } from "./fixtures/problems";
+import { WORLD } from "./fixtures/world";
 
 /**
  * Who may do what, shared by both halves of the fake.
@@ -36,8 +37,14 @@ export class FakeAccess {
      * never sends this flag to a participant** — it sends its effect. A fake
      * that put it on the participant's model would be answering a question the
      * Server refuses.
+     *
+     * Seeded from `WORLD` and written by the manager's settings screen, so the
+     * switch a manager saves is the one this board reads. It was an **empty set
+     * nothing ever wrote** until 2026-08-26: no roster could appear here,
+     * matching a Server whose column no API could set.
      */
-    showGroupMembers = new Set<string>();
+    showGroupMembers = new Set<string>(
+        WORLD.filter(activity => activity.showGroupMembers).map(activity => activity.id));
 
     /** The account this browser is signed in as, or the fixtures' own manager. */
     me(): string {

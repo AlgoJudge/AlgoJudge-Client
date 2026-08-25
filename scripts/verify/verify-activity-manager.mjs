@@ -74,6 +74,39 @@ check(await evaluate(`
 `), "and the activity is marked as hidden from the list");
 await shot("mact-settings");
 
+// 4b — the roster switch draws what is stored, and saving keeps it.
+//
+// **The setting reached no DTO at all until 2026-08-26**, so this screen could
+// not draw it and nothing could turn it on. Both halves are asserted because
+// they fail apart: a `toInput` that dropped the field draws the switch off over
+// a stored `true`, and a save that dropped it turns a stored `true` off on the
+// next visit. The seed has it on for this activity, which is why reading is
+// worth anything here.
+const roster = () => evaluate(`
+    const found = [...document.querySelectorAll("input[type=checkbox]")]
+        .find(s => s.closest("label, [class*=Switch-root]")?.textContent.includes("skład grupy"));
+    return found === undefined ? null : found.checked;
+`);
+check(await roster() === true,
+    "the roster switch draws what the activity has stored");
+
+// The visible panel's Save: every mounted round has a button reading `Zapisz`
+// too, and those come first in the document, so an unscoped search saves a round
+// and leaves this form untouched — a way of passing that says nothing.
+await click(`[...(([...document.querySelectorAll("[role=tabpanel]")]
+    .find(p => p.offsetParent !== null))?.querySelectorAll("button") ?? [])]
+    .find(b => b.textContent.trim() === "Zapisz")`);
+await wait(3000);
+
+await visit("/manager/activities", MANAGER_LIST);
+await click(`[...document.querySelectorAll("tbody tr")]
+    .find(r => r.innerText.includes("PROG-1-LA"))
+    ?.querySelector("td")`);
+await wait(2500);
+await click(tab("Ustawienia"));
+await wait(800);
+check(await roster() === true, "and saving the form does not quietly turn it off");
+
 // 5 — withdrawing a document takes its links with it.
 await click(tab("Dokumenty"));
 await click(`[...document.querySelectorAll("tbody tr")]

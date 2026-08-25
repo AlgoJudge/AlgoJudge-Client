@@ -27,6 +27,9 @@ export const emptyActivity = (): ActivityInput => ({
     unlisted: true,
     // A finished round stays readable unless somebody says otherwise.
     hideEndedSeriesProblems: false,
+    // A group is one contestant; naming who is in it is a disclosure somebody
+    // has to choose.
+    showGroupMembers: false,
     maxUploadBytes: 8 * MB,
     maxAttachments: 1,
     // The general Runners, which is where an activity nobody has pinned belongs.
@@ -48,6 +51,7 @@ export const toInput = (activity: ManagedActivity): ActivityInput => ({
     unlisted: activity.unlisted,
     joinPassword: activity.joinPassword,
     hideEndedSeriesProblems: activity.hideEndedSeriesProblems,
+    showGroupMembers: activity.showGroupMembers,
     maxUploadBytes: activity.maxUploadBytes,
     maxAttachments: activity.maxAttachments,
     maxSubmissionsPerProblem: activity.maxSubmissionsPerProblem,

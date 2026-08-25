@@ -542,6 +542,9 @@ export const convertArchive = async (entries: Entries): Promise<Conversion> => {
         joinPolicy: "closed",
         unlisted: !boolean((parsed.contest as Record<string, unknown> | undefined)?.visible, true),
         hideEndedSeriesProblems: false,
+        // ZawodyWeb has no equivalent — it has no groups — so this is a choice
+        // rather than a conversion, and it is the one that discloses nothing.
+        showGroupMembers: false,
         maxUploadBytes: codeSizeOf(parsed) ?? 8 * BYTES_PER_MIB,
         maxAttachments: 1,
         maxSubmissionsPerProblem: undefined,

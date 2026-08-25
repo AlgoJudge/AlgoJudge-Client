@@ -73,6 +73,7 @@ export const projectActivity = (
     // **Never the join password.** Everybody who took the original knows it, so
     // a copy that carried it is joinable by last year's cohort.
     hideEndedSeriesProblems: activity.hideEndedSeriesProblems,
+    showGroupMembers: activity.showGroupMembers,
     maxUploadBytes: activity.maxUploadBytes,
     maxAttachments: activity.maxAttachments,
     maxSubmissionsPerProblem: activity.maxSubmissionsPerProblem,

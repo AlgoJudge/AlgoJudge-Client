@@ -173,6 +173,7 @@ export const applyBundle = async (
         unlisted: bundle.activity.unlisted,
         // **Never the password**, which everybody who took the original knows.
         hideEndedSeriesProblems: bundle.activity.hideEndedSeriesProblems,
+        showGroupMembers: bundle.activity.showGroupMembers,
         maxUploadBytes: bundle.activity.maxUploadBytes,
         maxAttachments: bundle.activity.maxAttachments,
         maxSubmissionsPerProblem: bundle.activity.maxSubmissionsPerProblem,
