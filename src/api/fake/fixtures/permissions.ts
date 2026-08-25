@@ -5,9 +5,14 @@ import { CONTEST_ID, COURSE_ID, WORKSHOP_ID, WORLD } from "./world";
 /**
  * The permission catalogue and the shipped templates.
  *
- * Mirrors `docs/specs/PERMISSIONS.md`. In the real product this list comes from
- * the Server, because the Server is what enforces it; here it is the fixture
- * standing in for that endpoint, and the two must not drift.
+ * Mirrors `AlgoJudge-Server`'s `Authorization/Permissions.cs`, which is what
+ * enforces it — in the real product this list comes from the Server and here it
+ * stands in for that endpoint. `docs/specs/PERMISSIONS.md` is a third copy.
+ *
+ * **They drifted twice, unnoticed both times**, most recently by three keys on
+ * 2026-08-25. Nothing in this repository's CI can catch it: the copies live in
+ * three repositories. `scripts/check-permissions.py` in the workspace compares
+ * them, and it is a check somebody runs — run it when a permission is added.
  */
 
 /** The seven an ordinary participant holds, and what the template starts with. */
@@ -58,6 +63,7 @@ export const PERMISSION_CATALOGUE: PermissionDefinition[] = [
     definition("problem:share", "problem", "global"),
     definition("problem:archive", "problem", "global"),
     definition("problem:attach", "problem", "both"),
+    definition("problem:import:external", "problem", "global"),
 
     definition("submission:read:own", "submission", "activity"),
     definition("submission:read:all", "submission", "both"),
@@ -65,6 +71,7 @@ export const PERMISSION_CATALOGUE: PermissionDefinition[] = [
     definition("submission:source:read:all", "submission", "both"),
     definition("submission:rejudge", "submission", "both"),
     definition("submission:cancel", "submission", "both"),
+    definition("submission:exclude", "submission", "both"),
 
     definition("result:read:own", "result", "activity"),
     definition("result:read:all", "result", "both"),
@@ -86,6 +93,7 @@ export const PERMISSION_CATALOGUE: PermissionDefinition[] = [
     definition("user:update", "user", "global"),
     definition("user:block", "user", "global"),
     definition("user:create:temporary", "user", "both"),
+    definition("user:merge", "user", "global"),
 
     definition("grant:read:all", "grant", "both"),
     definition("grant:update", "grant", "both"),
@@ -119,7 +127,7 @@ const MANAGER = [
     "problem:read:own", "problem:create", "problem:update",
     "problem:share", "problem:archive", "problem:attach",
     "submission:read:all", "submission:source:read:all",
-    "submission:rejudge", "submission:cancel",
+    "submission:rejudge", "submission:cancel", "submission:exclude",
     "result:read:all", "result:log:read:all",
     "question:read:all", "question:answer", "question:publish",
     "announcement:create",
