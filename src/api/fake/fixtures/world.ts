@@ -281,6 +281,15 @@ export interface SeedActivity {
     joinPassword?: string;
     unlisted: boolean;
     hideEndedSeriesProblems: boolean;
+    /**
+     * Whether a group's ranking row also names who is in it.
+     *
+     * Stated here rather than defaulted, because both halves of the fake read
+     * it: the manager's settings screen draws the switch and the participant's
+     * board prints the roster. A seed that could leave it out would be a seed
+     * that lets the two disagree.
+     */
+    showGroupMembers: boolean;
     maxUploadBytes: number;
     maxAttachments: number;
     maxSubmissionsPerProblem?: number;
@@ -548,6 +557,7 @@ export const WORLD: SeedActivity[] = [
         joinPolicy: "closed",
         unlisted: true,
         hideEndedSeriesProblems: false,
+        showGroupMembers: false,
         maxUploadBytes: 8 * 1024 * 1024,
         maxAttachments: 1,
         languages: CONTEST_LANGUAGES,
@@ -578,6 +588,10 @@ export const WORLD: SeedActivity[] = [
         joinPassword: COURSE_JOIN_PASSWORD,
         unlisted: true,
         hideEndedSeriesProblems: false,
+        // **The one seed that has it on**, so the roster has somewhere to be
+        // drawn. `verify-groups` makes its group here, and a board that could
+        // never print a member is a renderer no check reaches.
+        showGroupMembers: true,
         maxUploadBytes: 4 * 1024 * 1024,
         maxAttachments: 3,
         languages: COURSE_LANGUAGES,
@@ -671,6 +685,7 @@ export const WORLD: SeedActivity[] = [
         joinPolicy: "open",
         unlisted: false,
         hideEndedSeriesProblems: false,
+        showGroupMembers: false,
         maxUploadBytes: 8 * 1024 * 1024,
         maxAttachments: 1,
         languages: CONTEST_LANGUAGES,
@@ -705,6 +720,7 @@ export const WORLD: SeedActivity[] = [
         joinPolicy: "closed",
         unlisted: true,
         hideEndedSeriesProblems: false,
+        showGroupMembers: false,
         maxUploadBytes: 8 * 1024 * 1024,
         maxAttachments: 1,
         languages: CONTEST_LANGUAGES,
@@ -757,6 +773,7 @@ export const WORLD: SeedActivity[] = [
         joinPolicy: "closed",
         unlisted: true,
         hideEndedSeriesProblems: false,
+        showGroupMembers: false,
         maxUploadBytes: 8 * 1024 * 1024,
         maxAttachments: 1,
         languages: CONTEST_LANGUAGES,
@@ -783,6 +800,7 @@ export const WORLD: SeedActivity[] = [
         joinPolicy: "closed",
         unlisted: true,
         hideEndedSeriesProblems: false,
+        showGroupMembers: false,
         maxUploadBytes: 8 * 1024 * 1024,
         maxAttachments: 1,
         languages: CONTEST_LANGUAGES,
@@ -835,6 +853,7 @@ export const WORLD: SeedActivity[] = [
         joinPassword: COURSE_JOIN_PASSWORD,
         unlisted: true,
         hideEndedSeriesProblems: false,
+        showGroupMembers: false,
         maxUploadBytes: 4 * 1024 * 1024,
         maxAttachments: 3,
         languages: CONTEST_LANGUAGES,
@@ -874,6 +893,7 @@ export const WORLD: SeedActivity[] = [
         joinPolicy: "closed",
         unlisted: false,
         hideEndedSeriesProblems: false,
+        showGroupMembers: false,
         maxUploadBytes: 4 * 1024 * 1024,
         maxAttachments: 1,
         languages: COURSE_LANGUAGES,
@@ -931,6 +951,7 @@ export const WORLD: SeedActivity[] = [
         joinPolicy: "closed",
         unlisted: true,
         hideEndedSeriesProblems: false,
+        showGroupMembers: false,
         maxUploadBytes: 8 * 1024 * 1024,
         maxAttachments: 1,
         languages: CONTEST_LANGUAGES,

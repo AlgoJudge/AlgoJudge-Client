@@ -616,6 +616,7 @@ export class ManagerApiFake implements ManagerApi {
         };
         this.activities = [{ activity, series: [] }, ...this.activities];
         this.shared.setEnrolment(activity.id, input.joinPolicy, input.joinPassword, input.unlisted);
+        this.setRoster(activity.id, input.showGroupMembers);
         return this.announceActivity(activity);
     }
 
@@ -635,7 +636,22 @@ export class ManagerApiFake implements ManagerApi {
             attachmentVisibility: input.attachmentVisibility,
             props: input.props,
         });
+        this.setRoster(record.activity.id, input.showGroupMembers);
         return this.announceActivity(record.activity);
+    }
+
+    /**
+     * The roster switch, into the store the ranking reads.
+     *
+     * **Not through `setSettings`**, which the participant's activity is spread
+     * from: the Server sends a reader the roster or withholds it and never sends
+     * the flag itself, so a fake putting it on the participant's model would be
+     * answering a question the Server refuses. `FakeAccess` owns it for the same
+     * reason it owns the grants — the manager writes, the board enforces.
+     */
+    private setRoster(activityId: string, shown: boolean): void {
+        if (shown) this.access.showGroupMembers.add(activityId);
+        else this.access.showGroupMembers.delete(activityId);
     }
 
     async publishActivityDocument(

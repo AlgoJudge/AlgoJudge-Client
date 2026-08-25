@@ -457,6 +457,19 @@ export interface ManagedActivity {
      */
     hideEndedSeriesProblems: boolean;
     /**
+     * Whether a group's ranking row also names who is in it.
+     *
+     * **A manager's field only.** The participant's `Activity` has no
+     * counterpart and must not grow one: a reader is sent the roster or is not,
+     * and a flag beside the effect would invite a screen to decide a disclosure
+     * the Server has already decided.
+     *
+     * The Server held this column with **no DTO carrying it** until 2026-08-26,
+     * so `ResultsService` read a setting nothing could write and every activity
+     * had held the default since groups arrived.
+     */
+    showGroupMembers: boolean;
+    /**
      * The three limits the **Server** enforces, so none of them may live in the
      * opaque configuration chain. Time and memory are the Runner's and do.
      */
@@ -520,6 +533,8 @@ export interface ActivityInput {
      * reuses its problems next year.
      */
     hideEndedSeriesProblems: boolean;
+    /** Whether a group's ranking row also names who is in it. */
+    showGroupMembers: boolean;
     maxUploadBytes: number;
     maxAttachments: number;
     maxSubmissionsPerProblem?: number;

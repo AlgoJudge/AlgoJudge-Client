@@ -103,7 +103,8 @@ const bundle = {
         modules: { questions: true }, scoreVisibility: "everyone",
         attachmentVisibility: [{ name: "source", visibility: "participant" }],
         props: { theme: "dark" }, joinPolicy: "open", unlisted: true,
-        hideEndedSeriesProblems: true, maxUploadBytes: 12345, maxAttachments: 5,
+        hideEndedSeriesProblems: true, showGroupMembers: true,
+        maxUploadBytes: 12345, maxAttachments: 5,
         maxSubmissionsPerProblem: 7, runnerTags: ["lab-north"],
         documents: [{ kind: "rules", language: undefined, title: "Regulamin", sha256: "ccc" }],
         series: [{
@@ -144,6 +145,13 @@ const compare = (shape, before, after) => {
     for (const field of CARRIED[shape]) {
         const mine = JSON.stringify(before[field]);
         const theirs = JSON.stringify(after[field]);
+        // **A field the fixture never set compares nothing with nothing.** It
+        // reads as a pass and is one of the few ways a check here can be green
+        // over a field that is simply not carried — which is how
+        // `showGroupMembers` first came through this loop. Every carried field
+        // is set in the fixtures above, so this needs no exceptions; if one ever
+        // does, name it here rather than letting the silence back in.
+        check(mine !== undefined, `${shape}.${field} is set in the fixture at all`);
         check(mine === theirs, `${shape}.${field} survived (${mine ?? "undefined"})`);
     }
 };
@@ -336,6 +344,7 @@ const managedActivity = {
     attachmentVisibility: [{ name: "source", visibility: "participant" }],
     props: { theme: "dark" }, joinPolicy: "open", unlisted: true,
     joinPassword: "last-years-password", hideEndedSeriesProblems: true,
+    showGroupMembers: true,
     maxUploadBytes: 12345, maxAttachments: 5, maxSubmissionsPerProblem: 7,
     archivedAt: "2026-05-01T00:00:00.000Z", publishedAt: "2026-01-01T00:00:00.000Z",
     seriesCount: 4, problemCount: 9, participantCount: 120,
@@ -363,6 +372,9 @@ const projectedProblem = projectProblem(managedProblem, managedVersion);
 const projected = (shape, from, to) => {
     for (const field of CARRIED[shape]) {
         const mine = JSON.stringify(from[field]);
+        // The same trap as in `compare`, and it bit here too: a source that does
+        // not hold the field makes "it is projected" true of nothing.
+        check(mine !== undefined, `${shape}.${field} is set on the source at all`);
         check(JSON.stringify(to[field]) === mine, `${shape}.${field} is projected (${mine})`);
     }
     for (const field of NOT_CARRIED[shape]) {
