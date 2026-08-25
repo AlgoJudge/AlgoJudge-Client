@@ -421,6 +421,16 @@ export class ManagerApiHttp implements ManagerApi {
         return this.http.request<ManagedSeries>(`/series/${encodeURIComponent(seriesId)}`, "PUT", { signal, body: input });
     }
 
+    duplicateSeries(
+        seriesId: string, targetActivityId: string | undefined, slug: string, startsAt: string,
+        signal: AbortSignal): Promise<ManagedSeries> {
+        return this.http.request<ManagedSeries>(
+            `/series/${encodeURIComponent(seriesId)}/duplicate`, "POST", {
+                signal,
+                body: { targetActivityId, slug, startsAt },
+            });
+    }
+
     shiftSeries(seriesId: string, minutes: number, signal: AbortSignal): Promise<ManagedSeries> {
         // A delta, not two dates: two managers moving the same delayed round by
         // ten minutes would otherwise both compute +10 from what they read.

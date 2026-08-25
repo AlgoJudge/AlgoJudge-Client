@@ -607,6 +607,11 @@ export class ScopedManagerApi {
     updateSeries(seriesId: string, input: SeriesInput): Promise<ManagedSeries> {
         return this.managerApi.updateSeries(seriesId, input, this.signal);
     }
+    duplicateSeries(
+        seriesId: string, targetActivityId: string | undefined, slug: string, startsAt: string,
+    ): Promise<ManagedSeries> {
+        return this.managerApi.duplicateSeries(seriesId, targetActivityId, slug, startsAt, this.signal);
+    }
     deleteSeries(seriesId: string): Promise<void> {
         return this.managerApi.deleteSeries(seriesId, this.signal);
     }

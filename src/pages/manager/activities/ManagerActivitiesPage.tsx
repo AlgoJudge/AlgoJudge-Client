@@ -7,6 +7,7 @@ import { ManagedActivity } from "../../../api/ManagerApi";
 import LoadState from "../../../components/LoadState";
 import ActivityTime from "../../../components/time/ActivityTime";
 import { emptyActivity } from "../../../components/activity/activityInput";
+import CleanCopyModal from "../../../components/copy/CleanCopyModal";
 import { activityTypes } from "../../../renderers";
 
 /** The first type this Client can present, so the form opens on a working one. */
@@ -32,8 +33,6 @@ export default function ManagerActivitiesPage() {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const [copying, setCopying] = useState<ManagedActivity | undefined>(undefined);
-    const [copySlug, setCopySlug] = useState("");
-    const [copyStart, setCopyStart] = useState("");
     const call = useApiCall();
 
     const [items, setItems] = useState<ManagedActivity[] | undefined>(undefined);
@@ -230,11 +229,7 @@ export default function ManagerActivitiesPage() {
                                             variant="subtle"
                                             size="compact-sm"
                                             loading={busy}
-                                            onClick={() => {
-                                                setCopySlug("");
-                                                setCopyStart("");
-                                                setCopying(activity);
-                                            }}
+                                            onClick={() => setCopying(activity)}
                                         >
                                             {t("Copy for a new run")}
                                         </Button>
@@ -321,50 +316,23 @@ export default function ManagerActivitiesPage() {
                 </Stack>
             </Modal>
 
-            <Modal
+            <CleanCopyModal
                 opened={copying !== undefined}
                 onClose={() => setCopying(undefined)}
                 title={t("Copy for a new run")}
-            >
-                <Stack gap="sm">
-                    <Text size="sm">
-                        {t("The copy carries the rounds, the problems and the settings — and nothing that happened: no submissions, no results, nobody's rights. Every date moves so that the first round starts when you say.")}
-                    </Text>
-                    <Text size="sm" c="dimmed">
-                        {t("It arrives unpublished. Nothing opens and nobody but you can reach it until you publish it.")}
-                    </Text>
-                    <TextInput
-                        label={t("A name of its own")}
-                        placeholder={t("asd-2027")}
-                        value={copySlug}
-                        onChange={event => setCopySlug(event.currentTarget.value)}
-                    />
-                    <TextInput
-                        type="datetime-local"
-                        label={t("When the first round starts")}
-                        value={copyStart}
-                        onChange={event => setCopyStart(event.currentTarget.value)}
-                    />
-                    <Group justify="flex-end">
-                        <Button variant="default" onClick={() => setCopying(undefined)}>
-                            {t("Back")}
-                        </Button>
-                        <Button
-                            disabled={!copySlug.trim() || !copyStart || busy}
-                            loading={busy}
-                            onClick={() => run(async () => {
-                                const id = copying?.id;
-                                if (!id) return;
-                                await call(api => api.managerApi.duplicateActivity(
-                                    id, copySlug.trim(), new Date(copyStart).toISOString()));
-                                setCopying(undefined);
-                            })}
-                        >
-                            {t("Copy it")}
-                        </Button>
-                    </Group>
-                </Stack>
-            </Modal>
+                carries={t("The copy carries the rounds, the problems and the settings — and nothing that happened: no submissions, no results, nobody's rights. Every date moves so that the first round starts when you say.")}
+                drops={t("It arrives unpublished. Nothing opens and nobody but you can reach it until you publish it.")}
+                name={{ label: t("A name of its own"), placeholder: t("asd-2027") }}
+                date={{ label: t("When the first round starts") }}
+                confirmLabel={t("Copy it")}
+                busy={busy}
+                onConfirm={chosen => run(async () => {
+                    const id = copying?.id;
+                    if (!id) return;
+                    await call(api => api.managerApi.duplicateActivity(id, chosen.name, chosen.date));
+                    setCopying(undefined);
+                })}
+            />
         </Stack>
     );
 }

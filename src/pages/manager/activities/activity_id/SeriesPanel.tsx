@@ -3,7 +3,7 @@ import {
     Table, TagsInput, Text, TextInput, Title, Tooltip,
 } from "@mantine/core";
 import {
-    IconAlertTriangle, IconArrowDown, IconArrowUp, IconPlus, IconTrash,
+    IconAlertTriangle, IconArrowDown, IconArrowUp, IconCopy, IconPlus, IconTrash,
 } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -17,6 +17,7 @@ import {
     SeriesInput, SeriesProblemInput,
 } from "../../../../api/ManagerApi";
 import ZonedDateTimeInput from "../../../../components/time/ZonedDateTimeInput";
+import CleanCopyModal from "../../../../components/copy/CleanCopyModal";
 import { useApiCall } from "../../../../provider/apiContext";
 import PauseSeriesModal, { PauseIntent } from "./PauseSeriesModal";
 import ShiftSeries from "./ShiftSeries";
@@ -121,6 +122,8 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
     const [versions, setVersions] = useState<ManagedProblemVersion[]>([]);
     /** Which series is being stopped or started again, and which of the two it is. */
     const [pausing, setPausing] = useState<PauseIntent | undefined>(undefined);
+    const [copying, setCopying] = useState<ManagedSeries | undefined>(undefined);
+    const [targets, setTargets] = useState<{ value: string; label: string }[]>([]);
 
     const locked = activity.archivedAt !== undefined;
 
@@ -154,6 +157,20 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
         if (target < 0 || target >= ids.length) return;
         [ids[index], ids[target]] = [ids[target], ids[index]];
         run(() => call(api => api.managerApi.reorderSeriesProblems(s.id, ids)));
+    };
+
+    /**
+     * The activities a copy could go into, fetched when one is being made.
+     *
+     * **Archived ones are absent** because the Server refuses them, and a target
+     * offered and then refused is worse than one never offered. This activity is
+     * in the list: copying a round in place is how a second sitting is made, and
+     * the assignment slugs are freed for it.
+     */
+    const openCopy = async (target: ManagedSeries) => {
+        setCopying(target);
+        const page = await call(api => api.managerApi.getActivities({ page: 1, pageSize: 100 }));
+        setTargets(page.items.map(a => ({ value: a.id, label: `${a.name} (${a.slug})` })));
     };
 
     /** Version history is fetched only when a pin is being chosen. */
@@ -464,6 +481,17 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                                             <Tooltip label={t("Move down")}>
                                                 <Button variant="subtle" size="compact-sm" disabled={locked || index === series.length - 1} onClick={() => move(index, 1)}>
                                                     <IconArrowDown size={14} />
+                                                </Button>
+                                            </Tooltip>
+                                            <Tooltip label={t("Copy this round")}>
+                                                <Button
+                                                    variant="subtle"
+                                                    size="compact-sm"
+                                                    aria-label={t("Copy this round")}
+                                                    loading={busy}
+                                                    onClick={() => openCopy(s)}
+                                                >
+                                                    <IconCopy size={14} />
                                                 </Button>
                                             </Tooltip>
                                             <Button
@@ -821,6 +849,31 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                     setPausing(undefined);
                     run(() => call(api => api.managerApi.resumeSeries(seriesId, { extendEnd })));
                 }}
+            />
+
+            <CleanCopyModal
+                opened={copying !== undefined}
+                onClose={() => setCopying(undefined)}
+                title={t("Copy this round")}
+                carries={t("The copy carries the problems assigned to this round, their pinned versions and their settings, its ranking dates, its importance and the addresses it may be reached from. Every date moves so that the copy starts when you say.")}
+                drops={t("It arrives closed and holds nobody's work: no submissions, no results, nothing announced. The problems are the library's own — a copy points at the same ones rather than duplicating them.")}
+                target={{
+                    label: t("Which activity it goes into"),
+                    description: t("This one makes a second sitting of the same round. Where a problem slug is already taken there, the copy is given a free one."),
+                    options: targets,
+                    initial: activity.id,
+                }}
+                name={{ label: t("A name of its own"), placeholder: t("r2") }}
+                date={{ label: t("When the copy starts") }}
+                confirmLabel={t("Copy it")}
+                busy={busy}
+                onConfirm={chosen => run(async () => {
+                    const id = copying?.id;
+                    if (!id) return;
+                    await call(api => api.managerApi.duplicateSeries(
+                        id, chosen.target, chosen.name, chosen.date));
+                    setCopying(undefined);
+                })}
             />
         </Stack>
     );

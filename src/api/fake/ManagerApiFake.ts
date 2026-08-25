@@ -815,6 +815,77 @@ export class ManagerApiFake implements ManagerApi {
         return copy(this.dress(record, series));
     }
 
+    async duplicateSeries(
+        seriesId: string, targetActivityId: string | undefined, slug: string, startsAt: string,
+        signal: AbortSignal): Promise<ManagedSeries> {
+        await this.settle(signal);
+        const { record: from, series: source } = this.findSeries(seriesId);
+        const into = targetActivityId ? this.findActivity(targetActivityId) : from;
+        this.assertNotArchived(into);
+
+        const wanted = slug.trim();
+        if (!wanted) invalid("A slug is required", "slug.required");
+        this.assertSeriesSlugFree(into, wanted);
+
+        // Anchored on this round's own start, as on the Server — the screen is
+        // built against the same arithmetic rather than a guess.
+        const delta = source.startDate
+            ? new Date(startsAt).getTime() - new Date(source.startDate).getTime()
+            : 0;
+        const move = (date?: string) =>
+            date ? new Date(new Date(date).getTime() + delta).toISOString() : undefined;
+
+        // **An assignment slug is unique across the activity, not the round**, so
+        // a copy made in place collides on every problem it holds.
+        const used = new Set(
+            into.series.flatMap(s => s.problems.map(p => p.slug.toLowerCase())));
+        const free = (basis: string) => {
+            if (!used.has(basis.toLowerCase())) {
+                used.add(basis.toLowerCase());
+                return basis;
+            }
+            for (let suffix = 2; suffix < 100; suffix++) {
+                const candidate = `${basis}-${suffix}`;
+                if (!used.has(candidate.toLowerCase())) {
+                    used.add(candidate.toLowerCase());
+                    return candidate;
+                }
+            }
+            conflict(`Could not find a free slug for a copy of ${basis}`, "assignment.slug.exhausted");
+        };
+
+        const made: ManagedSeries = {
+            ...copy(source),
+            id: newId(),
+            activityId: into.activity.id,
+            slug: wanted,
+            order: into.series.length + 1,
+            startDate: move(source.startDate),
+            endDate: move(source.endDate),
+            rankingFreezeAt: move(source.rankingFreezeAt),
+            rankingRevealAt: move(source.rankingRevealAt),
+            rankingVisibleFrom: move(source.rankingVisibleFrom),
+            rankingVisibleTo: move(source.rankingVisibleTo),
+            // Shut, unpaused, and holding nobody's work.
+            isOpen: false,
+            pausedAt: undefined,
+            problems: source.problems.map(problem => ({
+                ...copy(problem),
+                id: newId(),
+                slug: free(problem.slug),
+                submissionCount: 0,
+            })),
+        };
+
+        ManagerApiFake.assertRestrictable(made);
+        into.series = [...into.series, made];
+        for (const assignment of made.problems) this.countAttachment(assignment.problemId, 1);
+        this.recount(into);
+        this.lockdown.remember(made);
+        this.announceSeries(into, made);
+        return copy(this.dress(into, made));
+    }
+
     async updateSeries(seriesId: string, input: SeriesInput, signal: AbortSignal): Promise<ManagedSeries> {
         await this.settle(signal);
         const { record, series } = this.findSeries(seriesId);

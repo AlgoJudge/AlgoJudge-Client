@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { ManagedProblem, ProblemVisibility } from "../../../api/ManagerApi";
 import LoadState from "../../../components/LoadState";
 import ActivityTime from "../../../components/time/ActivityTime";
+import CleanCopyModal from "../../../components/copy/CleanCopyModal";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
 import { problemTypes } from "../../../renderers";
 
@@ -34,6 +35,7 @@ export default function ManagerProblemsPage() {
     const navigate = useNavigate();
     const call = useApiCall();
 
+    const [copying, setCopying] = useState<ManagedProblem | undefined>(undefined);
     const [items, setItems] = useState<ManagedProblem[] | undefined>(undefined);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
@@ -173,8 +175,9 @@ export default function ManagerProblemsPage() {
                                             <Button
                                                 variant="subtle"
                                                 size="compact-sm"
+                                                aria-label={t("Duplicate")}
                                                 loading={busy}
-                                                onClick={() => run(() => call(api => api.managerApi.duplicateProblem(problem.id)))}
+                                                onClick={() => setCopying(problem)}
                                             >
                                                 <IconCopy size={14} />
                                             </Button>
@@ -256,6 +259,22 @@ export default function ManagerProblemsPage() {
                     </Group>
                 </Stack>
             </Modal>
+
+            <CleanCopyModal
+                opened={copying !== undefined}
+                onClose={() => setCopying(undefined)}
+                title={t("Duplicate this problem")}
+                carries={t("The copy carries the newest version only — its statement, its files and its package. The history does not travel: notes about changes that never happened to this copy would be somebody else's past.")}
+                drops={t("It arrives private and owned by you, whatever the original was, and it is attached to nothing. Its slug is derived from the original's.")}
+                confirmLabel={t("Copy it")}
+                busy={busy}
+                onConfirm={() => run(async () => {
+                    const id = copying?.id;
+                    if (!id) return;
+                    await call(api => api.managerApi.duplicateProblem(id));
+                    setCopying(undefined);
+                })}
+            />
         </Stack>
     );
 }
