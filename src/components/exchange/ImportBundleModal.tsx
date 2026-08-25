@@ -4,7 +4,9 @@ import {
 import { IconAlertTriangle, IconUpload } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BundleContents, readBundle } from "../../exchange/bundle";
+import { BundleContents } from "../../exchange/bundle";
+import { ArchiveSource, readArchive } from "../../exchange/read";
+import { Loss } from "../../exchange/zawodyweb/convert";
 import { applyBundle, ImportOutcome } from "../../exchange/apply";
 import { ImportPlan, LibraryProblem, planImport, Resolution, summarise } from "../../exchange/plan";
 import { useApiCall } from "../../provider/apiContext";
@@ -35,6 +37,8 @@ export default function ImportBundleModal({ opened, onClose, onImported }: Impor
 
     const [contents, setContents] = useState<BundleContents | undefined>(undefined);
     const [plan, setPlan] = useState<ImportPlan | undefined>(undefined);
+    const [lost, setLost] = useState<Loss[]>([]);
+    const [source, setSource] = useState<ArchiveSource>("algojudge");
     const [slug, setSlug] = useState("");
     const [startsAt, setStartsAt] = useState("");
     const [error, setError] = useState<string | undefined>(undefined);
@@ -43,6 +47,7 @@ export default function ImportBundleModal({ opened, onClose, onImported }: Impor
     const reset = () => {
         setContents(undefined);
         setPlan(undefined);
+        setLost([]);
         setSlug("");
         setStartsAt("");
         setError(undefined);
@@ -54,7 +59,7 @@ export default function ImportBundleModal({ opened, onClose, onImported }: Impor
 
         setBusy(true);
         try {
-            const read = await readBundle(file);
+            const read = await readArchive(file);
 
             // **The library is read to plan against, never to decide from.** The
             // Server settles what is taken when the write happens; this is what
@@ -79,9 +84,11 @@ export default function ImportBundleModal({ opened, onClose, onImported }: Impor
                 });
             }
 
-            setContents(read);
-            setPlan(planImport(read.bundle, versions));
-            setSlug(read.bundle.activity?.slug ?? "");
+            setContents(read.contents);
+            setSource(read.source);
+            setLost(read.lost);
+            setPlan(planImport(read.contents.bundle, versions));
+            setSlug(read.contents.bundle.activity?.slug ?? "");
         } catch (e) {
             setError(e instanceof Error ? e.message : String(e));
         } finally {
@@ -123,7 +130,7 @@ export default function ImportBundleModal({ opened, onClose, onImported }: Impor
         <Modal opened={opened} onClose={() => { reset(); onClose(); }} title={t("Import from a file")} size="lg">
             <Stack gap="sm">
                 <Text size="sm">
-                    {t("An archive exported from AlgoJudge: a problem, a round or a whole activity with everything it sets.")}
+                    {t("An archive exported from AlgoJudge, or one exported from ZawodyWeb — a problem, a round or a whole contest.")}
                 </Text>
 
                 <FileInput
@@ -136,6 +143,39 @@ export default function ImportBundleModal({ opened, onClose, onImported }: Impor
                 />
 
                 {error && <Alert color="red">{error}</Alert>}
+
+                {source === "zawodyweb" && (
+                    <Alert color="blue">
+                        {t("Converted from a ZawodyWeb archive. What follows is the same import as any other; what the conversion could not carry is listed below.")}
+                    </Alert>
+                )}
+
+                {/* **Read before importing, not discovered afterwards.** The
+                    format this came from drops an unknown language and an
+                    unknown checker in silence; every one of these exists so this
+                    one does not. */}
+                {lost.length > 0 && (
+                    <Table.ScrollContainer minWidth={500}>
+                        <Table striped>
+                            <Table.Tbody>
+                                {lost.map((loss, index) => (
+                                    <Table.Tr key={index}>
+                                        <Table.Td w={90}>
+                                            <Badge size="sm" variant="light"
+                                                color={loss.level === "warning" ? "yellow" : "gray"}>
+                                                {loss.level === "warning" ? t("check it") : t("note")}
+                                            </Badge>
+                                        </Table.Td>
+                                        <Table.Td>
+                                            <Text size="sm">{t(loss.message, loss.values)}</Text>
+                                            {loss.where && <Text size="xs" c="dimmed">{loss.where}</Text>}
+                                        </Table.Td>
+                                    </Table.Tr>
+                                ))}
+                            </Table.Tbody>
+                        </Table>
+                    </Table.ScrollContainer>
+                )}
 
                 {plan && counts && (
                     <>

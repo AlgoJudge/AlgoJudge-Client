@@ -139,6 +139,16 @@ export interface PackageConfig {
     /** `standard-io@1`. One string — see {@link PACKAGE_TYPE}. */
     type: string;
     limits: PackageLimits;
+    /**
+     * Which toolchains may be submitted. **Empty means the package does not
+     * say**, which allows everything the Runner can build.
+     *
+     * Documented in `PACKAGE_FORMAT.md` since 2026-08-22 and missing from this
+     * type until 2026-08-25, when the ZawodyWeb converter needed somewhere to
+     * put a problem's languages: an assignment's `config` is where the Runner
+     * enforces them, and a problem converted on its own has no assignment.
+     */
+    languages?: string[];
     overrideLimits?: Record<string, Partial<PackageLimits>>;
     groups: PackageGroup[];
     /** Absent means the `.out` files decide. */
