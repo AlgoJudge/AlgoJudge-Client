@@ -107,6 +107,11 @@ const contest = {
                         <test><input>in002.txt</input><output>out002.txt</output><maxpoints>50</maxpoints><timelimit>2000</timelimit><order>01</order></test>
                     </tests>
                     <config>gcc.args=-O2 -std=c11</config>
+                    <files>
+                        <bytes>problem001.files</bytes>
+                        <filename>suma-dwoch-liczb</filename>
+                        <extension>pdf</extension>
+                    </files>
                 </problem>
                 <problem>
                     <name>Odwrócenie napisu</name>
@@ -124,6 +129,31 @@ const contest = {
                 </problem>
             </problems>
         </serie>
+        <serie>
+            <name>Etap II</name>
+            <startdate>2026-04-13T10:00:00.000+02:00</startdate>
+            <enddate>2026-04-13T13:00:00.000+02:00</enddate>
+            <penaltytime>1200</penaltytime>
+            <visible>true</visible>
+            <openips>158.75.</openips>
+            <hiddenblocked>true</hiddenblocked>
+            <problems>
+                <problem>
+                    <name>Najwiekszy wspolny dzielnik</name>
+                    <abbrev>C</abbrev>
+                    <text>problem003.html</text>
+                    <memlimit>64</memlimit>
+                    <codesize>64</codesize>
+                    <diff>NormalDiff</diff>
+                    <visible>true</visible>
+                    <viewpdf>false</viewpdf>
+                    <languages><language>C++</language></languages>
+                    <tests>
+                        <test><input>in004.txt</input><output>out004.txt</output><maxpoints>100</maxpoints><timelimit>1000</timelimit><order>00</order></test>
+                    </tests>
+                </problem>
+            </problems>
+        </serie>
     </series>
 </contest>`),
     "problem001.html": encode("<h2>Suma</h2><p>Wczytaj <b>dwie</b> liczby.</p><pre>2 3\n5</pre>"),
@@ -131,14 +161,20 @@ const contest = {
     "in001.txt": encode("2 3"), "out001.txt": encode("5"),
     "in002.txt": encode("-1000000000 1000000000"), "out002.txt": encode("0"),
     "in003.txt": encode("kajak"), "out003.txt": encode("kajak"),
+    "problem003.html": encode("<p>Policz NWD.</p>"),
+    "in004.txt": encode("48 18"), "out004.txt": encode("6"),
+    // A PDF only in the sense that matters here: the converter carries bytes it
+    // never opens, under the name `CONTENT_FORMAT.md` reserves for a statement
+    // that is one.
+    "problem001.files": encode("%PDF-1.4 minimal, and never opened"),
 };
 
 const { contents, lost } = await convertArchive(contest);
 const bundle = contents.bundle;
 
 check(bundle.kind === "activity", `a contest becomes an activity bundle (${bundle.kind})`);
-check(bundle.problems.length === 2, `with both problems (${bundle.problems.length})`);
-check(bundle.activity.series.length === 1, "and its one round");
+check(bundle.problems.length === 3, `with all three problems (${bundle.problems.length})`);
+check(bundle.activity.series.length === 2, `and both rounds (${bundle.activity.series.length})`);
 
 // **KI is not ICPC.** `type` 2 is a points board, and calling it ICPC would
 // score the whole contest by a rule it was not run under.
@@ -146,7 +182,18 @@ check(bundle.activity.rankingType === "points",
     `type 2 becomes the points board (${bundle.activity.rankingType})`);
 
 const round = bundle.activity.series[0];
-check(round.assignments.length === 2, "the round holds both assignments");
+check(round.assignments.length === 2, "the first round holds both its assignments");
+
+// **A second round, because the counters run across the whole archive.** With
+// one round nothing distinguishes a converter that numbers per problem from one
+// that numbers per archive — and the second round's problem is the one whose
+// files come last.
+const second = bundle.activity.series[1];
+check(second.assignments.length === 1 && second.assignments[0].slug === "C",
+    `the second round holds its own (${second.assignments.map(a => a.slug).join()})`);
+check(second.order === 2, `and comes after the first (${second.order})`);
+check(second.addressRules.map(r => r.network).join() === "158.75.0.0/16",
+    `with an address rule of its own (${second.addressRules.map(r => r.network).join()})`);
 check(round.assignments.map(a => a.slug).join() === "A,B",
     `and the abbrevs become the assignment slugs (${round.assignments.map(a => a.slug).join()})`);
 check(round.addressRules.map(r => r.network).join() === "192.168.1.0/24,158.75.0.0/16",
@@ -177,11 +224,29 @@ check(read.config.limits.memoryBytes === 64 * 1024 * 1024,
 check(read.tests[0].input === "2 3" && read.tests[1].input === "-1000000000 1000000000",
     "the first problem's tests are its own");
 
-const second = bundle.problems[1];
-const secondArchive = contents.files.get(second.files.find(f => f.name === "package.zip").sha256);
-const secondRead = await readPackage(new Blob([secondArchive]));
-check(secondRead.tests.length === 1 && secondRead.tests[0].input === "kajak",
-    `and the second problem's are in003, not in001 (${JSON.stringify(secondRead.tests[0]?.input)})`);
+const middle = bundle.problems[1];
+const middleArchive = contents.files.get(middle.files.find(f => f.name === "package.zip").sha256);
+const middleRead = await readPackage(new Blob([middleArchive]));
+check(middleRead.tests.length === 1 && middleRead.tests[0].input === "kajak",
+    `and the second problem's are in003, not in001 (${JSON.stringify(middleRead.tests[0]?.input)})`);
+
+const last = bundle.problems[2];
+const lastArchive = contents.files.get(last.files.find(f => f.name === "package.zip").sha256);
+const lastRead = await readPackage(new Blob([lastArchive]));
+check(lastRead.tests[0]?.input === "48 18",
+    `and the third round's problem takes in004, across the round boundary (${JSON.stringify(lastRead.tests[0]?.input)})`);
+
+// ── 3.1 The attachment ──────────────────────────────────────────────────────
+//
+// `<files><bytes>` names an entry holding a PDF. It becomes `content.pdf`,
+// which is the name `CONTENT_FORMAT.md` reserves for a statement that is one —
+// and the converter never opens it.
+
+const pdf = first.files.find(f => f.name === "content.pdf");
+check(pdf !== undefined, `the PDF attachment is carried as content.pdf (${pdf?.name})`);
+check(pdf?.scope === "participant", `and reaches the participant (${pdf?.scope})`);
+check(new TextDecoder().decode(contents.files.get(pdf.sha256)).startsWith("%PDF"),
+    "byte for byte, unopened");
 
 // ── 4. The statement ────────────────────────────────────────────────────────
 
@@ -350,6 +415,49 @@ for (const language of ["en", "pl"]) {
     const missing = messages.filter(message => !(message in table));
     check(missing.length === 0,
         `every one is a key in ${language}${missing.length ? `: ${missing[0]}` : ""}`);
+}
+
+// ── 12. Both spellings of the namespace ─────────────────────────────────────
+//
+// `FORMAT.md` §3: *"the prefix does not matter. The default-namespace form and
+// the prefixed form are equivalent; which one appears depends on the JAXB
+// implementation."*
+//
+// **The five reference archives all use the default form**, so converting them
+// proves nothing about the other — this was found by reading the format rather
+// than by running the samples, and it is the reason those samples are not the
+// fixture. Without `removeNSPrefix`, `<ns2:contest>` parses to the key
+// `ns2:contest`, every lookup misses, and an export from one JAXB version
+// converts while an export from another does not.
+
+const prefixed = Object.fromEntries(Object.entries(contest).map(([name, bytes]) => {
+    if (!name.endsWith(".xml")) return [name, bytes];
+    const xml = new TextDecoder().decode(bytes)
+        .replace(/xmlns="http:\/\/zawodyweb\.mat\.umk\.pl\/"/, 'xmlns:ns2="http://zawodyweb.mat.umk.pl/"')
+        // Every element, opening and closing. **Look-ahead, not a captured
+        // terminator**: `<contest xmlns=…>` carries attributes, so a pattern
+        // ending at `>` rewrote only the bare tags — and the two comparisons
+        // below then passed on a fixture nothing had changed. The assertion
+        // above exists because they did.
+        .replace(/<(\/?)([a-z]+)(?=[\s>/])/g, "<$1ns2:$2");
+    return [name, encode(xml)];
+}));
+
+check(new TextDecoder().decode(prefixed["contest.xml"]).includes("<ns2:contest"),
+    "the fixture really was rewritten into the prefixed form");
+
+// Caught rather than allowed to end the run: a converter that cannot read this
+// form should be one red line among the rest, not a stack trace where the
+// remaining checks were going to be.
+const strip = (b) => JSON.stringify({ ...b, exportedAt: null });
+try {
+    const either = await convertArchive(prefixed);
+    check(strip(either.contents.bundle) === strip(bundle),
+        "and it converts to the same bundle, element for element");
+    check(either.lost.length === lost.length,
+        `reporting the same losses (${either.lost.length} against ${lost.length})`);
+} catch (e) {
+    fail(`the prefixed form did not convert: ${e.message}`);
 }
 
 if (process.exitCode) console.error("\nZawodyWeb check failed");
