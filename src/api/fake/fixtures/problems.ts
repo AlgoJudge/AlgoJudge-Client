@@ -85,6 +85,15 @@ const record = (
     versions: {
         id: string; version: number; note?: string; days: number; config: unknown; hasPackage: boolean;
         content?: string;
+        /**
+         * Store the statement as `content.pdf` rather than `content.md`.
+         *
+         * A problem imported from an archive has a PDF and nothing else. The
+         * participant fixtures have been able to say this since groups arrived;
+         * the manager's could not, so the screens that file a statement by its
+         * name were never drawn against one that is not Markdown.
+         */
+        pdf?: boolean;
         /** Keyed by language subtag, stored as `content-<language>.md`. */
         translations?: Record<string, string>;
     }[],
@@ -104,7 +113,11 @@ const record = (
         // disagreeing, which is the defect `check:ui` exists to catch and could
         // not, because nothing fetched them until the export did.
         files: [
-            ...(v.content ? [stored(files, v.id, "content.md", "text/markdown", "participant", v.content)] : []),
+            ...(v.content
+                ? [v.pdf
+                    ? stored(files, v.id, "content.pdf", "application/pdf", "participant", v.content)
+                    : stored(files, v.id, "content.md", "text/markdown", "participant", v.content)]
+                : []),
             ...Object.entries(v.translations ?? {}).map(([language, text]) =>
                 stored(files, v.id, `content-${language}.md`, "text/markdown", "participant", text)),
             ...(v.hasPackage ? [
@@ -115,7 +128,7 @@ const record = (
         ],
     })).sort((a, b) => b.version - a.version),
     content: new Map(versions.filter(v => v.content).map(v => [v.id, [
-        statementRef(files, v.id, undefined, v.content!),
+        statementRef(files, v.id, undefined, v.content!, v.pdf),
         ...Object.entries(v.translations ?? {}).map(([language, text]) =>
             statementRef(files, v.id, language, text)),
     ]])),
@@ -151,9 +164,11 @@ const statementRef = (
     versionId: string,
     language: string | undefined,
     text: string,
+    pdf = false,
 ): StatementRef => {
-    const name = language ? `content-${language}.md` : "content.md";
-    const stored = files.seedText(`${versionId}/${name}`, "text/markdown", text);
+    const name = language ? `content-${language}.md` : pdf ? "content.pdf" : "content.md";
+    const stored = files.seedText(
+        `${versionId}/${name}`, pdf ? "application/pdf" : "text/markdown", text);
     return { name, language, fileId: stored.id, sha256: stored.sha256, sizeBytes: stored.sizeBytes };
 };
 
@@ -214,6 +229,30 @@ export const createProblemLibrary = (files: FakeFiles): ProblemRecord[] => [
         },
         [
             { id: "v-petle-1", version: 1, days: 300, config: standardIoConfig(1000, 128, [100]), hasPackage: true, content: loopsStatement },
+        ],
+    ),
+    record(
+        files,
+        {
+            // **Imported from an archive**, which is the one shape whose
+            // statement is not Markdown: the archive publishes a PDF and nothing
+            // else. `external` because it is judged where it came from — and the
+            // reason the manager's statement tab has something to say rather
+            // than an empty editor to show.
+            id: "prob-uva-100", slug: "UVa-100", name: "The 3n + 1 problem", type: "uva@1",
+            ownerUserId: ME, ownerName: "Amy Horsefighter",
+            visibility: "instance", sharedWith: [], external: true,
+            currentVersion: 1, versionCount: 1, createdAt: ago(20),
+            attachedCount: 0,
+        },
+        [
+            {
+                id: "v-uva-100-1", version: 1, days: 20,
+                note: "Imported from onlinejudge.org, problem 100",
+                config: undefined, hasPackage: false,
+                pdf: true,
+                content: "%PDF-1.4 the archive's own statement",
+            },
         ],
     ),
     record(

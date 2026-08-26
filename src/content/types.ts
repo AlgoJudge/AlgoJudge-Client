@@ -51,6 +51,22 @@ export const statementLanguage = (name: string): string | undefined =>
 
 export const isStatementName = (name: string): boolean => STATEMENT.test(name);
 
+/**
+ * Whether a stored file **is the statement**, whatever it is written in.
+ *
+ * **A different question from {@link isStatementName}**, and the two were one
+ * function until 2026-08-26. That one asks "is this Markdown this editor can
+ * open"; this asks "is this the document, rather than material beside it". They
+ * gave the same answer for as long as every statement was Markdown — and the
+ * Server named a UVa import's PDF `content.md`, so every statement was.
+ *
+ * Now that a statement can be `content.pdf`, asking the Markdown question about
+ * it files the problem's own statement under its attachments.
+ */
+const STATEMENT_FILE = /^content(?:-[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*)?\.[^.]+$/i;
+
+export const isStatementFile = (name: string): boolean => STATEMENT_FILE.test(name);
+
 /** The file name a statement in this language is stored under. */
 export const statementFileName = (language?: string): string =>
     language ? `content-${language}.md` : "content.md";

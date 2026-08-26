@@ -10,7 +10,7 @@
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { evaluate, wait, shot, go, close } = await open();
+const { evaluate, wait, shot, go, visit, close } = await open();
 const { check, report } = results();
 
 /** Records what the page asks for, before it asks for anything. */
@@ -46,6 +46,51 @@ check(statement.drawn, "a PDF statement is drawn rather than offered as a downlo
 // whole reason a statement is copied in at import rather than linked.
 check(statement.data.startsWith("blob:") || statement.data.startsWith("/") || statement.data.includes(new URL(APP).host),
     `and it is served from here (${statement.data.slice(0, 48)})`);
+
+// ── The manager's side of the same problem ──────────────────────────────────
+//
+// **A statement that is not Markdown is still the statement.** The Server named
+// every one of them `content.md` until 2026-08-26, so this screen had never been
+// drawn against a PDF — and the two questions it asks about a file, "is this the
+// statement" and "is this Markdown I can edit", were one function that answered
+// the first wrongly.
+
+await visit("/manager/problems/prob-uva-100?fakeUser=amy",
+    `document.body.innerText.includes("3n + 1")`);
+await wait(1800);
+
+check(/dokumentem, a nie tekstem|document rather than text/i.test(await evaluate(
+    `return document.body.innerText;`)),
+    "the statement tab says the statement is a document rather than showing an empty editor");
+check((await evaluate(`return document.body.innerText;`)).includes("content.pdf"),
+    "and names it");
+
+// **The files tab lists every file, the statement included** — it is an
+// inventory, not a list of attachments. What marks a statement out is how its
+// row is treated: nothing offers to point at it from inside itself, and it
+// cannot be removed as ordinary material, because the statement tab owns it.
+//
+// That treatment keyed on the name ending `.md`, so a `content.pdf` was handed
+// both controls.
+await visit("/manager/problems/prob-uva-100?fakeUser=amy&tab=files",
+    `document.body.innerText.includes("3n + 1")`);
+await wait(1500);
+
+const row = await evaluate(`
+    const found = [...document.querySelectorAll("tbody tr")]
+        .find(r => r.innerText.includes("content.pdf"));
+    if (!found) return null;
+    const buttons = [...found.querySelectorAll("button")];
+    return { buttons: buttons.length, enabled: buttons.filter(b => !b.disabled).length };
+`);
+check(row !== null, "the files tab lists the statement, as it lists every file");
+check(row !== null && row.enabled === 0,
+    `and offers no control over it: it belongs to the statement tab (${row?.enabled ?? "?"} enabled of ${row?.buttons ?? "?"})`);
+await shot("uva-manager-pdf");
+
+await visit(`/activities/PROG-1-LA/problems/uva100?fakeUser=amy`,
+    `document.body.innerText.includes("uva100")`);
+await wait(1500);
 
 const scored = await evaluate(`return document.body.innerText.replace(/\\s+/g, " ");`);
 check(/5 \/ 5/.test(scored),
