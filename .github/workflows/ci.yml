@@ -69,6 +69,13 @@ jobs:
       - name: Check the ZawodyWeb converter
         run: npm run check:zawodyweb
 
+      # When a credential for the problem archive may still be sent. Its own
+      # step because nothing else can reach the rule: the picker is a live
+      # iframe on somebody else's host, so the browser suite has never driven
+      # it and must not start.
+      - name: Check the archive credential rule
+        run: npm run check:access
+
       - name: Check the event socket
         run: npm run check:events
 

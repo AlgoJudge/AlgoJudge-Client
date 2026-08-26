@@ -206,10 +206,27 @@ export class ManagerApiFake implements ManagerApi {
 
     async requestAccessKey(name: string, signal: AbortSignal): Promise<AccessKeyValue> {
         await this.settle(signal);
+        const key = name.trim().toLowerCase();
+
+        // **A name nothing is stored under is a 404, as the Server answers.**
+        // This handed one over whatever was asked for, which was the fake
+        // disagreeing with its own other half: `getAccessKeys` said nothing was
+        // set while this produced a value. It matters now that the two paths
+        // differ — no key means the picker browses anonymously.
+        if (!this.keys.some(one => one.name === key)) {
+            notFound(`The key ${key}`);
+        }
+
         // The fake holds no secrets, so it answers with something obviously not
-        // one. A screen that showed this to somebody would be showing it a key,
-        // and the point is that no screen should.
-        return { name: name.trim().toLowerCase(), value: `fake-key-for-${name.trim().toLowerCase()}` };
+        // one. A screen that showed this to somebody would be showing it a
+        // credential, and the point is that no screen should.
+        return {
+            name: key,
+            value: `fake-token-for-${key}`,
+            // Short-lived, like the real one, so a screen that cached it for the
+            // life of the page is wrong here too rather than only in production.
+            expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        };
     }
 
     async fetchFile(url: string, signal: AbortSignal): Promise<UploadedFile> {

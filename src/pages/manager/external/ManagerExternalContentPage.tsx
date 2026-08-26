@@ -2,8 +2,10 @@ import { Alert, Badge, Button, Card, Group, Stack, Table, Text, TextInput, Texta
 import { IconInfoCircle, IconPlus, IconTrash } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ApiError, NotFoundError } from "../../../api/ApiError";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
 import { UvaProblemPicker } from "@algojudge/uva-explorer-react";
+import { Access, refusal, usable } from "./access";
 import { ImportOutcome, UvaProblem, importOne, lookUp, numbersIn } from "./uvaImport";
 
 /**
@@ -153,11 +155,50 @@ function ImportCard({ enabled }: { enabled: boolean | undefined }) {
 
     const [text, setText] = useState("");
     const [picking, setPicking] = useState(false);
-    const [accessKey, setAccessKey] = useState<string | undefined>(undefined);
+    const [access, setAccess] = useState<Access | undefined>(undefined);
+    const [refused, setRefused] = useState<string | undefined>(undefined);
     const [busy, setBusy] = useState(false);
     const [outcomes, setOutcomes] = useState<ImportOutcome[]>([]);
 
     const numbers = numbersIn(text);
+
+    /**
+     * Opens the picker with whatever credential this installation can produce.
+     *
+     * **Three outcomes, and they are not two.** A credential opens the archive
+     * with this installation's private metadata. **No key at all is a 404 and
+     * opens the public archive** — an installation that holds none has decided to
+     * browse anonymously, and that is a working mode. Anything else is a
+     * refusal: an installation that holds a key and could not spend it has
+     * something wrong with it, and degrading quietly to anonymous would hide a
+     * broken configuration behind a picker that merely looks short of metadata.
+     */
+    const browse = async () => {
+        setRefused(undefined);
+
+        if (usable(access)) {
+            setPicking(true);
+            return;
+        }
+
+        try {
+            // Asked for when it is needed and not before: a screen nobody opened
+            // should not have spent one of the archive's tokens.
+            const answer = await call(api => api.managerApi.requestAccessKey("uvaexplorer"));
+            setAccess({ value: answer.value, expiresAt: answer.expiresAt });
+        }
+        catch (error) {
+            if (error instanceof NotFoundError) {
+                setAccess("anonymous");
+            }
+            else {
+                setRefused(error instanceof ApiError ? error.code : undefined);
+                return;
+            }
+        }
+
+        setPicking(true);
+    };
 
     const run = async () => {
         setBusy(true);
@@ -248,16 +289,7 @@ function ImportCard({ enabled }: { enabled: boolean | undefined }) {
                     <Button
                         variant="light"
                         disabled={enabled !== true || busy}
-                        onClick={() => void (async () => {
-                            // Asked for when it is needed and not before: this is
-                            // the one call that answers with a stored secret, and
-                            // a screen nobody opened should not have asked.
-                            if (accessKey === undefined) {
-                                const answer = await call(api => api.managerApi.requestAccessKey("uvaexplorer"));
-                                setAccessKey(answer.value);
-                            }
-                            setPicking(true);
-                        })()}
+                        onClick={() => void browse()}
                     >
                         {t("Browse the archive")}
                     </Button>
@@ -270,10 +302,29 @@ function ImportCard({ enabled }: { enabled: boolean | undefined }) {
                     </Button>
                 </Group>
 
+                {refused !== undefined && (
+                    <Alert color="red" icon={<IconInfoCircle size={18} />}>
+                        {refusal(t, refused)}
+                    </Alert>
+                )}
+
+                {picking && access === "anonymous" && (
+                    <Alert color="blue" icon={<IconInfoCircle size={18} />}>
+                        {t("This installation holds no key for the archive, so you are browsing what it publishes to everybody.")}
+                    </Alert>
+                )}
+
                 {picking && (
                     <UvaProblemPicker
-                        accessKey={accessKey}
+                        // Absent for an installation with no key, which is how
+                        // the picker is told to browse the public archive.
+                        accessToken={access === "anonymous" ? undefined : access?.value}
                         language="pl"
+                        options={{
+                            showAiPanel: true,
+                            showFilters: true,
+                            filtersMode: "summary",
+                        }}
                         style={{ width: "100%", height: 520, border: 0 }}
                         title={t("Problems in the UVa archive")}
                         onConfirm={message => void picked(message.problems)}

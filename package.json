@@ -13,6 +13,7 @@
     "check:package": "node scripts/check-package.mjs",
     "check:exchange": "node scripts/check-exchange.mjs",
     "check:zawodyweb": "node scripts/check-zawodyweb.mjs",
+    "check:access": "node scripts/check-access.mjs",
     "check:content": "node scripts/check-content.mjs",
     "check:events": "node scripts/check-events.mjs",
     "check:i18n": "node scripts/check-i18n.mjs",
@@ -23,7 +24,7 @@
     "browsers": "node scripts/verify/browsers.mjs"
   },
   "dependencies": {
-    "@algojudge/uva-explorer-react": "^0.1.0",
+    "@algojudge/uva-explorer-react": "^0.2.0",
     "@mantine/code-highlight": "^7.17.3",
     "@mantine/core": "^7.17.3",
     "@mantine/dates": "^7.17.3",

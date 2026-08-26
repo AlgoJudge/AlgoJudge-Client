@@ -1723,16 +1723,24 @@ export interface ManagerApi {
     setAccessKey(name: string, value: string, signal: AbortSignal): Promise<AccessKey[]>;
 
     /**
-     * Asks for a key's value, for a caller that needs it.
+     * Asks for the credential this installation can produce for a named service.
      *
-     * **The one call that answers with a stored secret**, and it exists because
-     * the picker runs in this browser. The gate is on the Server and is chosen
-     * by the key's name, so asking for one this manager may not have is a
-     * refusal rather than an answer.
+     * **What comes back is not always what is stored.** `uvaexplorer` answers
+     * with an hourly token the Server minted from the stored key, carrying an
+     * `expiresAt`; the long-lived key never leaves the Server, because the picker
+     * puts whatever it is given into an iframe address. Every other name answers
+     * with the stored value and no expiry, as they always have.
      *
-     * `expiresAt` is absent while every key is one an administrator typed. When
-     * it is present the value is good only until then — **ask again rather than
-     * keep it.**
+     * **`expiresAt` is binding.** Where it is present the value is good only
+     * until then — ask again rather than keep it.
+     *
+     * The gate is on the Server and is chosen by the key's name, so asking for
+     * one this manager may not have is a refusal rather than an answer.
+     *
+     * **A 404 is an answer, not a fault.** It means this installation holds no
+     * such key, and for the picker that is anonymous browsing rather than a
+     * failure. A refusal carrying an `accessKey.*` code is the other thing: a key
+     * is configured and could not be spent.
      */
     requestAccessKey(name: string, signal: AbortSignal): Promise<AccessKeyValue>;
 
