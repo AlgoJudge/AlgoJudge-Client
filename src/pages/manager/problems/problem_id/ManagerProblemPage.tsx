@@ -17,7 +17,7 @@ import { isPackageFile, PACKAGE_ARCHIVE, PackageMeasurement, SAMPLES_ARCHIVE } f
 import LoadState from "../../../../components/LoadState";
 import { CopyButton } from "../../../../components/buttons";
 import ActivityTime from "../../../../components/time/ActivityTime";
-import { emptyDocument, isStatementName, statementFileName } from "../../../../content/types";
+import { emptyDocument, isStatementFile, isStatementName, statementFileName } from "../../../../content/types";
 import { tryValidateContent } from "../../../../content/validate";
 import { useApiCall, useApiEffect } from "../../../../provider/apiContext";
 import { sha256 } from "../../../../utils/sha256";
@@ -281,7 +281,14 @@ export default function ManagerProblemPage() {
     // in the editor beside `content.md`, and offering either as something to
     // point at from the statement would be pointing a document at itself.
     const participantFiles = files.filter(f =>
-        f.state !== "removed" && f.scope === "participant" && !isStatementName(f.name));
+        f.state !== "removed" && f.scope === "participant" && !isStatementFile(f.name));
+
+    // A statement this tab cannot open: a `content.pdf` from an archive import.
+    // It is the statement, so it is not an attachment — and it is not Markdown,
+    // so the editor beside it is not editing it.
+    const carriedStatements = files
+        .filter(f => f.state !== "removed" && isStatementFile(f.name) && !isStatementName(f.name))
+        .map(f => f.name);
 
     // The preview gets the real files, so a figure appears in it exactly as it
     // will on the participant's screen — including the notice when the name
@@ -296,7 +303,7 @@ export default function ManagerProblemPage() {
 
     const stageAttachment = (file: File) => {
         setError(undefined);
-        if (isStatementName(file.name)) {
+        if (isStatementFile(file.name)) {
             // The statement is written in the editor. Attaching one here would
             // put a second answer beside the one being published.
             setError(t("content.* is the statement; edit it in the Statement tab"));
@@ -381,6 +388,17 @@ export default function ManagerProblemPage() {
                 </Tabs.List>
 
                 <Tabs.Panel value="content" pt="md">
+                    {/* **Said, rather than shown as an empty editor.** A problem
+                        imported from an archive has a PDF and nothing else, and
+                        this tab writes Markdown — so without this the statement
+                        tab of every imported problem looks like a problem whose
+                        statement was lost. */}
+                    {carriedStatements.length > 0 && (
+                        <Alert color="blue" mb="md" icon={<IconInfoCircle size={18} />}>
+                            {t("This problem's statement is a document rather than text: {{names}}. It is shown to participants as it is, and is not edited here.",
+                                { names: carriedStatements.join(", ") })}
+                        </Alert>
+                    )}
                     <Grid>
                         <Grid.Col span={{ base: 12, lg: 6 }}>
                             <Stack gap="sm">
@@ -544,7 +562,7 @@ export default function ManagerProblemPage() {
                                                         have to know that. The form that
                                                         shows the file where it can be
                                                         shown, a link where it cannot. */}
-                                                    {file.scope === "participant" && !isStatementName(file.name) && (
+                                                    {file.scope === "participant" && !isStatementFile(file.name) && (
                                                         <Tooltip label={t("Copy the reference")}>
                                                             <CopyButton
                                                                 variant="subtle"
@@ -584,7 +602,7 @@ export default function ManagerProblemPage() {
                                                             {t("Restore")}
                                                         </Button>
                                                     ) : (
-                                                        <Tooltip label={isStatementName(file.name)
+                                                        <Tooltip label={isStatementFile(file.name)
                                                             ? t("The statement is edited in the Statement tab")
                                                             : isPackageFile(file.name)
                                                                 ? t("The package is built in the Package tab")
@@ -593,7 +611,7 @@ export default function ManagerProblemPage() {
                                                                 variant="subtle"
                                                                 color="red"
                                                                 size="compact-sm"
-                                                                disabled={locked || isStatementName(file.name) || isPackageFile(file.name)}
+                                                                disabled={locked || isStatementFile(file.name) || isPackageFile(file.name)}
                                                                 onClick={() => file.state === "added"
                                                                     ? unstage(file.name)
                                                                     : setRemoved(current => [...current, file.name])}

@@ -12,7 +12,7 @@ import { useApi, useApiEffect } from "../../../../../provider/apiContext";
 import LoadState from "../../../../../components/LoadState";
 import { statementRenderers } from "../../../../../renderers";
 import { languageName, pickLanguage } from "../../../../../components/content/languageName";
-import { isStatementName } from "../../../../../content/types";
+import { isStatementFile } from "../../../../../content/types";
 import ProblemLimits from "../../../../../components/problem/ProblemLimits";
 import { baseLimits, showMemory, showTime } from "../../../../../components/problem/limits";
 
@@ -23,11 +23,11 @@ import { baseLimits, showMemory, showTime } from "../../../../../components/prob
  */
 const DEFAULT = "*";
 
-/**
- * The statement, not material beside it: `content.md`, its translations, and a
- * `content.pdf` where a problem ships one.
- */
-const isStatementFile = (name: string) => isStatementName(name) || /^content\.[^.]+$/i.test(name);
+// **The statement, not material beside it**, from `content/types` rather than
+// from a copy here. The copy accepted `content.pdf` and not `content-en.pdf`,
+// because it was written when only the default statement could be anything but
+// Markdown — and a translated one filed under attachments is a statement a
+// reader cannot find.
 
 /**
  * The statement to draw, for one reader and one choice.
