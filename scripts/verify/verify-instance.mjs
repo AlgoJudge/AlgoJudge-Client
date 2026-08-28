@@ -104,4 +104,22 @@ check(await evaluate(`return /Nie ma tu takiej strony|no such page/i.test(docume
     "and its address says there is no such page");
 await shot("in-withdrawn");
 
+// 6 — somebody else saved these settings first.
+//
+//     `Instance` is one row with two writers since 2026-08-28 — this screen, and
+//     the pre-configuration the Server reads from disk — so a save can be
+//     refused instead of silently putting every field back. The Server decides
+//     that from a row version the API never carries, so the fake cannot derive
+//     it: `?fakeConflict=instance` asks for it.
+//
+//     Checked because a refusal nobody has looked at is a refusal that reaches
+//     an operator as a blank screen.
+await go(`${APP}/manager/instance?fakeUser=john&fakeConflict=instance`,
+    `document.body.innerText.includes("Ustawienia")`);
+await click(button("Zapisz"));
+await wait(2000);
+check(await evaluate(`return /tym samym momencie|same moment/i.test(document.body.innerText);`),
+    "a save that lost the race says so, in the Server's own words");
+await shot("in-conflict");
+
 report();

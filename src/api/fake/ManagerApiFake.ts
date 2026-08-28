@@ -261,8 +261,33 @@ export class ManagerApiFake implements ManagerApi {
         return { enabled: this.instance.read().externalJudgingEnabled, hosts: [...this.hosts] };
     }
 
+    /**
+     * The one answer these two writes gained on 2026-08-28 and no screen could
+     * otherwise reach.
+     *
+     * `Instance` is one row with two writers — the panel, and the
+     * pre-configuration the Server reads from disk — so a save can now lose the
+     * race and be refused rather than silently putting every field back. The
+     * Server decides that from a row version the API never carries, so a fake
+     * cannot derive it from the request: `?fakeConflict=instance` asks for it,
+     * the same way `?fakeMaintenance=` asks for a maintenance window.
+     *
+     * Here so that "somebody saved this while you were editing" is a state
+     * somebody can look at, rather than one that first appears in production.
+     */
+    private refuseIfRacing(): void {
+        if (new URLSearchParams(window.location.search).get("fakeConflict") === "instance") {
+            conflict(
+                "Somebody changed this at the same moment. Nothing was written; read it "
+                + "again and repeat what you meant.",
+                "concurrency.conflict",
+            );
+        }
+    }
+
     async setExternalContentHosts(hosts: string[], signal: AbortSignal): Promise<ExternalContent> {
         await this.settle(signal);
+        this.refuseIfRacing();
         // Tidied the way the Server tidies it, and no further: blanks dropped,
         // whitespace trimmed, the same host named twice collapsed. A fake that
         // is tidier than the real thing hides a screen's rough edges.
@@ -281,6 +306,7 @@ export class ManagerApiFake implements ManagerApi {
 
     async updateInstanceSettings(input: InstanceSettingsInput, signal: AbortSignal): Promise<InstanceInfo> {
         await this.settle(signal);
+        this.refuseIfRacing();
         return this.announceInstance(this.instance.settings(input));
     }
 
