@@ -37,7 +37,7 @@ await shot("external-judging-off");
 // Turned on, saved, and read back from the API rather than from the checkbox —
 // a switch that flips locally and sends nothing looks identical on screen.
 await click(`[...document.querySelectorAll("[data-testid=switch]")].find(r => r.innerText.indexOf("nie prowadzi") !== -1).querySelector("input")`);
-await click(`[...document.querySelectorAll("button")].find(b => b.textContent.trim() === "Zapisz")`);
+await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "save")`);
 await wait(1200);
 
 // Read back by leaving the screen and coming back to it, **not** by reloading:

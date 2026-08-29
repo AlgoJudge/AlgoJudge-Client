@@ -405,8 +405,8 @@ export default function RunnersPage() {
                             onChange={setTags}
                         />
                         <Group justify="space-between">
-                            <Button variant="default" onClick={closePanel}>{t("Back")}</Button>
-                            <Button
+                            <Button data-testid="back" variant="default" onClick={closePanel}>{t("Back")}</Button>
+                            <Button data-testid="save"
                                 loading={busy}
                                 onClick={() => run(async () => {
                                     await call(api => api.managerApi.setRunnerTags(selected.id, tags));

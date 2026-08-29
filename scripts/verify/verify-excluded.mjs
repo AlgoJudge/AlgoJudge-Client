@@ -89,7 +89,7 @@ check(!/nie liczone/i.test(await body()),
     "a submission nobody ruled on carries no marker");
 
 await click(`[...document.querySelectorAll("button")]
-    .find(b => b.textContent.trim() === "Nie licz")`);
+    .find(b => b.dataset.testid === "do-not-count")`);
 await wait(700);
 
 const modal = await body();
@@ -107,7 +107,7 @@ await evaluate(`
     field.dispatchEvent(new Event("input", { bubbles: true }));
 `);
 await click(`[...document.querySelectorAll("[data-testid=modal] button")]
-    .find(b => b.textContent.trim() === "Nie licz")`);
+    .find(b => b.dataset.testid === "do-not-count")`);
 
 check(await until(`/nie liczone/i.test(document.body.innerText)`),
     "and the submission carries the marker once ruled on");
@@ -116,7 +116,7 @@ await shot("excluded-manager");
 // ── 5. Lifting it puts everything back ──────────────────────────────────────
 
 await click(`[...document.querySelectorAll("button")]
-    .find(b => b.textContent.trim() === "Licz ponownie")`);
+    .find(b => b.dataset.testid === "count-again")`);
 
 check(await until(`!/nie liczone/i.test(document.body.innerText)`),
     "and lifting the ruling takes the marker away again");

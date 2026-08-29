@@ -87,7 +87,7 @@ check(times !== null && minutesBetween(times[1], times[3]) === 10
     && minutesBetween(times[2], times[4]) === 10,
     "and both instants move by the same ten minutes");
 
-await click(`[...((${shiftCard})?.querySelectorAll("button") ?? [])].find(b => b.textContent.trim() === "Przesuń")`);
+await click(`[...((${shiftCard})?.querySelectorAll("button") ?? [])].find(b => b.dataset.testid === "move")`);
 await wait(3000);
 const after = await preview();
 const moved = /z (\d{2}:\d{2})–/.exec(after ?? "");

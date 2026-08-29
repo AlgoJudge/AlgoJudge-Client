@@ -175,7 +175,7 @@ await click(`[...document.querySelectorAll("[data-testid=combobox-option], [role
     .find(o => o.textContent.trim() === "W całym systemie")`);
 await wait(700);
 await click(`[...((${examBlock})?.querySelectorAll("button") ?? [])]
-    .find(b => b.textContent.trim() === "Zapisz")`);
+    .find(b => b.dataset.testid === "save")`);
 await wait(2000);
 
 // Read back before leaving: a check that only looked at the participant screen

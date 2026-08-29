@@ -168,7 +168,7 @@ export default function ProblemPage() {
                     </Group>
                 </Stack>
                 <Group>
-                    <Button variant="default" onClick={() => navigate(-1)}>{t("Back")}</Button>
+                    <Button data-testid="back" variant="default" onClick={() => navigate(-1)}>{t("Back")}</Button>
                     {/* Shut once the round stops accepting — disabled rather
                         than absent, as on the problem list, so the way in stays
                         where it has always been and says it is shut. */}

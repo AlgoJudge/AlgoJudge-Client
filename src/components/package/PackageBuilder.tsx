@@ -459,7 +459,7 @@ export default function PackageBuilder(
             </Group>
             <Group gap="xs" wrap="nowrap">
                 {program && (
-                    <Button
+                    <Button data-testid="preview"
                         variant="subtle"
                         size="compact-sm"
                         leftSection={<IconEye size={14} />}

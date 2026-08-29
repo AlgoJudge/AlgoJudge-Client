@@ -94,7 +94,7 @@ check(manifest === "found", `and the archive holds a manifest (${manifest})`);
 // ── 2. Importing it back: every problem is already here ─────────────────────
 
 await click(`[...document.querySelectorAll("button")]
-    .find(b => b.textContent.trim() === "Importuj z pliku")`);
+    .find(b => b.dataset.testid === "import-file")`);
 await wait(1200);
 
 await evaluate(`
@@ -215,7 +215,7 @@ await visit("/manager/activities",
 await wait(1500);
 
 await click(`[...document.querySelectorAll("button")]
-    .find(b => b.textContent.trim() === "Importuj z pliku")`);
+    .find(b => b.dataset.testid === "import-file")`);
 await wait(1200);
 
 await evaluate(`

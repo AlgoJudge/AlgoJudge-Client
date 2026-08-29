@@ -261,7 +261,7 @@ if (!manager.includes("Tylko ten kurs".toLowerCase()) && !manager.includes("Wsp�
 // two things a person can choose, so the label says which one it is.
 const opened = await evaluate(`
     const button = [...document.querySelectorAll("button")]
-        .find(b => b.textContent.trim() === "Współdziel jedną aktywność");
+        .find(b => b.dataset.testid === "share-one-activity");
     if (!button) return false;
     button.click();
     return true;`);
@@ -279,7 +279,7 @@ if (!opened) {
 
     await evaluate(`
         const confirm = [...document.querySelectorAll("button")]
-            .filter(b => b.textContent.trim() === "Zgadzam się na współdzielenie");
+            .filter(b => b.dataset.testid === "accept-sharing");
         confirm[confirm.length - 1].click();
         return true;`);
     await new Promise(r => setTimeout(r, 1500));
@@ -302,7 +302,7 @@ if (!opened) {
 
 const rosterOpened = await evaluate(`
     const button = [...document.querySelectorAll("button")]
-        .find(b => b.textContent.trim() === "Kto jest w kursie");
+        .find(b => b.dataset.testid === "who-is-in-course");
     if (!button) return false;
     button.click();
     return true;`);
@@ -341,7 +341,7 @@ if (!rosterOpened) {
 
     await evaluate(`
         const button = [...document.querySelectorAll("button")]
-            .find(b => b.textContent.trim() === "Zapisz do aktywno\u015bci");
+            .find(b => b.dataset.testid === "put-in-activity");
         if (button) button.click();
         return true;`);
     await new Promise(r => setTimeout(r, 2000));
@@ -558,7 +558,7 @@ for (let i = 0; i < 30; i++) {
 const asks = await evaluate(`
     const text = document.body.innerText;
     const button = [...document.querySelectorAll("button")]
-        .find(b => b.textContent.trim() === "Skopiuj");
+        .find(b => b.dataset.testid === "copy");
     return {
         saysUnpublished: text.includes("nieopublikowana"),
         saysWhatTravels: text.includes("nic z tego, co się wydarzyło"),

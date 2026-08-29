@@ -43,13 +43,13 @@ check(await evaluate(`
     return box ? box.checked && box.disabled : false;
 `), "the switch on a staff grant is on and refuses to be turned off");
 await shot("sys-staff");
-await click(`[...document.querySelectorAll("[data-testid=modal] button")].find(b => b.textContent.trim() === "Wróć")`);
+await click(`[...document.querySelectorAll("[data-testid=modal] button")].find(b => b.dataset.testid === "back")`);
 await wait(1200);
 
 // A membership that is only a participation, where it is a choice. Opened as a
 // new one: every grant this activity already holds is a staff grant, which is
 // itself the point of the previous check.
-await click(`[...document.querySelectorAll("button")].find(b => b.textContent.trim() === "Zapisz osobę")`);
+await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "enrol-someone")`);
 await wait(1500);
 check(await evaluate(`
     const modal = document.querySelector("[data-testid=modal]");
@@ -57,11 +57,11 @@ check(await evaluate(`
         .find(b => b.closest("[data-testid=switch]") !== null);
     return box ? !box.disabled : false;
 `), "on an ordinary membership it moves freely");
-await click(`[...document.querySelectorAll("[data-testid=modal] button")].find(b => b.textContent.trim() === "Wróć")`);
+await click(`[...document.querySelectorAll("[data-testid=modal] button")].find(b => b.dataset.testid === "back")`);
 await wait(1200);
 
 // 5 — the printed sheet, and where it points.
-await click(`[...document.querySelectorAll("button")].find(b => b.textContent.trim() === "Konta tymczasowe")`);
+await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "temporary-accounts")`);
 await wait(1200);
 await evaluate(`
     const modal = document.querySelector("[data-testid=modal]");
@@ -76,7 +76,7 @@ await evaluate(`
     return true;
 `);
 await wait(600);
-await click(`[...document.querySelectorAll("[data-testid=modal] button")].find(b => b.textContent.trim() === "Utwórz")`);
+await click(`[...document.querySelectorAll("[data-testid=modal] button")].find(b => b.dataset.testid === "create")`);
 await wait(3500);
 
 // The sheet opens in a tab of its own, so it is read from there.

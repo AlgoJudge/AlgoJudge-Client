@@ -150,7 +150,7 @@ export default function ManagerInstancePage() {
                                 onChange={e => setSettings({ ...settings, externalJudgingEnabled: e.currentTarget.checked })}
                             />
                             <Group justify="flex-end">
-                                <Button
+                                <Button data-testid="save"
                                     loading={busy}
                                     onClick={() => void run(() => call(api => api.managerApi.updateInstanceSettings(settings)))}
                                 >
@@ -387,7 +387,7 @@ function AccessKeysCard() {
                         disabled={busy}
                         onChange={e => setValue(e.currentTarget.value)}
                     />
-                    <Button loading={busy} disabled={name.trim().length === 0} onClick={() => void save()}>
+                    <Button data-testid="save" loading={busy} disabled={name.trim().length === 0} onClick={() => void save()}>
                         {t("Save")}
                     </Button>
                 </Group>

@@ -84,7 +84,7 @@ await shot("act-enrol");
 // 6 — the wrong password is refused, and says so.
 await click(`[...document.querySelectorAll("input[type=checkbox]")].at(-1)`);
 await type("input[type=password]", "nie-to-haslo");
-await click(`[...document.querySelectorAll("button")].find(b => b.textContent.trim() === "Zapisz się")`);
+await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "enrol")`);
 await wait(2000);
 check(/nieprawidłow/i.test(await body()),
     "a wrong password is refused in words rather than silently");
@@ -93,7 +93,7 @@ check(await evaluate(`return document.querySelector("input[type=password]") !== 
 
 // 7 — the right one puts them in, and the page becomes the participant's.
 await type("input[type=password]", PASSWORD);
-await click(`[...document.querySelectorAll("button")].find(b => b.textContent.trim() === "Zapisz się")`);
+await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "enrol")`);
 await wait(3000);
 check(!/Zapisz się na tę aktywność/.test(await body()),
     "the right password enrols, and the form goes");
@@ -110,7 +110,7 @@ check(await evaluate(`return document.querySelector("input[type=password]") === 
     "an open activity asks for no password");
 check(/Trening otwarty/.test(await body()),
     "and still shows what it wrote for outsiders");
-await click(`[...document.querySelectorAll("button")].find(b => b.textContent.trim() === "Zapisz się")`);
+await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "enrol")`);
 await wait(3000);
 check(await evaluate(`return location.pathname === "/activities/TRENING-OTWARTY/problems";`),
     "enrolling in one with no participant page lands on its problems");

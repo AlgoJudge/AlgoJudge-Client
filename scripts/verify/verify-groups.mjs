@@ -37,7 +37,7 @@ const addGroup = (name) => evaluate(`
     input.dispatchEvent(new Event("input", { bubbles: true }));
 
     const button = [...document.querySelectorAll("button")]
-        .find(b => b.textContent.trim() === "Dodaj grupę");
+        .find(b => b.dataset.testid === "add-group");
     if (!button) return "no button";
     if (button.disabled) return "the name did not reach React";
     button.click();

@@ -42,7 +42,7 @@ await evaluate(`
     input.dispatchEvent(new Event("input", { bubbles: true }));
     return true;
 `);
-await click(`[...${AREA}.querySelectorAll("button")].find(b => b.textContent.trim() === "Dodaj")`);
+await click(`[...${AREA}.querySelectorAll("button")].find(b => b.dataset.testid === "add")`);
 await wait(1200);
 await reopen();
 
@@ -59,12 +59,12 @@ check(/onlinejudge\.org/.test(added), "and the one that was already there was no
 // check somebody will misread at the worst moment.
 const rows = await evaluate(`
     return [...${AREA}.querySelectorAll("button")]
-        .filter(b => b.textContent.trim() === "Usuń").length;
+        .filter(b => b.dataset.testid === "remove").length;
 `);
 check(rows >= 2, `both hosts offer a way to remove them (${rows})`);
 
 if (rows >= 2) {
-    await click(`[...${AREA}.querySelectorAll("button")].filter(b => b.textContent.trim() === "Usuń")[1]`);
+    await click(`[...${AREA}.querySelectorAll("button")].filter(b => b.dataset.testid === "remove")[1]`);
     await wait(1200);
     await reopen();
 
@@ -93,7 +93,7 @@ check(/Importuj zadania z UVa/i.test(offered), "the screen offers importing by n
 // and the switch agree: refused and explained, or offered and silent.
 const blocked = await evaluate(`
     const main = document.querySelector("[data-testid=app-main]");
-    const button = [...main.querySelectorAll("button")].find(b => b.textContent.trim() === "Importuj");
+    const button = [...main.querySelectorAll("button")].find(b => b.dataset.testid === "import");
     return { there: button !== undefined, disabled: button ? button.disabled : null };
 `);
 check(blocked.there, "the import button is on the screen");

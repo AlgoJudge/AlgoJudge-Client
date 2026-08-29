@@ -35,7 +35,7 @@ const save = async () => {
         const panel = [...document.querySelectorAll("[role=tabpanel]")]
             .find(p => p.textContent.includes("Widoczność i zapisy"));
         return [...(panel?.querySelectorAll("button") ?? [])]
-            .find(b => b.textContent.trim() === "Zapisz");
+            .find(b => b.dataset.testid === "save");
     })()`);
     await wait(3000);
 };

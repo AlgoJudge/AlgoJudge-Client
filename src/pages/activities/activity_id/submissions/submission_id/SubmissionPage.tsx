@@ -59,7 +59,7 @@ export default function SubmissionPage() {
     return (
         <Stack gap="md">
             <Group justify="space-between">
-                <Button variant="default" onClick={() => navigate(-1)}>{t("Back")}</Button>
+                <Button data-testid="back" variant="default" onClick={() => navigate(-1)}>{t("Back")}</Button>
                 <Group>
                     <Button
                         variant="light"

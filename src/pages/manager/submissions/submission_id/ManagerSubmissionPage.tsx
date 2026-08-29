@@ -84,7 +84,7 @@ function ExclusionModal(
 
     if (submission.excluded) {
         return (
-            <Button
+            <Button data-testid="count-again"
                 variant="default"
                 leftSection={<IconCirclePlus size={16} />}
                 loading={busy}
@@ -97,7 +97,7 @@ function ExclusionModal(
 
     return (
         <>
-            <Button
+            <Button data-testid="do-not-count"
                 variant="default"
                 color="orange"
                 leftSection={<IconCircleMinus size={16} />}
@@ -121,7 +121,7 @@ function ExclusionModal(
                     />
                     <Group justify="flex-end">
                         <Button variant="default" onClick={() => setOpen(false)}>{t("Cancel")}</Button>
-                        <Button
+                        <Button data-testid="do-not-count"
                             color="orange"
                             loading={busy}
                             onClick={() => { setOpen(false); onSubmit(true, reason); }}
@@ -281,7 +281,7 @@ export default function ManagerSubmissionPage() {
                     >
                         {t("Rejudge")}
                     </Button>
-                    <Button variant="default" leftSection={<IconArrowLeft size={16} />} onClick={() => navigate("/manager/submissions")}>
+                    <Button data-testid="back" variant="default" leftSection={<IconArrowLeft size={16} />} onClick={() => navigate("/manager/submissions")}>
                         {t("Back")}
                     </Button>
                 </Group>

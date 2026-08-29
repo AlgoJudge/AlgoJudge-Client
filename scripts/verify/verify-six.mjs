@@ -61,7 +61,7 @@ await wait(800);
 await click(`[...([...document.querySelectorAll("[data-testid=accordion-item]")]
     .find(i => i.innerText.includes("Runda 1"))
     ?.querySelectorAll("button") ?? [])]
-    .find(b => b.textContent.trim() === "Zapisz")`);
+    .find(b => b.dataset.testid === "save")`);
 await wait(3000);
 
 await visit("/activities/AMMPZ-2019/problems", `document.body.innerText.includes("Runda 1")`);

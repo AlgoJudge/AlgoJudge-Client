@@ -428,7 +428,7 @@ export default function ProvidersPage() {
 
                         <Group justify="flex-end">
                             <Button variant="subtle" onClick={() => setDraft(undefined)}>{t("Cancel")}</Button>
-                            <Button loading={busy} onClick={() => void save()}>{t("Save")}</Button>
+                            <Button data-testid="save" loading={busy} onClick={() => void save()}>{t("Save")}</Button>
                         </Group>
                     </Stack>
                 )}

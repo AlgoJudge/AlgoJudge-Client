@@ -66,7 +66,7 @@ check(/Przenieś dorobek tego konta/i.test(opened),
 
 const beforeChoosing = await evaluate(`
     const button = [...document.querySelectorAll("[data-testid=modal] button")]
-        .find(b => b.textContent.trim() === "Przenieś dorobek");
+        .find(b => b.dataset.testid === "move-work");
     return button ? String(button.disabled) : "no button";
 `);
 check(beforeChoosing === "true",
@@ -101,7 +101,7 @@ await shot("merge-preview");
 
 const afterChoosing = await evaluate(`
     const button = [...document.querySelectorAll("[data-testid=modal] button")]
-        .find(b => b.textContent.trim() === "Przenieś dorobek");
+        .find(b => b.dataset.testid === "move-work");
     return button ? String(button.disabled) : "no button";
 `);
 check(afterChoosing === "false",
@@ -113,7 +113,7 @@ check(afterChoosing === "false",
 // the account stops working the moment its work leaves.
 
 await click(`[...document.querySelectorAll("[data-testid=modal] button")]
-    .find(b => b.textContent.trim() === "Przenieś dorobek")`);
+    .find(b => b.dataset.testid === "move-work")`);
 await wait(2500);
 
 const after = await evaluate(`

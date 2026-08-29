@@ -84,7 +84,7 @@ export default function CodePage() {
                     <Title>[{submission.problemSlug}] {submission.problemName}</Title>
                 </Stack>
                 <Group>
-                    <Button variant="default" onClick={() => navigate(-1)}>{t("Back")}</Button>
+                    <Button data-testid="back" variant="default" onClick={() => navigate(-1)}>{t("Back")}</Button>
                     {/* CopyButton and DownloadButton already render the button —
                         the callback supplies its label. Returning another Button
                         here nested one inside the other. */}

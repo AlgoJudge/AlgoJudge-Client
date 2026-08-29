@@ -75,8 +75,8 @@ export default function PauseSeriesModal({
                             description={t("Unticked, every date is left exactly as it is.")}
                         />
                         <Group justify="space-between">
-                            <Button variant="default" onClick={onClose}>{t("Back")}</Button>
-                            <Button
+                            <Button data-testid="back" variant="default" onClick={onClose}>{t("Back")}</Button>
+                            <Button data-testid="resume"
                                 color="teal"
                                 loading={busy}
                                 onClick={() => onResume(series.id, extendEnd)}
@@ -97,8 +97,8 @@ export default function PauseSeriesModal({
                             description={t("For a leak or a mistake in a statement. Otherwise they stay on screen.")}
                         />
                         <Group justify="space-between">
-                            <Button variant="default" onClick={onClose}>{t("Back")}</Button>
-                            <Button
+                            <Button data-testid="back" variant="default" onClick={onClose}>{t("Back")}</Button>
+                            <Button data-testid="pause"
                                 color="orange"
                                 loading={busy}
                                 onClick={() => onPause(series.id, hideProblems)}

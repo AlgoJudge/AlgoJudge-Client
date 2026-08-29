@@ -169,7 +169,7 @@ await wait(1200);
 // of passing that says nothing at all.
 await click(`[...(([...document.querySelectorAll("[role=tabpanel]")]
     .find(p => p.offsetParent !== null))?.querySelectorAll("button") ?? [])]
-    .find(b => b.textContent.trim() === "Zapisz")`);
+    .find(b => b.dataset.testid === "save")`);
 await wait(3000);
 
 const after = await evaluate(`return (${activityCard})?.innerText ?? "";`);

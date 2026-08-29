@@ -104,7 +104,7 @@ export default function ManagerActivityPage() {
                     >
                         {activity.archivedAt ? t("Restore") : t("Archive")}
                     </Button>
-                    <Button variant="default" leftSection={<IconArrowLeft size={16} />} onClick={() => navigate("/manager/activities")}>
+                    <Button data-testid="back" variant="default" leftSection={<IconArrowLeft size={16} />} onClick={() => navigate("/manager/activities")}>
                         {t("Back")}
                     </Button>
                 </Group>
@@ -146,7 +146,7 @@ export default function ManagerActivityPage() {
                             matchingRunners={activity.matchingRunners}
                         />
                         <Group justify="flex-end">
-                            <Button
+                            <Button data-testid="save"
                                 leftSection={<IconDeviceFloppy size={16} />}
                                 loading={busy}
                                 disabled={activity.archivedAt !== undefined}

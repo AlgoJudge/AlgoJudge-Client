@@ -42,7 +42,7 @@ check(await evaluate(`
     return [...document.querySelectorAll("[role=tab]")].some(t => /angielski|english/i.test(t.textContent));
 `), "the rules open with every language they were written in");
 await setTextarea(PL);
-await click(`[...document.querySelectorAll("button")].find(b => b.textContent.trim() === "Opublikuj")`);
+await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "publish")`);
 await wait(3000);
 check(/Wcześniejsze wersje/.test(await body()),
     "publishing keeps the revision it replaced in the history");
@@ -95,7 +95,7 @@ check(await roster() === true,
 // and leaves this form untouched — a way of passing that says nothing.
 await click(`[...(([...document.querySelectorAll("[role=tabpanel]")]
     .find(p => p.offsetParent !== null))?.querySelectorAll("button") ?? [])]
-    .find(b => b.textContent.trim() === "Zapisz")`);
+    .find(b => b.dataset.testid === "save")`);
 await wait(3000);
 
 await visit("/manager/activities", MANAGER_LIST);
@@ -113,7 +113,7 @@ await click(`[...document.querySelectorAll("tbody tr")]
     .find(r => r.innerText.includes("Strona dla uczestników"))
     ?.querySelector("button")`);
 await wait(2500);
-await click(`[...document.querySelectorAll("button")].find(b => b.textContent.trim() === "Przestań publikować")`);
+await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "stop-publishing")`);
 await wait(3000);
 check(await evaluate(`
     const row = [...document.querySelectorAll("tbody tr")].find(r => r.innerText.includes("Strona dla uczestników"));
@@ -138,9 +138,9 @@ await click(tab("Uczestnicy"));
 await wait(800);
 const before = await evaluate(`return document.querySelectorAll("tbody tr").length;`);
 check(await evaluate(`
-    return [...document.querySelectorAll("button")].some(b => b.textContent.trim() === "Konta tymczasowe");
+    return [...document.querySelectorAll("button")].some(b => b.dataset.testid === "temporary-accounts");
 `), "an activity offers making temporary accounts from inside it");
-await click(`[...document.querySelectorAll("button")].find(b => b.textContent.trim() === "Konta tymczasowe")`);
+await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "temporary-accounts")`);
 await wait(1200);
 check(await evaluate(`
     const modal = document.querySelector("[data-testid=modal]");
@@ -154,7 +154,7 @@ await evaluate(`
     return true;
 `);
 await wait(500);
-await click(`[...document.querySelectorAll("[data-testid=modal] button")].find(b => b.textContent.trim() === "Utwórz")`);
+await click(`[...document.querySelectorAll("[data-testid=modal] button")].find(b => b.dataset.testid === "create")`);
 await wait(3500);
 const credentials = await evaluate(`
     const modal = document.querySelector("[data-testid=modal]");
@@ -165,7 +165,7 @@ check(/username,password/.test(credentials) && /grupa-la-001/.test(credentials),
 check(/jedyny moment|only time/i.test(credentials),
     "and it says so, because there is no second chance");
 await shot("mact-accounts");
-await click(`[...document.querySelectorAll("[data-testid=modal] button")].find(b => b.textContent.trim() === "Gotowe")`);
+await click(`[...document.querySelectorAll("[data-testid=modal] button")].find(b => b.dataset.testid === "done")`);
 await wait(2500);
 const after = await evaluate(`return document.querySelectorAll("tbody tr").length;`);
 check(after > before,
@@ -195,7 +195,7 @@ await wait(700);
 const dialogue = await evaluate(`
     const text = document.body.innerText;
     const button = [...document.querySelectorAll("button")]
-        .find(b => b.textContent.trim() === "Skopiuj");
+        .find(b => b.dataset.testid === "copy");
     return {
         saysUnpublished: text.includes("nieopublikowana"),
         asksForDate: text.includes("Kiedy zaczyna się pierwsza runda"),
@@ -224,7 +224,7 @@ await wait(300);
 await shot("activity-copy-dialogue");
 
 await click(`[...document.querySelectorAll("button")]
-    .find(b => b.textContent.trim() === "Skopiuj")`);
+    .find(b => b.dataset.testid === "copy")`);
 await wait(900);
 
 const listed = await body();

@@ -283,8 +283,8 @@ export default function ManagerQuestionsPage() {
                             onChange={e => setDraft({ ...draft, publish: e.currentTarget.checked })}
                         />
                         <Group justify="space-between">
-                            <Button variant="default" onClick={() => setAnswering(undefined)}>{t("Back")}</Button>
-                            <Button
+                            <Button data-testid="back" variant="default" onClick={() => setAnswering(undefined)}>{t("Back")}</Button>
+                            <Button data-testid="save"
                                 loading={busy}
                                 disabled={draft.body.trim().length === 0}
                                 onClick={() => run(async () => {
@@ -336,7 +336,7 @@ export default function ManagerQuestionsPage() {
                         {t("An announcement is published the moment it is created.")}
                     </Text>
                     <Group justify="space-between">
-                        <Button variant="default" onClick={() => setAnnouncing(false)}>{t("Back")}</Button>
+                        <Button data-testid="back" variant="default" onClick={() => setAnnouncing(false)}>{t("Back")}</Button>
                         <Button
                             loading={busy}
                             disabled={!announcement.topic.trim() || !announcement.body.trim()}

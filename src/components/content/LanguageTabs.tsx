@@ -99,8 +99,8 @@ export default function LanguageTabs({ value, languages, onChange, onAdd, onRemo
                         {t("A reader gets this statement when it matches their interface language, and the default otherwise.")}
                     </Text>
                     <Group justify="space-between">
-                        <Button variant="default" onClick={() => setAdding(false)}>{t("Back")}</Button>
-                        <Button
+                        <Button data-testid="back" variant="default" onClick={() => setAdding(false)}>{t("Back")}</Button>
+                        <Button data-testid="save"
                             disabled={problem !== undefined}
                             onClick={() => { onAdd(trimmed); setDraft(""); setAdding(false); }}
                         >

@@ -165,7 +165,7 @@ export default function QuestionFormModal({ activityId, series, onCreated }: Que
                     />
                     {error && <Alert color="red">{error}</Alert>}
                     <Group justify="space-between">
-                        <Button variant="default" onClick={close}>{t("Back")}</Button>
+                        <Button data-testid="back" variant="default" onClick={close}>{t("Back")}</Button>
                         <Button loading={sending} onClick={send}>{t("Send")}</Button>
                     </Group>
                 </Stack>

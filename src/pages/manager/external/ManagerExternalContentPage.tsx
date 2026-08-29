@@ -94,7 +94,7 @@ export default function ManagerExternalContentPage() {
                     {hosts.map(host => (
                         <Group key={host} justify="space-between">
                             <Text ff="monospace">{host}</Text>
-                            <Button
+                            <Button data-testid="remove"
                                 variant="subtle"
                                 color="red"
                                 size="compact-sm"
@@ -119,7 +119,7 @@ export default function ManagerExternalContentPage() {
                                 if (e.key === "Enter") add();
                             }}
                         />
-                        <Button
+                        <Button data-testid="add"
                             disabled={busy || adding.trim().length === 0}
                             leftSection={<IconPlus size={16} />}
                             onClick={add}
@@ -293,7 +293,7 @@ function ImportCard({ enabled }: { enabled: boolean | undefined }) {
                     >
                         {t("Browse the archive")}
                     </Button>
-                    <Button
+                    <Button data-testid="import"
                         loading={busy}
                         disabled={enabled !== true || numbers.length === 0}
                         onClick={() => void run()}
