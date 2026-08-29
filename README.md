@@ -28,7 +28,15 @@ Tabler Icons. Polish and English, with translations in `public/locales/`.
 
 ## Requirements
 
-Node.js 20.9 or later, and npm.
+Node.js 24 or later, and npm. Node 24 "Krypton" is the active LTS line; Node 22
+went into maintenance in October 2025.
+
+The version lives in `.nvmrc`, which is what CI reads and what `nvm use` picks
+up. `package.json` states the same floor under `engines`, so `npm ci` says so
+when the wrong Node is in front of it. The Dockerfile names its own base image
+and is the one place that repeats the number.
+
+Tested on Node 24.20.0 with npm 11.19.0.
 
 ## Commands
 
@@ -37,14 +45,21 @@ Node.js 20.9 or later, and npm.
 | `npm ci` | install dependencies |
 | `npm run dev` | development server on port 5173 |
 | `npm run lint` | ESLint 9, flat config in `eslint.config.mjs` |
+| `npm run lint:deps` | dependency lists at every `useApiEffect` call site |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run build` | type-check and build to `dist/` |
 | `npm run preview` | serve the production build |
 
 On Windows PowerShell use `npm.cmd` if the execution policy blocks `npm.ps1`.
 
-There is no test suite and no CI, so lint, typecheck and build are the whole
-gate. All three must exit 0 before anything is merged.
+Lint, `lint:deps`, typecheck and build are the gate: all four must exit 0 before
+anything is merged, and CI runs them on every push. The `check:` scripts cover
+the formats the Client owns and run in CI beside them.
+
+There is a test suite — Playwright, since 2026-08-18 — and it does not gate.
+`npm run check:ui` drives the screens against the fake API and runs in CI as
+`continue-on-error`; `npm run check:e2e` wants a full stack that is already up
+and runs nowhere automatically.
 
 ## Configuration
 
@@ -188,7 +203,7 @@ Views never call `fetch` directly. They go through `useApi`, `useApiEffect` or
 ## Contributing
 
 `main` is the integration and default branch; changes arrive through pull
-requests. Run lint, typecheck and build before opening one.
+requests. Run lint, `lint:deps`, typecheck and build before opening one.
 
 Architecture rules that apply here: the Client renders, it never evaluates.
 Untrusted JavaScript from a task package must never be executed, an unknown

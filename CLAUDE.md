@@ -18,6 +18,24 @@ verified as outdated and removed there.
 - i18next
 - Tabler Icons
 
+## Node
+
+**`.nvmrc` decides the version, and CI reads it** — `node-version-file`, never a
+literal `node-version` beside it, because a literal silently wins and the file
+stops meaning anything. `package.json` repeats the floor as `engines.node` so
+`npm ci` objects rather than failing later in a way nobody attributes to Node.
+
+The number is written twice on purpose: a Dockerfile `FROM` cannot read a file,
+so the base image names its own. Two copies, both on the same major — it was
+**four** until 2026-08-29, and they had drifted, the README saying 20.9 while the
+Dockerfile and both CI jobs ran 22.
+
+**Node 24, moved off 22 on 2026-08-29.** 22 went into maintenance in October
+2025; 24 is the active LTS until 2026-10-20 and supported to 2028-04-30. The pin
+floats on the major, as the Server's `postgres:18` and `aspnet:10.0` do, so
+security patches arrive without a commit. Nothing in the dependency tree sets a
+ceiling — every `engines.node` range in the lockfile is open-ended.
+
 ## Commands
 
 | Command | Purpose |

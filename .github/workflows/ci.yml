@@ -23,19 +23,22 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Read from `.nvmrc`, never written here: a literal `node-version` beside
+      # it silently wins and the file stops meaning anything.
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      # There is no test suite, so these steps are the whole gate, and all of
-      # them must pass before anything is merged. Keep this list and the one in
-      # CLAUDE.md the same: it said "these three steps" for a while after the
-      # `check:` scripts existed, which meant a change could break the package
-      # format or the event socket and still go green.
+      # These steps are the whole gate, and all of them must pass before
+      # anything is merged. The Playwright suites do not gate: `check:ui` runs
+      # below as `continue-on-error` and `check:e2e` needs a full stack. Keep
+      # this list and the one in CLAUDE.md the same: it said "these three steps"
+      # for a while after the `check:` scripts existed, which meant a change
+      # could break the package format or the event socket and still go green.
       - name: Lint
         run: npm run lint
 
@@ -120,7 +123,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
 
       - name: Install dependencies
