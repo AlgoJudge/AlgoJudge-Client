@@ -36,6 +36,41 @@ floats on the major, as the Server's `postgres:18` and `aspnet:10.0` do, so
 security patches arrive without a commit. Nothing in the dependency tree sets a
 ceiling — every `engines.node` range in the lockfile is open-ended.
 
+## Dependencies, swept 2026-08-29
+
+Everything on its latest stable, with four exceptions and each is a decision.
+
+**TypeScript is 6, not 7.** `@typescript-eslint`'s stable line declares
+`typescript <6.1.0`, and only its alphas support 7 — which the no-prerelease
+rule excludes on a tool that gates the merge. Three things 6 stopped tolerating:
+`baseUrl` is deprecated, so `paths` is spelled from the tsconfig; naming files
+beside a `tsconfig.json` is an error, so the six `check:` scripts that compile a
+subset pass `--ignoreConfig`; and strict checking is on by default without a
+config, which is why `check:content` names the `markdown-it-footnote`
+declaration explicitly.
+
+**`@mantine/code-highlight` ships no highlighter.** Without an adapter it falls
+back to `plainTextAdapter` and renders source as plain text, silently — no
+error, no warning, just no colour. `shikiAdapter.ts` wires Shiki, and
+`verify-first` asserts a token count so the fallback cannot come back unnoticed.
+**Name every grammar there.** Asking Shiki's bundled entry for languages on
+demand reaches all ~300 and puts them in the build: 18 MB of `dist` against 8.5.
+
+**Mantine's Tooltip merges its child's `className` with `clsx`, which cannot
+carry a function.** A React Router `NavLink` under a `Tooltip` must take a
+string, or its `({ isActive }) => …` is dropped and the element renders with no
+class at all. That happened to the whole main navigation and only an assertion
+about a neighbouring font weight noticed.
+
+**Four `react-hooks` rules are off** — `set-state-in-effect`, `refs`, `purity`,
+`immutability`. Plugin 7 folds in the React Compiler rules and they report 22
+places; turning them on is a render change with its own verification, so it is
+its own piece of work and the config says so.
+
+`overrides` pins `dompurify` and `flatted`, both reached through packages that
+are already current and have nothing newer to move to. `npm audit` is **zero**,
+from nineteen.
+
 ## Commands
 
 | Command | Purpose |
@@ -128,12 +163,19 @@ says so. Silencing it is safe only because `reportUnusedDisableDirectives` is on
 so ESLint reports the directive the day it stops being needed — do not turn that
 option off.
 
-What that silencing gives up, `lint:deps` takes back: it runs the same rule with
-`useApiEffect` declared as an effect hook, so the dependency list every screen
-declares is checked. Plain `eslint` cannot do this itself — with the wrapper
-declared it also demands a synchronous effect callback, and all of ours are async
-by design — so that single message is filtered out by `scripts/lint-deps.mjs` and
-anything else fails the run.
+**`lint:deps` does not take that back, and this paragraph said it did until
+2026-08-29.** It runs the same rule with `useApiEffect` declared as an effect
+hook, and the intent was that the dependency list every screen declares is
+checked. It is not. `exhaustive-deps` stops at *"Effect callbacks are
+synchronous"* before it looks at any list, every one of our callbacks is async
+by design, and that is precisely the message `scripts/lint-deps.mjs` filters
+out — so nothing is left to report and the script has always passed.
+
+**Measured, not inferred**: an emptied dependency list on a `useApiEffect`
+passes on `eslint-plugin-react-hooks` 5 and on 7 alike, while the same sabotage
+on a plain `useEffect` is reported at once. The rule works; it never reaches the
+wrapper. The gate is decorative, it is still listed as one of four above, and
+what to do about it — a different check, or one gate fewer — is undecided.
 
 ## Rules
 

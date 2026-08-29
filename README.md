@@ -23,7 +23,7 @@ against local fixtures rather than live data.
 
 ## Technology
 
-React 19, TypeScript 5.8, Vite 6, Mantine 7, React Router 7, i18next 24,
+React 19, TypeScript 6, Vite 8, Mantine 9, React Router 7, i18next 26,
 Tabler Icons. Polish and English, with translations in `public/locales/`.
 
 ## Requirements

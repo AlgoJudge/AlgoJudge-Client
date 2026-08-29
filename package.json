@@ -55,6 +55,10 @@
     "turndown": "^7.2.4",
     "yaml": "^2.9.0"
   },
+  "overrides": {
+    "dompurify": "^3.4.14",
+    "flatted": "^3.4.4"
+  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.62.1",
