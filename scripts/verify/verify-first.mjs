@@ -120,6 +120,59 @@ await until(`document.body.innerText.includes("Testy (1)")`, "the first test");
 await wait(600);
 await shot("f-package");
 
+// 3b — a checker, because a checker is the only thing here that reaches
+// `CodeHighlight`. The preview branches on `language`: test data has none and
+// renders through `Code`, so without a source file the component that
+// @mantine/code-highlight rewrote for Shiki is drawn by nothing and an upgrade
+// of it cannot go red.
+await evaluate(`
+    const input = [...document.querySelectorAll("input[type=file]")]
+        .find(i => (i.accept || "").includes(".cpp"));
+    if (!input) throw new Error("no checker input");
+    const data = new DataTransfer();
+    data.items.add(new File(["int add(int a, int b) {\\n    return a + b;\\n}\\n"],
+        "checker.cpp", { type: "text/plain" }));
+    input.files = data.files;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    return true;
+`);
+await until(`document.body.innerText.includes("checker.cpp")`, "the checker");
+check(await evaluate(`return /\\bcpp\\b/.test(document.body.innerText);`),
+    "the checker is recognised as source, by extension");
+
+// The button carries the word; the per-test preview is an icon with a tooltip,
+// so matching on the text picks the program's.
+await evaluate(`
+    const button = [...document.querySelectorAll("button")]
+        .find(b => b.textContent.trim() === "Podgląd");
+    if (!button) throw new Error("no preview button");
+    button.click();
+    return true;
+`);
+await until(`document.querySelector("[class*=Modal-content]") !== null`, "the preview");
+await wait(600);
+const highlighted = await evaluate(`
+    const modal = document.querySelector("[class*=Modal-content]");
+    const pre = modal.querySelector("pre");
+    return {
+        text: pre ? pre.innerText.replace(/\\s+/g, " ").trim() : "",
+        spans: pre ? pre.querySelectorAll("span").length : 0,
+    };
+`);
+check(highlighted.text.includes("int add(int a, int b)"), "the checker's source is in the preview");
+// Tokens rather than plain text. highlight.js and Shiki both emit one span per
+// token and nothing else here does, so this survives the change of engine and
+// still fails if the source arrives unhighlighted.
+check(highlighted.spans > 1, `the source is syntax-highlighted (${highlighted.spans} tokens)`);
+await shot("f-checker");
+
+await evaluate(`
+    const modal = document.querySelector("[class*=Modal-content]");
+    modal.querySelector("[class*=CloseButton-root]").click();
+    return true;
+`);
+await until(`document.querySelector("[class*=Modal-content]") === null`, "the preview to close");
+
 // 4 — the statement, then publish everything as version 1.
 await evaluate(`
     [...document.querySelectorAll("[role=tab]")].find(t => t.textContent.trim() === "Treść").click();
