@@ -17,17 +17,24 @@ const pick = (label) => click(`[...document.querySelectorAll("[data-testid=segme
 // `ranking:read:unfrozen` and reads past a window on purpose.
 await go(`${APP}/activities/AMMPZ-2019/ranking?fakeUser=anowak`, `document.body.innerText.includes("Ranking")`);
 await wait(2500);
+// **The clock is advanced inside the loop, never once before it.**
+//
+// The fake schedules the opening with `setTimeout` when it is constructed, so a
+// single jump taken before the page has got that far fires nothing — and a
+// virtual clock does not advance on its own afterwards, which turns a 45-second
+// wait into an unbounded one. It passed locally and **failed in CI**, where the
+// page mounts slower: `nothing to click: Runda 2`. Ten virtual seconds per turn,
+// after the DOM has been read, so the timer exists by the time time moves.
 // Runda 2 opens 45 s after load and its board is held back until it ends. It is
 // the round with a shut window now that Runda 1's is open and merely frozen.
-    // The 45 s the fake waits before opening Runda 2, jumped rather than sat
-    // through. The poll below stays as a backstop and now finds it at once.
-    await clock.fastForward("50");
 for (let i = 0; i < 25; i++) {
     const tabs = await evaluate(`
         return [...document.querySelectorAll("[data-testid=segmented] label")].map(l => l.textContent.trim());
     `);
     if (tabs.includes("Runda 2")) break;
-    await wait(3000);
+    // Ten virtual seconds, then a moment of real time to re-render.
+    await clock.fastForward("10");
+    await wait(250);
 }
 await pick("Runda 2");
 await wait(2500);
