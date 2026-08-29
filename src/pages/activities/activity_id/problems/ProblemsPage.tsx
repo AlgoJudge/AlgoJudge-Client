@@ -83,7 +83,9 @@ const ClosedSeries = ({ series, timeZone, onOpen }: { series: Series; timeZone: 
                     </Group>
                 </Card>
             ))}
-            <Overlay color="#fff" backgroundOpacity={0.3} blur={4} zIndex={1}>
+            {/* The page's own colour, not white: a white veil over a dark page
+                is the brightest thing on the screen. */}
+            <Overlay color="var(--mantine-color-body)" backgroundOpacity={0.3} blur={4} zIndex={1}>
                 <Stack className={classes.roundoverlay} gap={4}>
                     <Group gap="xs">
                         <IconLock size={18} />

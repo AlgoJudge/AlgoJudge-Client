@@ -2,10 +2,8 @@ import {
   CodeHighlight as CH,
   CodeHighlightProps,
 } from "@mantine/code-highlight";
-import { useMantineColorScheme } from "@mantine/core";
+import { useComputedColorScheme } from "@mantine/core";
 import classes from "./CodeHighlight.module.css";
-
-// this is slightly hacked and can break when inside some custom theme provider
 
 export default function CodeHighlight({
   code,
@@ -13,9 +11,11 @@ export default function CodeHighlight({
 }: CodeHighlightProps & { code: string }) {
   const lines = code.split("\n");
 
-  const theme = useMantineColorScheme();
+  // The *computed* scheme, not the stored preference: `useMantineColorScheme`
+  // returns 'auto' as well, and comparing that against 'dark' is light.
+  const colorScheme = useComputedColorScheme("light");
   const bgColor =
-    theme.colorScheme === "dark"
+    colorScheme === "dark"
       ? "var(--mantine-color-dark-8)"
       : "var(--mantine-color-gray-0)";
 

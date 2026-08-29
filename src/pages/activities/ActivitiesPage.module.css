@@ -1,24 +1,43 @@
+/* Two states: `.item` alone is a finished activity, `.item.active` everything
+   else. Both were fixed light greys with no dark counterpart, so the dark scheme
+   drew a pale slab under near-white text — 1.4:1.
+
+   The dimming was also expressed backwards: the finished card was made *darker*
+   than the page while its text was made *lighter*, which is 2.22:1 in the light
+   scheme too. It recedes towards the page colour now, and the text softens
+   instead of fading out. */
 .item {
     margin: var(--mantine-spacing-md);
-    background-color: var(--mantine-color-gray-4);
+    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
     padding: var(--mantine-spacing-md) var(--mantine-spacing-xl);
     cursor: pointer;
-    color: var(--mantine-color-gray-6);
+    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
 
     @mixin hover {
         box-shadow: var(--mantine-shadow-md);
         transform: scale(1.01);
         z-index: 100000;
-        background-color: var(--mantine-color-gray-4);
+        /* Was the background it already had, so hovering moved nothing but the
+           shadow. */
+        background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
     }
 }
 
 .active {
-    background-color: var(--mantine-color-gray-2);
-    color: var(--mantine-text-color);
+    background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+    /* Was `--mantine-text-color`, which Mantine does not define — the
+       declaration was dropped and the colour inherited. Invisible in light,
+       where what it inherits is black.
+
+       `light-dark()` rather than the equivalent `--mantine-color-text`, and the
+       difference is not cosmetic: postcss expands the function into a second
+       rule under `[data-mantine-color-scheme="dark"]`, which outranks a plain
+       `.active`. Written as a var, `.item`'s dimmed colour won here in the dark
+       scheme only — measured, after this file was "fixed". */
+    color: light-dark(var(--mantine-color-black), var(--mantine-color-dark-0));
 
     @mixin hover {
-        background-color: var(--mantine-color-gray-1);
+        background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-4));
     }
 }
 

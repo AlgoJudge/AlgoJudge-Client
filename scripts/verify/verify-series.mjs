@@ -73,10 +73,15 @@ check(before !== null && /z \d{2}:\d{2}–\d{2}:\d{2} na \d{2}:\d{2}–\d{2}:\d{
     `the preview shows both spans before anything is pressed (${before})`);
 
 const times = /z (\d{2}:\d{2})–(\d{2}:\d{2}) na (\d{2}:\d{2})–(\d{2}:\d{2})/.exec(before ?? "");
+// Modulo a day, because a round whose end crosses midnight reads `23:53 → 00:03`
+// — ten minutes later, and **-1430** by plain subtraction. That made this
+// assertion fail for the hour before midnight and pass for the other
+// twenty-three; caught at 22:57 on 2026-08-29. Safe because the shift under test
+// is ten minutes, nowhere near a day.
 const minutesBetween = (a, b) => {
     const [ah, am] = a.split(":").map(Number);
     const [bh, bm] = b.split(":").map(Number);
-    return (bh * 60 + bm) - (ah * 60 + am);
+    return ((((bh * 60 + bm) - (ah * 60 + am)) % 1440) + 1440) % 1440;
 };
 check(times !== null && minutesBetween(times[1], times[3]) === 10
     && minutesBetween(times[2], times[4]) === 10,

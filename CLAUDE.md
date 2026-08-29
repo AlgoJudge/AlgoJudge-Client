@@ -205,6 +205,32 @@ gate.
 - WebSocket accelerates updates; REST remains the reproducible source of state.
 - Do not move code-execution logic into the Client.
 
+## Colours (2026-08-29)
+
+Both schemes are supported and both are shipped, so **a surface colour is never
+a bare palette shade**: write `light-dark(a, b)`, or name a semantic variable
+(`--mantine-color-body`, `--mantine-color-text`, `--mantine-color-dimmed`,
+`--mantine-color-default-border`, `--mantine-color-default-hover`). A fixed
+`gray-2` is a pale slab under near-white text in the dark scheme, and the light
+scheme gives no hint of it. Deliberate exceptions exist — the blue navigation,
+and the light box the instance mark sits in — and each says why in a comment.
+
+Two traps, both paid for:
+
+- **`light-dark()` outranks a plain value.** postcss expands it into a second
+  rule under `[data-mantine-color-scheme="dark"]`, which is specificity (0,2,0)
+  against a class's (0,1,0). Where two classes sit on one element and set the
+  same property, **either both use `light-dark()` or neither does** — otherwise
+  the first class wins in the dark scheme whatever the source order says.
+- **The variable is `--mantine-color-text`.** `--mantine-text-color` does not
+  exist; an unknown custom property with no fallback makes the declaration
+  invalid, so it is dropped and the value inherits — which looks correct in
+  light and fails only in dark.
+
+`verify-theme.mjs` asserts a 4.5:1 floor per card on the activity list and the
+problem list, in both schemes. It reads **computed** styles, because the fault
+above is not visible in the source.
+
 ## API layer
 
 `src/api/` holds one API layer, not two. `ApiFactory` picks the implementation:
