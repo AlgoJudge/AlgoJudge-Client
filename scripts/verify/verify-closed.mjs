@@ -13,7 +13,7 @@ const MANAGER_LIST = `[...document.querySelectorAll("tbody tr")].some(r => r.inn
  * outer card contains every row's text, so the first match is always the round.
  */
 const rowButton = (slug) => evaluate(`
-    const row = [...document.querySelectorAll("[class*=Card-root]")]
+    const row = [...document.querySelectorAll("[data-testid=card]")]
         .filter(c => c.innerText.trim().startsWith("[${slug}]"))
         .at(-1);
     const button = [...(row?.querySelectorAll("button, a") ?? [])]
@@ -30,7 +30,7 @@ const rowButton = (slug) => evaluate(`
  * navigation carries "Wyślij zgłoszenie" too, and it comes first in the document.
  */
 const pageSubmit = () => evaluate(`
-    const main = document.querySelector("[class*=AppShell-main]") ?? document.body;
+    const main = document.querySelector("[data-testid=app-main]") ?? document.body;
     const button = [...main.querySelectorAll("button, a")].find(b => /Wyślij/.test(b.textContent));
     if (!button) return null;
     return { disabled: button.disabled === true || button.getAttribute("data-disabled") === "true" };
@@ -82,23 +82,23 @@ await click(`[...document.querySelectorAll("tbody tr")]
 await wait(2500);
 // By name: the manager's series list is its own, and an index into it is not
 // the round this scenario means.
-await click(`[...document.querySelectorAll("[class*=Accordion-item]")]
+await click(`[...document.querySelectorAll("[data-testid=accordion-item]")]
     .find(item => item.innerText.includes("Runda 1"))
-    ?.querySelector("button:not([class*=Accordion-control])")`);
+    ?.querySelector("button:not([data-testid=accordion-control])")`);
 await wait(1500);
 // This time, take the statements away as well.
 await evaluate(`
-    const modal = document.querySelector("[class*=Modal-content]");
+    const modal = document.querySelector("[data-testid=modal]");
     const box = [...modal.querySelectorAll("input[type=checkbox]")].at(-1);
     box.click();
     return true;
 `);
 await wait(600);
 check(await evaluate(`
-    const modal = document.querySelector("[class*=Modal-content]");
+    const modal = document.querySelector("[data-testid=modal]");
     return [...modal.querySelectorAll("input[type=checkbox]")].at(-1).checked;
 `), "the manager chooses to take the statements away as well");
-await click(`[...document.querySelectorAll("[class*=Modal-content] button")].find(b => b.textContent.trim() === "Wstrzymaj")`);
+await click(`[...document.querySelectorAll("[data-testid=modal] button")].find(b => b.textContent.trim() === "Wstrzymaj")`);
 await wait(3000);
 
 await visit("/activities/AMMPZ-2019/problems", `document.body.innerText.includes("Runda 1")`);
@@ -125,7 +125,7 @@ await wait(2500);
 // button of its own — a different control, which opens a picker that offers no
 // problem from a round that accepts nothing.
 check(await evaluate(`
-    const main = document.querySelector("[class*=AppShell-main]");
+    const main = document.querySelector("[data-testid=app-main]");
     const send = [...(main?.querySelectorAll("button") ?? [])].find(b => /Wyślij/.test(b.textContent));
     return send === undefined || send.disabled;
 `), "and nothing can be sent to it");
@@ -137,7 +137,7 @@ await click(`[...document.querySelectorAll("tbody tr")]
 await wait(2500);
 await click(`[...document.querySelectorAll("button")].find(b => b.textContent.trim() === "Wznów")`);
 await wait(1500);
-await click(`[...document.querySelectorAll("[class*=Modal-content] button")].find(b => b.textContent.trim() === "Wznów")`);
+await click(`[...document.querySelectorAll("[data-testid=modal] button")].find(b => b.textContent.trim() === "Wznów")`);
 await wait(2500);
 
 await visit("/activities/AMMPZ-2019/problems", `document.body.innerText.includes("Runda 1")`);

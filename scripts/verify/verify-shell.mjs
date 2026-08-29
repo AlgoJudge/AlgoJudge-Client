@@ -8,7 +8,7 @@ const APP = process.env.APP ?? "http://localhost:5180";
 const { send, evaluate, wait, shot, go, click } = await open();
 const { check, report } = results();
 
-const navbar = () => evaluate(`return document.querySelector("[class*=AppShell-navbar]") !== null;`);
+const navbar = () => evaluate(`return document.querySelector("[data-testid=app-navbar]") !== null;`);
 const publicFooter = () => evaluate(`return [...document.querySelectorAll("div")].some(d =>
     d.className && String(d.className).includes("footer"));`);
 
@@ -46,20 +46,20 @@ check(!await navbar(), "nor on a document they may read before having an account
 check(await publicFooter(), "which still carries the links to the others");
 
 // 2 — signed in, the same two addresses are inside the application.
-await go(`${APP}/?fakeUser=amy`, `document.querySelector("[class*=AppShell-navbar]") !== null`);
+await go(`${APP}/?fakeUser=amy`, `document.querySelector("[data-testid=app-navbar]") !== null`);
 check(true, "signing in puts the front page inside the application shell");
 check(!await publicFooter(), "with no second footer under it");
 check(await evaluate(`return window.__publicShell;`) === 0,
     "and the visitor's shell was never painted on the way in");
 await shot("s-home-signed-in");
 
-await go(`${APP}/privacy`, `document.querySelector("[class*=AppShell-navbar]") !== null`);
+await go(`${APP}/privacy`, `document.querySelector("[data-testid=app-navbar]") !== null`);
 check(await evaluate(`return window.__publicShell;`) === 0,
     "a document opened directly does not flash the visitor's shell either");
 
 // 3 — the documents, quiet, at the foot of the navigation.
 const legal = await evaluate(`
-    const navbar = document.querySelector("[class*=AppShell-navbar]");
+    const navbar = document.querySelector("[data-testid=app-navbar]");
     const links = [...navbar.querySelectorAll("a")].filter(a =>
         ["/terms", "/privacy", "/cookies", "/accessibility"].includes(a.getAttribute("href")));
     if (links.length === 0) return null;
@@ -90,9 +90,9 @@ check(legal.weight < legal.mainWeight, `lighter than the entries above (${legal.
 // 3b — the entry you are standing on is marked, and nothing else is. Untested
 // until 2026-08-29, when the class carrying it stopped being applied and only
 // an assertion about a neighbouring font weight noticed.
-await go(`${APP}/activities?fakeUser=amy`, `document.querySelector("[class*=AppShell-navbar]") !== null`);
+await go(`${APP}/activities?fakeUser=amy`, `document.querySelector("[data-testid=app-navbar]") !== null`);
 const marked = await evaluate(`
-    const navbar = document.querySelector("[class*=AppShell-navbar]");
+    const navbar = document.querySelector("[data-testid=app-navbar]");
     const links = [...navbar.querySelectorAll("a")].filter(a => /_link_/.test(a.className));
     const here = links.find(a => a.getAttribute("href") === "/activities");
     const other = links.find(a => a.getAttribute("href") !== "/activities");
@@ -125,7 +125,7 @@ await click(`[...document.querySelectorAll("a")].find(a => (a.innerText ?? "").t
     || (a.innerText ?? "").trim().startsWith("Collapse"))`);
 await wait(1200);
 check(await evaluate(`
-    const navbar = document.querySelector("[class*=AppShell-navbar]");
+    const navbar = document.querySelector("[data-testid=app-navbar]");
     return [...navbar.querySelectorAll("a")].every(a => a.getAttribute("href") !== "/terms");
 `), "a collapsed navigation drops them rather than showing four blanks");
 await shot("s-navbar-collapsed");

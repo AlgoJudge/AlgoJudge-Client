@@ -149,10 +149,10 @@ await evaluate(`
     button.click();
     return true;
 `);
-await until(`document.querySelector("[class*=Modal-content]") !== null`, "the preview");
+await until(`document.querySelector("[data-testid=modal]") !== null`, "the preview");
 await wait(600);
 const highlighted = await evaluate(`
-    const modal = document.querySelector("[class*=Modal-content]");
+    const modal = document.querySelector("[data-testid=modal]");
     const pre = modal.querySelector("pre");
     return {
         text: pre ? pre.innerText.replace(/\\s+/g, " ").trim() : "",
@@ -167,11 +167,11 @@ check(highlighted.spans > 1, `the source is syntax-highlighted (${highlighted.sp
 await shot("f-checker");
 
 await evaluate(`
-    const modal = document.querySelector("[class*=Modal-content]");
-    modal.querySelector("[class*=CloseButton-root]").click();
+    const modal = document.querySelector("[data-testid=modal]");
+    modal.querySelector("[data-testid=close-button]").click();
     return true;
 `);
-await until(`document.querySelector("[class*=Modal-content]") === null`, "the preview to close");
+await until(`document.querySelector("[data-testid=modal]") === null`, "the preview to close");
 
 // 4 — the statement, then publish everything as version 1.
 await evaluate(`

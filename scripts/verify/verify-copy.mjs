@@ -25,17 +25,17 @@ const body = () => evaluate(`return document.body.innerText;`);
 
 /** The dialog's own text. Reading `document.body` reads the page behind it. */
 const modal = () => evaluate(`
-    return document.querySelector("[class*=Modal-content]")?.innerText ?? "";
+    return document.querySelector("[data-testid=modal]")?.innerText ?? "";
 `);
 
-const modalButton = (text) => `[...document.querySelectorAll("[class*=Modal-content] button")]
+const modalButton = (text) => `[...document.querySelectorAll("[data-testid=modal] button")]
     .find(b => b.textContent.trim() === ${JSON.stringify(text)})`;
 
 /** A field inside the dialog, found by its label — Mantine gives it no id. */
-const modalField = (label) => `[...document.querySelectorAll("[class*=Modal-content] [class*=InputWrapper-root]")]
+const modalField = (label) => `[...document.querySelectorAll("[data-testid=modal] [class*=InputWrapper-root]")]
     .find(w => w.textContent.includes(${JSON.stringify(label)}))`;
 
-const roundBlock = (name) => `[...document.querySelectorAll("[class*=Accordion-item]")]
+const roundBlock = (name) => `[...document.querySelectorAll("[data-testid=accordion-item]")]
     .find(i => i.innerText.startsWith(${JSON.stringify(name)}))`;
 
 /**
@@ -105,12 +105,12 @@ await wait(2000);
  */
 const openRound = async (name) => {
     const shut = await evaluate(`
-        const control = (${roundBlock(name)})?.querySelector("[class*=Accordion-control]");
+        const control = (${roundBlock(name)})?.querySelector("[data-testid=accordion-control]");
         return control ? control.getAttribute("aria-expanded") !== "true" : "no such round";
     `);
     if (shut === "no such round") throw new Error(`no such round: ${name}`);
     if (shut) {
-        await click(`(${roundBlock(name)})?.querySelector("[class*=Accordion-control]")`);
+        await click(`(${roundBlock(name)})?.querySelector("[data-testid=accordion-control]")`);
         await wait(1200);
     }
 };
@@ -173,7 +173,7 @@ check(/runda-3-druga/.test(listed), "the copy is in the round list");
 await shot("copy-series-made");
 
 const copied = await evaluate(`
-    const block = [...document.querySelectorAll("[class*=Accordion-item]")]
+    const block = [...document.querySelectorAll("[data-testid=accordion-item]")]
         .find(i => i.innerText.includes("runda-3-druga"));
     return block ? null : "no such round";
 `);
@@ -181,7 +181,7 @@ check(copied === null, `the copy has a block of its own (${copied ?? "found"})`)
 await wait(800);
 
 const slugs = await evaluate(`
-    const block = [...document.querySelectorAll("[class*=Accordion-item]")]
+    const block = [...document.querySelectorAll("[data-testid=accordion-item]")]
         .find(i => i.innerText.includes("runda-3-druga"));
     return [...(block?.querySelectorAll("tbody tr") ?? [])]
         .map(r => r.querySelectorAll("td")[1]?.innerText.trim() ?? "");

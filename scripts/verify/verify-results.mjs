@@ -2,15 +2,15 @@
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { evaluate, wait, shot, go, visit, click, close } =
-    await open();
+const { evaluate, wait, shot, go, visit, click, close, clock } =
+    await open({ clock: true });
 const { check, report } = results();
 
 const body = () => evaluate(`return document.body.innerText;`);
 const heads = () => evaluate(`
     return [...document.querySelectorAll("th")].map(h => h.textContent.trim());
 `);
-const pick = (label) => click(`[...document.querySelectorAll("[class*=SegmentedControl] label")]
+const pick = (label) => click(`[...document.querySelectorAll("[data-testid=segmented] label")]
     .find(l => l.textContent.trim() === ${JSON.stringify(label)})`);
 
 // ── 1. The combined board carries every available round, frozen included ─────
@@ -73,9 +73,12 @@ check(adds.rows > 0 && adds.bad.length === 0,
 // ── 4. A round whose window is shut is still offered, and says from when ─────
 // Runda 2 opens 45 s after load and its board is held back until it ends.
 await visit("/activities/AMMPZ-2019/ranking", `document.body.innerText.includes("Ranking")`);
+    // The 45 s the fake waits before opening Runda 2, jumped rather than sat
+    // through. The poll below stays as a backstop and now finds it at once.
+    await clock.fastForward("50");
 for (let i = 0; i < 25; i++) {
     const tabs = await evaluate(`
-        return [...document.querySelectorAll("[class*=SegmentedControl] label")].map(l => l.textContent.trim());
+        return [...document.querySelectorAll("[data-testid=segmented] label")].map(l => l.textContent.trim());
     `);
     if (tabs.includes("Runda 2")) break;
     await wait(3000);
@@ -93,9 +96,12 @@ await shot("res-held");
 // with their columns. The bug this locks down drew a board out of a feed that
 // carried none of it: five contestants, no columns, everybody on nought.
 await go(`${APP}/activities/AMMPZ-2019/ranking?fakeUser=amy`, `document.body.innerText.includes("Ranking")`);
+    // The 45 s the fake waits before opening Runda 2, jumped rather than sat
+    // through. The poll below stays as a backstop and now finds it at once.
+    await clock.fastForward("50");
 for (let i = 0; i < 25; i++) {
     const tabs = await evaluate(`
-        return [...document.querySelectorAll("[class*=SegmentedControl] label")].map(l => l.textContent.trim());
+        return [...document.querySelectorAll("[data-testid=segmented] label")].map(l => l.textContent.trim());
     `);
     if (tabs.includes("Runda 2")) break;
     await wait(3000);

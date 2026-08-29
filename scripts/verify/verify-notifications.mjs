@@ -14,7 +14,7 @@ const body = () => evaluate(`return document.body.innerText;`);
  * positioned against the viewport itself.
  */
 const stack = () => evaluate(`
-    const items = [...document.querySelectorAll("[class*=Notification-root]")];
+    const items = [...document.querySelectorAll("[data-testid=notification]")];
     if (items.length === 0) return { items: [], bottom: null, left: null };
     const box = items[0].getBoundingClientRect();
     return {
@@ -29,6 +29,13 @@ const stack = () => evaluate(`
 await go(`${APP}/activities/AMMPZ-2019/problems?fakeUser=amy`, `document.body.innerText.includes("Runda 1")`);
 
 // And a submission finishes on the way, which is the other one.
+// **This one does not take the virtual clock, and that is measured.** Opting it
+// in reddened two assertions: the panel reported 121 px from the bottom instead
+// of its resting place, because `fastForward` fires each due timer once and
+// fakes `requestAnimationFrame` too — so the notification's slide-in never
+// finishes and its position is read mid-transition. A script that asserts where
+// something *ended up* cannot share a clock with one that only needs time to
+// pass. It waits the real 22 s.
 for (let i = 0; i < 24; i++) {
     const now = await stack();
     if (now.items.length) break;
@@ -45,14 +52,14 @@ await shot("not-corner");
 
 // Clicking takes the reader where it happened.
 const to = await evaluate(`
-    const item = document.querySelector("[class*=Notification-root]");
+    const item = document.querySelector("[data-testid=notification]");
     if (!item) return null;
     const box = item.getBoundingClientRect();
     return { x: Math.round(box.x + box.width / 2), y: Math.round(box.y + box.height / 2) };
 `);
 if (to) {
     await evaluate(`
-        const item = document.querySelector("[class*=Notification-root]");
+        const item = document.querySelector("[data-testid=notification]");
         item.click();
         return true;
     `);
@@ -64,8 +71,8 @@ if (to) {
 // Nothing is announced for an activity the reader is not looking at.
 await visit("/activities", `document.body.innerText.includes("AMMPZ")`);
 await evaluate(`
-    const root = document.querySelector("[class*=Notifications-root]");
-    for (const n of root?.querySelectorAll("[class*=CloseButton-root]") ?? []) n.click();
+    const root = document.querySelector("[data-testid=notifications]");
+    for (const n of root?.querySelectorAll("[data-testid=close-button]") ?? []) n.click();
     return true;
 `);
 await wait(1500);
@@ -77,7 +84,7 @@ check(outside.items.length === 0,
 await go(`${APP}/activities/PROG-1-LB?fakeUser=amy`, `document.body.innerText.includes("Zapisz si")`);
 check(await evaluate(`
     const box = [...document.querySelectorAll("input[type=checkbox]")].at(-1);
-    const label = box?.closest("[class*=Checkbox-root]");
+    const label = box?.closest("[data-testid=checkbox]");
     return label ? label.innerText.includes("*") : false;
 `), "the enrolment box carries the asterisk");
 await shot("not-asterisk-enrol");
@@ -88,7 +95,7 @@ await evaluate(`localStorage.clear(); sessionStorage.clear(); return true;`);
 await go(`${APP}/register?fakeRegistration=on`, `document.body.innerText.includes("Rejestracja")`);
 check(await evaluate(`
     const box = [...document.querySelectorAll("input[type=checkbox]")].at(-1);
-    const label = box?.closest("[class*=Checkbox-root]");
+    const label = box?.closest("[data-testid=checkbox]");
     return label ? label.innerText.includes("*") : false;
 `), "and so does the registration box");
 check(/\*/.test(await body()), "which is the mark the fields above it already use");

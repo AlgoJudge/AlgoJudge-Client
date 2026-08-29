@@ -2,14 +2,14 @@
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { evaluate, wait, shot, go, visit, click, tab, close } = await open();
+const { evaluate, wait, shot, go, visit, click, tab, close, clock } = await open({ clock: true });
 const { check, report } = results();
 
 const body = () => evaluate(`return document.body.innerText;`);
 const heads = () => evaluate(`
     return [...document.querySelectorAll("th")].map(h => h.textContent.trim());
 `);
-const pick = (label) => click(`[...document.querySelectorAll("[class*=SegmentedControl] label")]
+const pick = (label) => click(`[...document.querySelectorAll("[data-testid=segmented] label")]
     .find(l => l.textContent.trim() === ${JSON.stringify(label)})`);
 
 // ── 1. One activity, two windows ────────────────────────────────────────────
@@ -19,9 +19,12 @@ await go(`${APP}/activities/AMMPZ-2019/ranking?fakeUser=anowak`, `document.body.
 await wait(2500);
 // Runda 2 opens 45 s after load and its board is held back until it ends. It is
 // the round with a shut window now that Runda 1's is open and merely frozen.
+    // The 45 s the fake waits before opening Runda 2, jumped rather than sat
+    // through. The poll below stays as a backstop and now finds it at once.
+    await clock.fastForward("50");
 for (let i = 0; i < 25; i++) {
     const tabs = await evaluate(`
-        return [...document.querySelectorAll("[class*=SegmentedControl] label")].map(l => l.textContent.trim());
+        return [...document.querySelectorAll("[data-testid=segmented] label")].map(l => l.textContent.trim());
     `);
     if (tabs.includes("Runda 2")) break;
     await wait(3000);
@@ -66,7 +69,7 @@ check(!cells.some(c => /^(118|312|331|74|96)$/.test(c)),
 
 // ── The leading columns stay put while the board scrolls sideways ───────────
 const stuck = await evaluate(`
-    const container = document.querySelector("[class*=ScrollContainer], [class*=Table-scrollContainer]")
+    const container = document.querySelector("[data-testid=table-scroll], [data-testid=table-scroll]")
         ?? document.querySelector("[data-scrollable], .mantine-ScrollArea-viewport");
     const nameCell = [...document.querySelectorAll("tbody td")]
         .find(c => /Uniwersytet|Politechnika/.test(c.textContent));
@@ -82,7 +85,7 @@ await wait(1500);
 // against the application rather than against a name written down here — an
 // assignment carries the name its manager gave it, and that name may change.
 const named = await evaluate(`
-    return [...document.querySelectorAll("[class*=Card-root], tbody tr")]
+    return [...document.querySelectorAll("[data-testid=card], tbody tr")]
         .map(c => c.innerText.replace(/\\s+/g, " ").trim())
         .filter(Boolean);
 `);

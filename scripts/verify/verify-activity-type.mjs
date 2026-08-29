@@ -39,7 +39,7 @@ check(creating.length === 2, `the create form offers a list, not a field (${crea
 check(creating.every(option => /contest@1|course@1/.test(option)),
     "and only the types this Client can present");
 check(await evaluate(`
-    const modal = document.querySelector("[class*=Modal-content]");
+    const modal = document.querySelector("[data-testid=modal]");
     return modal ? /runda|round|termin|deadline/i.test(modal.innerText) : false;
 `), "the chosen type explains itself");
 await shot("at-create");

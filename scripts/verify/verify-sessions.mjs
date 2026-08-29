@@ -16,7 +16,7 @@ const openSessions = async (rowText) => {
     await wait(1600);
 };
 const panel = () => evaluate(`
-    const modal = document.querySelector("[class*=Modal-content]");
+    const modal = document.querySelector("[data-testid=modal]");
     const rows = [...modal.querySelectorAll("tbody tr")].map(r => r.innerText.replace(/\\s+/g, " "));
     return { text: modal.innerText.replace(/\\s+/g, " "), rows };
 `);
@@ -39,19 +39,19 @@ check(/\/api\/v1\//.test(mine.text), "the last request is shown as a path");
 check(/Odczytano|Read at/.test(mine.text), "and the list says when it was read");
 // A badge clips its own text, so "readable" has to be measured, not assumed.
 const clipped = await evaluate(`
-    const modal = document.querySelector("[class*=Modal-content]");
-    return [...modal.querySelectorAll("[class*=Badge-label]")]
+    const modal = document.querySelector("[data-testid=modal]");
+    return [...modal.querySelectorAll("[data-testid=badge-label]")]
         .filter(b => b.scrollWidth > b.clientWidth + 1)
         .map(b => b.textContent.trim());
 `);
 check(clipped.length === 0, `no state is cut off${clipped.length ? ` (${clipped.join(", ")})` : ""}`);
 await shot("ss-mine");
 
-await click(`[...document.querySelectorAll("[class*=Modal-close]")][0]`);
+await click(`[...document.querySelectorAll("[data-testid=modal] [data-testid=close-button]")][0]`);
 
 // 2 — a blocked account: no sessions, and a reason rather than an empty table.
 //     Blocked accounts are out of the list until the switch is turned on.
-await click(`[...document.querySelectorAll("label, [class*=Switch-root]")]
+await click(`[...document.querySelectorAll("label, [data-testid=switch]")]
     .find(e => /zablokow|blocked/i.test(e.textContent ?? ""))`);
 await wait(2000);
 await openSessions("Lis");

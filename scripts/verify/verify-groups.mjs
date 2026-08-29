@@ -46,7 +46,7 @@ const addGroup = (name) => evaluate(`
 
 /** Whatever the panel is complaining about, if anything. */
 const alerts = () => evaluate(`
-    return [...document.querySelectorAll("[class*=Alert]")].map(a => a.textContent).join(" / ");
+    return [...document.querySelectorAll("[data-testid=alert]")].map(a => a.textContent).join(" / ");
 `);
 
 /**
@@ -99,7 +99,7 @@ check(
 check(await addGroup(NAME) === "clicked", "a second group of the same name is offered");
 
 const conflicted = await until(
-    `[...document.querySelectorAll("[class*=Alert]")]
+    `[...document.querySelectorAll("[data-testid=alert]")]
         .some(a => a.textContent.includes("group.name.taken"))`);
 check(
     conflicted,

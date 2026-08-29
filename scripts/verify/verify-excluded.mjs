@@ -36,7 +36,7 @@ const until = async (expression, tries = 30) => {
 
 /** The ids the board is carrying right now. */
 const boardRows = () => evaluate(`
-    const cells = [...document.querySelectorAll("[class*=AppShell-main] tbody tr td")]
+    const cells = [...document.querySelectorAll("[data-testid=app-main] tbody tr td")]
         .map(c => c.innerText.trim());
     return cells.slice(0, 6);
 `);
@@ -100,13 +100,13 @@ await shot("excluded-modal");
 // The editor below renders a textarea of its own, so the modal's is addressed
 // through the modal rather than as the page's only one.
 await evaluate(`
-    const field = document.querySelector("[class*=Modal-content] textarea");
+    const field = document.querySelector("[data-testid=modal] textarea");
     const setter = Object.getOwnPropertyDescriptor(
         window.HTMLTextAreaElement.prototype, "value").set;
     setter.call(field, "Wysłane spoza sali");
     field.dispatchEvent(new Event("input", { bubbles: true }));
 `);
-await click(`[...document.querySelectorAll("[class*=Modal-content] button")]
+await click(`[...document.querySelectorAll("[data-testid=modal] button")]
     .find(b => b.textContent.trim() === "Nie licz")`);
 
 check(await until(`/nie liczone/i.test(document.body.innerText)`),

@@ -21,11 +21,11 @@ const { check, report } = results();
 
 const body = () => evaluate(`return document.body.innerText;`);
 const modal = () => evaluate(`
-    return document.querySelector("[class*=Modal-content]")?.innerText ?? "";
+    return document.querySelector("[data-testid=modal]")?.innerText ?? "";
 `);
-const modalButton = (text) => `[...document.querySelectorAll("[class*=Modal-content] button")]
+const modalButton = (text) => `[...document.querySelectorAll("[data-testid=modal] button")]
     .find(b => b.textContent.trim() === ${JSON.stringify(text)})`;
-const modalField = (label) => `[...document.querySelectorAll("[class*=Modal-content] [class*=InputWrapper-root]")]
+const modalField = (label) => `[...document.querySelectorAll("[data-testid=modal] [class*=InputWrapper-root]")]
     .find(w => w.textContent.includes(${JSON.stringify(label)}))`;
 
 const fill = async (label, value) => {
@@ -98,7 +98,7 @@ await click(`[...document.querySelectorAll("button")]
 await wait(1200);
 
 await evaluate(`
-    const input = document.querySelector("[class*=Modal-content] input[type=file]");
+    const input = document.querySelector("[data-testid=modal] input[type=file]");
     if (!input) throw new Error("no file input in the dialog");
     const file = new File([window.__exported], "algojudge-AMMPZ-2019.zip", { type: "application/zip" });
     const data = new DataTransfer();
@@ -113,7 +113,7 @@ const planned = await modal();
 check(/do utworzenia/.test(planned), `the plan is shown before anything is written (${planned.slice(0, 40)})`);
 
 const rows = await evaluate(`
-    return [...document.querySelectorAll("[class*=Modal-content] tbody tr")]
+    return [...document.querySelectorAll("[data-testid=modal] tbody tr")]
         .map(r => r.innerText.replace(/\\s+/g, " ").trim());
 `);
 check(Array.isArray(rows) && rows.length > 0, `every problem in the archive is listed (${rows.length})`);
@@ -306,7 +306,7 @@ await evaluate(`
         "out001.txt": "5",
     });
 
-    const input = document.querySelector("[class*=Modal-content] input[type=file]");
+    const input = document.querySelector("[data-testid=modal] input[type=file]");
     if (!input) throw new Error("no file input in the dialog");
     const data = new DataTransfer();
     data.items.add(new File([blob], "zawodyweb-contest.zip", { type: "application/zip" }));

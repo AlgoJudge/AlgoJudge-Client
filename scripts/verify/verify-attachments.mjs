@@ -8,7 +8,7 @@ const { check, report } = results();
 
 /** The application's own area. The panel in the corner says "Wyślij" too. */
 const main = () => evaluate(`
-    const area = document.querySelector("[class*=AppShell-main]");
+    const area = document.querySelector("[data-testid=app-main]");
     return {
         text: (area?.innerText ?? "").replace(/\\s+/g, " ").trim(),
         rows: area?.querySelectorAll("tbody tr").length ?? 0,
@@ -46,7 +46,7 @@ await shot("att-participant");
 // A full load: the manager area sits behind its own guard, and `visit` reaches
 // it before the permissions that decide whether it may draw.
 await go(`${APP}/manager/submissions/${FAILED}?fakeUser=amy`,
-    `!document.querySelector("[class*=Loader-root]") && document.body.innerText.length > 200`);
+    `!document.querySelector("[data-testid=loader]") && document.body.innerText.length > 200`);
 await wait(2500);
 const asManager = await main();
 check(/Log oceny/i.test(asManager.text),

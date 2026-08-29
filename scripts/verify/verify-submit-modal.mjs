@@ -9,7 +9,7 @@ const { check, report } = results();
 const body = () => evaluate(`return document.body.innerText;`);
 const bar = `[...document.querySelectorAll("[class*=Paper-root]")]
     .find(p => /Moje zgłoszenia/.test(p.innerText) && getComputedStyle(p).position === "fixed")`;
-const modal = `document.querySelector("[class*=Modal-content]")`;
+const modal = `document.querySelector("[data-testid=modal]")`;
 const sendButton = `[...(${bar})?.querySelectorAll("button") ?? []]
     .find(b => /Wyślij/.test(b.textContent))`;
 
@@ -60,7 +60,7 @@ check(width !== null && width >= 800, `the modal is wide enough for an editor ($
 await click(`(${modal})?.querySelector("input")`);
 await wait(900);
 const options = await evaluate(`
-    return [...document.querySelectorAll("[class*=Combobox-option], [role=option]")]
+    return [...document.querySelectorAll("[data-testid=combobox-option], [role=option]")]
         .map(o => o.textContent.trim());
 `);
 check(options.some(o => /\[A\]/.test(o)), `the picker offers the running round's problems (${options.join(" | ")})`);
@@ -70,7 +70,7 @@ check(!options.some(o => /\[R\]|\[S\]/.test(o)),
 await shot("mod-picker");
 
 // ── 4. Choosing one draws the form ──────────────────────────────────────────
-await click(`[...document.querySelectorAll("[class*=Combobox-option], [role=option]")]
+await click(`[...document.querySelectorAll("[data-testid=combobox-option], [role=option]")]
     .find(o => /\\[B\\]/.test(o.textContent))`);
 await wait(2500);
 const form = await evaluate(`
@@ -95,13 +95,13 @@ const countBefore = await evaluate(`
 `);
 // Type something, so the form has a solution to send. Monaco owns its buffer and
 // ignores a `value` set on its hidden textarea, so this goes in as real input.
-await click(`document.querySelector("[class*=Modal-content] .monaco-editor .view-lines")`);
+await click(`document.querySelector("[data-testid=modal] .monaco-editor .view-lines")`);
 await wait(500);
 await send("Input.insertText", { text: "int main(){ return 0; }" });
 await wait(800);
 // Read from the rendered lines, with Monaco's non-breaking spaces normalised.
 const typed = await evaluate(`
-    const lines = document.querySelector("[class*=Modal-content] .view-lines");
+    const lines = document.querySelector("[data-testid=modal] .view-lines");
     return (lines?.textContent ?? "").replace(/\\u00a0/g, " ").trim();
 `);
 check(/int\s+main/.test(typed), `the editor takes what is typed into it (${typed})`);
@@ -131,7 +131,7 @@ await shot("mod-sent");
 await click(`(${bar})?.querySelector("[class*=row]")`);
 await wait(1200);
 const unjudged = await evaluate(`
-    const main = document.querySelector("[class*=AppShell-main]");
+    const main = document.querySelector("[data-testid=app-main]");
     return {
         path: location.pathname,
         waiting: /sprawdza to zgłoszenie|Runner|czeka/i.test(main?.innerText ?? ""),

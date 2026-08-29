@@ -10,12 +10,12 @@ const { check, report } = results();
 // Deliberately short: this is the window the entries used to run off the bottom of.
 await send("Page.setDeviceMetricsOverride", { width: 1400, height: 620, deviceScaleFactor: 1, mobile: false });
 
-await go(`${APP}/manager?fakeUser=amy`, `document.querySelector("[class*=AppShell-navbar]") !== null`);
+await go(`${APP}/manager?fakeUser=amy`, `document.querySelector("[data-testid=app-navbar]") !== null`);
 await wait(1500);
 
 const measure = `
-    const navbar = document.querySelector("[class*=AppShell-navbar]");
-    const viewport = navbar.querySelector("[class*=ScrollArea-viewport]");
+    const navbar = document.querySelector("[data-testid=app-navbar]");
+    const viewport = navbar.querySelector("[data-testid=scroll-viewport]");
     const mark = navbar.querySelector("img");
     const foot = [...navbar.querySelectorAll("a")].find(a => a.getAttribute("href") === "/terms");
     const inside = element => {
@@ -43,7 +43,7 @@ check(before.footVisible, "and so are the documents at the foot");
 await shot("nb-top");
 
 await evaluate(`
-    document.querySelector("[class*=AppShell-navbar] [class*=ScrollArea-viewport]").scrollTop = 10000;
+    document.querySelector("[data-testid=app-navbar] [data-testid=scroll-viewport]").scrollTop = 10000;
     return true;
 `);
 await wait(800);
@@ -52,8 +52,8 @@ check(after.scrollTop > 0, `the middle scrolls (${Math.round(after.scrollTop)}px
 check(Math.abs(after.markTop - before.markTop) < 2, "the mark does not move with it");
 check(Math.abs(after.footTop - before.footTop) < 2, "nor do the documents");
 check(await evaluate(`
-    const navbar = document.querySelector("[class*=AppShell-navbar]");
-    const last = [...navbar.querySelectorAll("[class*=ScrollArea-viewport] a")].pop();
+    const navbar = document.querySelector("[data-testid=app-navbar]");
+    const last = [...navbar.querySelectorAll("[data-testid=scroll-viewport] a")].pop();
     const box = last.getBoundingClientRect();
     const bounds = navbar.getBoundingClientRect();
     return box.top >= bounds.top && box.bottom <= bounds.bottom + 1;
@@ -62,7 +62,7 @@ await shot("nb-scrolled");
 
 // The project, beside the operator's documents.
 const about = await evaluate(`
-    const navbar = document.querySelector("[class*=AppShell-navbar]");
+    const navbar = document.querySelector("[data-testid=app-navbar]");
     const link = [...navbar.querySelectorAll("a")].find(a => (a.getAttribute("href") ?? "").startsWith("http"));
     if (!link) return null;
     const documents = [...navbar.querySelectorAll("a")].filter(a => a.getAttribute("href") === "/terms");

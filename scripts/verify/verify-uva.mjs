@@ -106,7 +106,7 @@ await go(`${APP}/activities/PROG-1-LA/submit/uva100?fakeUser=amy`,
 await wait(2000);
 
 const notices = await evaluate(`
-    return [...document.querySelectorAll("[class*=Alert-root]")]
+    return [...document.querySelectorAll("[data-testid=alert]")]
         .map(a => a.innerText.split("\\n").join(" "));
 `);
 check(notices.some(n => n.includes("onlinejudge.org")),
@@ -124,7 +124,7 @@ await go(`${APP}/activities/PROG-1-LA/submissions/sub-series-w2-student-me-uva10
 await wait(2500);
 
 const result = await evaluate(`
-    const area = document.querySelector("[class*=AppShell-main]");
+    const area = document.querySelector("[data-testid=app-main]");
     return {
         text: (area?.innerText ?? "").replace(/\\s+/g, " "),
         tables: area ? area.querySelectorAll("table").length : 0,

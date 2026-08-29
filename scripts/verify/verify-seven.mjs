@@ -44,14 +44,14 @@ check(await evaluate(`
 `), "the acceptance box is marked required");
 await click(`[...document.querySelectorAll("button")].find(b => /Regulamin/.test(b.textContent))`);
 await wait(2500);
-check(await evaluate(`return document.querySelector("[class*=Modal-content]") !== null;`),
+check(await evaluate(`return document.querySelector("[data-testid=modal]") !== null;`),
     "the terms open over the form rather than instead of it");
 check(/Regulamin|zasady/i.test(await evaluate(`
-    const modal = document.querySelector("[class*=Modal-content]");
+    const modal = document.querySelector("[data-testid=modal]");
     return modal ? modal.innerText : "";
 `)), "with the document in them");
 await shot("seven-terms");
-await click(`[...document.querySelectorAll("[class*=Modal-close]")].at(-1)`);
+await click(`[...document.querySelectorAll("[data-testid=modal] [data-testid=close-button]")].at(-1)`);
 await wait(1200);
 check(await evaluate(`
     return document.querySelector("input")?.value === "nowy-student";
@@ -67,10 +67,10 @@ check(!/akceptuję go — |akceptuję go —/.test(await body()),
     "and its label names the document once, not twice");
 await click(`[...document.querySelectorAll("button")].find(b => /Zapoznałem/.test(b.textContent))`);
 await wait(2500);
-check(await evaluate(`return document.querySelector("[class*=Modal-content]") !== null;`),
+check(await evaluate(`return document.querySelector("[data-testid=modal]") !== null;`),
     "the rules open over the enrolment form");
 await shot("seven-rules");
-await click(`[...document.querySelectorAll("[class*=Modal-close]")].at(-1)`);
+await click(`[...document.querySelectorAll("[data-testid=modal] [data-testid=close-button]")].at(-1)`);
 await wait(1000);
 
 // 6 — and the way into the problems, for somebody already in.
@@ -82,7 +82,7 @@ check(await evaluate(`
 
 // 7 — the ranking follows who sees scores.
 const navLinks = () => evaluate(`
-    const navbar = document.querySelector("[class*=AppShell-navbar]");
+    const navbar = document.querySelector("[data-testid=app-navbar]");
     return [...(navbar?.querySelectorAll("a") ?? [])].map(a => a.textContent.trim());
 `);
 check((await navLinks()).includes("Ranking"),

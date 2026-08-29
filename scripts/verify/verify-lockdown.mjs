@@ -153,7 +153,7 @@ await click(`[...document.querySelectorAll("tbody tr")]
 await wait(2500);
 
 /** The examination's own block: the course holds two rounds with the same controls. */
-const examBlock = `[...document.querySelectorAll("[class*=Accordion-item]")]
+const examBlock = `[...document.querySelectorAll("[data-testid=accordion-item]")]
     .find(i => i.innerText.startsWith("Kolokwium 2"))`;
 
 /** The scope select inside that block, found by its label. */
@@ -171,7 +171,7 @@ check(widened === "Tylko w tej aktywności",
 
 await click(scopeInput);
 await wait(700);
-await click(`[...document.querySelectorAll("[class*=Combobox-option], [role=option]")]
+await click(`[...document.querySelectorAll("[data-testid=combobox-option], [role=option]")]
     .find(o => o.textContent.trim() === "W całym systemie")`);
 await wait(700);
 await click(`[...((${examBlock})?.querySelectorAll("button") ?? [])]

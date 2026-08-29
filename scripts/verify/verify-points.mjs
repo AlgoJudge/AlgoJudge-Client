@@ -7,7 +7,7 @@ const { evaluate, wait, shot, go, visit, click, close } =
 const { check, report } = results();
 
 const main = () => evaluate(`
-    const area = document.querySelector("[class*=AppShell-main]");
+    const area = document.querySelector("[data-testid=app-main]");
     return (area?.innerText ?? "").replace(/\\s+/g, " ").trim();
 `);
 
@@ -51,7 +51,7 @@ await shot("pts-submission");
 await visit("/activities/PROG-1-LA/ranking", `document.body.innerText.includes("Ranking")`);
 await wait(2500);
 const board = await evaluate(`
-    const cells = [...document.querySelectorAll("[class*=AppShell-main] tbody tr td")]
+    const cells = [...document.querySelectorAll("[data-testid=app-main] tbody tr td")]
         .map(c => c.innerText.trim());
     return { total: Number(cells[2]), rounds: [Number(cells[3]), Number(cells[4])] };
 `);
@@ -83,11 +83,11 @@ await shot("pts-board");
 // refusal is the Runner's, against the set the assignment stated.
 await visit("/activities/PROG-1-LA/submit/sortowanie", `document.body.innerText.includes("Język")`);
 await wait(2500);
-await click(`[...document.querySelectorAll("[class*=AppShell-main] input")]
+await click(`[...document.querySelectorAll("[data-testid=app-main] input")]
     .find(i => /python|c\\+\\+/i.test(i.value))`);
 await wait(900);
 const offered = await evaluate(`
-    return [...document.querySelectorAll("[class*=Combobox-option], [role=option]")]
+    return [...document.querySelectorAll("[data-testid=combobox-option], [role=option]")]
         .map(o => o.textContent.trim());
 `);
 check(offered.length === 1 && offered[0] === "Python 3 (CPython)",
@@ -98,11 +98,11 @@ await shot("pts-languages");
 // that would have been one entry called `cpp` before the catalogue existed.
 await visit("/activities/AMMPZ-2019/submit/D", `document.body.innerText.includes("Język")`);
 await wait(2500);
-await click(`[...document.querySelectorAll("[class*=AppShell-main] input")]
+await click(`[...document.querySelectorAll("[data-testid=app-main] input")]
     .find(i => /python|c\\+\\+/i.test(i.value))`);
 await wait(900);
 const contest = await evaluate(`
-    return [...document.querySelectorAll("[class*=Combobox-option], [role=option]")]
+    return [...document.querySelectorAll("[data-testid=combobox-option], [role=option]")]
         .map(o => o.textContent.trim());
 `);
 check(contest.includes("C++20 (GCC)") && contest.includes("C++17 (GCC)")

@@ -61,7 +61,7 @@ check(/Rozgrzewka/.test(await body()),
 await visit("/manager/activities/AMMPZ-2019", `document.body.innerText.length > 0 && ${READY}`);
 await click(tab("Ustawienia"));
 await wait(1200);
-await click(`[...document.querySelectorAll("[class*=Switch-root]")]
+await click(`[...document.querySelectorAll("[data-testid=switch]")]
     .find(s => /Ukryj zadania zakończonych serii/.test(s.textContent))
     ?.querySelector("input")`);
 await wait(600);

@@ -26,7 +26,7 @@ await go(`${APP}/manager/activities?fakeUser=amy`, `document.body.innerText.incl
 await wait(1500);
 
 const managerRow = await evaluate(`
-    const row = [...document.querySelectorAll("tr, [class*=Card-root]")]
+    const row = [...document.querySelectorAll("tr, [data-testid=card]")]
         .find(r => r.innerText.includes("AMMPZ-2019"));
     return row ? row.innerText.replace(/\\s+/g, " ").trim() : null;
 `);
@@ -35,14 +35,14 @@ check(managerRow !== null, `the contest is in the manager's list (${managerRow})
 await visit("/manager/activities/AMMPZ-2019", `document.body.innerText.includes("AMMPZ-2019")`);
 await wait(2000);
 const managerName = await evaluate(`
-    const h = document.querySelector("[class*=AppShell-main] h1, [class*=AppShell-main] h2");
+    const h = document.querySelector("[data-testid=app-main] h1, [data-testid=app-main] h2");
     return h ? h.textContent.trim() : null;
 `);
 check(managerName !== null, `the manager's page opens by slug, not by id (${managerName})`);
 
 // The rounds, as the manager panel lists them.
 const managerRounds = await evaluate(`
-    const panels = [...document.querySelectorAll("[class*=Accordion-item], [class*=Paper-root]")];
+    const panels = [...document.querySelectorAll("[data-testid=accordion-item], [class*=Paper-root]")];
     const names = new Set();
     for (const p of panels) {
         const m = p.innerText.match(/Runda \\d[^\\n]*/g);
@@ -71,7 +71,7 @@ check(shared.length >= 3,
 await visit("/activities", `document.body.innerText.includes("AMMPZ-2019")`);
 await wait(1500);
 const participantName = await evaluate(`
-    const card = [...document.querySelectorAll("[class*=Card-root]")]
+    const card = [...document.querySelectorAll("[data-testid=card]")]
         .find(c => c.innerText.includes("AMMPZ-2019"));
     if (!card) return null;
     return card.innerText.split("\\n").map(s => s.trim()).find(s => /Mistrzostwa/.test(s)) ?? null;
@@ -135,7 +135,7 @@ await shot("sync-panel");
 // ── 7. A board adds up to its own cells ──────────────────────────────────────
 await visit("/activities/AMMPZ-2019/ranking", `document.body.innerText.includes("Ranking")`);
 await wait(2500);
-await click(`[...document.querySelectorAll("[class*=SegmentedControl] label")]
+await click(`[...document.querySelectorAll("[data-testid=segmented] label")]
     .find(l => /Runda 0/.test(l.textContent))`);
 await wait(2500);
 // Recomputed from what the table itself printed: a solved cell shows its minute
