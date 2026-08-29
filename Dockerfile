@@ -1,7 +1,9 @@
 # Build the static bundle, then serve it from nginx. The result is a static
 # site: there is no Node.js runtime in the final image.
 
-FROM node:22-alpine AS build
+# `.nvmrc` is where the Node version is decided; a FROM cannot read it, so this
+# is the one deliberate second copy. Keep the two on the same major.
+FROM node:24-alpine AS build
 WORKDIR /src
 
 COPY package.json package-lock.json ./
