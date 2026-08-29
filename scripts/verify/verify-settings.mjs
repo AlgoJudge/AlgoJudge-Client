@@ -47,13 +47,18 @@ const save = async () => {
 // ── Hiding a finished round's problems ──────────────────────────────────────
 // In-app navigation from here on: the fake lives in memory, so a full load
 // between the save and the reading would lose the save.
-await go(`${APP}/manager/activities/AMMPZ-2019?fakeUser=john`, `document.body.innerText.length > 0`);
+// Permissions arrive in a request of their own, after the session settles, and
+// until they do `hasAny` answers no to everything — so a screen looks exactly
+// like one this person may not open and an assertion about an absence proves
+// nothing. Every navigation below waits for the answer, not just for the page.
+const READY = `document.documentElement.dataset.permissions === "ready"`;
+await go(`${APP}/manager/activities/AMMPZ-2019?fakeUser=john`, `document.body.innerText.length > 0 && ${READY}`);
 await visit("/activities/AMMPZ-2019/problems", `document.body.innerText.includes("Runda 0")`);
 await wait(1500);
 check(/Rozgrzewka/.test(await body()),
     "a finished round keeps its problems while the setting is off");
 
-await visit("/manager/activities/AMMPZ-2019", `document.body.innerText.length > 0`);
+await visit("/manager/activities/AMMPZ-2019", `document.body.innerText.length > 0 && ${READY}`);
 await click(tab("Ustawienia"));
 await wait(1200);
 await click(`[...document.querySelectorAll("[class*=Switch-root]")]
@@ -71,7 +76,7 @@ check(/zakończyła/i.test(await body()),
 await shot("set-hidden");
 
 // A direct link is refused as well.
-await visit("/activities/AMMPZ-2019/problems/R", `document.body.innerText.length > 0`);
+await visit("/activities/AMMPZ-2019/problems/R", `document.body.innerText.length > 0 && ${READY}`);
 await wait(2500);
 check(!/Zadanie na zajęcia|Napisz program/.test(await body()),
     "and the statement does not open from its own address");

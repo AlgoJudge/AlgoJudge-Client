@@ -35,6 +35,23 @@ export const PermissionsProvider: FC<{ children: ReactNode }> = ({ children }) =
         return () => controller.abort();
     }, [api, status]);
 
+    /*
+     * **Readiness, on the document, because otherwise a check cannot tell "may
+     * not" from "does not know yet".**
+     *
+     * Permissions arrive in a request of their own, after the session settles.
+     * Until they do, `hasAny` answers false for everything — so a screen looks
+     * exactly like one the reader may not open, and an assertion about an
+     * absence passes without meaning anything. The browser checks read this the
+     * way they already read `data-mantine-color-scheme`, and wait.
+     *
+     * It says nothing about *what* is permitted, so it discloses nothing.
+     */
+    useEffect(() => {
+        document.documentElement.dataset.permissions =
+            permissions === undefined ? "loading" : "ready";
+    }, [permissions]);
+
     const has = (permission: string) => permissions?.includes(permission) ?? false;
     const hasAny = (wanted: readonly string[]) => wanted.some(has);
 
