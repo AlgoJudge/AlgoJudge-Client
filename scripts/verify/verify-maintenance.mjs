@@ -23,15 +23,22 @@ const body = () => evaluate(`return document.body.innerText;`);
 // until it lands the children render — on `/login` that is the sign-in form.
 // Waiting for the notice could not tell *not yet* from *never*: in CI this
 // script spent its whole budget and then reported a missing sentence, twice in
-// three runs. It waits for `data-maintenance` to stop saying `unknown`, which is
-// the decision, and the assertions below still read the sentence, which is the
-// judgement.
+// three runs. It waits for `data-maintenance` to *say* `away` or `open`, which
+// is the decision, and the assertions below still read the sentence, which is
+// the judgement.
+//
+// **Not `!== "unknown"`.** That was the first form and it was wrong: a fresh
+// document carries no attribute at all, `undefined !== "unknown"` is true, and
+// the wait fell straight through onto a page that had not mounted yet. It
+// passed locally, where React is quick enough that the attribute is already
+// there, and failed in CI in 11.4 s — on the assertion rather than on the wait,
+// which is the whole reason this attribute exists.
 //
 // Not reproduced locally, and that is stated rather than glossed: eight runs
 // alone and a full suite at double the workers were all green. What was
 // established is the ordering above, measured under CPU throttling.
 await go(`${APP}/activities?fakeUser=amy&fakeMaintenance=draining`,
-    `document.documentElement.dataset.maintenance !== "unknown"`);
+    `["away", "open"].includes(document.documentElement.dataset.maintenance ?? "")`);
 await wait(800);
 
 const draining = await body();
@@ -48,7 +55,7 @@ await shot("maintenance-draining");
 // `/account` cannot answer `/identity/login` either, so bouncing somebody to a
 // form that will also fail is the worst answer available.
 await go(`${APP}/login?fakeMaintenance=closed`,
-    `document.documentElement.dataset.maintenance !== "unknown"`);
+    `["away", "open"].includes(document.documentElement.dataset.maintenance ?? "")`);
 await wait(800);
 
 const login = await body();
