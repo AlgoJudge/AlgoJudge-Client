@@ -29,6 +29,23 @@ i18n
         nsSeparator: false,
 
         /*
+         * **A browser says `pl-PL`, and only `pl` is on disk.**
+         *
+         * Without this i18next asks for `/locales/pl-PL/translation.json`, the
+         * SPA fallback answers with `index.html` and **200**, and parsing it as
+         * JSON fails — on every page load, for every visitor whose browser
+         * names a region, which is most of them. It recovers, so nothing broke;
+         * what it cost was a wasted request and a console error loud enough to
+         * hide a real one. `de-DE` cost two.
+         *
+         * `languageOnly` asks for the base language. `supportedLngs` stops the
+         * request for a language this installation does not have at all, and
+         * lists what `public/locales/` actually contains.
+         */
+        load: "languageOnly",
+        supportedLngs: ["pl", "en"],
+
+        /*
          * **React already escapes; i18next escaping again produces entities.**
          *
          * Its default is `escapeValue: true`, which HTML-escapes every
