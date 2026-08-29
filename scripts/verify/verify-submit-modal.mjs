@@ -7,8 +7,7 @@ const { send, evaluate, wait, shot, go, visit, click, close } =
 const { check, report } = results();
 
 const body = () => evaluate(`return document.body.innerText;`);
-const bar = `[...document.querySelectorAll("[class*=Paper-root]")]
-    .find(p => /Moje zgłoszenia/.test(p.innerText) && getComputedStyle(p).position === "fixed")`;
+const bar = `document.querySelector("[data-testid=submissions-panel]")`;
 const modal = `document.querySelector("[data-testid=modal]")`;
 const sendButton = `[...(${bar})?.querySelectorAll("button") ?? []]
     .find(b => /Wyślij/.test(b.textContent))`;
@@ -38,16 +37,16 @@ check(shape !== null && shape.focusable >= 2,
 // Expanded up front: step 5b has to click a row within seconds of sending, and
 // the toggle would spend them. The check below compares before with after, so it
 // holds either way.
-await click(`[...document.querySelectorAll("[class*=Paper-root] button")]
+await click(`[...document.querySelectorAll("[data-testid=submissions-panel] button")]
     .find(b => /Moje zgłoszenia/.test(b.textContent))`);
 await wait(1200);
 
 // ── 2. Sending does not toggle the panel ────────────────────────────────────
-const wasOpen = await evaluate(`return (${bar})?.querySelectorAll("[class*=row]").length > 0;`);
+const wasOpen = await evaluate(`return (${bar})?.querySelectorAll("[data-testid=submission-row]").length > 0;`);
 await click(sendButton);
 await wait(1500);
 check(await evaluate(`return ${modal} !== null;`), "the send button opens a modal");
-const stillSame = await evaluate(`return (${bar})?.querySelectorAll("[class*=row]").length > 0;`);
+const stillSame = await evaluate(`return (${bar})?.querySelectorAll("[data-testid=submission-row]").length > 0;`);
 check(stillSame === wasOpen, "and does not expand or collapse the panel behind it");
 
 // ── 3. It is wide, and offers only rounds that accept something ─────────────
@@ -128,7 +127,7 @@ await shot("mod-sent");
 // no tests" where the truth is "nothing has looked at this". The screen never
 // wanted one: waiting is a state of its own there, drawn instead of the result,
 // so the absent document is never even handed to a renderer.
-await click(`(${bar})?.querySelector("[class*=row]")`);
+await click(`(${bar})?.querySelector("[data-testid=submission-row]")`);
 await wait(1200);
 const unjudged = await evaluate(`
     const main = document.querySelector("[data-testid=app-main]");

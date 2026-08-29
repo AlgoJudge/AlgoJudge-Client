@@ -42,7 +42,7 @@ check(managerName !== null, `the manager's page opens by slug, not by id (${mana
 
 // The rounds, as the manager panel lists them.
 const managerRounds = await evaluate(`
-    const panels = [...document.querySelectorAll("[data-testid=accordion-item], [class*=Paper-root]")];
+    const panels = [...document.querySelectorAll("[data-testid=accordion-item], [data-testid=paper]")];
     const names = new Set();
     for (const p of panels) {
         const m = p.innerText.match(/Runda \\d[^\\n]*/g);
@@ -97,13 +97,12 @@ await shot("sync-rounds");
 // ── 5. A problem's attempt count against the submissions it came from ────────
 // The summary used to claim five where the list held two. Both are now read off
 // the same attempts, so they have to agree.
-await click(`[...document.querySelectorAll("[class*=Paper-root] button")]
+await click(`[...document.querySelectorAll("[data-testid=submissions-panel] button")]
     .find(b => /Moje zgłoszenia/.test(b.textContent))`);
 await wait(1500);
 const panelRows = await evaluate(`
-    const panel = [...document.querySelectorAll("[class*=Paper-root]")]
-        .find(p => /Moje zgłoszenia/.test(p.innerText) && getComputedStyle(p).position === "fixed");
-    return [...(panel?.querySelectorAll("[class*=row]") ?? [])]
+    const panel = document.querySelector("[data-testid=submissions-panel]");
+    return [...(panel?.querySelectorAll("[data-testid=submission-row]") ?? [])]
         .map(r => r.innerText.replace(/\\s+/g, " ").trim());
 `);
 const forB = panelRows.filter(r => /\[B\]/.test(r)).length;
@@ -120,9 +119,8 @@ check(screenB !== null && screenB === forB,
 
 // ── 6. The panel's row fits on one line ──────────────────────────────────────
 const oneLine = await evaluate(`
-    const panel = [...document.querySelectorAll("[class*=Paper-root]")]
-        .find(p => /Moje zgłoszenia/.test(p.innerText) && getComputedStyle(p).position === "fixed");
-    const row = panel?.querySelector("[class*=row]");
+    const panel = document.querySelector("[data-testid=submissions-panel]");
+    const row = panel?.querySelector("[data-testid=submission-row]");
     if (!row) return null;
     // One line means the row is no taller than a single line of its own text.
     const line = parseFloat(getComputedStyle(row).lineHeight) || 20;

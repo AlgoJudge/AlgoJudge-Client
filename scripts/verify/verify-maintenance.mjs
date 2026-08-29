@@ -48,7 +48,7 @@ await shot("maintenance-login");
 // **No button.** Everything this page could offer needs the Server that is not
 // answering, and a control that does nothing invites a second press.
 check(await evaluate(`
-    const main = document.querySelector("[class*=Paper-root]") ?? document.body;
+    const main = document.querySelector("[data-testid=maintenance]") ?? document.body;
     return [...main.querySelectorAll("button, a")].length === 0;
 `), "it offers nothing to press, because nothing would work");
 

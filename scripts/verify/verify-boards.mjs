@@ -89,13 +89,12 @@ const named = await evaluate(`
         .map(c => c.innerText.replace(/\\s+/g, " ").trim())
         .filter(Boolean);
 `);
-await click(`[...document.querySelectorAll("[class*=Paper-root] button")]
+await click(`[...document.querySelectorAll("[data-testid=submissions-panel] button")]
     .find(b => /Moje zgłoszenia/.test(b.textContent))`);
 await wait(1500);
 const row = await evaluate(`
-    const panel = [...document.querySelectorAll("[class*=Paper-root]")]
-        .find(p => /Moje zgłoszenia/.test(p.innerText) && getComputedStyle(p).position === "fixed");
-    const first = panel?.querySelector("[class*=row]");
+    const panel = document.querySelector("[data-testid=submissions-panel]");
+    const first = panel?.querySelector("[data-testid=submission-row]");
     return first ? first.innerText.replace(/\\s+/g, " ").trim() : null;
 `);
 // **The hour, and the one exception is named rather than inferred.**

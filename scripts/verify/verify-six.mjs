@@ -105,14 +105,13 @@ await shot("six-series-board");
 
 // ── 6. The corners ──────────────────────────────────────────────────────────
 const panel = () => evaluate(`
-    const found = [...document.querySelectorAll("[class*=Paper-root]")]
-        .find(p => /Moje zgłoszenia/.test(p.innerText) && getComputedStyle(p).position === "fixed");
+    const found = document.querySelector("[data-testid=submissions-panel]");
     if (!found) return null;
     const box = found.getBoundingClientRect();
     return {
         bottom: Math.round(window.innerHeight - box.bottom),
         right: Math.round(window.innerWidth - box.right),
-        rows: found.querySelectorAll("[class*=row]").length,
+        rows: found.querySelectorAll("[data-testid=submission-row]").length,
         text: found.innerText.replace(/\\s+/g, " ").trim().slice(0, 60),
     };
 `);
@@ -123,7 +122,7 @@ check(collapsed !== null && collapsed.bottom < 40 && collapsed.right < 40,
 check(collapsed !== null && collapsed.rows === 0,
     "and collapsed on arrival");
 
-await click(`[...document.querySelectorAll("[class*=Paper-root] button")]
+await click(`[...document.querySelectorAll("[data-testid=submissions-panel] button")]
     .find(b => /Moje zgłoszenia/.test(b.textContent))`);
 await wait(1500);
 const opened = await panel();

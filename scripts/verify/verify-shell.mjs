@@ -25,7 +25,7 @@ await send("Page.addScriptToEvaluateOnNewDocument", {
             for (const record of records) {
                 for (const node of record.addedNodes) {
                     if (node.nodeType !== 1) continue;
-                    const hit = node.matches?.('div[class*="footer"]') || node.querySelector?.('div[class*="footer"]');
+                    const hit = node.matches?.('div[data-testid="footer"]') || node.querySelector?.('div[data-testid="footer"]');
                     if (hit) window.__publicShell++;
                 }
             }

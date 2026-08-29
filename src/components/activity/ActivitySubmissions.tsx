@@ -83,7 +83,7 @@ export default function ActivitySubmissions({ activity, series }: ActivitySubmis
     };
 
     return (
-        <Paper withBorder shadow="md" radius="md" className={classes.panel}>
+        <Paper withBorder shadow="md" radius="md" className={classes.panel} data-testid="submissions-panel">
             {/* Two controls side by side, not one inside the other. The bar used
                 to be a single button wrapping everything, and a button inside a
                 button is invalid — the trap that cost the series pause control
@@ -130,6 +130,7 @@ export default function ActivitySubmissions({ activity, series }: ActivitySubmis
                             <UnstyledButton
                                 key={submission.id}
                                 className={classes.row}
+                                data-testid="submission-row"
                                 onClick={() => navigate(`/activities/${slug}/submissions/${submission.id}`)}
                             >
                                 {/* One line. The name is the only part that may
