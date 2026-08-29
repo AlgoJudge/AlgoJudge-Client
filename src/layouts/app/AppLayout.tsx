@@ -8,7 +8,7 @@ import { useInstance } from "../../provider/instanceContext";
 import { usePermissions } from "../../provider/permissionsContext";
 import { MANAGER_AREAS, MANAGER_PERMISSIONS } from "../../pages/manager/managerAreas";
 import classes from "./AppLayout.module.css";
-import { Icon, IconBox, IconChartBarPopular, IconChevronDown, IconChevronsLeft, IconChevronsRight, IconClock, IconHome, IconListDetails, IconLogout, IconMessageQuestion, IconMoon, IconNotes, IconPackageExport, IconProps, IconSectionSign, IconSettings, IconSun, IconUser } from "@tabler/icons-react";
+import { IconBox, IconChartBarPopular, IconChevronDown, IconChevronsLeft, IconChevronsRight, IconClock, IconHome, IconListDetails, IconLogout, IconMessageQuestion, IconMoon, IconNotes, IconPackageExport, IconSectionSign, IconSettings, IconSun, IconUser, TablerIcon } from "@tabler/icons-react";
 import { ComponentPropsWithoutRef, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useApiEffect } from "../../provider/apiContext";
@@ -24,7 +24,7 @@ const NavbarLink = (props: {
     label: string,
     collapsed: boolean,
     to: string,
-    icon: React.ForwardRefExoticComponent<IconProps & React.RefAttributes<Icon>>,
+    icon: TablerIcon,
     /** Planned, not built. Rendered as a dead entry rather than a link to nothing. */
     soon?: boolean,
 }) => {

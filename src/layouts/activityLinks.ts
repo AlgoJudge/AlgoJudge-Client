@@ -1,12 +1,11 @@
-import { Icon, IconBox, IconChartBarPopular, IconHome, IconMessageQuestion, IconNotes, IconPackageExport, IconProps, IconSectionSign, IconSettings } from "@tabler/icons-react";
-import { ComponentType } from "react";
+import { IconBox, IconChartBarPopular, IconHome, IconMessageQuestion, IconNotes, IconPackageExport, IconSectionSign, IconSettings, TablerIcon } from "@tabler/icons-react";
 import { Activity } from "../api/ParticipantApi";
 import { hasDocument } from "../api/activityDocuments";
 
 export interface ActivityLink {
     to: string;
     label: string;
-    icon: ComponentType<IconProps & React.RefAttributes<Icon>>;
+    icon: TablerIcon;
     /**
      * Leaves the activity. The full interface renders it like any other link;
      * the embedded one opens it in a new tab, because §5.2 says a manager's
