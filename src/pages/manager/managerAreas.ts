@@ -1,7 +1,7 @@
 import {
-    Icon, IconAlignBoxCenterTop, IconBox, IconBuildingCommunity, IconDevicesPc, IconIdBadge2, IconKey,
-    IconListDetails, IconMessageQuestion, IconNotes, IconPrinter, IconProps, IconServer, IconUserCheck,
-    IconUsers, IconWorldWww,
+    IconAlignBoxCenterTop, IconBox, IconBuildingCommunity, IconDevicesPc, IconIdBadge2, IconKey,
+    IconListDetails, IconMessageQuestion, IconNotes, IconPrinter, IconServer, IconUserCheck,
+    IconUsers, IconWorldWww, TablerIcon,
 } from "@tabler/icons-react";
 
 /**
@@ -22,7 +22,7 @@ export interface ManagerArea {
     /** English label and description; both are translation keys. */
     label: string;
     description: string;
-    icon: React.ForwardRefExoticComponent<IconProps & React.RefAttributes<Icon>>;
+    icon: TablerIcon;
     /** Any one of these admits. Empty means every manager. */
     permissions: string[];
     /** Planned, not built: shown dead so the shape of the product is legible. */

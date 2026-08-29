@@ -20,9 +20,11 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     
-    "baseUrl": "./src",
+    /* No `baseUrl`: TypeScript 6 deprecates it and 7 drops it. `paths` resolves
+       against this file instead, so the mapping is spelled from the root and
+       still matches the `@` alias in vite.config.ts. */
     "paths": {
-        "@/*": ["./*"]
+        "@/*": ["./src/*"]
     }
   },
   "include": ["src"],

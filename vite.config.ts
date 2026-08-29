@@ -78,6 +78,21 @@ export default defineConfig(({mode}) => {
                 'monaco-editor/languages/definitions/javascript/register.js',
                 'monaco-editor/languages/definitions/typescript/register.js',
                 'katex',
+                // Shiki is the same shape and was the same defect: the adapter
+                // imports it lazily and pulls a grammar the first time a source
+                // preview opens, so a cold run re-optimised mid-test and the
+                // reload took the session with it. Six of nine CI failures on
+                // this branch were that, and none reproduced warm.
+                'shiki/core',
+                'shiki/engine/oniguruma',
+                'shiki/wasm',
+                '@shikijs/langs/c',
+                '@shikijs/langs/cpp',
+                '@shikijs/langs/go',
+                '@shikijs/langs/java',
+                '@shikijs/langs/pascal',
+                '@shikijs/langs/python',
+                '@shikijs/langs/rust',
             ],
         },
         server: {

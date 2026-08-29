@@ -106,8 +106,10 @@
     flex-shrink: 0;
 }
 
-.active,
-.active:hover {
+/* React Router's own class, so it is global; scoped to .link because the
+   documents at the foot of the navigation get it too and must not change. */
+.link:global(.active),
+.link:global(.active):hover {
     box-shadow: var(--mantine-shadow-sm);
     background-color: var(--mantine-color-white);
     color: var(--mantine-color-blue-filled);

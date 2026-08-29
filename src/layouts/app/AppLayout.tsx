@@ -8,7 +8,7 @@ import { useInstance } from "../../provider/instanceContext";
 import { usePermissions } from "../../provider/permissionsContext";
 import { MANAGER_AREAS, MANAGER_PERMISSIONS } from "../../pages/manager/managerAreas";
 import classes from "./AppLayout.module.css";
-import { Icon, IconBox, IconChartBarPopular, IconChevronDown, IconChevronsLeft, IconChevronsRight, IconClock, IconHome, IconListDetails, IconLogout, IconMessageQuestion, IconMoon, IconNotes, IconPackageExport, IconProps, IconSectionSign, IconSettings, IconSun, IconUser } from "@tabler/icons-react";
+import { IconBox, IconChartBarPopular, IconChevronDown, IconChevronsLeft, IconChevronsRight, IconClock, IconHome, IconListDetails, IconLogout, IconMessageQuestion, IconMoon, IconNotes, IconPackageExport, IconSectionSign, IconSettings, IconSun, IconUser, TablerIcon } from "@tabler/icons-react";
 import { ComponentPropsWithoutRef, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useApiEffect } from "../../provider/apiContext";
@@ -24,7 +24,7 @@ const NavbarLink = (props: {
     label: string,
     collapsed: boolean,
     to: string,
-    icon: React.ForwardRefExoticComponent<IconProps & React.RefAttributes<Icon>>,
+    icon: TablerIcon,
     /** Planned, not built. Rendered as a dead entry rather than a link to nothing. */
     soon?: boolean,
 }) => {
@@ -44,10 +44,15 @@ const NavbarLink = (props: {
         );
     }
 
+    // `className` is a string, not React Router's `({ isActive }) => …` form:
+    // Mantine's Tooltip merges its child's className with `clsx`, which cannot
+    // carry a function, so the callback was dropped and the link rendered with
+    // no class at all. React Router appends its own `active` to a string, and
+    // the stylesheet keys off that.
     return (
         <Tooltip label={props.label} disabled={!props.collapsed} position="right" openDelay={500}>
             <NavLink
-                className={({ isActive }) => classes.link + " " + (isActive ? classes.active : "")}
+                className={classes.link}
                 data-collapsed={props.collapsed || undefined}
                 to={props.to}
                 key={props.to}
