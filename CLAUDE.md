@@ -56,6 +56,16 @@ error, no warning, just no colour. `shikiAdapter.ts` wires Shiki, and
 **Name every grammar there.** Asking Shiki's bundled entry for languages on
 demand reaches all ~300 and puts them in the build: 18 MB of `dist` against 8.5.
 
+**And declare them in `optimizeDeps.include`, for the reason the Monaco block
+above them already gives.** The adapter imports Shiki lazily and fetches a
+grammar the first time a source preview opens, so on a **cold** cache Vite
+re-optimised mid-run and the reload took the session with it. That failed six
+`check:ui` tests in CI across two runs — a different set each time, all reading
+as lost state — while the same suite passed warm four times locally. **`main`'s
+own runs were the evidence**: six consecutive greens against two reds here, and
+the job's `continue-on-error` means the run says *success* either way, so the
+job has to be read rather than the run.
+
 **Mantine's Tooltip merges its child's `className` with `clsx`, which cannot
 carry a function.** A React Router `NavLink` under a `Tooltip` must take a
 string, or its `({ isActive }) => …` is dropped and the element renders with no
