@@ -1,12 +1,14 @@
+/* The gutter's background is set inline, from the computed colour scheme: the
+   declaration that used to be here read `background-color: bgColor`, which is
+   not a colour and was dropped by every browser that parsed it. */
 .linenum {
   text-align: right;
   user-select: none;
   padding: calc(var(--mantine-spacing-xs) + 0.0625rem) var(--mantine-spacing-xs);
-  color: var(--mantine-color-gray-6);
+  color: var(--mantine-color-dimmed);
   font-size: calc(0.8125rem * var(--mantine-scale));
   line-height: 1.7;
   font-family: var(--mantine-font-family-monospace);
-  background-color: bgColor;
   border-radius: var(--mantine-radius-sm);
 }
 

@@ -1,5 +1,9 @@
 /* Markdown arrives as HTML, so its elements are styled here rather than through
-   components. Kept minimal: a statement should read like a document. */
+   components. Kept minimal: a statement should read like a document.
+
+   Borders are `--mantine-color-default-border`, whose light value is `gray-4` —
+   what they were written as, and what they stayed. The dark value is the one
+   they were missing. */
 
 .content {
     line-height: 1.6;
@@ -17,7 +21,7 @@
     & blockquote {
         margin: 0.6rem 0;
         padding: 0.2rem 0 0.2rem 0.8rem;
-        border-left: 3px solid var(--mantine-color-gray-4);
+        border-left: 3px solid var(--mantine-color-default-border);
         color: var(--mantine-color-dimmed);
     }
 
@@ -54,7 +58,7 @@
 
         & th,
         & td {
-            border: 1px solid var(--mantine-color-gray-4);
+            border: 1px solid var(--mantine-color-default-border);
             padding: 0.35rem 0.6rem;
             text-align: left;
         }
@@ -66,7 +70,7 @@
 }
 
 .sample {
-    border: 1px solid var(--mantine-color-gray-4);
+    border: 1px solid var(--mantine-color-default-border);
     border-radius: var(--mantine-radius-sm);
     padding: var(--mantine-spacing-sm);
 }

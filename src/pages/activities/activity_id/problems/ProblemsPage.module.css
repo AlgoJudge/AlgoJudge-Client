@@ -1,18 +1,28 @@
 .round {
     margin: var(--mantine-spacing-md);
-    border: solid 1px var(--mantine-color-gray-4);
+    /* `--mantine-color-default-border` *is* `gray-4` in the light scheme, so
+       this line is unchanged there and stops glaring in the dark one. */
+    border: solid 1px var(--mantine-color-default-border);
 }
 
+/* The light values are the ones this always had; what was missing is the dark
+   half. Without it every problem row was a `gray-2` slab under near-white text,
+   at 1.4:1.
+
+   The dark shades go the other way round, and that is the point rather than an
+   oversight: a row has to separate from the `.round` card behind it, which is
+   `dark-6`. Matching it there — the first thing tried — cleared the contrast
+   floor and made the rows disappear as rows. */
 .problem {
     margin: 4px var(--mantine-spacing-xs);
-    background-color: var(--mantine-color-gray-2);
+    background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
     padding: var(--mantine-spacing-xs) var(--mantine-spacing-xl);
     cursor: pointer;
 
     @mixin hover {
         box-shadow: var(--mantine-shadow-md);
         z-index: 100000;
-        background-color: var(--mantine-color-gray-1);
+        background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-4));
     }
 }
 
