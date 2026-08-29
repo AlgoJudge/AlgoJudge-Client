@@ -173,19 +173,26 @@ says so. Silencing it is safe only because `reportUnusedDisableDirectives` is on
 so ESLint reports the directive the day it stops being needed — do not turn that
 option off.
 
-**`lint:deps` does not take that back, and this paragraph said it did until
-2026-08-29.** It runs the same rule with `useApiEffect` declared as an effect
-hook, and the intent was that the dependency list every screen declares is
-checked. It is not. `exhaustive-deps` stops at *"Effect callbacks are
-synchronous"* before it looks at any list, every one of our callbacks is async
-by design, and that is precisely the message `scripts/lint-deps.mjs` filters
-out — so nothing is left to report and the script has always passed.
+What that silencing gives up, `lint:deps` takes back: it runs the same rule with
+`useApiEffect` declared as an effect hook, so the dependency list every screen
+declares is checked. Plain `eslint` cannot do this itself — with the wrapper
+declared it also demands a synchronous effect callback, and all of ours are async
+by design — so that single message is filtered out by `scripts/lint-deps.mjs` and
+anything else fails the run. **The async complaint arrives *beside* the
+dependency analysis, not instead of it**, which is what makes the filter safe.
 
-**Measured, not inferred**: an emptied dependency list on a `useApiEffect`
-passes on `eslint-plugin-react-hooks` 5 and on 7 alike, while the same sabotage
-on a plain `useEffect` is reported at once. The rule works; it never reaches the
-wrapper. The gate is decorative, it is still listed as one of four above, and
-what to do about it — a different check, or one gate fewer — is undecided.
+**Proved by sabotage on 2026-08-29, after this paragraph had been replaced with
+the opposite claim and had to be put back.** Removing `activityId` from the list
+in `components/activity/ActivitySubmissions.tsx` — where the callback genuinely
+reads it — fails the run naming that dependency, on
+`eslint-plugin-react-hooks` 7.1.1 with ESLint 10.
+
+**The sabotage that produced the false claim is the lesson.** It emptied
+`[session?.userId]` in `AccountPage`, where the callback body never mentions
+`session`: a redundant dependency, so removing it creates no defect and the rule
+correctly said nothing. **Pick the target by what the callback body reads, not
+by what the dependency array contains** — otherwise a silent run reads as a dead
+gate.
 
 ## Rules
 
