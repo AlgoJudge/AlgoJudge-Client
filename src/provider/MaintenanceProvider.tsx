@@ -34,7 +34,25 @@ const same = (a: ServerAway | undefined, b: ServerAway | undefined): boolean =>
 export const MaintenanceProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const api = useApi();
     const [away, setAway] = useState<ServerAway | undefined>(undefined);
+    const [answered, setAnswered] = useState(false);
     const blocked = away !== undefined;
+
+    /*
+     * **Whether `/health` has answered yet — for the checks, and one line.**
+     *
+     * The answer arrives after first paint, so until it does the children
+     * render: on `/login` during a window that is the sign-in form, not the
+     * notice. A check waiting for the notice cannot tell *not yet* from
+     * *never*, and under load in CI it waits out its budget and reports a
+     * missing sentence rather than an unanswered call.
+     *
+     * The same arrangement `PermissionsProvider` carries, for the same reason,
+     * and it says nothing about what the answer was — only that there is one.
+     */
+    useEffect(() => {
+        document.documentElement.dataset.maintenance =
+            !answered ? "unknown" : away ? "away" : "open";
+    }, [answered, away]);
 
     // ── what the Server, or the lack of one, says ───────────────────────────
     useEffect(() => {
@@ -100,6 +118,7 @@ export const MaintenanceProvider: FC<{ children: ReactNode }> = ({ children }) =
             }
 
             setAway(current => same(current, answer) ? current : answer);
+            setAnswered(true);
             if (controller.signal.aborted) return;
 
             // Only while away. When it is over this effect is torn down by the

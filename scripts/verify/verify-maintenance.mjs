@@ -17,8 +17,21 @@ const { check, report } = results();
 const body = () => evaluate(`return document.body.innerText;`);
 
 // ── While the Server drains ─────────────────────────────────────────────────
+// **Waits for the answer, then judges the words.**
+//
+// `/health` is asked once on load and its answer arrives after first paint, so
+// until it lands the children render — on `/login` that is the sign-in form.
+// Waiting for the notice could not tell *not yet* from *never*: in CI this
+// script spent its whole budget and then reported a missing sentence, twice in
+// three runs. It waits for `data-maintenance` to stop saying `unknown`, which is
+// the decision, and the assertions below still read the sentence, which is the
+// judgement.
+//
+// Not reproduced locally, and that is stated rather than glossed: eight runs
+// alone and a full suite at double the workers were all green. What was
+// established is the ordering above, measured under CPU throttling.
 await go(`${APP}/activities?fakeUser=amy&fakeMaintenance=draining`,
-    `/przerwa techniczna/i.test(document.body.innerText)`);
+    `document.documentElement.dataset.maintenance !== "unknown"`);
 await wait(800);
 
 const draining = await body();
@@ -35,7 +48,7 @@ await shot("maintenance-draining");
 // `/account` cannot answer `/identity/login` either, so bouncing somebody to a
 // form that will also fail is the worst answer available.
 await go(`${APP}/login?fakeMaintenance=closed`,
-    `/przerwa techniczna/i.test(document.body.innerText)`);
+    `document.documentElement.dataset.maintenance !== "unknown"`);
 await wait(800);
 
 const login = await body();
