@@ -28,18 +28,23 @@ const navigate = async (path) => {
     await wait(2500);
 };
 
+// Permissions arrive in a request of their own, after the session settles, and
+// until they do `hasAny` answers no to everything — so a screen looks exactly
+// like one this person may not open and an assertion about an absence proves
+// nothing. Every navigation below waits for the answer, not just for the page.
+const READY = `document.documentElement.dataset.permissions === "ready"`;
 await send("Page.setDeviceMetricsOverride", { width: 1500, height: 1200, deviceScaleFactor: 1, mobile: false });
 
 // 1 — a manager who does not administer the installation is refused it.
-await go(`${APP}/manager?fakeUser=amy`, `document.body.innerText.includes("Panel")`);
+await go(`${APP}/manager?fakeUser=amy`, `document.body.innerText.includes("Panel") && ${READY}`);
 check(!await evaluate(`return document.body.innerText.includes("Instancja");`),
     "a manager is not offered the instance screen");
-await go(`${APP}/manager/instance`, `document.body.innerText.length > 100`);
+await go(`${APP}/manager/instance`, `document.body.innerText.length > 100 && ${READY}`);
 check(await evaluate(`return /instance:update/.test(document.body.innerText);`),
     "and asking for it names the permission they lack");
 
 // 2 — an administrator gets it.
-await go(`${APP}/manager/instance?fakeUser=john`, `document.body.innerText.includes("Ustawienia")`);
+await go(`${APP}/manager/instance?fakeUser=john`, `document.body.innerText.includes("Ustawienia") && ${READY}`);
 check(true, "an administrator opens it");
 await shot("in-settings");
 
@@ -115,7 +120,7 @@ await shot("in-withdrawn");
 //     Checked because a refusal nobody has looked at is a refusal that reaches
 //     an operator as a blank screen.
 await go(`${APP}/manager/instance?fakeUser=john&fakeConflict=instance`,
-    `document.body.innerText.includes("Ustawienia")`);
+    `document.body.innerText.includes("Ustawienia") && ${READY}`);
 await click(button("Zapisz"));
 await wait(2000);
 check(await evaluate(`return /tym samym momencie|same moment/i.test(document.body.innerText);`),
