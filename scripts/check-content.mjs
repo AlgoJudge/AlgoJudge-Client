@@ -11,8 +11,14 @@ const OUT = ".content-check";
 execFileSync("npx", ["tsc",
     "src/content/types.ts", "src/content/latex.ts", "src/content/markdown.ts", "src/content/validate.ts",
     "src/api/fake/fixtures/content.ts", "src/api/fake/fixtures/instancePages.ts",
+    // Named explicitly: a file list does not pick up `include`, and TypeScript 6
+    // turns on strict checking by default, so the untyped import is now an error.
+    "src/types/markdown-it-footnote.d.ts",
     "--outDir", OUT, "--rootDir", "src",
     "--module", "esnext", "--target", "es2022", "--moduleResolution", "bundler", "--skipLibCheck",
+    // TypeScript 6 makes naming files beside a tsconfig.json an error rather
+    // than a silent ignore. This compiles a subset on purpose, so it opts out.
+    "--ignoreConfig",
 ], { stdio: "inherit", shell: process.platform === "win32" });
 
 // The application resolves extensionless imports through Vite; Node does not.

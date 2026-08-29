@@ -19,6 +19,9 @@ execFileSync("npx", ["tsc",
     "src/exchange/zawodyweb/convert.ts", "src/exchange/zawodyweb/statement.ts",
     "--outDir", OUT, "--rootDir", "src",
     "--module", "esnext", "--target", "es2022", "--moduleResolution", "bundler", "--skipLibCheck",
+    // TypeScript 6 makes naming files beside a tsconfig.json an error rather
+    // than a silent ignore. This compiles a subset on purpose, so it opts out.
+    "--ignoreConfig",
 ], { stdio: "inherit", shell: process.platform === "win32" });
 
 const addExtensions = (directory) => {
