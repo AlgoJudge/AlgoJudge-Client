@@ -86,6 +86,30 @@ check(legal.count === 4, `all of them (${legal.labels.join(", ")})`);
 check(legal.top > 0.6, `at the foot of it (${Math.round(legal.top * 100)}% down)`);
 check(legal.icons === 0, "with no icons");
 check(legal.weight < legal.mainWeight, `lighter than the entries above (${legal.weight} against ${legal.mainWeight})`);
+
+// 3b — the entry you are standing on is marked, and nothing else is. Untested
+// until 2026-08-29, when the class carrying it stopped being applied and only
+// an assertion about a neighbouring font weight noticed.
+await go(`${APP}/activities?fakeUser=amy`, `document.querySelector("[class*=AppShell-navbar]") !== null`);
+const marked = await evaluate(`
+    const navbar = document.querySelector("[class*=AppShell-navbar]");
+    const links = [...navbar.querySelectorAll("a")].filter(a => /_link_/.test(a.className));
+    const here = links.find(a => a.getAttribute("href") === "/activities");
+    const other = links.find(a => a.getAttribute("href") !== "/activities");
+    if (!here || !other) return null;
+    return {
+        active: here.className.split(" ").includes("active"),
+        hereBackground: getComputedStyle(here).backgroundColor,
+        otherBackground: getComputedStyle(other).backgroundColor,
+        hereColour: getComputedStyle(here).color,
+        otherColour: getComputedStyle(other).color,
+    };
+`);
+check(marked !== null, "the navigation has entries to compare");
+check(marked.active, "the entry for the page you are on is marked active");
+check(marked.hereBackground !== marked.otherBackground,
+    `and is drawn differently from the others (${marked.hereBackground} against ${marked.otherBackground})`);
+check(marked.hereColour !== marked.otherColour, "in its own colour too");
 check(legal.size < legal.mainSize, `and smaller (${legal.size}px against ${legal.mainSize}px)`);
 check(legal.colour !== legal.mainColour, `in a quieter colour (${legal.colour} against ${legal.mainColour})`);
 await shot("s-navbar-legal");

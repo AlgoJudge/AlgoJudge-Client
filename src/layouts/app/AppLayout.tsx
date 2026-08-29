@@ -44,10 +44,15 @@ const NavbarLink = (props: {
         );
     }
 
+    // `className` is a string, not React Router's `({ isActive }) => …` form:
+    // Mantine's Tooltip merges its child's className with `clsx`, which cannot
+    // carry a function, so the callback was dropped and the link rendered with
+    // no class at all. React Router appends its own `active` to a string, and
+    // the stylesheet keys off that.
     return (
         <Tooltip label={props.label} disabled={!props.collapsed} position="right" openDelay={500}>
             <NavLink
-                className={({ isActive }) => classes.link + " " + (isActive ? classes.active : "")}
+                className={classes.link}
                 data-collapsed={props.collapsed || undefined}
                 to={props.to}
                 key={props.to}

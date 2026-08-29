@@ -1,5 +1,7 @@
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
+import { CodeHighlightAdapterProvider } from '@mantine/code-highlight';
+import { shikiAdapter } from './components/codehighlight/shikiAdapter';
 import './App.css';
 
 import { MantineProvider } from '@mantine/core';
@@ -249,6 +251,7 @@ function App() {
 
     return (
             <MantineProvider>
+                <CodeHighlightAdapterProvider adapter={shikiAdapter}>
                 <ApiProvider>
                     {/* Above the session, because an outage breaks the login
                         screen too: a Server that cannot answer `/account`
@@ -287,6 +290,7 @@ function App() {
                     </AuthProvider>
                     </MaintenanceProvider>
                 </ApiProvider>
+                </CodeHighlightAdapterProvider>
             </MantineProvider>
     );
 }
