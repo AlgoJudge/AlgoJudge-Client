@@ -12,27 +12,27 @@ Playwright underneath and the same eleven functions on top, so what changed in a
 script is the line that opens the tab. Nothing about what they assert changed,
 and the traps below are the reason it was done that way.
 
-## In CI, and not a gate
+## In CI, and it gates
 
-**CI runs them now**, in a job of its own, and **`continue-on-error`** — the
-result is reported on every run and blocks no merge. Two of the three reasons
-they were kept out are gone:
+**Since 2026-08-30 a red run blocks a merge.** It ran in CI from 2026-08-18 in a
+job of its own with `continue-on-error`, because it could go red without a
+defect. Both ways it could are closed:
 
-- ~~they need a dev server **and** a browser, which CI has no orchestration
-  for~~ — `playwright.ui.config.mjs` starts the application with `webServer`,
-  and the browser comes with the dependency;
-- ~~a full run is minutes~~ — four at a time brought it to about four and a
-  half, and what is left is somebody else's rather than yours.
+- **Selectors.** It matched Mantine's *generated* class names in 208 places, so a
+  component upgrade reddened it for nothing. One is left,
+  `[class*=Pill-root]` — a pill cannot be given a test id from the theme — and it
+  says so where it is used. Controls are found by `data-testid`; text is what
+  assertions **judge**, which is the split worth keeping.
+- **Races.** Three scripts waited for words that were true before the element
+  they then read existed, and each was fixed at the cause: `maintenance`,
+  `exchange`, `notifications`.
 
-**The third reason stands, and it is why this does not gate:** they match on
-Polish interface text and on Mantine's generated class names, so a translation
-or a component upgrade reddens them for no product reason. Blocking a merge on
-that would teach everybody to ignore a red mark, which costs more than the
-signal is worth.
+**`retries` is 0 and stays 0.** A red mark a retry can erase is a red mark nobody
+fixes.
 
-**What would make it a gate**: assertions addressed through test ids rather than
-through the words on the screen. Until somebody does that, this is the same
-bargain as `check:api` — worth having in every run, not worth blocking on.
+**Anything written before 2026-08-30 that says this does not gate is out of
+date** — and note that while it did not, the run said *success* either way, so
+older evidence about it has to be read off the **job**, never the run.
 
 ## Running them
 

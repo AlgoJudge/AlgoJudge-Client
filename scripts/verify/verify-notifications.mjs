@@ -92,7 +92,12 @@ await shot("not-asterisk-enrol");
 // Signed out first: the registration screen sends anybody who has a session
 // straight to their activities.
 await evaluate(`localStorage.clear(); sessionStorage.clear(); return true;`);
-await go(`${APP}/register?fakeRegistration=on`, `document.body.innerText.includes("Rejestracja")`);
+// **The box, not the word.** "Rejestracja" is in the page's text on the first
+// paint and the checkbox arrives about half a second later, so waiting for the
+// heading ended true too early and `.at(-1)` read `undefined`. Measured: text
+// true at 0 ms, box present at ~500 ms. It reddened in CI on that gap.
+await go(`${APP}/register?fakeRegistration=on`,
+    `document.querySelectorAll("[data-testid=checkbox] input[type=checkbox]").length > 0`);
 check(await evaluate(`
     const box = [...document.querySelectorAll("input[type=checkbox]")].at(-1);
     const label = box?.closest("[data-testid=checkbox]");
