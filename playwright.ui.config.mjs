@@ -67,8 +67,14 @@ export default defineConfig({
      *
      * `scripts/verify/README.md` is right that one red script in a green run is
      * more likely a race than a regression — but that is advice to a person
-     * about re-running it by hand, not a licence for the runner to hide it. In
-     * CI this suite does not gate, so nothing needs a retry to stay green.
+     * about re-running it by hand, not a licence for the runner to hide it.
+     *
+     * **It gates since 2026-08-30, and that makes this stricter rather than
+     * looser.** The reason written here used to be *"in CI this suite does not
+     * gate, so nothing needs a retry to stay green"*, which would now argue the
+     * other way. It is kept, on the opposite ground: a red mark a retry can
+     * erase is one nobody fixes, and three races were fixed at the cause on the
+     * day the gate went on precisely because nothing was erasing them.
      */
     retries: 0,
 

@@ -33,9 +33,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # These steps are the whole gate, and all of them must pass before
-      # anything is merged. The Playwright suites do not gate: `check:ui` runs
-      # below as `continue-on-error` and `check:e2e` needs a full stack. Keep
+      # These steps must all pass before anything is merged. **They stopped
+      # being the whole gate on 2026-08-30**: `check:ui` below blocks too. Only
+      # `check:e2e` is still outside it, because it needs a full stack. Keep
       # this list and the one in CLAUDE.md the same: it said "these three steps"
       # for a while after the `check:` scripts existed, which meant a change
       # could break the package format or the event socket and still go green.
@@ -96,23 +96,33 @@ jobs:
         run: npm run check:api
 
   browser-checks:
-    name: The browser checks (reported, not a gate)
+    name: The browser checks
     runs-on: ubuntu-latest
 
-    # **Reported, never blocking**, and that is a decision rather than a
-    # temporary state. Two of the three reasons these were kept out of CI are
-    # gone: Playwright starts the application itself and brings its own browser,
-    # so there is orchestration now, and it takes about twenty minutes rather
-    # than being unrunnable. The third reason stands — the scripts match on
-    # Polish interface text and on Mantine's generated class names, so a
-    # translation or a component upgrade reddens them for no product reason, and
-    # blocking a merge on that would teach everybody to ignore a red mark.
+    # **This blocks a merge, since 2026-08-30.** It reported and did not block
+    # for as long as it could go red without a defect, and the two ways it could
+    # are both closed:
     #
-    # **What would make this a gate**: assertions addressed through test ids
-    # rather than through the words on the screen. Until somebody does that,
-    # this is the same bargain as `check:api` above — something worth having in
-    # every run and not worth blocking a merge on.
-    continue-on-error: true
+    # **Selectors.** It matched Mantine's *generated* class names in 208 places,
+    # so a component upgrade reddened it for no product reason. One remains,
+    # `[class*=Pill-root]`, which cannot be given a test id from the theme and
+    # says so where it is used. Controls are found by `data-testid`; text is
+    # still what assertions *judge*, which is the point of the split.
+    #
+    # **Races.** Three scripts waited for words that were true before the thing
+    # they then read existed, and each was fixed at the cause rather than by
+    # waiting longer: `maintenance` (a session that redirected the window's
+    # parameter away), `exchange` (a row clicked before it carried its handler)
+    # and `notifications` (a checkbox that arrives half a second after its
+    # heading).
+    #
+    # **The evidence, so the decision can be re-judged rather than trusted**:
+    # four consecutive green runs of this job, the failure before them fixed at
+    # cause, and three clean local runs at double the worker count.
+    #
+    # **`retries` stays 0** — see `playwright.ui.config.mjs`. A red mark that a
+    # retry can erase is a red mark nobody fixes, which is the state this change
+    # exists to leave.
 
     # The suite is minutes-long by nature; the longest single script was over
     # three minutes when this was measured.

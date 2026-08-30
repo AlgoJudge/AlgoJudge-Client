@@ -62,9 +62,10 @@ grammar the first time a source preview opens, so on a **cold** cache Vite
 re-optimised mid-run and the reload took the session with it. That failed six
 `check:ui` tests in CI across two runs — a different set each time, all reading
 as lost state — while the same suite passed warm four times locally. **`main`'s
-own runs were the evidence**: six consecutive greens against two reds here, and
-the job's `continue-on-error` means the run says *success* either way, so the
-job has to be read rather than the run.
+own runs were the evidence**: six consecutive greens against two reds here. The
+job carried `continue-on-error` until 2026-08-30, so in anything written before
+that date the run says *success* either way and the **job** has to be read
+rather than the run.
 
 **Mantine's Tooltip merges its child's `className` with `clsx`, which cannot
 carry a function.** A React Router `NavLink` under a `Tooltip` must take a
@@ -134,15 +135,19 @@ repository, so `npm run browsers -- stop --all` can close ours and only ours;
 the machine is still running. It also starts Firefox, for measurements the
 DevTools protocol cannot reach.
 
-`check:ui` **runs in CI since 2026-08-18, and still does not gate.** It moved
-onto Playwright the same day: `npm run check:ui` now starts the dev server
-itself, with the fake, and brings its own browser — the two things that had kept
-it out of CI. What kept it from being a gate is untouched: it matches on Polish
-interface text and on Mantine's generated class names, so a translation or a
-component upgrade reddens it for no product reason, and a red mark everybody
-learns to ignore is worth less than no mark. The CI job is
-`continue-on-error`, like `check:api`. Test ids instead of screen text are what
-would promote it.
+`check:ui` **runs in CI since 2026-08-18 and gates since 2026-08-30.** It moved
+onto Playwright the first day: `npm run check:ui` starts the dev server itself,
+with the fake, and brings its own browser — the two things that had kept it out
+of CI.
+
+What kept it from gating was that it could go red without a defect, in two ways,
+and both are closed. It matched Mantine's **generated** class names in 208
+places; one remains, `[class*=Pill-root]`, which cannot be given a test id from
+the theme. And three scripts waited for words that were true before the element
+they then read existed — `maintenance`, `exchange`, `notifications` — each fixed
+at the cause rather than by waiting longer.
+
+**`retries` stays 0.** A red mark a retry can erase is one nobody fixes.
 
 It is what catches the defects the gate structurally cannot see — a rule applied
 by a screen instead of by the API, a control that stopped reaching the keyboard,
