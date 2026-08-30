@@ -244,6 +244,9 @@ const BRANDED = {
     light: {
         page: "#f3e5f5",
         surface: "#fffde7",
+        main: "#fffde7",
+        accent: "#ef6c00",
+        secondary: "#00838f",
         text: "#311b92",
         dimmed: "#4a148c",
         border: "#ce93d8",
@@ -256,6 +259,9 @@ const BRANDED = {
     dark: {
         page: "#12081f",
         surface: "#1c1030",
+        main: "#1c1030",
+        accent: "#ffb74d",
+        secondary: "#4dd0e1",
         text: "#ede7f6",
         dimmed: "#b39ddb",
         border: "#4527a0",
@@ -282,6 +288,7 @@ const TOKENS = `
     for (let i = 0; i < 10; i++) shades.push(resolved("var(--mantine-color-primary-" + i + ")"));
 
     const navbar = document.querySelector("[data-testid=app-navbar]");
+    const main = document.querySelector("[data-testid=app-main]");
     const heading = document.querySelector("h1, h2, h3");
     // The navigation's own entries, by the class the module puts on them — the
     // first anchor in there is the instance mark's wrapper, which is deliberately
@@ -303,6 +310,14 @@ const TOKENS = `
         // (No backticks in here: this comment is inside a template literal, and
         // one would end it. It has cost two runs.)
         filled: resolved("var(--mantine-primary-color-filled)"),
+        // The working area, which showed the page ground until 2026-08-30 and
+        // put the rows on almost their own colour.
+        main: main ? hex(getComputedStyle(main).backgroundColor) : "no main region",
+        // A hover colour, so it is read as the variable rather than off an
+        // element: CSS :hover does not answer a synthetic event, and a check
+        // that dispatched one would be asserting nothing.
+        accent: resolved("var(--aj-nav-accent)"),
+        secondary: resolved("var(--aj-secondary)"),
         nav: navbar ? hex(getComputedStyle(navbar).backgroundColor) : "no navbar",
         navText: entry ? hex(getComputedStyle(entry).color) : "no navigation entry",
         body: getComputedStyle(document.body).fontFamily,
@@ -325,14 +340,21 @@ for (const scheme of ["light", "dark"]) {
     const want = BRANDED[scheme];
     const got = await evaluate(TOKENS);
 
-    for (const key of ["page", "surface", "text", "dimmed", "border", "link", "nav", "navText"]) {
+    for (const key of [
+        "page", "surface", "text", "dimmed", "border", "link", "nav", "navText",
+        "main", "accent", "secondary",
+    ]) {
         check(got[key] === want[key], `${scheme}: the instance's ${key} is drawn — ${want[key]}, got ${got[key]}`);
     }
 
     check(got.shades.includes(want.primary),
         `${scheme}: the brand colour ${want.primary} is one of the ten shades — got ${got.shades.join(" ")}`);
-    check(got.shades.includes(got.filled),
-        `${scheme}: and everything unprop'd is painted from that ramp — filled is ${got.filled}`);
+    // **The colour they typed, not a neighbour of it.** A ramp is generated
+    // around a value, so the one an operator states is rarely index 6 — and
+    // index 6 is what a button is painted with unless the shade is pinned.
+    check(got.filled === want.primary,
+        `${scheme}: a button is painted the colour the instance stated — ` +
+        `${want.primary}, got ${got.filled}`);
 
     // A family, not a file: `serif` and `monospace` are two of the four generic
     // names a theme may use without shipping a face, which is what lets this be
@@ -370,7 +392,7 @@ for (const scheme of ["light", "dark"]) {
     // no row is on a palette grey any more.
     const steps = await evaluate(`
         ${RESOLVE}
-        return ["--aj-surface", "--aj-surface-hover", "--aj-surface-active"]
+        return ["--aj-row", "--aj-row-hover", "--aj-row-active"]
             .map(name => resolved("var(" + name + ")"));
     `);
     check(cards.every(card => steps.includes(card.bg)),
@@ -401,8 +423,11 @@ const header = await evaluate(`
     ${RESOLVE}
     // A header element, not a div: the public shell writes semantic markup.
     const bar = document.querySelector("header");
+    const foot = [...document.querySelectorAll("div")].find(d =>
+        d.className && String(d.className).includes("footer"));
     return {
         colour: bar ? hex(getComputedStyle(bar).backgroundColor) : "no header",
+        foot: foot ? hex(getComputedStyle(foot).backgroundColor) : "no footer",
         // Says which shell this is, so the assertion below cannot pass by
         // reading the application's bar and calling it the public one.
         application: document.querySelector("[data-testid=app-navbar]") !== null,
@@ -411,6 +436,8 @@ const header = await evaluate(`
 check(!header.application, "the sign-in screen is the public shell, not the application's");
 check(header.colour === BRANDED.light.header,
     `the public bar carries the instance's colour — ${BRANDED.light.header}, got ${header.colour}`);
+check(header.foot === BRANDED.light.nav,
+    `and its foot carries the navigation's — ${BRANDED.light.nav}, got ${header.foot}`);
 
 // ── And an installation with no theme is untouched ──────────────────────────
 //

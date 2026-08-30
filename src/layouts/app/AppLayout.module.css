@@ -24,6 +24,16 @@
     text-align: center;
 }
 
+/* **The working area is a panel, not the page ground.** It was transparent, so
+   it showed whatever `body` had — and an installation whose ground is a pale
+   tint then put the rows on almost their own colour, at a contrast nobody could
+   read. `--mantine-color-body` is the panel colour: white with no theme, and the
+   instance's `surface` with one, so this line changes nothing until a theme
+   sets one. The ground stays visible where a ground belongs — behind the shell. */
+.main {
+    background-color: var(--mantine-color-body);
+}
+
 .navbar {
     padding: var(--mantine-spacing-md);
     display: flex;
@@ -61,10 +71,14 @@
 
     @mixin hover {
         background-color: var(--aj-nav-hover, var(--mantine-color-blue-7));
-        color: var(--aj-nav-text, var(--mantine-color-white));
+        /* The instance's accent where it has one. An accent is a small
+           highlight on a coloured bar, which is exactly what this is; the
+           navigation's own text is the fallback, so nothing moves without a
+           theme. */
+        color: var(--aj-nav-accent, var(--aj-nav-text, var(--mantine-color-white)));
 
         .linkIcon {
-            color: var(--aj-nav-text, var(--mantine-color-white));
+            color: var(--aj-nav-accent, var(--aj-nav-text, var(--mantine-color-white)));
         }
     }
 

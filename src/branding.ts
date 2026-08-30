@@ -2,7 +2,7 @@ import {
     CSSVariablesResolver, MantineColorsTuple, MantineThemeOverride, mergeThemeOverrides,
     virtualColor,
 } from "@mantine/core";
-import { generateColors } from "@mantine/colors-generator";
+import { generateColors, generateColorsMap } from "@mantine/colors-generator";
 import { InstanceTheme, ThemeColours } from "./api/CoreApi";
 import { theme as testIds } from "./theme";
 
@@ -78,18 +78,43 @@ function brandOverride(branding: InstanceTheme | undefined): MantineThemeOverrid
     // yesterday to fall back to, so a scheme with no value of its own borrows the
     // one that was stated rather than inventing a second colour.
     const primary = brand(colors, "primary", light.primary, dark.primary, MANTINE_PRIMARY);
-    brand(colors, "secondary", light.secondary, dark.secondary);
-    brand(colors, "accent", light.accent, dark.accent);
+
+    // **The shade the operator's own colour landed on.** A ramp is generated
+    // *around* a colour, so the value they typed is rarely index 6 — and index 6
+    // is what Mantine paints a button with. Without this, an installation that
+    // sets `#0050aa` gets buttons in a lighter blue it never chose, which is not
+    // a theme so much as a suggestion. Each scheme keeps its own, because the
+    // two colours land in different places.
+    const primaryShade = {
+        light: shadeOf(light.primary) ?? 6,
+        dark: shadeOf(dark.primary) ?? 8,
+    };
 
     const family = quoted(branding.fontFamily);
     const headings = quoted(branding.fontFamilyHeadings);
 
+    // A `Divider` with no colour of its own draws the instance's second brand
+    // colour. It is a rule and carries no text, so it is somewhere a second
+    // colour can land without a contrast question attached.
+    const secondary = brand(colors, "secondary", light.secondary, dark.secondary);
+    brand(colors, "accent", light.accent, dark.accent);
+
     return {
         ...(Object.keys(colors).length > 0 ? { colors } : {}),
-        ...(primary ? { primaryColor: primary } : {}),
+        ...(primary ? { primaryColor: primary, primaryShade } : {}),
+        ...(secondary ? { components: { Divider: { defaultProps: { color: secondary } } } } : {}),
         ...(family ? { fontFamily: family } : {}),
         ...(headings ? { headings: { fontFamily: headings } } : {}),
     };
+}
+
+/** Where in its own generated ramp a colour sits. Mantine's default otherwise. */
+function shadeOf(hex: string | undefined): 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | undefined {
+    if (!hex) return undefined;
+    const index = generateColorsMap(hex).baseColorIndex;
+    return index >= 0 && index <= 9
+        ? index as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+        : undefined;
 }
 
 /**
@@ -183,12 +208,14 @@ function scheme(colours: ThemeColours | undefined, contrast: string): Record<str
         // did not reach them left those two screens grey while everything around
         // them changed. It looked half-applied because it was.
         //
-        // Three steps in the direction the shades already went: the row, the row
-        // under the pointer, and the row that is not finished. Mixed rather than
-        // asked for, so an operator sets one colour and the ladder follows.
-        set["--aj-surface"] = colours.surface;
-        set["--aj-surface-hover"] = mix(colours.surface, 94, towards);
-        set["--aj-surface-active"] = mix(colours.surface, 88, towards);
+        // **Three steps away from the surface, never equal to it.** The working
+        // area is the surface, so a row painted `surface` is a row nobody can
+        // see — which is what happened the first time these were wired. 96, 92
+        // and 88 per cent stand where `gray-0`, `gray-1` and `gray-2` stood
+        // against white.
+        set["--aj-row"] = mix(colours.surface, 96, towards);
+        set["--aj-row-hover"] = mix(colours.surface, 92, towards);
+        set["--aj-row-active"] = mix(colours.surface, 88, towards);
     }
 
     // The rows' own text, for the same reason: grey on somebody else's panel is
@@ -213,6 +240,22 @@ function scheme(colours: ThemeColours | undefined, contrast: string): Record<str
         set["--aj-nav-hover"] = mix(colours.navBackground, 88, "#000000");
     }
 
+    // **The accent, and the one thing it is asked to do.** An accent is a small
+    // highlight, so it lights a navigation entry under the pointer — which is
+    // what the coloured bars it is borrowed from do — and nothing that carries
+    // text of its own. A key that reaches nothing is a promise without cover;
+    // a key that reaches a filled button is a contrast this side cannot answer
+    // for, because the text on it is not the operator's to choose.
+    put("--aj-nav-accent", colours.accent);
+    // And the second brand colour, on rules. It draws no text either.
+    put("--aj-secondary", colours.secondary);
+
+    // The signed-out shell's foot is the navigation's bar in another place, so
+    // it is the navigation's colours rather than a second pair of keys.
+    put("--aj-footer-bg", colours.navBackground);
+    put("--aj-footer-text", colours.navText);
+    put("--aj-footer-border", colours.navBackground);
+
     if (colours.navBackground && colours.navText) {
         // The quiet steps: the icons, the document links at the foot of the
         // navigation, its divider and its scrollbar. All of them were tints of
@@ -223,7 +266,33 @@ function scheme(colours: ThemeColours | undefined, contrast: string): Record<str
         set["--aj-nav-scrollbar"] = mix(colours.navText, 55, colours.navBackground);
     }
 
+    if (colours.navBackground) {
+        set["--aj-footer-hover"] = mix(colours.navBackground, 88, "#000000");
+    }
+
+    if (colours.navBackground && colours.navText) {
+        // The documents at the foot were the *page's* quiet colour, which is
+        // unreadable the moment the foot is a saturated bar.
+        set["--aj-footer-muted"] = mix(colours.navText, 72, colours.navBackground);
+    }
+
     return set;
+}
+
+/**
+ * Whether a colour is dark enough that what sits on it should be drawn for a
+ * dark ground.
+ *
+ * An instance colours its bars, so the foot of a page can be a saturated blue in
+ * the **light** scheme — and a mark drawn for paper is then dark ink on dark
+ * blue. The scheme cannot answer this; only the colour underneath can.
+ */
+export function isDarkGround(colour: string): boolean {
+    const channel = (at: number) => {
+        const value = parseInt(colour.slice(at, at + 2), 16) / 255;
+        return value <= 0.03928 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * channel(1) + 0.7152 * channel(3) + 0.0722 * channel(5) < 0.35;
 }
 
 /**

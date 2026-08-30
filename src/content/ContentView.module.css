@@ -15,6 +15,12 @@
 
     & p { margin: 0.5rem 0; }
 
+    /* **The instance's link colour.** Markdown arrives as raw HTML, so these
+       are plain anchors and never went through Mantine's `Anchor` — which is
+       the one place `--mantine-color-anchor` was reaching. A theme that set a
+       link colour left every link in a statement the browser's own blue. */
+    & a { color: var(--mantine-color-anchor); }
+
     & ul,
     & ol { margin: 0.5rem 0; padding-left: 1.5rem; }
 

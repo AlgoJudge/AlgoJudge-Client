@@ -2,7 +2,11 @@
     margin: var(--mantine-spacing-md);
     /* `--mantine-color-default-border` *is* `gray-4` in the light scheme, so
        this line is unchanged there and stops glaring in the dark one. */
-    border: solid 1px var(--mantine-color-default-border);
+    /* The instance's second brand colour where it has one: a rule around a
+       block is what a `secondary` is for, and it is the one place on a
+       participant's screen where a second colour shows without competing with
+       anything. */
+    border: solid 1px var(--aj-secondary, var(--mantine-color-default-border));
 }
 
 /* The light values are the ones this always had; what was missing is the dark
@@ -15,14 +19,14 @@
    floor and made the rows disappear as rows. */
 .problem {
     margin: 4px var(--mantine-spacing-xs);
-    background-color: var(--aj-surface-active, light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5)));
+    background-color: var(--aj-row-active, light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5)));
     padding: var(--mantine-spacing-xs) var(--mantine-spacing-xl);
     cursor: pointer;
 
     @mixin hover {
         box-shadow: var(--mantine-shadow-md);
         z-index: 100000;
-        background-color: var(--aj-surface-hover, light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-4)));
+        background-color: var(--aj-row-hover, light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-4)));
     }
 }
 

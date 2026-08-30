@@ -1,8 +1,13 @@
+/* The signed-out shell's foot. **It takes the navigation's colours**, because
+   that is one bar and one decision: an installation whose navigation is a
+   saturated blue has a foot to match, and asking for a second pair of keys
+   would be asking the same question twice. Nothing moves without a theme. */
 .footer {
-    border-top: rem(1px) solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+    border-top: rem(1px) solid
+        var(--aj-footer-border, light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5)));
     /* Opaque, and its own colour: whatever the page put above it must not show
        through the links. */
-    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7));
+    background-color: var(--aj-footer-bg, light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7)));
     margin-top: var(--mantine-spacing-xl);
 }
 
@@ -18,6 +23,13 @@
     }
 }
 
+/* The documents at the foot. They were `c="dimmed"`, which is the *page's*
+   quiet colour — unreadable the moment the foot is a saturated bar rather than
+   the page it used to be. */
+.docLink {
+    color: var(--aj-footer-muted, var(--mantine-color-dimmed));
+}
+
 .links {
     @media (max-width: $mantine-breakpoint-xs) {
         margin-top: var(--mantine-spacing-md);
@@ -31,11 +43,12 @@
     padding: rem(8px) rem(12px);
     border-radius: var(--mantine-radius-sm);
     text-decoration: none;
-    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+    color: var(--aj-footer-text, light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0)));
     font-size: var(--mantine-font-size-sm);
     font-weight: 500;
 
     @mixin hover {
-        background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+        background-color: var(--aj-footer-hover, light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6)));
+        color: var(--aj-nav-accent, var(--aj-footer-text, inherit));
     }
 }
