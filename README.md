@@ -265,7 +265,9 @@ through REST.
 - [AlgoJudge-Runner](https://github.com/AlgoJudge/AlgoJudge-Runner) — isolated execution and evaluation
 - `AlgoJudge-Runner-UVa` — a second Runner, forwarding `uva@1` submissions to `onlinejudge.org`
 - `AlgoJudge-Ops` — the production Compose stack, which is what ships this image to an installation
-- `AlgoJudge-Identity-Keycloak` and `AlgoJudge-Identity-Authentik` — **two** supported identity deployments for `auth.algojudge.app`, neither a fallback for the other. An installation runs one
+- `AlgoJudge-Identity-Keycloak` and `AlgoJudge-Identity-Authentik` — **two**
+  supported identity deployments for `auth.algojudge.app`, neither a fallback for
+  the other. An installation runs one
 
 The last four are private.
 
