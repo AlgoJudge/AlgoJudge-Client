@@ -21,7 +21,8 @@
 > - **§12.9 is settled**: the canonical Server–Runner contract is
 >   `AlgoJudge-Design/specifications/server-runner/SERVER_RUNNER_API.md`.
 > - **§12.10's numbers have moved twice** and the three copies now agree.
-> - **§12.11 is half closed**: the Client half, not the Server half.
+> - **§12.11 is closed**, both halves, the Client's first and the Server's the
+>   same day.
 > - **§13's counts are all stale**, and `check:ui` has gated since 2026-08-30.
 >
 > Everything else in §12 was still open when this banner was written.
