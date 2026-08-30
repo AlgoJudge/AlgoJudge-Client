@@ -8,6 +8,24 @@
 > lives on each side, and which side was wrong — because a list of differences
 > without a ruling is a list somebody has to work through twice.
 
+> **Read as of 2026-08-08. The body below is frozen — 2026-08-30.**
+>
+> It is a record of one day, and rewriting its findings would destroy the only
+> thing it is good for. What follows are the changes since, each verified today
+> and annotated where it belongs rather than merged into the text:
+>
+> - **The rulings against the Client shipped**, on the day. Entry 2's four
+>   manager reads are under `/manager/` in `ManagerApiHttp.ts`; entry 4's
+>   `src/api/fake/refuse.ts` exists and `Utils.throwError` is gone.
+> - **§12.3 was closed 2026-08-22** and says so in place.
+> - **§12.9 is settled**: the canonical Server–Runner contract is
+>   `AlgoJudge-Design/specifications/server-runner/SERVER_RUNNER_API.md`.
+> - **§12.10's numbers have moved twice** and the three copies now agree.
+> - **§12.11 is half closed**: the Client half, not the Server half.
+> - **§13's counts are all stale**, and `check:ui` has gated since 2026-08-30.
+>
+> Everything else in §12 was still open when this banner was written.
+
 ## How an entry is classified
 
 | Ruling | What it means |
@@ -290,9 +308,9 @@ Nothing below was chosen. Each is recorded with what it would cost either way.
 | 12.6 | **Creating a round leaves it shut** until the scheduler opens it, while editing one opens it at once. Deliberate — a round created with a past start should be announced late — but the asymmetry is real, and a fresh round is unusable for up to fifteen seconds | The reason for the current behaviour is sound; the cost is a manager waiting |
 | 12.7 | **`SeriesProblem.Config` may tighten a limit — may it raise one?** In no document | Never written down |
 | 12.8 | **One origin or two?** This work runs two, with CORS. One origin behind a proxy needs a `location /api/` block, and settles the cookie's `SameSite` and whether `client_max_body_size` governs uploads at all | The deployment shape is the owner's |
-| 12.9 | **The Server–Runner protocol exists twice** — `docs/protocols/SERVER_RUNNER_API.md` and `AlgoJudge-Design/proposals/Server-Runner-api.md` — with drift, and nothing says which is canonical | Raised before; still open |
-| 12.10 | **`docs/specs/PERMISSIONS.md` is one key short.** The Client and the Server hold the identical 47; the document has 46 and never gained `instance:update`. It is still marked `Draft awaiting approval` | A document status is not mine to promote |
-| 12.11 | **Three documents describe reversed code.** `AlgoJudge-Server/CLAUDE.md` on `EvaluationJob`, `int` keys and `Result` doubling as the job record; `AlgoJudge-Client/CLAUDE.md` and `DECISIONS_AND_OPEN_QUESTIONS.md:1510` on "seven" opaque values against the specification's five | Proposals prepared; no status promoted |
+| 12.9 | ~~**The Server–Runner protocol exists twice** — `docs/protocols/SERVER_RUNNER_API.md` and `AlgoJudge-Design/proposals/Server-Runner-api.md` — with drift, and nothing says which is canonical~~ **Settled.** The contract is `AlgoJudge-Design/specifications/server-runner/SERVER_RUNNER_API.md`, **v1.1**, `Accepted` 2026-08-08 and amended three times — 2026-08-09 (§9, unavailability), 2026-08-22 (§5, §6) and 2026-08-24 (§3, §5). Both files named here are history and describe paths this Server never served; `.claude/rules/documentation.md` says which to cite | — |
+| 12.10 | ~~**`docs/specs/PERMISSIONS.md` is one key short.** The Client and the Server hold the identical 47; the document has 46 and never gained `instance:update`.~~ **The count half is closed; the status half is not.** Measured 2026-08-30 with `python scripts/check-permissions.py` from the workspace root: **52** permissions and a manager template of **32**, identical in the Server, the Client's fake and the specification. It drifted twice more before that — corrected 2026-08-10 to 49, and again 2026-08-25 to 52 — and it is still marked `Draft awaiting approval` | A document status is not mine to promote |
+| 12.11 | **Three documents describe reversed code.** `AlgoJudge-Server/CLAUDE.md` on `EvaluationJob`, `int` keys and `Result` doubling as the job record; ~~`AlgoJudge-Client/CLAUDE.md` and `DECISIONS_AND_OPEN_QUESTIONS.md:1510` on "seven" opaque values against the specification's five~~. **Half closed — checked 2026-08-30.** The two Client-side documents no longer say it. **The Server half stands**: `AlgoJudge-Server/CLAUDE.md:60` still reads *"`EvaluationJob` is deferred as an entity"* and `:6` still lists the model as "activities, tasks, submissions". Being corrected separately | Proposals prepared; no status promoted |
 | 12.12 | **Ten decisions of 2026-08-08 live only in code and commit messages.** `DECISIONS_AND_OPEN_QUESTIONS.md` was not edited that day | Rows drafted, waiting to be entered |
 
 ---
@@ -303,7 +321,7 @@ Nothing below was chosen. Each is recorded with what it would cost either way.
 |---|---|---|
 | `npm run check:api -- ../AlgoJudge-Server/openapi.json` | Client | every path **and response shape** the Client asks for |
 | `npm run check:events -- ../AlgoJudge-Server/events.json` | Client | the two event catalogues agree, and `ping` is dropped |
-| `dotnet test` | Server | 57 cases against real PostgreSQL 18, including the event catalogue |
+| `dotnet test` | Server | **666** cases against real PostgreSQL 18, including the event catalogue. 57 on 2026-08-08; re-counted 2026-08-30 with `dotnet test --list-tests`, over 85 test files |
 | `npm run check:e2e` | Client | submit to verdict, through both halves and the socket |
 
 The last one is the only thing in either repository that can see the two
@@ -317,5 +335,12 @@ docker compose -f example-full-stack-docker-compose.yaml up -d --build --wait
 npm run check:e2e
 ```
 
-It is not in CI, and neither is `check:ui`, for the same stated reason: a Server,
-a database and a browser.
+~~It is not in CI, and neither is `check:ui`, for the same stated reason: a Server,
+a database and a browser.~~
+
+**Half of that stopped being true — 2026-08-18, then 2026-08-30.** `check:ui` has
+run in CI since 2026-08-18, in the `browser-checks` job, and **gates a merge
+since 2026-08-30**: Playwright brings its own browser and starts the dev server
+against the fake, so the reason it was out never applied to it once it moved.
+`check:e2e` is still outside CI, and the stated reason still holds for it — it
+wants a Server and a database that are already up.
