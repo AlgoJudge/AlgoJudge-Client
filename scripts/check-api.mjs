@@ -55,11 +55,15 @@ const schemaFor = (generic) => {
  * `` `/lti/placements${query}` `` is `GET /lti/placements`, which the Server does
  * serve. Turning it into `{param}` asked for a path nobody serves, so two
  * endpoints reported as unserved while the Server served both.
+ *
+ * A slash before it means it is a segment after all, and stays `{param}` — the
+ * Client has no such call today, and this is here so that adding one does not
+ * silently delete the last segment of its path.
  */
 const toTemplate = (raw) => raw
     .slice(1, -1)
     .replace(/\$\{\s*encodeURIComponent\(\s*([A-Za-z0-9_.]+)\s*\)\s*\}/g, (_, name) => `{${name.split(".").pop()}}`)
-    .replace(/\$\{[^}]*\}$/, "")
+    .replace(/(?<!\/)\$\{[^}]*\}$/, "")
     .replace(/\$\{[^}]*\}/g, "{param}");
 
 const calls = [];
