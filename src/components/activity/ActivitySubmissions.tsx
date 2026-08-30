@@ -6,6 +6,7 @@ import { useMatch, useNavigate } from "react-router-dom";
 import { Activity, Series, SubmissionSummary } from "../../api/ParticipantApi";
 import StateBadge from "../submission/StateBadge";
 import ActivityTime from "../time/ActivityTime";
+import { formatInZone } from "../time/format";
 import { useApiEffect } from "../../provider/apiContext";
 import SubmitModal from "./SubmitModal";
 import classes from "./ActivitySubmissions.module.css";
@@ -26,9 +27,20 @@ import classes from "./ActivitySubmissions.module.css";
 const HOW_MANY = 12;
 const OPEN_KEY = "algojudge.submissions.open";
 
-/** Whether an instant falls on the reader's own today. */
-const isToday = (value: string): boolean =>
-    new Date(value).toDateString() === new Date().toDateString();
+/**
+ * Whether an instant falls on today **in the activity's zone**, which is the
+ * zone the row is drawn in.
+ *
+ * It compared the reader's own today, and the two disagree for as long as the
+ * zones straddle midnight. Found by `verify-boards` on a CI runner in UTC: a
+ * submission a minute old was drawn `30.08.2026 01:56` rather than `01:56`,
+ * because it was still 29 August where the comparison was made and already the
+ * 30th where the text was rendered. A participant in Warsaw sees that every
+ * night between their midnight and UTC's.
+ */
+const isToday = (value: string, timeZone: string): boolean =>
+    formatInZone(value, timeZone, "date")
+    === formatInZone(new Date().toISOString(), timeZone, "date");
 
 export interface ActivitySubmissionsProps {
     /** Absent outside an activity, where there is nothing to show. */
@@ -146,7 +158,7 @@ export default function ActivitySubmissions({ activity, series }: ActivitySubmis
                                         <ActivityTime
                                             value={submission.submittedAt}
                                             timeZone={timeZone ?? "Europe/Warsaw"}
-                                            format={isToday(submission.submittedAt) ? "time" : "datetime"}
+                                            format={isToday(submission.submittedAt, timeZone ?? "Europe/Warsaw") ? "time" : "datetime"}
                                             hideZone
                                         />
                                     </Text>
