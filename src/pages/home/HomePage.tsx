@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Card, Center, Container, Grid, Group, Loader, Paper, Stack, Text, Title } from "@mantine/core";
+import { Alert, Badge, Button, Card, Center, Container, Grid, Group, Loader, Stack, Text, Title } from "@mantine/core";
 import { IconAlertTriangle, IconArrowRight, IconListDetails, IconLogin, IconSettings } from "@tabler/icons-react";
 import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -87,11 +87,14 @@ export default function HomePage() {
                                 {t("This is the front page that ships with the software. Replace it in the instance settings.")}
                             </Alert>
                         )}
-                        <Paper withBorder p="xl" radius="md">
-                            <Suspense fallback={<Center my="xl"><Loader /></Center>}>
-                                <ContentView content={content} attachments={attachments} />
-                            </Suspense>
-                        </Paper>
+                        {/* No border: the operator's front page **is** the
+                            page, and a frame around the whole of it reads as a
+                            widget on something else. The activity's own welcome
+                            keeps its frame, because there it is one panel among
+                            several. */}
+                        <Suspense fallback={<Center my="xl"><Loader /></Center>}>
+                            <ContentView content={content} attachments={attachments} />
+                        </Suspense>
                     </>
                 ) : null}
 
