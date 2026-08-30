@@ -216,9 +216,15 @@ class name. A control the browser checks drive gets an id where it is written:
 An id is for **finding**. Text is for **judging** — a check that a wrong password
 is reported as a wrong password is about the words, and stays a regex.
 
-**Never put `attributes` on an input in the theme.** They leak into the parts the
-input renders: an entry for `InputWrapper` put its ids on a `TagsInput`'s pills,
-and naming the concrete inputs instead only moved the leak. Both measured.
+**A field's id comes from `wrapperProps`, never from `attributes`.** A compound
+input **forwards whatever `attributes` it resolves to the parts it renders**, and
+each part applies them by its *own* styles names — so a `root` key means "the
+input's root" to the wrapper and "the pill's root" to a `TagsInput`'s pills, and
+lands on both. An `attributes` entry also **replaces** an inherited one wholesale
+rather than merging key by key. `wrapperProps` reaches the wrapper alone.
+
+One generated class is left in the whole suite, `[class*=Pill-root]`, because a
+pill cannot be given an id from the theme at all. It says so where it is used.
 
 ## Colours (2026-08-29)
 

@@ -25,7 +25,7 @@ const modal = () => evaluate(`
 `);
 const modalButton = (text) => `[...document.querySelectorAll("[data-testid=modal] button")]
     .find(b => b.textContent.trim() === ${JSON.stringify(text)})`;
-const modalField = (label) => `[...document.querySelectorAll("[data-testid=modal] [class*=InputWrapper-root]")]
+const modalField = (label) => `[...document.querySelectorAll("[data-testid=modal] [data-testid=field]")]
     .find(w => w.textContent.includes(${JSON.stringify(label)}))`;
 
 const fill = async (label, value) => {
@@ -162,10 +162,20 @@ await wait(8000);
 // finish and the list refetches behind it, so a single read a fixed time later
 // measures whichever of the two won — and it passed or failed by about a
 // second. The row was there; the read was early.
+//
+// **And waited for the thing that is clicked, not for the words.** The name is
+// in the page's text before the row carries the handler the next step clicks, so
+// polling `body()` returned true too early: under eight workers this reddened
+// with `nothing to click`, one run in three, on the click below. The assertion
+// still reads the text — that is what it is about — but the wait now ends on the
+// element.
+const openable = `[...document.querySelectorAll("tbody tr")]
+    .find(r => r.innerText.includes("AMMPZ-2027"))
+    ?.querySelector("td [style*='cursor']") != null`;
 let listed = "";
-for (let attempt = 0; attempt < 10; attempt++) {
+for (let attempt = 0; attempt < 12; attempt++) {
     listed = await body();
-    if (/AMMPZ-2027/.test(listed)) break;
+    if (await evaluate(`return ${openable};`)) break;
     await wait(1000);
 }
 check(/AMMPZ-2027/.test(listed), "the imported activity is in the list");

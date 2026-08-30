@@ -157,7 +157,7 @@ const examBlock = `[...document.querySelectorAll("[data-testid=accordion-item]")
     .find(i => i.innerText.startsWith("Kolokwium 2"))`;
 
 /** The scope select inside that block, found by its label. */
-const scopeInput = `[...((${examBlock})?.querySelectorAll("[class*=InputWrapper-root]") ?? [])]
+const scopeInput = `[...((${examBlock})?.querySelectorAll("[data-testid=field]") ?? [])]
     .find(w => w.textContent.includes("Zasięg ważności"))?.querySelector("input")`;
 
 const widened = await evaluate(`

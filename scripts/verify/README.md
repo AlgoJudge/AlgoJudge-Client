@@ -272,11 +272,17 @@ menu.
 
 Two traps, both paid for and both in `src/theme.ts`:
 
-- **Do not theme `attributes` on an input.** An entry for the shared
-  `InputWrapper` put its ids on the *pills* of a `TagsInput`; naming the
-  concrete inputs instead moved the leak rather than fixing it. The eight places
-  that scope by a field keep `[class*=InputWrapper-root]`, and they are the only
-  generated-class selectors left.
+- **A field's id comes from `wrapperProps`, not from `attributes`.** A compound
+  input forwards its resolved `attributes` to the parts it renders, and each
+  part applies them by its *own* styles names — a `root` key lands on the field
+  **and** on a `TagsInput`'s pills. An entry also replaces an inherited one
+  wholesale rather than merging. `wrapperProps` reaches the wrapper alone, so
+  every field is `[data-testid=field]`.
+- **One generated class is left in the suite**: `[class*=Pill-root]`, for the tag
+  pills. A pill cannot be given an id from the theme — `TagsInput`'s `pill`
+  styles name does not reach the element, and naming `root` instead lands on the
+  field too. Its `innerText` and a hidden input were both checked; neither
+  carries the value.
 - **A modal's close button reads `close-button`, not `modal-close`.** Both
   classes are on the one element and `CloseButton`'s own attribute wins, so scope
   it: `[data-testid=modal] [data-testid=close-button]`.

@@ -75,7 +75,7 @@ check(beforeChoosing === "true",
 // ── 3. Choosing one states what would move, and onto whom ───────────────────
 
 await click(`[...document.querySelectorAll("[data-testid=modal] input")]
-    .find(i => i.closest("[class*=InputWrapper-root]")?.textContent.includes("Przenieś na"))`);
+    .find(i => i.closest("[data-testid=field]")?.textContent.includes("Przenieś na"))`);
 await wait(700);
 const target = await evaluate(`
     const option = [...document.querySelectorAll("[data-testid=combobox-option], [role=option]")][0];
