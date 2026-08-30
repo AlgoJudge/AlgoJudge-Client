@@ -16,7 +16,7 @@ const heading = () => evaluate(`
 `);
 const choosePolicy = async (label) => {
     await click(`[...document.querySelectorAll("input")]
-        .find(i => i.closest("[class*=InputWrapper-root]")?.textContent.includes("Kto może dołączyć"))`);
+        .find(i => i.closest("[data-testid=field]")?.textContent.includes("Kto może dołączyć"))`);
     await wait(600);
     await click(`[...document.querySelectorAll("[role=option]")]
         .find(o => o.textContent.includes(${JSON.stringify(label)}))`);
@@ -45,7 +45,7 @@ const open_ = await shownLink();
 check(/\/activities\/PROG-1-LA$/.test(open_ ?? ""),
     `and it carries no fragment, because there is no password (${open_})`);
 check(await evaluate(`
-    return [...document.querySelectorAll("label, [class*=InputWrapper-label]")]
+    return [...document.querySelectorAll("label, [data-testid=field] label")]
         .every(l => !l.textContent.includes("Hasło zapisu"));
 `), "and the password field is gone with the policy that needed it");
 await shot("share-open");

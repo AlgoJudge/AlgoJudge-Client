@@ -32,7 +32,7 @@ const modalButton = (text) => `[...document.querySelectorAll("[data-testid=modal
     .find(b => b.textContent.trim() === ${JSON.stringify(text)})`;
 
 /** A field inside the dialog, found by its label — Mantine gives it no id. */
-const modalField = (label) => `[...document.querySelectorAll("[data-testid=modal] [class*=InputWrapper-root]")]
+const modalField = (label) => `[...document.querySelectorAll("[data-testid=modal] [data-testid=field]")]
     .find(w => w.textContent.includes(${JSON.stringify(label)}))`;
 
 const roundBlock = (name) => `[...document.querySelectorAll("[data-testid=accordion-item]")]

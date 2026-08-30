@@ -10,7 +10,7 @@ const body = () => evaluate(`return document.body.innerText;`);
 const MANAGER_LIST = `[...document.querySelectorAll("tbody tr")].some(r => r.innerText.includes("AMMPZ-2019"))`;
 /** Sets one datetime field of the settings form, found by its label. */
 const setDate = (label, hoursFromNow) => evaluate(`
-    const wrapper = [...document.querySelectorAll("[class*=InputWrapper-root]")]
+    const wrapper = [...document.querySelectorAll("[data-testid=field]")]
         .find(w => w.textContent.includes(${JSON.stringify(label)}));
     const field = wrapper?.querySelector("input");
     if (!field) throw new Error("no field: " + ${JSON.stringify(label)});

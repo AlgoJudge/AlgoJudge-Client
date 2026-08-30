@@ -33,7 +33,7 @@ const { check, report } = results();
 // typed a tag into the wrong one and read the answer back from it.
 
 /** A field found by its label, within a container — Mantine gives it no id. */
-const fieldIn = (container, label) => `[...((${container})?.querySelectorAll("[class*=InputWrapper-root]") ?? [])]
+const fieldIn = (container, label) => `[...((${container})?.querySelectorAll("[data-testid=field]") ?? [])]
     .find(w => w.textContent.includes(${JSON.stringify(label)}))`;
 
 /** A `Switch` is not an `InputWrapper`, so it is found by its own root. */
@@ -44,8 +44,17 @@ const switchIn = (container, label) => `[...((${container})?.querySelectorAll("[
 const cardTitled = (title) => `[...document.querySelectorAll("[data-testid=card]")]
     .find(c => c.textContent.includes(${JSON.stringify(title)}))`;
 
-/** The tag pills a `TagsInput` is showing. Its value is not in `innerText`. */
-const pillsIn = (wrapper) => `[...((${wrapper})?.querySelectorAll("[data-testid=pill-label]") ?? [])]
+/**
+ * The tag pills a `TagsInput` is showing. Its value is not in `innerText`, and
+ * there is no hidden input carrying it either — both checked.
+ *
+ * **The one generated class left in the suite.** A pill cannot be given a test
+ * id from the theme: `TagsInput`'s `pill` styles name does not reach the element
+ * on this version, and an `attributes` entry that names `root` instead lands on
+ * the pill *and* on the field, because a compound input forwards its attributes
+ * to the parts it renders and each applies them by its own styles names.
+ */
+const pillsIn = (wrapper) => `[...((${wrapper})?.querySelectorAll("[class*=Pill-root]") ?? [])]
     .map(p => p.textContent.trim())`;
 
 await send("Page.setDeviceMetricsOverride",
