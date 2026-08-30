@@ -85,7 +85,7 @@ export default function ShiftSeries({ series, timeZone, disabled, busy, onShift 
                     <Text size="sm" mb={7} c="dimmed">— {t("this series has no times to move")}</Text>
                 )}
 
-                <Button
+                <Button data-testid="move"
                     leftSection={<IconClockPlay size={16} />}
                     loading={busy}
                     disabled={disabled || !timed || step === 0}

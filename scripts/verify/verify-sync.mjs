@@ -26,7 +26,7 @@ await go(`${APP}/manager/activities?fakeUser=amy`, `document.body.innerText.incl
 await wait(1500);
 
 const managerRow = await evaluate(`
-    const row = [...document.querySelectorAll("tr, [class*=Card-root]")]
+    const row = [...document.querySelectorAll("tr, [data-testid=card]")]
         .find(r => r.innerText.includes("AMMPZ-2019"));
     return row ? row.innerText.replace(/\\s+/g, " ").trim() : null;
 `);
@@ -35,14 +35,14 @@ check(managerRow !== null, `the contest is in the manager's list (${managerRow})
 await visit("/manager/activities/AMMPZ-2019", `document.body.innerText.includes("AMMPZ-2019")`);
 await wait(2000);
 const managerName = await evaluate(`
-    const h = document.querySelector("[class*=AppShell-main] h1, [class*=AppShell-main] h2");
+    const h = document.querySelector("[data-testid=app-main] h1, [data-testid=app-main] h2");
     return h ? h.textContent.trim() : null;
 `);
 check(managerName !== null, `the manager's page opens by slug, not by id (${managerName})`);
 
 // The rounds, as the manager panel lists them.
 const managerRounds = await evaluate(`
-    const panels = [...document.querySelectorAll("[class*=Accordion-item], [class*=Paper-root]")];
+    const panels = [...document.querySelectorAll("[data-testid=accordion-item], [data-testid=paper]")];
     const names = new Set();
     for (const p of panels) {
         const m = p.innerText.match(/Runda \\d[^\\n]*/g);
@@ -71,7 +71,7 @@ check(shared.length >= 3,
 await visit("/activities", `document.body.innerText.includes("AMMPZ-2019")`);
 await wait(1500);
 const participantName = await evaluate(`
-    const card = [...document.querySelectorAll("[class*=Card-root]")]
+    const card = [...document.querySelectorAll("[data-testid=card]")]
         .find(c => c.innerText.includes("AMMPZ-2019"));
     if (!card) return null;
     return card.innerText.split("\\n").map(s => s.trim()).find(s => /Mistrzostwa/.test(s)) ?? null;
@@ -97,13 +97,12 @@ await shot("sync-rounds");
 // ── 5. A problem's attempt count against the submissions it came from ────────
 // The summary used to claim five where the list held two. Both are now read off
 // the same attempts, so they have to agree.
-await click(`[...document.querySelectorAll("[class*=Paper-root] button")]
+await click(`[...document.querySelectorAll("[data-testid=submissions-panel] button")]
     .find(b => /Moje zgłoszenia/.test(b.textContent))`);
 await wait(1500);
 const panelRows = await evaluate(`
-    const panel = [...document.querySelectorAll("[class*=Paper-root]")]
-        .find(p => /Moje zgłoszenia/.test(p.innerText) && getComputedStyle(p).position === "fixed");
-    return [...(panel?.querySelectorAll("[class*=row]") ?? [])]
+    const panel = document.querySelector("[data-testid=submissions-panel]");
+    return [...(panel?.querySelectorAll("[data-testid=submission-row]") ?? [])]
         .map(r => r.innerText.replace(/\\s+/g, " ").trim());
 `);
 const forB = panelRows.filter(r => /\[B\]/.test(r)).length;
@@ -120,9 +119,8 @@ check(screenB !== null && screenB === forB,
 
 // ── 6. The panel's row fits on one line ──────────────────────────────────────
 const oneLine = await evaluate(`
-    const panel = [...document.querySelectorAll("[class*=Paper-root]")]
-        .find(p => /Moje zgłoszenia/.test(p.innerText) && getComputedStyle(p).position === "fixed");
-    const row = panel?.querySelector("[class*=row]");
+    const panel = document.querySelector("[data-testid=submissions-panel]");
+    const row = panel?.querySelector("[data-testid=submission-row]");
     if (!row) return null;
     // One line means the row is no taller than a single line of its own text.
     const line = parseFloat(getComputedStyle(row).lineHeight) || 20;
@@ -135,7 +133,7 @@ await shot("sync-panel");
 // ── 7. A board adds up to its own cells ──────────────────────────────────────
 await visit("/activities/AMMPZ-2019/ranking", `document.body.innerText.includes("Ranking")`);
 await wait(2500);
-await click(`[...document.querySelectorAll("[class*=SegmentedControl] label")]
+await click(`[...document.querySelectorAll("[data-testid=segmented] label")]
     .find(l => /Runda 0/.test(l.textContent))`);
 await wait(2500);
 // Recomputed from what the table itself printed: a solved cell shows its minute

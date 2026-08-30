@@ -9,8 +9,8 @@ const { check, report } = results();
 await send("Page.setDeviceMetricsOverride", { width: 1400, height: 1400, deviceScaleFactor: 1, mobile: false });
 
 // 1 — the activity filters, now listed as the arrays themselves.
-await go(`${APP}/activities?fakeUser=amy`, `document.querySelectorAll("[class*=Card-root]").length > 0`);
-const before = await evaluate(`return document.querySelectorAll("[class*=Card-root]").length;`);
+await go(`${APP}/activities?fakeUser=amy`, `document.querySelectorAll("[data-testid=card]").length > 0`);
+const before = await evaluate(`return document.querySelectorAll("[data-testid=card]").length;`);
 check(before > 0, `the activity list loads (${before} shown)`);
 
 // Watch for a list that never settles: a dependency changing identity on every
@@ -24,13 +24,13 @@ await evaluate(`
 
 // The filters are chips; ticking one is a click on its label.
 const chip = await evaluate(`
-    const label = document.querySelector("[class*=Chip-label]");
+    const label = document.querySelector("[data-testid=chip-label]");
     return label ? label.textContent.trim() : null;
 `);
 check(Boolean(chip), `a filter is offered (${chip ?? "none"})`);
-await click(`document.querySelector("[class*=Chip-label]")`);
+await click(`document.querySelector("[data-testid=chip-label]")`);
 await wait(2500);
-const after = await evaluate(`return document.querySelectorAll("[class*=Card-root]").length;`);
+const after = await evaluate(`return document.querySelectorAll("[data-testid=card]").length;`);
 check(after !== before, `ticking "${chip}" refetches the list (${before} then ${after})`);
 
 await evaluate(`window.__churn = 0; return true;`);
@@ -47,7 +47,7 @@ await click(`[...document.querySelectorAll("button")].find(b => ["Back", "Wróć
 
 await go(`${APP}/manager/runners?runner=${id}`, `document.querySelectorAll("tbody tr").length > 0`);
 await wait(2000);
-check(await evaluate(`return document.querySelector("[class*=Modal-content]") !== null;`),
+check(await evaluate(`return document.querySelector("[data-testid=modal]") !== null;`),
     "and arriving with that link opens the panel by itself");
 check(await evaluate(`return location.search;`).then(s => s.includes(id)),
     "with the address left as the sender wrote it");

@@ -19,7 +19,7 @@ const openContest = async () => {
  * and this activity is a contest.
  */
 const opensAt = () => evaluate(`
-    const card = [...document.querySelectorAll("[class*=Card-root]")]
+    const card = [...document.querySelectorAll("[data-testid=card]")]
         .find(c => c.innerText.startsWith("Runda 1"));
     const found = card ? /Start: ([0-9.]+ [0-9:]+)/.exec(card.innerText) : null;
     return found ? found[1].trim() : null;
@@ -43,7 +43,7 @@ await wait(1500);
 // shift control: this is the ordinary way a round is edited. Earlier rather than
 // later, so the round stays running and only its printed time changes.
 await evaluate(`
-    const item = [...document.querySelectorAll("[class*=Accordion-item]")]
+    const item = [...document.querySelectorAll("[data-testid=accordion-item]")]
         .find(i => i.innerText.includes("Runda 1"));
     const field = [...item.querySelectorAll("input[type=datetime-local]")][0];
     const now = new Date(field.value);
@@ -58,10 +58,10 @@ await wait(800);
 // Runda 1's own Zapisz. There is one per round, and the page-wide lookup this
 // replaced pressed the first — saving the round that ended yesterday while the
 // edit above sat unsaved in Runda 1's form.
-await click(`[...([...document.querySelectorAll("[class*=Accordion-item]")]
+await click(`[...([...document.querySelectorAll("[data-testid=accordion-item]")]
     .find(i => i.innerText.includes("Runda 1"))
     ?.querySelectorAll("button") ?? [])]
-    .find(b => b.textContent.trim() === "Zapisz")`);
+    .find(b => b.dataset.testid === "save")`);
 await wait(3000);
 
 await visit("/activities/AMMPZ-2019/problems", `document.body.innerText.includes("Runda 1")`);
@@ -75,7 +75,7 @@ await shot("six-edit");
 await visit("/activities/AMMPZ-2019/ranking", `document.body.innerText.includes("Ranking")`);
 await wait(2500);
 const tabs = await evaluate(`
-    return [...document.querySelectorAll("[class*=SegmentedControl] label")].map(l => l.textContent.trim());
+    return [...document.querySelectorAll("[data-testid=segmented] label")].map(l => l.textContent.trim());
 `);
 check(tabs.includes("Zbiorczy"), `the picker offers the combined board (${tabs.join(" | ")})`);
 check(tabs.includes("Runda 0 — rozgrzewkowa") && tabs.includes("Runda 1"),
@@ -94,7 +94,7 @@ check(!head.some(h => h.endsWith("*")),
     "unmarked, because an administrator reads past the freeze");
 await shot("six-combined");
 
-await click(`[...document.querySelectorAll("[class*=SegmentedControl] label")]
+await click(`[...document.querySelectorAll("[data-testid=segmented] label")]
     .find(l => l.textContent.trim() === "Runda 0 — rozgrzewkowa")`);
 await wait(2500);
 check(await evaluate(`
@@ -105,14 +105,13 @@ await shot("six-series-board");
 
 // ── 6. The corners ──────────────────────────────────────────────────────────
 const panel = () => evaluate(`
-    const found = [...document.querySelectorAll("[class*=Paper-root]")]
-        .find(p => /Moje zgłoszenia/.test(p.innerText) && getComputedStyle(p).position === "fixed");
+    const found = document.querySelector("[data-testid=submissions-panel]");
     if (!found) return null;
     const box = found.getBoundingClientRect();
     return {
         bottom: Math.round(window.innerHeight - box.bottom),
         right: Math.round(window.innerWidth - box.right),
-        rows: found.querySelectorAll("[class*=row]").length,
+        rows: found.querySelectorAll("[data-testid=submission-row]").length,
         text: found.innerText.replace(/\\s+/g, " ").trim().slice(0, 60),
     };
 `);
@@ -123,7 +122,7 @@ check(collapsed !== null && collapsed.bottom < 40 && collapsed.right < 40,
 check(collapsed !== null && collapsed.rows === 0,
     "and collapsed on arrival");
 
-await click(`[...document.querySelectorAll("[class*=Paper-root] button")]
+await click(`[...document.querySelectorAll("[data-testid=submissions-panel] button")]
     .find(b => /Moje zgłoszenia/.test(b.textContent))`);
 await wait(1500);
 const opened = await panel();

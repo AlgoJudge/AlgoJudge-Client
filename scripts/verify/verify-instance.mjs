@@ -94,7 +94,7 @@ await wait(2000);
 await click(button("Przestań publikować"));
 await wait(2000);
 check(await evaluate(`
-    const navbar = document.querySelector("[class*=AppShell-navbar]");
+    const navbar = document.querySelector("[data-testid=app-navbar]");
     return [...navbar.querySelectorAll("a")].every(a => a.getAttribute("href") !== "/privacy");
 `), "withdrawing it removes it from the navigation at once");
 check(await evaluate(`

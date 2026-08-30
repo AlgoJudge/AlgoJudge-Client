@@ -18,12 +18,12 @@ const body = () => evaluate(`return document.body.innerText;`);
 
 /** One table's rows, by the heading above it. */
 const tableUnder = (heading) => evaluate(`
-    const headings = [...document.querySelectorAll("[class*=AppShell-main] *")]
+    const headings = [...document.querySelectorAll("[data-testid=app-main] *")]
         .filter(e => e.children.length === 0 && e.textContent.trim() === ${JSON.stringify(heading)});
     if (headings.length === 0) return null;
 
     // The nearest table after the heading, in document order.
-    const tables = [...document.querySelectorAll("[class*=AppShell-main] table")];
+    const tables = [...document.querySelectorAll("[data-testid=app-main] table")];
     const after = tables.find(t =>
         headings[0].compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING);
     if (!after) return null;

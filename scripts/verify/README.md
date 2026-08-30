@@ -253,6 +253,47 @@ an element and clicks where it actually is; `shot(name)` writes a screenshot.
 `check` is a soft assertion, so the runner fails the test on its own and would
 do so even if a script ended without calling `report`.
 
+**Find by `data-testid`; judge by the words.** Since 2026-08-30 the containers
+carry stable ids — `modal`, `card`, `paper`, `app-main`, `app-navbar`,
+`accordion-item`, `switch`, `segmented`, `combobox-option`, `notification`,
+`badge`, `alert`, `submissions-panel`, `submission-row`, `footer`,
+`maintenance` — and so do the controls the scripts drive: `save`, `back`,
+`create`, `copy`, `publish`, `pause`/`resume`, `enrol`, `import`, and the rest.
+The containers come from `src/theme.ts` in one place; a control's id sits where
+the control is written.
+
+That replaced 200 of 208 selectors matching Mantine's **generated** class names,
+which reddened on a library upgrade with nothing broken. **Scope by an id, then
+assert on the text**: a check that a wrong password is *reported as a wrong
+password* is about the words and stays a regex. Four things are still matched as
+text on purpose — a person's name, a round's name, `Wstrzymaj`/`Wznów` (one
+control in two states, where the words say which), and the untranslated `Theme`
+menu.
+
+Two traps, both paid for and both in `src/theme.ts`:
+
+- **Do not theme `attributes` on an input.** An entry for the shared
+  `InputWrapper` put its ids on the *pills* of a `TagsInput`; naming the
+  concrete inputs instead moved the leak rather than fixing it. The eight places
+  that scope by a field keep `[class*=InputWrapper-root]`, and they are the only
+  generated-class selectors left.
+- **A modal's close button reads `close-button`, not `modal-close`.** Both
+  classes are on the one element and `CloseButton`'s own attribute wins, so scope
+  it: `[data-testid=modal] [data-testid=close-button]`.
+
+**Time can be jumped, for a script that only needs it to pass.** `open({ clock:
+true })` installs Playwright's virtual clock **before the first navigation** —
+which is not optional: `fixtures/world.ts` computes `START = Date.now()` at
+module load, so a clock installed later describes a different afternoon from the
+fixtures. Then `clock.fastForward("50")` skips the 45 seconds the fake waits
+before opening a round: `results` went from 126 s to 55 s and `boards` from 66 s
+to 25 s.
+
+`notifications` was tried and **reverted**: `fastForward` fires each due timer at
+most once and fakes `requestAnimationFrame`, so a notification's slide-in never
+finishes and its position is read mid-transition. **A script that asserts where
+something ended up cannot share a clock with one that only needs time to pass.**
+
 **Assert against the application, not against a constant.** A check that a name
 matches a string written here only proves the fixture still says what it said;
 one that compares the same fact read from two screens proves they agree. That

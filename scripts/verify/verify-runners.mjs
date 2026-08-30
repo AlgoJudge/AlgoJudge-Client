@@ -7,7 +7,7 @@ const { check, report } = results();
 
 /** A real click where the element actually is; a synthetic one misses rows. */
 const address = () => evaluate(`return location.search;`);
-const panelOpen = () => evaluate(`return document.querySelector("[class*=Modal-content]") !== null;`);
+const panelOpen = () => evaluate(`return document.querySelector("[data-testid=modal]") !== null;`);
 
 await send("Page.setDeviceMetricsOverride", { width: 1400, height: 1000, deviceScaleFactor: 1, mobile: false });
 
@@ -34,7 +34,7 @@ check(/file=/.test(await address()), `the tab is in the address too (${await add
 // in the modal is the public key on the General tab — which is how the first
 // version of this check passed while looking at entirely the wrong element.
 const shown = await evaluate(`
-    const blocks = [...document.querySelectorAll("[class*=Modal-content] code, [class*=Modal-content] pre")]
+    const blocks = [...document.querySelectorAll("[data-testid=modal] code, [data-testid=modal] pre")]
         .filter(element => element.offsetParent !== null);
     return blocks.length ? blocks[blocks.length - 1].textContent.trim() : "";
 `);

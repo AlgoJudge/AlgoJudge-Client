@@ -176,11 +176,11 @@ export default function DocumentsPanel<K extends string, R extends PublishedRef<
                             <Title order={4}>{label(kind)}</Title>
                             <Group gap="xs">
                                 {refsOf(kind).length > 0 && (
-                                    <Button variant="light" color="red" size="compact-sm" loading={busy} onClick={onUnpublish}>
+                                    <Button data-testid="stop-publishing" variant="light" color="red" size="compact-sm" loading={busy} onClick={onUnpublish}>
                                         {t("Stop publishing")}
                                     </Button>
                                 )}
-                                <Button size="compact-sm" loading={busy} onClick={onPublish}>{t("Publish")}</Button>
+                                <Button data-testid="publish" size="compact-sm" loading={busy} onClick={onPublish}>{t("Publish")}</Button>
                             </Group>
                         </Group>
 

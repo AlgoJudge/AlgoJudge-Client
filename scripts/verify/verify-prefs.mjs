@@ -33,7 +33,7 @@ check((await text()).includes("Privacy policy"), "and the language");
 
 // 2 — signing in must not lose either. This is where the second store used to
 //     win, by reapplying whatever it had kept.
-await go(`${APP}/activities?fakeUser=amy`, `document.querySelector("[class*=AppShell-navbar]") !== null`);
+await go(`${APP}/activities?fakeUser=amy`, `document.querySelector("[data-testid=app-navbar]") !== null`);
 await wait(1000);
 check(await scheme() === "dark", "the application shell keeps the scheme chosen before signing in");
 check((await text()).includes("Activities"), "and the language too");

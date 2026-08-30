@@ -2,15 +2,15 @@
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { evaluate, wait, shot, go, visit, click, close } =
-    await open();
+const { evaluate, wait, shot, go, visit, click, close, clock } =
+    await open({ clock: true });
 const { check, report } = results();
 
 const body = () => evaluate(`return document.body.innerText;`);
 const heads = () => evaluate(`
     return [...document.querySelectorAll("th")].map(h => h.textContent.trim());
 `);
-const pick = (label) => click(`[...document.querySelectorAll("[class*=SegmentedControl] label")]
+const pick = (label) => click(`[...document.querySelectorAll("[data-testid=segmented] label")]
     .find(l => l.textContent.trim() === ${JSON.stringify(label)})`);
 
 // ── 1. The combined board carries every available round, frozen included ─────
@@ -71,14 +71,24 @@ check(adds.rows > 0 && adds.bad.length === 0,
     `every penalty is what its own cells add up to (${adds.rows} rows${adds.bad.length ? ": " + adds.bad.join("; ") : ""})`);
 
 // ── 4. A round whose window is shut is still offered, and says from when ─────
+// **The clock is advanced inside the loop, never once before it.**
+//
+// The fake schedules the opening with `setTimeout` when it is constructed, so a
+// single jump taken before the page has got that far fires nothing — and a
+// virtual clock does not advance on its own afterwards, which turns a 45-second
+// wait into an unbounded one. It passed locally and **failed in CI**, where the
+// page mounts slower: `nothing to click: Runda 2`. Ten virtual seconds per turn,
+// after the DOM has been read, so the timer exists by the time time moves.
 // Runda 2 opens 45 s after load and its board is held back until it ends.
 await visit("/activities/AMMPZ-2019/ranking", `document.body.innerText.includes("Ranking")`);
 for (let i = 0; i < 25; i++) {
     const tabs = await evaluate(`
-        return [...document.querySelectorAll("[class*=SegmentedControl] label")].map(l => l.textContent.trim());
+        return [...document.querySelectorAll("[data-testid=segmented] label")].map(l => l.textContent.trim());
     `);
     if (tabs.includes("Runda 2")) break;
-    await wait(3000);
+    // Ten virtual seconds, then a moment of real time to re-render.
+    await clock.fastForward("10");
+    await wait(250);
 }
 await pick("Runda 2");
 await wait(2500);
@@ -95,10 +105,12 @@ await shot("res-held");
 await go(`${APP}/activities/AMMPZ-2019/ranking?fakeUser=amy`, `document.body.innerText.includes("Ranking")`);
 for (let i = 0; i < 25; i++) {
     const tabs = await evaluate(`
-        return [...document.querySelectorAll("[class*=SegmentedControl] label")].map(l => l.textContent.trim());
+        return [...document.querySelectorAll("[data-testid=segmented] label")].map(l => l.textContent.trim());
     `);
     if (tabs.includes("Runda 2")) break;
-    await wait(3000);
+    // Ten virtual seconds, then a moment of real time to re-render.
+    await clock.fastForward("10");
+    await wait(250);
 }
 await pick("Runda 2");
 await wait(2500);

@@ -2,14 +2,14 @@
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { evaluate, wait, shot, go, visit, click, tab, close } = await open();
+const { evaluate, wait, shot, go, visit, click, tab, close, clock } = await open({ clock: true });
 const { check, report } = results();
 
 const body = () => evaluate(`return document.body.innerText;`);
 const heads = () => evaluate(`
     return [...document.querySelectorAll("th")].map(h => h.textContent.trim());
 `);
-const pick = (label) => click(`[...document.querySelectorAll("[class*=SegmentedControl] label")]
+const pick = (label) => click(`[...document.querySelectorAll("[data-testid=segmented] label")]
     .find(l => l.textContent.trim() === ${JSON.stringify(label)})`);
 
 // ── 1. One activity, two windows ────────────────────────────────────────────
@@ -17,14 +17,24 @@ const pick = (label) => click(`[...document.querySelectorAll("[class*=SegmentedC
 // `ranking:read:unfrozen` and reads past a window on purpose.
 await go(`${APP}/activities/AMMPZ-2019/ranking?fakeUser=anowak`, `document.body.innerText.includes("Ranking")`);
 await wait(2500);
+// **The clock is advanced inside the loop, never once before it.**
+//
+// The fake schedules the opening with `setTimeout` when it is constructed, so a
+// single jump taken before the page has got that far fires nothing — and a
+// virtual clock does not advance on its own afterwards, which turns a 45-second
+// wait into an unbounded one. It passed locally and **failed in CI**, where the
+// page mounts slower: `nothing to click: Runda 2`. Ten virtual seconds per turn,
+// after the DOM has been read, so the timer exists by the time time moves.
 // Runda 2 opens 45 s after load and its board is held back until it ends. It is
 // the round with a shut window now that Runda 1's is open and merely frozen.
 for (let i = 0; i < 25; i++) {
     const tabs = await evaluate(`
-        return [...document.querySelectorAll("[class*=SegmentedControl] label")].map(l => l.textContent.trim());
+        return [...document.querySelectorAll("[data-testid=segmented] label")].map(l => l.textContent.trim());
     `);
     if (tabs.includes("Runda 2")) break;
-    await wait(3000);
+    // Ten virtual seconds, then a moment of real time to re-render.
+    await clock.fastForward("10");
+    await wait(250);
 }
 await pick("Runda 2");
 await wait(2500);
@@ -66,7 +76,7 @@ check(!cells.some(c => /^(118|312|331|74|96)$/.test(c)),
 
 // ── The leading columns stay put while the board scrolls sideways ───────────
 const stuck = await evaluate(`
-    const container = document.querySelector("[class*=ScrollContainer], [class*=Table-scrollContainer]")
+    const container = document.querySelector("[data-testid=table-scroll], [data-testid=table-scroll]")
         ?? document.querySelector("[data-scrollable], .mantine-ScrollArea-viewport");
     const nameCell = [...document.querySelectorAll("tbody td")]
         .find(c => /Uniwersytet|Politechnika/.test(c.textContent));
@@ -82,17 +92,16 @@ await wait(1500);
 // against the application rather than against a name written down here — an
 // assignment carries the name its manager gave it, and that name may change.
 const named = await evaluate(`
-    return [...document.querySelectorAll("[class*=Card-root], tbody tr")]
+    return [...document.querySelectorAll("[data-testid=card], tbody tr")]
         .map(c => c.innerText.replace(/\\s+/g, " ").trim())
         .filter(Boolean);
 `);
-await click(`[...document.querySelectorAll("[class*=Paper-root] button")]
+await click(`[...document.querySelectorAll("[data-testid=submissions-panel] button")]
     .find(b => /Moje zgłoszenia/.test(b.textContent))`);
 await wait(1500);
 const row = await evaluate(`
-    const panel = [...document.querySelectorAll("[class*=Paper-root]")]
-        .find(p => /Moje zgłoszenia/.test(p.innerText) && getComputedStyle(p).position === "fixed");
-    const first = panel?.querySelector("[class*=row]");
+    const panel = document.querySelector("[data-testid=submissions-panel]");
+    const first = panel?.querySelector("[data-testid=submission-row]");
     return first ? first.innerText.replace(/\\s+/g, " ").trim() : null;
 `);
 // **The hour, and the one exception is named rather than inferred.**

@@ -22,7 +22,7 @@ export default function MaintenancePage({ away }: { away: ServerAway }) {
 
     return (
         <Container size={560} my={80}>
-            <Paper withBorder p="xl" radius="md">
+            <Paper withBorder p="xl" radius="md" data-testid="maintenance">
                 <Stack gap="sm">
                     <Group gap="xs">
                         <IconTool size={22} />

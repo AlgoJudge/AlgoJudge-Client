@@ -234,7 +234,7 @@ export default function ActivityPage() {
                                 )}
 
                                 <Group>
-                                    <Button
+                                    <Button data-testid="enrol"
                                         leftSection={<IconLogin2 size={16} />}
                                         onClick={() => void enrol()}
                                         loading={busy}

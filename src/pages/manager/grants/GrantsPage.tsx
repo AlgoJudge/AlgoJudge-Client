@@ -409,10 +409,10 @@ export default function GrantsPage() {
                         {error && <Alert color="red">{error}</Alert>}
 
                         <Group justify="space-between">
-                            <Button variant="default" onClick={() => { setDraft(undefined); setError(undefined); }}>
+                            <Button data-testid="back" variant="default" onClick={() => { setDraft(undefined); setError(undefined); }}>
                                 {t("Back")}
                             </Button>
-                            <Button loading={saving} onClick={save}>{t("Save")}</Button>
+                            <Button data-testid="save" loading={saving} onClick={save}>{t("Save")}</Button>
                         </Group>
                     </Stack>
                 )}

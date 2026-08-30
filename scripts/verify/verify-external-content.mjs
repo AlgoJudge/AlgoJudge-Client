@@ -10,7 +10,7 @@ const APP = process.env.APP ?? "http://localhost:5180";
 const { evaluate, wait, shot, go, visit, click, close } = await open();
 const { check, report } = results();
 
-const AREA = `document.querySelector("[class*=AppShell-main]")`;
+const AREA = `document.querySelector("[data-testid=app-main]")`;
 const screen = () => evaluate(`
     const area = ${AREA};
     return (area?.innerText ?? "").replace(/\\s+/g, " ");
@@ -42,7 +42,7 @@ await evaluate(`
     input.dispatchEvent(new Event("input", { bubbles: true }));
     return true;
 `);
-await click(`[...${AREA}.querySelectorAll("button")].find(b => b.textContent.trim() === "Dodaj")`);
+await click(`[...${AREA}.querySelectorAll("button")].find(b => b.dataset.testid === "add")`);
 await wait(1200);
 await reopen();
 
@@ -59,12 +59,12 @@ check(/onlinejudge\.org/.test(added), "and the one that was already there was no
 // check somebody will misread at the worst moment.
 const rows = await evaluate(`
     return [...${AREA}.querySelectorAll("button")]
-        .filter(b => b.textContent.trim() === "Usuń").length;
+        .filter(b => b.dataset.testid === "remove").length;
 `);
 check(rows >= 2, `both hosts offer a way to remove them (${rows})`);
 
 if (rows >= 2) {
-    await click(`[...${AREA}.querySelectorAll("button")].filter(b => b.textContent.trim() === "Usuń")[1]`);
+    await click(`[...${AREA}.querySelectorAll("button")].filter(b => b.dataset.testid === "remove")[1]`);
     await wait(1200);
     await reopen();
 
@@ -81,7 +81,7 @@ if (rows >= 2) {
 // That is the half a browser can see, and the half the gate cannot.
 
 const area = () => evaluate(`
-    return document.querySelector("[class*=AppShell-main]").innerText.replace(/\s+/g, " ");
+    return document.querySelector("[data-testid=app-main]").innerText.replace(/\s+/g, " ");
 `);
 
 const offered = await area();
@@ -92,15 +92,15 @@ check(/Importuj zadania z UVa/i.test(offered), "the screen offers importing by n
 // earlier run happened to leave. What must be true either way is that the screen
 // and the switch agree: refused and explained, or offered and silent.
 const blocked = await evaluate(`
-    const main = document.querySelector("[class*=AppShell-main]");
-    const button = [...main.querySelectorAll("button")].find(b => b.textContent.trim() === "Importuj");
+    const main = document.querySelector("[data-testid=app-main]");
+    const button = [...main.querySelectorAll("button")].find(b => b.dataset.testid === "import");
     return { there: button !== undefined, disabled: button ? button.disabled : null };
 `);
 check(blocked.there, "the import button is on the screen");
 
 // What it reads out of what somebody typed, before anything is sent.
 await evaluate(`
-    const main = document.querySelector("[class*=AppShell-main]");
+    const main = document.querySelector("[data-testid=app-main]");
     const box = main.querySelector("textarea");
     const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").set;
     setter.call(box, "100, 101 272,, 100");

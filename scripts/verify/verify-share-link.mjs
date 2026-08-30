@@ -49,7 +49,7 @@ await shot("link-arrived");
 
 // And it still works: accepting and pressing enrol puts them in.
 await click(`[...document.querySelectorAll("input[type=checkbox]")].at(-1)`);
-await click(`[...document.querySelectorAll("button")].find(b => b.textContent.trim() === "Zapisz się")`);
+await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "enrol")`);
 await wait(3500);
 check(!/Zapisz się na tę aktywność/.test(await body()),
     "the password that came in the link is the one that enrols them");

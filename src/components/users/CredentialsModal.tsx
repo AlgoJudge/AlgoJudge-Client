@@ -73,7 +73,7 @@ export default function CredentialsModal({
                             <Button variant="default" onClick={() => openHandout(credentials, handout)}>
                                 {t("Print")}
                             </Button>
-                            <Button onClick={onClose}>{t("Done")}</Button>
+                            <Button data-testid="done" onClick={onClose}>{t("Done")}</Button>
                         </Group>
                     </Group>
                 </Stack>

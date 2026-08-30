@@ -58,7 +58,7 @@ export function usePage(page) {
  * browser, owning its lifetime, isolating one script from the next, and being
  * startable by something other than a person at a keyboard.
  */
-export async function open({ out = process.env.OUT ?? join(here, "out") } = {}) {
+export async function open({ out = process.env.OUT ?? join(here, "out"), clock = false } = {}) {
     const page = currentPage;
     if (!page) {
         throw new Error(
@@ -248,8 +248,31 @@ export async function open({ out = process.env.OUT ?? join(here, "out") } = {}) 
     // old comment relied on still holds — `sessionStorage` is per tab, so the
     // signed-in user survives inside one script and not between two.
 
+    /**
+     * The virtual clock, and **why it is installed here rather than in a script**.
+     *
+     * `fixtures/world.ts` computes `const START = Date.now()` at module load and
+     * offsets every fixture date from it. Install the clock after the page has
+     * navigated and the fixtures describe one afternoon while the clock
+     * describes another. Installing before `open()` returns makes that ordering
+     * impossible to get wrong.
+     *
+     * `install()` alone does not stop time — that is `pauseAt` — so the page
+     * still loads normally, which is what Playwright's own guidance prescribes.
+     *
+     * **`fastForward` fires each due timer at most once.** Right for the fake,
+     * whose schedule is one-shot `setTimeout`s; a script waiting on a
+     * `setInterval` would see one tick, not many, so check what a fourth script
+     * waits on before opting it in.
+     */
+    if (clock) await page.clock.install();
+
     return {
         send, evaluate, wait, shot, go, visit, click, type, setTextarea, tab, pages,
+        clock: {
+            fastForward: (ticks) => page.clock.fastForward(ticks),
+            runFor: (ticks) => page.clock.runFor(ticks),
+        },
         // The page belongs to the runner, which closes it. Kept so the call
         // sites that end on it do not have to lose the line.
         close: () => { },

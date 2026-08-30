@@ -37,15 +37,15 @@ const fieldIn = (container, label) => `[...((${container})?.querySelectorAll("[c
     .find(w => w.textContent.includes(${JSON.stringify(label)}))`;
 
 /** A `Switch` is not an `InputWrapper`, so it is found by its own root. */
-const switchIn = (container, label) => `[...((${container})?.querySelectorAll("[class*=Switch-root]") ?? [])]
+const switchIn = (container, label) => `[...((${container})?.querySelectorAll("[data-testid=switch]") ?? [])]
     .find(w => w.textContent.includes(${JSON.stringify(label)}))`;
 
 /** The card a section title belongs to, which scopes the settings tab's fields. */
-const cardTitled = (title) => `[...document.querySelectorAll("[class*=Card-root]")]
+const cardTitled = (title) => `[...document.querySelectorAll("[data-testid=card]")]
     .find(c => c.textContent.includes(${JSON.stringify(title)}))`;
 
 /** The tag pills a `TagsInput` is showing. Its value is not in `innerText`. */
-const pillsIn = (wrapper) => `[...((${wrapper})?.querySelectorAll("[class*=Pill-label]") ?? [])]
+const pillsIn = (wrapper) => `[...((${wrapper})?.querySelectorAll("[data-testid=pill-label]") ?? [])]
     .map(p => p.textContent.trim())`;
 
 await send("Page.setDeviceMetricsOverride",
@@ -71,7 +71,7 @@ await click(`[...document.querySelectorAll("tbody tr")]
     ?.querySelector("td [style*=pointer]")`);
 await wait(2500);
 
-const MODAL = `document.querySelector("[class*=Modal-content]")`;
+const MODAL = `document.querySelector("[data-testid=modal]")`;
 check(await evaluate(`return ${MODAL} !== null;`), "the Runner's panel opens");
 
 const runnerPanel = await evaluate(`return ${MODAL}?.innerText ?? "";`);
@@ -95,7 +95,7 @@ await click(`[...document.querySelectorAll("tbody tr")]
 await wait(2500);
 
 /** Each round's own block: the course holds two, with the same controls. */
-const blockOf = (name) => `[...document.querySelectorAll("[class*=Accordion-item]")]
+const blockOf = (name) => `[...document.querySelectorAll("[data-testid=accordion-item]")]
     .find(i => i.innerText.startsWith(${JSON.stringify(name)}))`;
 
 const examOwn = await evaluate(
@@ -169,7 +169,7 @@ await wait(1200);
 // of passing that says nothing at all.
 await click(`[...(([...document.querySelectorAll("[role=tabpanel]")]
     .find(p => p.offsetParent !== null))?.querySelectorAll("button") ?? [])]
-    .find(b => b.textContent.trim() === "Zapisz")`);
+    .find(b => b.dataset.testid === "save")`);
 await wait(3000);
 
 const after = await evaluate(`return (${activityCard})?.innerText ?? "";`);

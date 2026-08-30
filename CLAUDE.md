@@ -205,6 +205,21 @@ gate.
 - WebSocket accelerates updates; REST remains the reproducible source of state.
 - Do not move code-execution logic into the Client.
 
+## Test ids (2026-08-30)
+
+**Find by `data-testid`, judge by the words.** The containers get theirs from
+`src/theme.ts` — one file, through Mantine's `attributes`, so a modal, card,
+paper, switch or accordion item is addressable without matching a generated
+class name. A control the browser checks drive gets an id where it is written:
+`save`, `back`, `create`, `copy`, `publish`, `pause`, `resume`, `enrol`.
+
+An id is for **finding**. Text is for **judging** — a check that a wrong password
+is reported as a wrong password is about the words, and stays a regex.
+
+**Never put `attributes` on an input in the theme.** They leak into the parts the
+input renders: an entry for `InputWrapper` put its ids on a `TagsInput`'s pills,
+and naming the concrete inputs instead only moved the leak. Both measured.
+
 ## Colours (2026-08-29)
 
 Both schemes are supported and both are shipped, so **a surface colour is never

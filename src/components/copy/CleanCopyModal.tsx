@@ -116,8 +116,8 @@ export default function CleanCopyModal({
                 )}
 
                 <Group justify="flex-end">
-                    <Button variant="default" onClick={onClose}>{t("Back")}</Button>
-                    <Button
+                    <Button data-testid="back" variant="default" onClick={onClose}>{t("Back")}</Button>
+                    <Button data-testid="copy"
                         disabled={!ready || busy}
                         loading={busy}
                         onClick={() => onConfirm({

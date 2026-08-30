@@ -5,6 +5,7 @@ import { shikiAdapter } from './components/codehighlight/shikiAdapter';
 import './App.css';
 
 import { MantineProvider } from '@mantine/core';
+import { theme } from './theme';
 import { Notifications } from '@mantine/notifications';
 import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { lazy, ReactNode } from 'react';
@@ -250,7 +251,7 @@ function App() {
     ], { basename: import.meta.env.BASE_URL });
 
     return (
-            <MantineProvider>
+            <MantineProvider theme={theme}>
                 <CodeHighlightAdapterProvider adapter={shikiAdapter}>
                 <ApiProvider>
                     {/* Above the session, because an outage breaks the login

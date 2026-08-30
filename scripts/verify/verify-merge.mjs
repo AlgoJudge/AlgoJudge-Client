@@ -29,7 +29,7 @@ const body = () => evaluate(`return document.body.innerText;`);
  * leak in through the select either.
  */
 const dialog = () => evaluate(`
-    const modal = document.querySelector("[class*=Modal-content]");
+    const modal = document.querySelector("[data-testid=modal]");
     return modal ? modal.innerText : "";
 `);
 
@@ -65,8 +65,8 @@ check(/Przenieś dorobek tego konta/i.test(opened),
 // merge with no preview behind it is the mistake this screen exists to stop.
 
 const beforeChoosing = await evaluate(`
-    const button = [...document.querySelectorAll("[class*=Modal-content] button")]
-        .find(b => b.textContent.trim() === "Przenieś dorobek");
+    const button = [...document.querySelectorAll("[data-testid=modal] button")]
+        .find(b => b.dataset.testid === "move-work");
     return button ? String(button.disabled) : "no button";
 `);
 check(beforeChoosing === "true",
@@ -74,11 +74,11 @@ check(beforeChoosing === "true",
 
 // ── 3. Choosing one states what would move, and onto whom ───────────────────
 
-await click(`[...document.querySelectorAll("[class*=Modal-content] input")]
+await click(`[...document.querySelectorAll("[data-testid=modal] input")]
     .find(i => i.closest("[class*=InputWrapper-root]")?.textContent.includes("Przenieś na"))`);
 await wait(700);
 const target = await evaluate(`
-    const option = [...document.querySelectorAll("[class*=Combobox-option], [role=option]")][0];
+    const option = [...document.querySelectorAll("[data-testid=combobox-option], [role=option]")][0];
     if (!option) return null;
     const label = option.textContent.trim();
     option.click();
@@ -100,8 +100,8 @@ await shot("merge-preview");
 // ── 4. Only then is the merge offered ───────────────────────────────────────
 
 const afterChoosing = await evaluate(`
-    const button = [...document.querySelectorAll("[class*=Modal-content] button")]
-        .find(b => b.textContent.trim() === "Przenieś dorobek");
+    const button = [...document.querySelectorAll("[data-testid=modal] button")]
+        .find(b => b.dataset.testid === "move-work");
     return button ? String(button.disabled) : "no button";
 `);
 check(afterChoosing === "false",
@@ -112,8 +112,8 @@ check(afterChoosing === "false",
 // The one effect the fake does carry, and the one a manager sees immediately:
 // the account stops working the moment its work leaves.
 
-await click(`[...document.querySelectorAll("[class*=Modal-content] button")]
-    .find(b => b.textContent.trim() === "Przenieś dorobek")`);
+await click(`[...document.querySelectorAll("[data-testid=modal] button")]
+    .find(b => b.dataset.testid === "move-work")`);
 await wait(2500);
 
 const after = await evaluate(`

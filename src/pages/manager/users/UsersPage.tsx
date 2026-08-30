@@ -160,7 +160,7 @@ export default function UsersPage() {
                     </Text>
                 </Stack>
                 <Group gap="xs">
-                    <Button
+                    <Button data-testid="temporary-accounts"
                         variant="light"
                         leftSection={<IconUsersPlus size={16} />}
                         onClick={() => setBulk({ open: true })}
@@ -401,7 +401,7 @@ export default function UsersPage() {
                                     onChange={setTags}
                                 />
                                 <Group justify="flex-end">
-                                    <Button
+                                    <Button data-testid="save"
                                         size="compact-sm"
                                         variant="light"
                                         loading={busy}
@@ -447,7 +447,7 @@ export default function UsersPage() {
                                     >
                                         {t("Reset the password")}
                                     </Button>
-                                    <Button variant="default" onClick={() => setSelected(undefined)}>{t("Back")}</Button>
+                                    <Button data-testid="back" variant="default" onClick={() => setSelected(undefined)}>{t("Back")}</Button>
                                 </Group>
                             </Stack>
                         </Tabs.Panel>
@@ -610,7 +610,7 @@ export default function UsersPage() {
                         {t("A local account keeps its password here. Everyone else signs in through the identity provider.")}
                     </Alert>
                     <Group justify="space-between">
-                        <Button variant="default" onClick={() => setCreating(false)}>{t("Back")}</Button>
+                        <Button data-testid="back" variant="default" onClick={() => setCreating(false)}>{t("Back")}</Button>
                         <Button
                             loading={busy}
                             disabled={!draft.username.trim()}

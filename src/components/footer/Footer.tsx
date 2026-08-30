@@ -100,7 +100,7 @@ function Footer() {
     // the text of a document and the links of the footer were drawn on top of
     // each other and neither could be read.
     return (
-        <div className={classes.footer}>
+        <div className={classes.footer} data-testid="footer">
             <Container className={classes.inner}>
                 <Link to="/"><Logo /></Link>
                 <Group className={classes.links}>{items3}</Group>

@@ -269,7 +269,7 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                         </Accordion.Control>
                         {/* One click from the list: stopping a round should not
                             need the series opened first. */}
-                        <Button
+                        <Button data-testid="series-pause-toggle"
                             variant={s.pausedAt ? "filled" : "light"}
                             color={s.pausedAt ? "teal" : "orange"}
                             size="compact-sm"
@@ -514,7 +514,7 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                                             >
                                                 {t("Delete")}
                                             </Button>
-                                            <Button
+                                            <Button data-testid="save"
                                                 size="compact-sm"
                                                 loading={busy}
                                                 disabled={locked}
@@ -692,8 +692,8 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                             onChange={endDate => setCreating({ ...creating, endDate })}
                         />
                         <Group justify="space-between">
-                            <Button variant="default" onClick={() => setCreating(undefined)}>{t("Back")}</Button>
-                            <Button
+                            <Button data-testid="back" variant="default" onClick={() => setCreating(undefined)}>{t("Back")}</Button>
+                            <Button data-testid="save"
                                 loading={busy}
                                 onClick={() => run(async () => {
                                     await call(api => api.managerApi.createSeries(activity.id, creating));
@@ -837,10 +837,10 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                             onChange={props => setAttachment({ ...attachment, props })}
                         />
                         <Group justify="space-between">
-                            <Button variant="default" onClick={() => { setAttachTo(undefined); setEditing(undefined); }}>
+                            <Button data-testid="back" variant="default" onClick={() => { setAttachTo(undefined); setEditing(undefined); }}>
                                 {t("Back")}
                             </Button>
-                            <Button loading={busy} onClick={saveAttachment}>{t("Save")}</Button>
+                            <Button data-testid="save" loading={busy} onClick={saveAttachment}>{t("Save")}</Button>
                         </Group>
                     </Stack>
                 )}

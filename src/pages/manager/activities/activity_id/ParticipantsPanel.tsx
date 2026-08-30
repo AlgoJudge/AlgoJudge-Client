@@ -168,7 +168,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                             value={newGroup}
                             onChange={event => setNewGroup(event.currentTarget.value)}
                         />
-                        <Button
+                        <Button data-testid="add-group"
                             size="xs"
                             variant="default"
                             disabled={busy || newGroup.trim().length === 0}
@@ -197,7 +197,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                         is held system-wide as readily as in one activity, so it
                         is asked of what the reader holds anywhere. */}
                     {has("user:create:temporary") && grantable.includes("activity:enroll") && (
-                        <Button
+                        <Button data-testid="temporary-accounts"
                             variant="light"
                             leftSection={<IconUsersPlus size={16} />}
                             disabled={activity.archivedAt !== undefined}
@@ -206,7 +206,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                             {t("Temporary accounts")}
                         </Button>
                     )}
-                    <Button
+                    <Button data-testid="enrol-someone"
                         leftSection={<IconPlus size={16} />}
                         disabled={activity.archivedAt !== undefined}
                         onClick={() => setDraft({
@@ -378,8 +378,8 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                             {t("Nobody may grant a permission they do not hold themselves.")}
                         </Alert>
                         <Group justify="space-between">
-                            <Button variant="default" onClick={() => setDraft(undefined)}>{t("Back")}</Button>
-                            <Button loading={busy} onClick={save}>{t("Save")}</Button>
+                            <Button data-testid="back" variant="default" onClick={() => setDraft(undefined)}>{t("Back")}</Button>
+                            <Button data-testid="save" loading={busy} onClick={save}>{t("Save")}</Button>
                         </Group>
                     </Stack>
                 )}

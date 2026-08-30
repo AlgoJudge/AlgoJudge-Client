@@ -19,14 +19,14 @@ const openContest = async () => {
  * `find(b => b.textContent === "Wstrzymaj")` reaches whichever comes first —
  * which is the round that ended yesterday, not the one being fought.
  */
-const round = (name) => `[...document.querySelectorAll("[class*=Accordion-item]")]
+const round = (name) => `[...document.querySelectorAll("[data-testid=accordion-item]")]
     .find(i => i.innerText.startsWith(${JSON.stringify(name)}))`;
 const pressIn = (name, text) => click(
     `[...((${round(name)})?.querySelectorAll("button") ?? [])]
         .find(b => b.textContent.trim() === ${JSON.stringify(text)})`);
 
 /** The shift card, which is one card with a round-picker of its own. */
-const shiftCard = `[...document.querySelectorAll("[class*=Card-root]")]
+const shiftCard = `[...document.querySelectorAll("[data-testid=card]")]
     .find(c => c.innerText.includes("Przesuń trwanie serii"))`;
 
 const readPreview = () => evaluate(`
@@ -57,7 +57,7 @@ const preview = async () => {
 const chooseRound = async (name) => {
     await click(`(${shiftCard})?.querySelector("input")`);
     await wait(700);
-    await click(`[...document.querySelectorAll("[class*=Combobox-option], [role=option]")]
+    await click(`[...document.querySelectorAll("[data-testid=combobox-option], [role=option]")]
         .find(o => o.textContent.trim() === ${JSON.stringify(name)})`);
     await wait(1200);
 };
@@ -87,7 +87,7 @@ check(times !== null && minutesBetween(times[1], times[3]) === 10
     && minutesBetween(times[2], times[4]) === 10,
     "and both instants move by the same ten minutes");
 
-await click(`[...((${shiftCard})?.querySelectorAll("button") ?? [])].find(b => b.textContent.trim() === "Przesuń")`);
+await click(`[...((${shiftCard})?.querySelectorAll("button") ?? [])].find(b => b.dataset.testid === "move")`);
 await wait(3000);
 const after = await preview();
 const moved = /z (\d{2}:\d{2})–/.exec(after ?? "");
@@ -101,15 +101,15 @@ await wait(1500);
 check(/nie przyjmuje zgłoszeń/.test(await body()),
     "pausing says what a pause does before it is confirmed");
 check(await evaluate(`
-    const modal = document.querySelector("[class*=Modal-content]");
+    const modal = document.querySelector("[data-testid=modal]");
     const box = [...(modal?.querySelectorAll("input[type=checkbox]") ?? [])].at(-1);
     return box ? !box.checked : false;
 `), "and offers to hide the statements, unticked");
 await shot("ser-pause");
-await click(`[...document.querySelectorAll("[class*=Modal-content] button")].find(b => b.textContent.trim() === "Wstrzymaj")`);
+await click(`[...document.querySelectorAll("[data-testid=modal] button")].find(b => b.textContent.trim() === "Wstrzymaj")`);
 await wait(3000);
 check(await evaluate(`
-    return [...document.querySelectorAll("[class*=Badge-root]")].some(b => /Wstrzymana/.test(b.textContent));
+    return [...document.querySelectorAll("[data-testid=badge]")].some(b => /Wstrzymana/.test(b.textContent));
 `), "the series says it is stopped");
 
 // The participant sees it, and cannot submit into it.
@@ -137,15 +137,15 @@ await pressIn("Runda 1", "Wznów");
 await wait(1500);
 check(/Przerwa trwa/.test(await body()), "resuming says how long the pause lasted");
 check(await evaluate(`
-    const modal = document.querySelector("[class*=Modal-content]");
+    const modal = document.querySelector("[data-testid=modal]");
     const box = [...(modal?.querySelectorAll("input[type=checkbox]") ?? [])].at(-1);
     return box ? box.checked : false;
 `), "and offers to give the time back, ticked");
-await click(`[...document.querySelectorAll("[class*=Modal-content] button")].find(b => b.textContent.trim() === "Wznów")`);
+await click(`[...document.querySelectorAll("[data-testid=modal] button")].find(b => b.textContent.trim() === "Wznów")`);
 await wait(3000);
 check(await evaluate(`
-    return [...document.querySelectorAll("[class*=Badge-root]")].some(b => /Trwa/.test(b.textContent))
-        && [...document.querySelectorAll("[class*=Badge-root]")].every(b => !/Wstrzymana/.test(b.textContent));
+    return [...document.querySelectorAll("[data-testid=badge]")].some(b => /Trwa/.test(b.textContent))
+        && [...document.querySelectorAll("[data-testid=badge]")].every(b => !/Wstrzymana/.test(b.textContent));
 `), "and the series is running again");
 
 report();

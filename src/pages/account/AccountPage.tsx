@@ -195,7 +195,7 @@ export default function AccountPage() {
                                 : undefined}
                         />
                         <Group justify="flex-end">
-                            <Button loading={busy} disabled={!local} onClick={saveProfile}>{t("Save")}</Button>
+                            <Button data-testid="save" loading={busy} disabled={!local} onClick={saveProfile}>{t("Save")}</Button>
                         </Group>
                     </Stack>
                 </Tabs.Panel>

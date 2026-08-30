@@ -8,7 +8,7 @@ const { evaluate, wait, shot, go, visit, click, type, tab, close } =
 const { check, report } = results();
 
 const navLinks = () => evaluate(`
-    const navbar = document.querySelector("[class*=AppShell-navbar]");
+    const navbar = document.querySelector("[data-testid=app-navbar]");
     return [...(navbar?.querySelectorAll("a") ?? [])].map(a => a.textContent.trim());
 `);
 const body = () => evaluate(`return document.body.innerText;`);
@@ -21,8 +21,8 @@ const body = () => evaluate(`return document.body.innerText;`);
 // 2026-08-20, the first time the suite ran four at a time. Waiting for the card
 // is waiting for a precondition, not for what is asserted below.
 await go(`${APP}/activities?fakeUser=amy`,
-    `[...document.querySelectorAll("[class*=Card-root]")].some(c => c.innerText.includes("PROG-1-LA"))`);
-await click(`[...document.querySelectorAll("[class*=Card-root]")]
+    `[...document.querySelectorAll("[data-testid=card]")].some(c => c.innerText.includes("PROG-1-LA"))`);
+await click(`[...document.querySelectorAll("[data-testid=card]")]
     .find(c => c.innerText.includes("PROG-1-LA"))`);
 await wait(1500);
 check(await evaluate(`return location.pathname === "/activities/PROG-1-LA";`),
@@ -41,7 +41,7 @@ await shot("act-home");
 
 // 2 — an activity with no participant page goes straight to the problems.
 await visit("/activities", `document.body.innerText.includes("AMMPZ-2019")`);
-await click(`[...document.querySelectorAll("[class*=Card-root]")]
+await click(`[...document.querySelectorAll("[data-testid=card]")]
     .find(c => c.innerText.includes("AMMPZ-2019"))`);
 await wait(1500);
 check(await evaluate(`return location.pathname === "/activities/AMMPZ-2019/problems";`),
@@ -59,7 +59,7 @@ check(/Zawody trwają pięć godzin/.test(await body()),
 // 4 — an unlisted activity is in nobody's list until they are in it.
 await visit("/activities", `document.body.innerText.includes("AMMPZ-2019")`);
 const listed = await evaluate(`
-    return [...document.querySelectorAll("[class*=Card-root]")].map(c => c.innerText).join(" | ");
+    return [...document.querySelectorAll("[data-testid=card]")].map(c => c.innerText).join(" | ");
 `);
 check(!listed.includes("PROG-1-LB"),
     "an unlisted activity is absent from the list of somebody not in it");
@@ -84,7 +84,7 @@ await shot("act-enrol");
 // 6 — the wrong password is refused, and says so.
 await click(`[...document.querySelectorAll("input[type=checkbox]")].at(-1)`);
 await type("input[type=password]", "nie-to-haslo");
-await click(`[...document.querySelectorAll("button")].find(b => b.textContent.trim() === "Zapisz się")`);
+await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "enrol")`);
 await wait(2000);
 check(/nieprawidłow/i.test(await body()),
     "a wrong password is refused in words rather than silently");
@@ -93,7 +93,7 @@ check(await evaluate(`return document.querySelector("input[type=password]") !== 
 
 // 7 — the right one puts them in, and the page becomes the participant's.
 await type("input[type=password]", PASSWORD);
-await click(`[...document.querySelectorAll("button")].find(b => b.textContent.trim() === "Zapisz się")`);
+await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "enrol")`);
 await wait(3000);
 check(!/Zapisz się na tę aktywność/.test(await body()),
     "the right password enrols, and the form goes");
@@ -110,7 +110,7 @@ check(await evaluate(`return document.querySelector("input[type=password]") === 
     "an open activity asks for no password");
 check(/Trening otwarty/.test(await body()),
     "and still shows what it wrote for outsiders");
-await click(`[...document.querySelectorAll("button")].find(b => b.textContent.trim() === "Zapisz się")`);
+await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "enrol")`);
 await wait(3000);
 check(await evaluate(`return location.pathname === "/activities/TRENING-OTWARTY/problems";`),
     "enrolling in one with no participant page lands on its problems");
@@ -130,7 +130,7 @@ await visit("/activities/AMMPZ-2019/problems/A",
     `/Dany jest graf|spójny/i.test(document.body.innerText)`);
 check(/Dany jest graf|spójny/i.test(await body()),
     "a problem statement still renders, fetched by reference");
-await click(`[...document.querySelectorAll("[class*=SegmentedControl] label")]
+await click(`[...document.querySelectorAll("[data-testid=segmented] label")]
     .find(l => /Angielski|English/i.test(l.textContent))`);
 await wait(2500);
 check(/graph|connected/i.test(await body()),

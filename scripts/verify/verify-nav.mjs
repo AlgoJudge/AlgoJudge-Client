@@ -21,7 +21,7 @@ const { check, report } = results();
 const settled = async (tries = 40) => {
     for (let i = 0; i < tries; i++) {
         const busy = await evaluate(`
-            return document.querySelector("[class*=Loader-root]") !== null;
+            return document.querySelector("[data-testid=loader]") !== null;
         `);
         if (!busy) return;
         await wait(500);
@@ -29,7 +29,7 @@ const settled = async (tries = 40) => {
 };
 const text = () => evaluate(`return document.body.innerText;`);
 // Mantine draws the navbar as a div with its own class, not as a <nav>.
-const NAVBAR = "[class*=AppShell-navbar]";
+const NAVBAR = "[data-testid=app-navbar]";
 const navLabels = () => evaluate(`
     const navbar = document.querySelector("${NAVBAR}");
     if (!navbar) return [];

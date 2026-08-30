@@ -45,7 +45,7 @@ check(
 // pattern this repository chose deliberately and keeps. Clicking the cell does
 // nothing; the span is the handler.
 const opened = await evaluate(`
-    const rows = [...document.querySelectorAll("[class*=AppShell-main] tbody tr")];
+    const rows = [...document.querySelectorAll("[data-testid=app-main] tbody tr")];
     const clickable = rows[0]?.querySelector("span[style*=pointer]");
     if (!clickable) return false;
     clickable.click();
@@ -66,7 +66,7 @@ check(/\b(10\.0\.5\.\d+|203\.0\.113\.44)\b/.test(detail),
 // what the screen shows — which is what made these two look absent while the
 // address beside them matched.
 const badges = await evaluate(
-    `return [...document.querySelectorAll("[class*=Badge-label]")].map(b => b.textContent);`);
+    `return [...document.querySelectorAll("[data-testid=badge-label]")].map(b => b.textContent);`);
 
 check(badges.includes("01a02001"), `and the browser it named itself (${badges.join(", ")})`);
 check(badges.includes("01a02000"), "and the session it was sent in");

@@ -358,7 +358,7 @@ export default function LtiPlatformsPage() {
                                             </Table.Td>
                                             <Table.Td>
                                                 <Group gap="xs" justify="flex-end" wrap="nowrap">
-                                                    <Button
+                                                    <Button data-testid="who-is-in-course"
                                                         size="xs"
                                                         variant="subtle"
                                                         onClick={() => showRoster(placement)}
@@ -367,7 +367,7 @@ export default function LtiPlatformsPage() {
                                                     </Button>
                                                     {placement.shared && !placement.sharingAcknowledged && (
                                                         <>
-                                                            <Button
+                                                            <Button data-testid="share-one-activity"
                                                                 size="xs"
                                                                 variant="default"
                                                                 loading={busy}
@@ -427,7 +427,7 @@ export default function LtiPlatformsPage() {
                         <Button variant="default" onClick={() => setCopying(undefined)}>
                             {t("Cancel")}
                         </Button>
-                        <Button
+                        <Button data-testid="copy"
                             disabled={!copySlug.trim() || !copyStart || busy}
                             loading={busy}
                             onClick={() => run(async () => {
@@ -461,7 +461,7 @@ export default function LtiPlatformsPage() {
                         <Button variant="default" onClick={() => setAccepting(undefined)}>
                             {t("Cancel")}
                         </Button>
-                        <Button
+                        <Button data-testid="accept-sharing"
                             loading={busy}
                             onClick={async () => {
                                 const id = accepting?.id;
@@ -597,7 +597,7 @@ export default function LtiPlatformsPage() {
                         <Button variant="default" onClick={() => setRosterOf(undefined)}>
                             {t("Close")}
                         </Button>
-                        <Button loading={busy} onClick={() => void enrolFromRoster()}>
+                        <Button data-testid="put-in-activity" loading={busy} onClick={() => void enrolFromRoster()}>
                             {t("Put them in the activity")}
                         </Button>
                     </Group>
@@ -740,7 +740,7 @@ export default function LtiPlatformsPage() {
                             <Button variant="default" onClick={() => setDraft(undefined)}>
                                 {t("Cancel")}
                             </Button>
-                            <Button loading={busy} onClick={() => void save()}>
+                            <Button data-testid="save" loading={busy} onClick={() => void save()}>
                                 {draft.id ? t("Save") : t("Register")}
                             </Button>
                         </Group>

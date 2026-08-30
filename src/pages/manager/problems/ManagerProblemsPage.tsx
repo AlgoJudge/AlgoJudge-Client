@@ -103,7 +103,7 @@ export default function ManagerProblemsPage() {
                     </Text>
                 </Stack>
                 <Group gap="sm">
-                    <Button variant="default" leftSection={<IconUpload size={16} />} onClick={() => setImporting(true)}>
+                    <Button data-testid="import-file" variant="default" leftSection={<IconUpload size={16} />} onClick={() => setImporting(true)}>
                         {t("Import from a file")}
                     </Button>
                     <Button leftSection={<IconPlus size={16} />} onClick={() => setCreating(true)}>
@@ -270,8 +270,8 @@ export default function ManagerProblemsPage() {
                         allowDeselect={false}
                     />
                     <Group justify="space-between">
-                        <Button variant="default" onClick={() => setCreating(false)}>{t("Back")}</Button>
-                        <Button loading={busy} onClick={create}>{t("Save")}</Button>
+                        <Button data-testid="back" variant="default" onClick={() => setCreating(false)}>{t("Back")}</Button>
+                        <Button data-testid="save" loading={busy} onClick={create}>{t("Save")}</Button>
                     </Group>
                 </Stack>
             </Modal>

@@ -119,8 +119,8 @@ export default function TemporaryAccountsModal({
                         clearable
                     />
                     <Group justify="space-between">
-                        <Button variant="default" onClick={onClose}>{t("Back")}</Button>
-                        <Button loading={busy} disabled={!prefix.trim()} onClick={create}>
+                        <Button data-testid="back" variant="default" onClick={onClose}>{t("Back")}</Button>
+                        <Button data-testid="create" loading={busy} disabled={!prefix.trim()} onClick={create}>
                             {t("Create")}
                         </Button>
                     </Group>

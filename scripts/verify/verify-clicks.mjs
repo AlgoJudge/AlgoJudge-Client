@@ -6,7 +6,7 @@ const { send, evaluate, go, click } = await open();
 const { check, report } = results();
 
 const modal = () => evaluate(`
-    const element = document.querySelector("[class*=Modal-content]");
+    const element = document.querySelector("[data-testid=modal]");
     return element ? element.innerText.replace(/\\s+/g, " ").slice(0, 200) : null;
 `);
 /** Every clickable name must say so with the cursor, as the older screens do. */

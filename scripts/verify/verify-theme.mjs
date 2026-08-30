@@ -52,7 +52,7 @@ const churn = await evaluate(`
         }
     }).observe(document.head, { childList: true });
 
-    const burger = document.querySelector("button[class*=mantine-Burger-root]");
+    const burger = document.querySelector("button[data-testid=burger]");
     for (let i = 0; i < 6; i++) {
         burger.click();
         await new Promise(r => setTimeout(r, 120));
@@ -136,8 +136,8 @@ const CARD_CONTRAST = `
         return [255, 255, 255];
     };
 
-    const main = document.querySelector("[class*=AppShell-main]") ?? document.body;
-    return [...main.querySelectorAll("[class*=Card-root]")].map(card => {
+    const main = document.querySelector("[data-testid=app-main]") ?? document.body;
+    return [...main.querySelectorAll("[data-testid=card]")].map(card => {
         const foreground = parse(getComputedStyle(card).color).rgb;
         const background = backgroundOf(card);
         return {

@@ -106,7 +106,7 @@ export default function ManagerActivitiesPage() {
                     </Text>
                 </Stack>
                 <Group gap="sm">
-                    <Button variant="default" leftSection={<IconUpload size={16} />} onClick={() => setImporting(true)}>
+                    <Button data-testid="import-file" variant="default" leftSection={<IconUpload size={16} />} onClick={() => setImporting(true)}>
                         {t("Import from a file")}
                     </Button>
                     <Button leftSection={<IconPlus size={16} />} onClick={() => setCreating(true)}>
@@ -224,7 +224,7 @@ export default function ManagerActivitiesPage() {
                                         >
                                             {t("Open")}
                                         </Button>
-                                        <Button
+                                        <Button data-testid="publish"
                                             variant="subtle"
                                             size="compact-sm"
                                             loading={busy}
@@ -326,8 +326,8 @@ export default function ManagerActivitiesPage() {
                         {t("The rest is edited on the activity itself, with sensible defaults to start from.")}
                     </Text>
                     <Group justify="space-between">
-                        <Button variant="default" onClick={() => setCreating(false)}>{t("Back")}</Button>
-                        <Button loading={busy} onClick={create}>{t("Save")}</Button>
+                        <Button data-testid="back" variant="default" onClick={() => setCreating(false)}>{t("Back")}</Button>
+                        <Button data-testid="save" loading={busy} onClick={create}>{t("Save")}</Button>
                     </Group>
                 </Stack>
             </Modal>

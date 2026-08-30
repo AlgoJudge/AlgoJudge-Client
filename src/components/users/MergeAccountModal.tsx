@@ -165,7 +165,7 @@ export default function MergeAccountModal({ source, candidates, onClose, onMerge
 
                     <Group justify="flex-end">
                         <Button variant="default" onClick={onClose}>{t("Cancel")}</Button>
-                        <Button
+                        <Button data-testid="move-work"
                             color="red"
                             loading={busy}
                             disabled={!preview || blocked}

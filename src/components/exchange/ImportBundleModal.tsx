@@ -266,8 +266,8 @@ export default function ImportBundleModal({ opened, onClose, onImported }: Impor
                 )}
 
                 <Group justify="flex-end">
-                    <Button variant="default" onClick={() => { reset(); onClose(); }}>{t("Back")}</Button>
-                    <Button disabled={!ready || busy} loading={busy} onClick={go}>
+                    <Button data-testid="back" variant="default" onClick={() => { reset(); onClose(); }}>{t("Back")}</Button>
+                    <Button data-testid="import" disabled={!ready || busy} loading={busy} onClick={go}>
                         {t("Import it")}
                     </Button>
                 </Group>

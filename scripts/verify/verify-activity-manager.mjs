@@ -42,7 +42,7 @@ check(await evaluate(`
     return [...document.querySelectorAll("[role=tab]")].some(t => /angielski|english/i.test(t.textContent));
 `), "the rules open with every language they were written in");
 await setTextarea(PL);
-await click(`[...document.querySelectorAll("button")].find(b => b.textContent.trim() === "Opublikuj")`);
+await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "publish")`);
 await wait(3000);
 check(/Wcześniejsze wersje/.test(await body()),
     "publishing keeps the revision it replaced in the history");
@@ -69,7 +69,7 @@ check(link !== null && /\/activities\/PROG-1-LA#PROG1-LA$/.test(link),
     `the share link is the activity's address with the password in the fragment (${link})`);
 check(await evaluate(`
     const switches = [...document.querySelectorAll("input[type=checkbox]")];
-    return switches.some(s => s.checked && s.closest("label, [class*=Switch-root]")
+    return switches.some(s => s.checked && s.closest("label, [data-testid=switch]")
         ?.textContent.includes("Ukryj"));
 `), "and the activity is marked as hidden from the list");
 await shot("mact-settings");
@@ -84,7 +84,7 @@ await shot("mact-settings");
 // worth anything here.
 const roster = () => evaluate(`
     const found = [...document.querySelectorAll("input[type=checkbox]")]
-        .find(s => s.closest("label, [class*=Switch-root]")?.textContent.includes("skład grupy"));
+        .find(s => s.closest("label, [data-testid=switch]")?.textContent.includes("skład grupy"));
     return found === undefined ? null : found.checked;
 `);
 check(await roster() === true,
@@ -95,7 +95,7 @@ check(await roster() === true,
 // and leaves this form untouched — a way of passing that says nothing.
 await click(`[...(([...document.querySelectorAll("[role=tabpanel]")]
     .find(p => p.offsetParent !== null))?.querySelectorAll("button") ?? [])]
-    .find(b => b.textContent.trim() === "Zapisz")`);
+    .find(b => b.dataset.testid === "save")`);
 await wait(3000);
 
 await visit("/manager/activities", MANAGER_LIST);
@@ -113,7 +113,7 @@ await click(`[...document.querySelectorAll("tbody tr")]
     .find(r => r.innerText.includes("Strona dla uczestników"))
     ?.querySelector("button")`);
 await wait(2500);
-await click(`[...document.querySelectorAll("button")].find(b => b.textContent.trim() === "Przestań publikować")`);
+await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "stop-publishing")`);
 await wait(3000);
 check(await evaluate(`
     const row = [...document.querySelectorAll("tbody tr")].find(r => r.innerText.includes("Strona dla uczestników"));
@@ -122,7 +122,7 @@ check(await evaluate(`
 
 await visit("/activities/PROG-1-LA/problems", `document.body.innerText.length > 0`);
 check(await evaluate(`
-    const navbar = document.querySelector("[class*=AppShell-navbar]");
+    const navbar = document.querySelector("[data-testid=app-navbar]");
     return [...(navbar?.querySelectorAll("a") ?? [])].every(a => a.textContent.trim() !== "Strona aktywności");
 `), "and the entry to it leaves the navigation at once");
 check(await evaluate(`return location.pathname === "/activities/PROG-1-LA/problems";`),
@@ -138,26 +138,26 @@ await click(tab("Uczestnicy"));
 await wait(800);
 const before = await evaluate(`return document.querySelectorAll("tbody tr").length;`);
 check(await evaluate(`
-    return [...document.querySelectorAll("button")].some(b => b.textContent.trim() === "Konta tymczasowe");
+    return [...document.querySelectorAll("button")].some(b => b.dataset.testid === "temporary-accounts");
 `), "an activity offers making temporary accounts from inside it");
-await click(`[...document.querySelectorAll("button")].find(b => b.textContent.trim() === "Konta tymczasowe")`);
+await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "temporary-accounts")`);
 await wait(1200);
 check(await evaluate(`
-    const modal = document.querySelector("[class*=Modal-content]");
+    const modal = document.querySelector("[data-testid=modal]");
     return modal !== null && !/Zapisz do|Enrol into/.test(modal.innerText);
 `), "and does not ask which activity, because it already knows");
 await evaluate(`
-    const modal = document.querySelector("[class*=Modal-content]");
+    const modal = document.querySelector("[data-testid=modal]");
     const prefix = modal.querySelector("input");
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(prefix, "grupa-la");
     prefix.dispatchEvent(new Event("input", { bubbles: true }));
     return true;
 `);
 await wait(500);
-await click(`[...document.querySelectorAll("[class*=Modal-content] button")].find(b => b.textContent.trim() === "Utwórz")`);
+await click(`[...document.querySelectorAll("[data-testid=modal] button")].find(b => b.dataset.testid === "create")`);
 await wait(3500);
 const credentials = await evaluate(`
-    const modal = document.querySelector("[class*=Modal-content]");
+    const modal = document.querySelector("[data-testid=modal]");
     return modal ? modal.innerText : "";
 `);
 check(/username,password/.test(credentials) && /grupa-la-001/.test(credentials),
@@ -165,7 +165,7 @@ check(/username,password/.test(credentials) && /grupa-la-001/.test(credentials),
 check(/jedyny moment|only time/i.test(credentials),
     "and it says so, because there is no second chance");
 await shot("mact-accounts");
-await click(`[...document.querySelectorAll("[class*=Modal-content] button")].find(b => b.textContent.trim() === "Gotowe")`);
+await click(`[...document.querySelectorAll("[data-testid=modal] button")].find(b => b.dataset.testid === "done")`);
 await wait(2500);
 const after = await evaluate(`return document.querySelectorAll("tbody tr").length;`);
 check(after > before,
@@ -195,7 +195,7 @@ await wait(700);
 const dialogue = await evaluate(`
     const text = document.body.innerText;
     const button = [...document.querySelectorAll("button")]
-        .find(b => b.textContent.trim() === "Skopiuj");
+        .find(b => b.dataset.testid === "copy");
     return {
         saysUnpublished: text.includes("nieopublikowana"),
         asksForDate: text.includes("Kiedy zaczyna się pierwsza runda"),
@@ -224,7 +224,7 @@ await wait(300);
 await shot("activity-copy-dialogue");
 
 await click(`[...document.querySelectorAll("button")]
-    .find(b => b.textContent.trim() === "Skopiuj")`);
+    .find(b => b.dataset.testid === "copy")`);
 await wait(900);
 
 const listed = await body();

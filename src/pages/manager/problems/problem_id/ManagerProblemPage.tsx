@@ -338,7 +338,7 @@ export default function ManagerProblemPage() {
                     </Group>
                     <Text size="sm" c="dimmed" ff="monospace">{problem.slug} · {problem.type}</Text>
                 </Stack>
-                <Button variant="default" leftSection={<IconArrowLeft size={16} />} onClick={() => navigate("/manager/problems")}>
+                <Button data-testid="back" variant="default" leftSection={<IconArrowLeft size={16} />} onClick={() => navigate("/manager/problems")}>
                     {t("Back")}
                 </Button>
             </Group>

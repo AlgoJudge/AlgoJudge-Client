@@ -23,13 +23,13 @@ check(await evaluate(`return document.title;`) === `AlgoJudge | ${NAME}`,
 await shot("nm-public");
 
 // 2 — the application shell.
-await go(`${APP}/activities?fakeUser=amy`, `document.querySelector("[class*=AppShell-navbar]") !== null`);
+await go(`${APP}/activities?fakeUser=amy`, `document.querySelector("[data-testid=app-navbar]") !== null`);
 check(await evaluate(`
-    const header = document.querySelector("[class*=AppShell-header]");
+    const header = document.querySelector("[data-testid=app-header]");
     return header ? header.innerText.includes(${JSON.stringify(NAME)}) : false;
 `), "so does somebody signed in");
 check(await evaluate(`
-    const header = document.querySelector("[class*=AppShell-header]");
+    const header = document.querySelector("[data-testid=app-header]");
     const name = [...header.querySelectorAll("p")].find(p => p.textContent.trim() === ${JSON.stringify(NAME)});
     const box = name.getBoundingClientRect();
     return box.right < header.getBoundingClientRect().right;
