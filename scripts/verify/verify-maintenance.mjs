@@ -34,9 +34,12 @@ const body = () => evaluate(`return document.body.innerText;`);
 // there, and failed in CI in 11.4 s — on the assertion rather than on the wait,
 // which is the whole reason this attribute exists.
 //
-// Not reproduced locally, and that is stated rather than glossed: eight runs
-// alone and a full suite at double the workers were all green. What was
-// established is the ordering above, measured under CPU throttling.
+// **An earlier reading of this said the session was not the cause. That was
+// wrong**, and the correction is worth more than the fix: CPU throttling was
+// used as a stand-in for CI load, and it slowed *both* sides of the race
+// equally, so the redirect never won and the sign-in form on screen was read as
+// the answer. It was an intermediate state. The race is between a 300 ms timer
+// and a render, and only one of those is slowed by a busy processor.
 await go(`${APP}/activities?fakeUser=amy&fakeMaintenance=draining`,
     `["away", "open"].includes(document.documentElement.dataset.maintenance ?? "")`);
 await wait(800);
@@ -54,9 +57,28 @@ await shot("maintenance-draining");
 // the whole reason the gate sits above the session: a Server that cannot answer
 // `/account` cannot answer `/identity/login` either, so bouncing somebody to a
 // form that will also fail is the worst answer available.
+//
+// **Signed out first, and this is the fix for a flake that cost two days.**
+// `?fakeUser=` above put the account in `sessionStorage`, and `LoginPage`
+// answers a signed-in visitor with `<Navigate to={destination}>` — which lands
+// on `/activities` and **drops the query string**. The fake reads
+// `?fakeMaintenance=` at call time, 300 ms after the call is made, so whichever
+// of the two resolves first decides what this page becomes. Locally health won
+// and this passed; on a CI runner the redirect won about two runs in three, and
+// health then read an address with no parameter and answered `open`.
+//
+// Clearing the session removes the race rather than tuning it: with no session
+// there is no redirect to lose to, at any speed.
+await evaluate(`sessionStorage.clear(); return true;`);
 await go(`${APP}/login?fakeMaintenance=closed`,
     `["away", "open"].includes(document.documentElement.dataset.maintenance ?? "")`);
 await wait(800);
+
+// The precondition, asserted rather than assumed: with a session here the
+// redirect above is possible and the parameter can be lost, which is the whole
+// of the flake. This fails deterministically if the sign-out is removed.
+check(await evaluate(`return sessionStorage.length === 0 && location.search.includes("fakeMaintenance=closed");`),
+    "the window is reached signed out, so no redirect can take the parameter with it");
 
 const login = await body();
 check(/Trwa przerwa techniczna/i.test(login),
