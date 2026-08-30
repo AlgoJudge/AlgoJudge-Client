@@ -27,7 +27,7 @@ const pressIn = (name, text) => click(
 
 /** The shift card, which is one card with a round-picker of its own. */
 const shiftCard = `[...document.querySelectorAll("[data-testid=card]")]
-    .find(c => c.innerText.includes("Przesuń trwanie serii"))`;
+    .find(c => c.innerText.includes("Przesuń terminy serii"))`;
 
 const readPreview = () => evaluate(`
     const card = ${shiftCard};

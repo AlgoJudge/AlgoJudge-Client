@@ -66,6 +66,46 @@ for (const language of languages) {
     }
 }
 
+// **Every placeholder a string declares must survive its translation.**
+//
+// This is the second defect no other check can see, and it is worse than a
+// missing key: a missing key renders the English, which at least reads. A lost
+// `{{count}}` renders nothing at all - the sentence quietly loses the number it
+// was written to carry - and a *renamed* one renders the literal `{{cout}}` on
+// screen. Neither is visible to lint, to typecheck, or to a build.
+//
+// The key is the English source string, so the placeholders it declares are the
+// contract every language has to keep.
+const PLACEHOLDER = /\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g;
+const declared = (text) => new Set([...String(text).matchAll(PLACEHOLDER)].map(m => m[1]));
+
+for (const language of languages) {
+    const file = join(LOCALES, language, "translation.json");
+    const entries = Object.entries(JSON.parse(readFileSync(file, "utf8")));
+    let wrong = 0;
+
+    for (const [key, value] of entries) {
+        const want = declared(key);
+        if (want.size === 0) continue;
+
+        const got = declared(value);
+        const lost = [...want].filter(name => !got.has(name));
+        const invented = [...got].filter(name => !want.has(name));
+        if (lost.length === 0 && invented.length === 0) continue;
+
+        failed = true;
+        wrong += 1;
+        console.error(`  FAIL ${language}: ${JSON.stringify(key).slice(0, 70)}`);
+        if (lost.length > 0) console.error(`         lost ${lost.map(n => `{{${n}}}`).join(", ")}`);
+        if (invented.length > 0) console.error(`         invented ${invented.map(n => `{{${n}}}`).join(", ")}`);
+    }
+
+    if (wrong === 0) {
+        const carrying = entries.filter(([key]) => declared(key).size > 0).length;
+        console.log(`  ok   ${language}: all ${carrying} string(s) with a placeholder kept it`);
+    }
+}
+
 // Reported, never failed on. A key left behind after a screen was rewritten
 // costs nothing at run time, and failing a build over one would make deleting a
 // screen harder than adding it.

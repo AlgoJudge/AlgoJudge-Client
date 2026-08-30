@@ -46,7 +46,7 @@ await wait(1200);
 check(await scheme() === "light", "the shell switches it back");
 
 await click(`[...document.querySelectorAll("button")].find(b => (b.innerText ?? "").includes("Horsefighter"))`);
-await click(`[...document.querySelectorAll("[role=menuitem]")].find(i => ["Logout", "Wyloguj"].includes(i.textContent.trim()))`);
+await click(`[...document.querySelectorAll("[role=menuitem]")].find(i => ["Sign out", "Wyloguj się"].includes(i.textContent.trim()))`);
 await wait(2000);
 check(await evaluate(`return location.pathname;`) === "/login", "signing out lands on the sign-in screen");
 check(await scheme() === "light", "which shows the scheme the shell was left in");

@@ -69,7 +69,7 @@ await shot("n-home-manager");
 
 await go(`${APP}/activities`, `document.querySelector("${NAVBAR}") !== null && ${READY}`);
 const amyNav = await navLabels();
-check(amyNav.includes("Panel menedżera"), `the shell offers the manager panel (${amyNav.join(", ")})`);
+check(amyNav.includes("Zarządzanie"), `the shell offers the manager panel (${amyNav.join(", ")})`);
 check(await evaluate(`
     const navbar = document.querySelector("${NAVBAR}");
     const isMark = src => src.includes("instance-logo") || src.startsWith("data:image/svg");
@@ -90,7 +90,7 @@ check(!(await evaluate(`return [...document.querySelectorAll("a")].some(a => a.g
     "a participant is not offered the panel");
 await go(`${APP}/activities`, `document.querySelector("${NAVBAR}") !== null && ${READY}`);
 const participantNav = await navLabels();
-check(!participantNav.includes("Panel menedżera"), `the shell hides it too (${participantNav.join(", ")})`);
+check(!participantNav.includes("Zarządzanie"), `the shell hides it too (${participantNav.join(", ")})`);
 
 await go(`${APP}/manager/users`, `document.body.innerText.length > 0 && ${READY}`);
 check((await text()).includes("Nie masz uprawnień"), "a participant asking for the users screen is refused");
