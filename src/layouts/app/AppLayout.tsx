@@ -472,7 +472,7 @@ export default function AppLayout() {
                 </AppShell.Section>
             </AppShell.Navbar>
 
-            <AppShell.Main>
+            <AppShell.Main className={classes.main}>
                 {/* One boundary for every lazily loaded route, rather than one
                     per screen that each has to remember to add. */}
                 <Suspense fallback={<Center my="xl"><Loader size="xl" /></Center>}>

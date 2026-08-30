@@ -257,6 +257,53 @@ Two traps, both paid for:
 problem list, in both schemes. It reads **computed** styles, because the fault
 above is not visible in the source.
 
+## Branding an installation (2026-08-30)
+
+An installation sets **its own colours and typeface**. `docs/specs/INSTANCE_BRANDING.md`
+in the workspace owns the rule; **seven** things reach this repository.
+
+**`MantineProvider` is no longer the outermost provider.** It sits below
+`ApiProvider` and `InstanceProvider`, which is the whole of what makes branding
+possible: it used to be handed a theme four levels above the fetch that says what
+installation this is. Neither of those two renders a Mantine component. It also
+puts the maintenance page **inside** the branded provider, so a Server that has
+withdrawn shows the operator's page rather than ours.
+
+**Absent means untouched, and nothing here writes a default.** A key the
+installation did not set emits no variable, and the CSS carries the old value as
+`var(--aj-…, <what it always was>)`. That is why an unthemed installation is byte
+for byte what it was — not a table of values that match Mantine today and drift
+from it tomorrow. **Never use an `--aj-*` variable without its fallback.**
+
+**`surface` is `--mantine-color-body`, not `--mantine-color-default`.** Read in
+Mantine's stylesheet: `Paper` — and so every `Card` and `Modal` panel — draws its
+background from `--mantine-color-body`, which is also what the `body` element
+uses. They are one variable there, so a page ground that differs from the panels
+needs a second: `--aj-page-bg`, applied in `index.css`.
+
+**A theme that reaches the shell and not the list rows is half a theme.** The
+activity list and the problem list draw their rows from our own CSS on fixed
+palette shades, so the first photographs of a branded installation had a blue
+shell around grey rows — the two screens a participant meets first. They take
+`--aj-surface` and its two blended steps now, and the blend goes **towards the
+theme's own `text`** rather than towards black: stepping a white panel towards
+black turns it plain grey.
+
+**The blend is computed in TypeScript, and every emitted value is a plain hex.**
+`color-mix()` was tried; a background set from one computes to `color(srgb …)`
+rather than `rgb(…)` in Chrome, and the contrast probe read `NaN` off it.
+
+**`InstanceProvider` marks the root `data-instance="loaded"`**, as
+`MaintenanceProvider` marks maintenance. The defaults are drawn while the answer
+is in flight, so *the screen loaded* and *the screen was told what installation
+this is* are two different moments — a check that waits for text reads the
+unbranded colours, and waiting longer is a slower version of the same race.
+
+**The status colours stay ours** — `red`, `orange`, `teal`, `green`, `yellow`,
+`grape`, and the twenty-nine `color="blue"` places, which are information alerts
+and states. A green *wrong answer* is a defect rather than a preference, and no
+validation could catch it because every hex is formally valid.
+
 ## API layer
 
 `src/api/` holds one API layer, not two. `ApiFactory` picks the implementation:

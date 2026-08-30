@@ -29,6 +29,7 @@
   "dependencies": {
     "@algojudge/uva-explorer-react": "^0.2.0",
     "@mantine/code-highlight": "^9.5.2",
+    "@mantine/colors-generator": "^9.5.2",
     "@mantine/core": "^9.5.2",
     "@mantine/hooks": "^9.5.2",
     "@mantine/notifications": "^9.5.2",
@@ -36,6 +37,7 @@
     "@shikijs/langs": "^4.4.3",
     "@tabler/icons-react": "^3.46.0",
     "@vscode/markdown-it-katex": "^1.1.2",
+    "chroma-js": "^3.2.0",
     "dayjs": "^1.11.23",
     "fast-xml-parser": "^5.11.1",
     "fflate": "^0.8.3",

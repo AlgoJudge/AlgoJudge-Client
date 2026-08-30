@@ -9,6 +9,7 @@ import { InstanceDocumentKind, InstanceDocumentRef } from "../../../api/CoreApi"
 import { AccessKey, InstanceSettingsInput } from "../../../api/ManagerApi";
 import { DOCUMENT_KINDS, LOGO_ATTACHMENT } from "../../../api/instanceDocuments";
 import SharedDocumentsPanel from "../../../components/content/DocumentsPanel";
+import AppearancePanel from "./AppearancePanel";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
 import { useInstance } from "../../../provider/instanceContext";
 import { sha256 } from "../../../utils/sha256";
@@ -88,7 +89,7 @@ export default function ManagerInstancePage() {
             <Stack gap={2}>
                 <Title order={2}>{t("Instance")}</Title>
                 <Text size="sm" c="dimmed">
-                    {t("What this installation is called, the mark it shows, and the documents it publishes.")}
+                    {t("What this installation is called, the mark and colours it shows, and the documents it publishes.")}
                 </Text>
             </Stack>
 
@@ -98,6 +99,7 @@ export default function ManagerInstancePage() {
                 <Tabs.List>
                     <Tabs.Tab value="settings">{t("Settings")}</Tabs.Tab>
                     <Tabs.Tab value="mark">{t("Mark")}</Tabs.Tab>
+                    <Tabs.Tab value="appearance">{t("Appearance")}</Tabs.Tab>
                     <Tabs.Tab value="documents">{t("Documents")}</Tabs.Tab>
                 </Tabs.List>
 
@@ -165,6 +167,10 @@ export default function ManagerInstancePage() {
 
                 <Tabs.Panel value="mark" pt="md">
                     <MarkPanel busy={busy} run={run} store={store} />
+                </Tabs.Panel>
+
+                <Tabs.Panel value="appearance" pt="md">
+                    <AppearancePanel busy={busy} run={run} store={store} />
                 </Tabs.Panel>
 
                 <Tabs.Panel value="documents" pt="md">

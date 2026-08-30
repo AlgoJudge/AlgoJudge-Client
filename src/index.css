@@ -1,0 +1,21 @@
+/*
+ * Where an installation's own page ground is applied.
+ *
+ * `Paper` — and so every `Card`, every `Modal` panel — draws its background from
+ * `--mantine-color-body`, and so does the `body` element. They are one variable
+ * in Mantine, which is why an installation wanting a page ground that differs
+ * from its panels needs a second one: `surface` sets `--mantine-color-body` and
+ * `body` sets this.
+ *
+ * **The fallback is the whole compatibility story.** An installation that has
+ * set no theme leaves `--aj-page-bg` undefined, so this reads exactly what it
+ * read before any of it existed. Every `--aj-*` variable in this Client is
+ * written that way, and none of them is ever used without a fallback.
+ *
+ * Loaded after `@mantine/core/styles.css` — `main.tsx` imports `App.tsx`, which
+ * imports Mantine's, before it imports this — so an equal-specificity rule here
+ * wins on source order.
+ */
+body {
+    background-color: var(--aj-page-bg, var(--mantine-color-body));
+}

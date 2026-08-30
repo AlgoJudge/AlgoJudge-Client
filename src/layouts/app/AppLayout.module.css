@@ -24,16 +24,26 @@
     text-align: center;
 }
 
+/* **The working area is a panel, not the page ground.** It was transparent, so
+   it showed whatever `body` had — and an installation whose ground is a pale
+   tint then put the rows on almost their own colour, at a contrast nobody could
+   read. `--mantine-color-body` is the panel colour: white with no theme, and the
+   instance's `surface` with one, so this line changes nothing until a theme
+   sets one. The ground stays visible where a ground belongs — behind the shell. */
+.main {
+    background-color: var(--mantine-color-body);
+}
+
 .navbar {
     padding: var(--mantine-spacing-md);
     display: flex;
     flex-direction: column;
-    background-color: var(--mantine-color-blue-filled);
+    background-color: var(--aj-nav-bg, var(--mantine-color-blue-filled));
     transition: width 200ms;
 }
 
 .divider {
-    border-color: var(--mantine-color-blue-4);
+    border-color: var(--aj-nav-divider, var(--mantine-color-blue-4));
 }
 
 .link {
@@ -41,7 +51,7 @@
     align-items: center;
     text-decoration: none;
     font-size: var(--mantine-font-size-sm);
-    color: var(--mantine-color-white);
+    color: var(--aj-nav-text, var(--mantine-color-white));
     padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
     border-radius: var(--mantine-radius-sm);
     font-weight: 500;
@@ -60,11 +70,15 @@
     }
 
     @mixin hover {
-        background-color: var(--mantine-color-blue-7);
-        color: var(--mantine-color-white);
+        background-color: var(--aj-nav-hover, var(--mantine-color-blue-7));
+        /* The instance's accent where it has one. An accent is a small
+           highlight on a coloured bar, which is exactly what this is; the
+           navigation's own text is the fallback, so nothing moves without a
+           theme. */
+        color: var(--aj-nav-accent, var(--aj-nav-text, var(--mantine-color-white)));
 
         .linkIcon {
-            color: var(--mantine-color-white);
+            color: var(--aj-nav-accent, var(--aj-nav-text, var(--mantine-color-white)));
         }
     }
 
@@ -111,16 +125,16 @@
 .link:global(.active),
 .link:global(.active):hover {
     box-shadow: var(--mantine-shadow-sm);
-    background-color: var(--mantine-color-white);
-    color: var(--mantine-color-blue-filled);
+    background-color: var(--aj-nav-active-bg, var(--mantine-color-white));
+    color: var(--aj-nav-active-text, var(--mantine-color-blue-filled));
 
     .linkIcon {
-        color: var(--mantine-color-blue-filled);
+        color: var(--aj-nav-active-text, var(--mantine-color-blue-filled));
     }
 }
 
 .linkIcon {
-    color: var(--mantine-color-blue-1);
+    color: var(--aj-nav-muted, var(--mantine-color-blue-1));
     margin-right: var(--mantine-spacing-sm);
     width: 25px;
     height: 25px;
@@ -194,19 +208,19 @@
     font-weight: 400;
     line-height: 1.5;
     padding: rem(3px) var(--mantine-spacing-sm);
-    color: var(--mantine-color-blue-1);
+    color: var(--aj-nav-muted, var(--mantine-color-blue-1));
 
     @mixin hover {
-        color: var(--mantine-color-white);
+        color: var(--aj-nav-text, var(--mantine-color-white));
     }
 }
 
 .footLink[aria-current="page"] {
-    color: var(--mantine-color-white);
+    color: var(--aj-nav-text, var(--mantine-color-white));
 }
 
 /* The scrollbar of the middle section, on the navigation's own blue: the default
    grey is drawn for a light surface and all but disappears here. */
 .navbar :global(.mantine-ScrollArea-thumb) {
-    background-color: var(--mantine-color-blue-3);
+    background-color: var(--aj-nav-scrollbar, var(--mantine-color-blue-3));
 }

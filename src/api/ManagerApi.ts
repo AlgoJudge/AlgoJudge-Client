@@ -1,4 +1,4 @@
-import { InstanceDocumentKind, InstanceDocumentRef, InstanceInfo } from "./CoreApi";
+import { InstanceDocumentKind, InstanceDocumentRef, InstanceInfo, ThemeColours } from "./CoreApi";
 import { Event } from "./Event";
 import { StatementRef, UploadedFile } from "./FileApi";
 import { SeriesImportanceScope } from "./seriesImportance";
@@ -1485,6 +1485,47 @@ export interface InstanceLogoInput {
     language?: string;
 }
 
+/**
+ * Setting the theme, by either of its two doors.
+ *
+ * **One mechanism, not two.** This screen's form sends `theme` and the Server
+ * writes the canonical YAML; an operator with a file of their own sends
+ * `fileId`. Both end at the same published file, so there is one thing in force
+ * and one thing to download. Exactly one of the two — a request stating both is
+ * refused, because its author disagrees with themselves.
+ */
+export interface InstanceThemeInput {
+    fileId?: string;
+    theme?: ThemeInput;
+}
+
+/**
+ * What the form sends. **An empty string is absent**: the form sends every
+ * field and an untouched one means the product's default rather than a colour.
+ */
+export interface ThemeInput {
+    light?: ThemeColours;
+    dark?: ThemeColours;
+    fontFamily?: string;
+    fontFamilyHeadings?: string;
+    fonts?: ThemeFontInput[];
+}
+
+export interface ThemeFontInput {
+    family: string;
+    /** The name the face was uploaded under. Never a path and never a URL. */
+    file: string;
+    weight?: number;
+    style?: string;
+}
+
+/** Publishing one face's file under the name a theme calls it by. */
+export interface InstanceFontInput {
+    fileId: string;
+    /** A file name ending `.woff2`. */
+    name: string;
+}
+
 export type ManagerEventType = "permissionTemplateChanged" | "grantChanged" | "problemChanged"
     | "activityChanged" | "managerSeriesChanged" | "submissionChanged" | "questionChanged" | "userChanged"
     | "runnerChanged" | "instanceChanged";
@@ -1773,6 +1814,24 @@ export interface ManagerApi {
     unpublishInstanceDocument(kind: InstanceDocumentKind, signal: AbortSignal): Promise<InstanceInfo>;
     /** Every revision of one document, newest first, including superseded ones. */
     getInstanceDocumentHistory(kind: InstanceDocumentKind, signal: AbortSignal): Promise<InstanceDocumentRef[]>;
+
+    /**
+     * Sets the operator's colours and typeface, from the form or from a file.
+     * Answers the whole instance, so the shell repaints without being told.
+     */
+    setInstanceTheme(input: InstanceThemeInput, signal: AbortSignal): Promise<InstanceInfo>;
+    /** Withdraws it, and the installation is back on the theme this Client ships. */
+    clearInstanceTheme(signal: AbortSignal): Promise<InstanceInfo>;
+    /**
+     * The faces this installation has stored, whether or not the theme uses
+     * them — `/instance` lists only the ones in force, so a face uploaded and
+     * not yet declared is invisible without this.
+     */
+    getInstanceFonts(signal: AbortSignal): Promise<string[]>;
+    /** Publishes one face. The file was uploaded through `fileApi` first. */
+    addInstanceFont(input: InstanceFontInput, signal: AbortSignal): Promise<InstanceInfo>;
+    /** Withdraws one. Refused while the published theme still draws with it. */
+    removeInstanceFont(name: string, signal: AbortSignal): Promise<InstanceInfo>;
 
     getActivities(filter: ManagedActivityFilter, signal: AbortSignal): Promise<Page<ManagedActivity>>;
     /** Accepts an id or a slug: the manager's URLs read like the participant's. */

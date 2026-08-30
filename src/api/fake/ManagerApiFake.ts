@@ -32,7 +32,9 @@ import {
     AccountMerge,
     ManagedUser,
     MergePreview,
+    InstanceFontInput,
     InstanceLogoInput,
+    InstanceThemeInput,
     AccessKey,
     AccessKeyValue,
     ExternalContent,
@@ -338,6 +340,38 @@ export class ManagerApiFake implements ManagerApi {
     async getInstanceDocumentHistory(kind: InstanceDocumentKind, signal: AbortSignal): Promise<InstanceDocumentRef[]> {
         await this.settle(signal);
         return copy(this.instance.historyOf(kind));
+    }
+
+    async setInstanceTheme(input: InstanceThemeInput, signal: AbortSignal): Promise<InstanceInfo> {
+        await this.settle(signal);
+        if (input.fileId !== undefined && !this.files.has(input.fileId)) {
+            invalid("That file is not stored", "file.missing");
+        }
+        // Read here rather than inside `FakeInstance`: that class is synchronous
+        // and a stored blob is not.
+        const text = input.fileId === undefined ? undefined : await this.files.blob(input.fileId).text();
+        return this.announceInstance(this.instance.setTheme(input, text));
+    }
+
+    async clearInstanceTheme(signal: AbortSignal): Promise<InstanceInfo> {
+        await this.settle(signal);
+        return this.announceInstance(this.instance.clearTheme());
+    }
+
+    async getInstanceFonts(signal: AbortSignal): Promise<string[]> {
+        await this.settle(signal);
+        return this.instance.fontNames();
+    }
+
+    async addInstanceFont(input: InstanceFontInput, signal: AbortSignal): Promise<InstanceInfo> {
+        await this.settle(signal);
+        if (!this.files.has(input.fileId)) invalid("That file is not stored", "file.missing");
+        return this.announceInstance(this.instance.addFont(input));
+    }
+
+    async removeInstanceFont(name: string, signal: AbortSignal): Promise<InstanceInfo> {
+        await this.settle(signal);
+        return this.announceInstance(this.instance.removeFont(name));
     }
 
     /**

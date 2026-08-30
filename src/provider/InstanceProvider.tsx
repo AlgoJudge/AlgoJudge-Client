@@ -45,6 +45,23 @@ export const InstanceProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const api = useApi();
     const { i18n } = useTranslation();
     const [instance, setInstance] = useState<InstanceInfo>(DEFAULTS);
+    const [answered, setAnswered] = useState(false);
+
+    /**
+     * Whether the installation has answered yet, on the root element.
+     *
+     * The same device `MaintenanceProvider` uses and for the same reason: the
+     * defaults are drawn while the answer is in flight, so a screen that has
+     * loaded and a screen that has been *told what installation it is* are two
+     * different moments, and only the document can say which one this is.
+     *
+     * It exists because the browser checks need it — a check that waited for
+     * text and then read a colour was reading the default one, and waiting
+     * longer is not a fix for that, it is a slower version of the same race.
+     */
+    useEffect(() => {
+        document.documentElement.dataset.instance = answered ? "loaded" : "unknown";
+    }, [answered]);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -52,7 +69,11 @@ export const InstanceProvider: FC<{ children: ReactNode }> = ({ children }) => {
             // Merged over the defaults rather than replacing them: an older
             // Server that answers without a field must not remove it.
             .then(info => setInstance({ ...DEFAULTS, ...info }))
-            .catch(() => { /* The defaults are a usable answer. */ });
+            .catch(() => { /* The defaults are a usable answer. */ })
+            // **Answered either way.** A Server that refused is an answer too:
+            // the defaults are what this installation looks like, and a screen
+            // waiting for a success would wait for ever during an outage.
+            .finally(() => { if (!controller.signal.aborted) setAnswered(true); });
 
         // An operator publishing a document or a mark changes what every screen
         // shows — the footer, the navigation, the front page — so the answer is

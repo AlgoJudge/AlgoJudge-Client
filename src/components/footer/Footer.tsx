@@ -1,4 +1,6 @@
-import { Anchor, Center, Container, Group, Menu, useMantineColorScheme } from '@mantine/core';
+import {
+    Anchor, Center, Container, Group, Menu, useComputedColorScheme, useMantineColorScheme,
+} from '@mantine/core';
 import { IconChevronUp } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
@@ -7,6 +9,7 @@ import classes from './Footer.module.css';
 import { useInstance } from '../../provider/instanceContext';
 import { publishedLegalKinds } from '../../api/instanceDocuments';
 import { PROJECT_SITE } from '../../site';
+import { isDarkGround } from '../../branding';
 
 function Footer() {
     // Mantine and i18next each remember their own setting, and the application
@@ -14,6 +17,15 @@ function Footer() {
     // one only meant that whichever screen was mounted last won.
     const { t, i18n } = useTranslation();
     const { setColorScheme } = useMantineColorScheme();
+
+    // **Which ground the mark is on, which the colour scheme cannot answer.**
+    // This bar takes the instance's navigation colour, so it can be a saturated
+    // blue in the *light* scheme — and the mark drawn for paper is then dark ink
+    // on dark blue. With no theme it is the scheme's own answer, unchanged.
+    const scheme = useComputedColorScheme();
+    const { instance: themed } = useInstance();
+    const ground = (scheme === 'dark' ? themed.theme?.dark : themed.theme?.light)?.navBackground;
+    const onDarkGround = ground ? isDarkGround(ground) : scheme === 'dark';
 
     // Which documents exist is the instance's decision, and one that publishes
     // none must not show four dead links. Derived from the references the
@@ -46,7 +58,7 @@ function Footer() {
 
     const items = links.map((link) => (
         <Anchor<'a'>
-            c="dimmed"
+            className={classes.docLink}
             key={link.label}
             href={link.link}
             onClick={(event) => link.prev ? event.preventDefault() : {}}
@@ -88,7 +100,7 @@ function Footer() {
         );
     });
     const legalItems = documents.map(kind => (
-        <Anchor c="dimmed" key={kind} component={Link} to={`/${kind}`} size="sm">
+        <Anchor className={classes.docLink} key={kind} component={Link} to={`/${kind}`} size="sm">
             {t(`legal.${kind}`)}
         </Anchor>
     ));
@@ -102,7 +114,7 @@ function Footer() {
     return (
         <div className={classes.footer} data-testid="footer">
             <Container className={classes.inner}>
-                <Link to="/"><Logo /></Link>
+                <Link to="/"><Logo onDark={onDarkGround} /></Link>
                 <Group className={classes.links}>{items3}</Group>
             </Container>
         </div>
