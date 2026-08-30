@@ -40,9 +40,15 @@ export default function RulesPage() {
 
     return (
         <Stack gap="md">
-            <Title>{t("Rules")}</Title>
+            {/* **The heading only when there is no document.** Every published
+                document opens with its own, so drawing one here too printed
+                "Regulamin" above "Regulamin zawodów". A page with nothing on it
+                still needs to say what it is. */}
             {content === null ? (
-                <Text c="dimmed">{t("This activity publishes no rules.")}</Text>
+                <>
+                    <Title>{t("Rules")}</Title>
+                    <Text c="dimmed">{t("This activity publishes no rules.")}</Text>
+                </>
             ) : (
                 <Suspense fallback={<Center my="xl"><Loader /></Center>}>
                     <ContentView content={content} attachments={[]} />

@@ -1,4 +1,4 @@
-import { Alert, Anchor, Center, Container, Group, Loader, Paper, Stack, Text, Title } from "@mantine/core";
+import { Alert, Anchor, Center, Container, Loader, Paper, Stack, Text, Title } from "@mantine/core";
 import { IconAlertTriangle } from "@tabler/icons-react";
 import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -78,20 +78,22 @@ export default function LegalPage() {
     return (
         <Container size={860}>
             <Stack gap="md">
-                <Group justify="space-between" align="baseline" wrap="wrap">
-                    {/* The heading travels with the reference, so it is drawn
-                        before the text arrives rather than after it. */}
-                    <Title order={2}>{ref.title ?? t(`legal.${kind}`)}</Title>
-                    {/* Not "updated": a document that has been replaced is still
-                        readable at its own date, and what a reader needs to know
-                        is which revision they are looking at. */}
-                    {ref.validFrom && (
-                        <Text size="sm" c="dimmed">
-                            {t("In force since")}:{" "}
-                            <ActivityTime value={ref.validFrom} timeZone="Europe/Warsaw" format="date" hideZone />
-                        </Text>
-                    )}
-                </Group>
+                {/* **No heading of ours.** Every document opens with its own,
+                    so drawing the reference's title above it printed the same
+                    words twice. What is left is the one thing the document
+                    cannot say about itself.
+
+                    The cost is that nothing is on screen until the text
+                    arrives, where the title used to appear first. */}
+                {/* Not "updated": a document that has been replaced is still
+                    readable at its own date, and what a reader needs to know is
+                    which revision they are looking at. */}
+                {ref.validFrom && (
+                    <Text size="sm" c="dimmed">
+                        {t("In force since")}:{" "}
+                        <ActivityTime value={ref.validFrom} timeZone="Europe/Warsaw" format="date" hideZone />
+                    </Text>
+                )}
 
                 {/* A template names nobody real. Saying so where the document is
                     read is the only way a visitor can tell the difference. */}
@@ -101,11 +103,11 @@ export default function LegalPage() {
                     </Alert>
                 )}
 
-                <Paper withBorder p="xl" radius="md">
-                    <Suspense fallback={<Center my="xl"><Loader /></Center>}>
-                        <ContentView content={content} attachments={[]} />
-                    </Suspense>
-                </Paper>
+                {/* Unframed, as on the front page: the document is the
+                    whole of what this address is for. */}
+                <Suspense fallback={<Center my="xl"><Loader /></Center>}>
+                    <ContentView content={content} attachments={[]} />
+                </Suspense>
             </Stack>
         </Container>
     );
