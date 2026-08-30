@@ -40,8 +40,13 @@ ENV USE_FAKE_API="false"
 
 EXPOSE 80
 
+# **127.0.0.1, not `localhost`.** In this image `localhost` resolves to `::1`
+# alone — there is no IPv4 entry in `/etc/hosts` — and nginx's `listen 80;`
+# binds IPv4 only, so the probe asked an address nothing was on: every container
+# reported unhealthy while serving perfectly, and `docker compose --wait` failed
+# on a stack that was up. That is how this was found.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s \
-    CMD wget --quiet --tries=1 --spider http://localhost/ || exit 1
+    CMD wget --quiet --tries=1 --spider http://127.0.0.1/ || exit 1
 
 ENTRYPOINT ["/algojudge-entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]
