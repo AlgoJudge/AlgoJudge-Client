@@ -1,25 +1,38 @@
 # AlgoJudge Client
 
-The web frontend for [AlgoJudge](https://github.com/AlgoJudge), an open-source
-platform for programming contests, courses and automated solution evaluation.
+AlgoJudge is open-source, self-hosted software for programming contests and
+courses, with automatic evaluation of submitted solutions.
 
-One application serves participants, activity managers and administrators, with
-permission-aware views.
+This is its web frontend. One application serves participants, activity managers
+and administrators, with permission-aware views.
 
 ## Status
 
-Early development. Most views are static templates: they render real layouts
-against local fixtures rather than live data.
+Every screen that has something to fetch reads the API. **Measured 2026-08-30**:
+35 of the 45 `.tsx` files under `src/pages/` call `useApi`, `useApiEffect` or
+`useApiCall` (`grep -rl "useApi" src/pages/`). The ten that do not have nothing
+to fetch — the sign-in form, the four LTI outcome pages, the two error pages, the
+manager index, and two sub-components handed a `ManagedSeries` by their parent.
+
+Which implementation answers is a configuration question, not a screen's:
+`ApiFactory` serves the fake or the real HTTP client. See *Running without a
+Server*.
 
 | Area | State |
 |---|---|
-| Activity list, task list, task view | static templates |
-| Submission list, submission details, source code view | static templates |
-| Ranking, questions and announcements | static templates |
-| Manager panel — activities, users, runners | activities reads the API, users and runners are fixtures |
+| Activity list, problem list, problem view | reads the API |
+| Submission list, submission details, source code view | reads the API |
+| Ranking, questions and announcements | reads the API |
+| Manager panel — sixteen screens, from activities to the LTI platforms | reads the API, except the index, which is a menu |
 | Sign in and register | wired to the Server |
-| Live status over WebSocket | not implemented |
-| Renderer registry keyed by `typeId + typeVersion` | not implemented |
+| Live status over WebSocket | `src/api/ws/WebSocketEvents.ts`, mounted as `<EventsProvider>` in `src/App.tsx` |
+| Renderer registry keyed by the `name@version` discriminator | `src/renderers/TypeRegistry.ts`, with the registrations in `src/renderers/index.ts` |
+
+> **This table said something else until 2026-08-30.** It called the first three
+> rows and half the fourth "static templates", and the last two "not
+> implemented", which was true when it was written and had not been true for
+> some time: the registry arrived on 2026-08-03 (`36af927`) and the event socket
+> on 2026-08-06 (`84c6c49`).
 
 ## Technology
 
@@ -52,14 +65,19 @@ Tested on Node 24.20.0 with npm 11.19.0.
 
 On Windows PowerShell use `npm.cmd` if the execution policy blocks `npm.ps1`.
 
-Lint, `lint:deps`, typecheck and build are the gate: all four must exit 0 before
-anything is merged, and CI runs them on every push. The `check:` scripts cover
-the formats the Client owns and run in CI beside them.
+Lint, `lint:deps`, typecheck and build are the gate, and so is every `check:`
+script CI runs. Counted from `.github/workflows/ci.yml` on 2026-08-30: nine
+`check:` steps, all of them in jobs with no `continue-on-error` —
+`check:content`, `check:package`, `check:exchange`, `check:zawodyweb`,
+`check:access`, `check:events`, `check:i18n` and `check:api` in the `build` job,
+and `check:ui` in `browser-checks`. Only `check:api` cannot go red as it is
+invoked: with no OpenAPI document it prints the endpoints and exits 0.
 
-There is a test suite — Playwright, since 2026-08-18 — and it does not gate.
-`npm run check:ui` drives the screens against the fake API and runs in CI as
-`continue-on-error`; `npm run check:e2e` wants a full stack that is already up
-and runs nowhere automatically.
+**`check:ui` gates since 2026-08-30.** It is a Playwright suite, in CI since
+2026-08-18, and it ran with `continue-on-error` until it stopped being able to
+go red without a defect — anything written before that date saying it does not
+gate is out of date. `npm run check:e2e` is the other suite and runs nowhere
+automatically: it wants a full stack that is already up.
 
 ## Configuration
 
@@ -188,17 +206,47 @@ Views never call `fetch` directly. They go through `useApi`, `useApiEffect` or
 
 ## Routes
 
+Forty of them, enumerated from `src/App.tsx` on 2026-08-30. The shell a route
+draws is part of the route tree, so they are grouped by it.
+
+| Shell | Routes |
+|---|---|
+| None — drawn inside a course page, where the platform supplies the chrome | `/lti/launched`, `/lti/failed`, `/lti/sign-in`, `/lti/conflict`, `/lti/choose` |
+| The visitor's | `/login`, `/register` |
+| Whichever the session calls for | `/`, `/terms`, `/privacy`, `/cookies`, `/accessibility` |
+
+Everything below is behind one session guard, and behind `LaunchShell`, which
+draws the confined interface for a tab that arrived through a framed launch.
+
 | Route | View |
 |---|---|
-| `/`, `/login`, `/register` | public shell |
+| `/account` | the account's own page |
 | `/activities` | activity list |
-| `/activities/:activityId/problems` | task list, and `/:problemId` for one task |
+| `/activities/:activityId` | the activity's own page, or the form to enrol |
+| `/activities/:activityId/problems` | problem list, and `/:problemId` for one problem |
 | `/activities/:activityId/submit/:problemId?` | submission form |
 | `/activities/:activityId/submissions` | submission list, `/:submissionId` details, `/code` source |
 | `/activities/:activityId/ranking` | ranking |
 | `/activities/:activityId/questions` | questions and announcements |
 | `/activities/:activityId/rules` | rules |
-| `/manager` | manager panel, with `/activities`, `/users` and `/runners` |
+
+The manager panel is sixteen routes, lazily loaded as one chunk a participant
+never downloads. Each is guarded by the permissions its own entry in
+`src/pages/manager/managerAreas.ts` declares, so a screen cannot be listed in
+the menu under one permission and guarded by another.
+
+| Route | Screen |
+|---|---|
+| `/manager` | the panel's index |
+| `/manager/activities`, `/manager/activities/:activityId` | activities, and one activity |
+| `/manager/problems`, `/manager/problems/:problemId` | the problem library, and one problem |
+| `/manager/submissions`, `/manager/submissions/:submissionId` | submissions, and one submission |
+| `/manager/users`, `/manager/grants`, `/manager/permission-templates` | accounts and what they may do |
+| `/manager/questions` | questions and announcements |
+| `/manager/runners` | Runners |
+| `/manager/instance` | what the installation says about itself |
+| `/manager/external-content` | the hosts the Server may fetch a document from |
+| `/manager/oidc`, `/manager/lti` | identity providers, and LTI platforms |
 
 ## Contributing
 
@@ -206,15 +254,22 @@ Views never call `fetch` directly. They go through `useApi`, `useApiEffect` or
 requests. Run lint, `lint:deps`, typecheck and build before opening one.
 
 Architecture rules that apply here: the Client renders, it never evaluates.
-Untrusted JavaScript from a task package must never be executed, an unknown
-activity or task type must fail into a controlled message rather than break the
-application, and anything delivered over WebSocket must also be reproducible
+Untrusted JavaScript from a problem package must never be executed, an unknown
+activity or problem type must fail into a controlled message rather than break
+the application, and anything delivered over WebSocket must also be reproducible
 through REST.
 
 ## Related repositories
 
 - [AlgoJudge-Server](https://github.com/AlgoJudge/AlgoJudge-Server) — API, persistent state, authorization
 - [AlgoJudge-Runner](https://github.com/AlgoJudge/AlgoJudge-Runner) — isolated execution and evaluation
+- `AlgoJudge-Runner-UVa` — a second Runner, forwarding `uva@1` submissions to `onlinejudge.org`
+- `AlgoJudge-Ops` — the production Compose stack, which is what ships this image to an installation
+- `AlgoJudge-Identity-Keycloak` and `AlgoJudge-Identity-Authentik` — **two**
+  supported identity deployments for `auth.algojudge.app`, neither a fallback for
+  the other. An installation runs one
+
+The last four are private.
 
 ## License
 

@@ -99,22 +99,100 @@ both worth knowing before changing any of it:
 
 ## What they cover
 
+**All 47 of them**, counted with `ls scripts/verify/verify-*.mjs | wc -l` on
+2026-08-30 and grouped by area, because a flat list of 47 is a list nobody reads
+to the end. `ui.spec.mjs` enumerates the directory, so this table is a
+description of the suite and never its definition — a script that is here runs
+whether or not it is named below.
+
+*This section listed fourteen rows and did not say it was a selection*, so a gap
+in the suite and a gap in the table looked the same. Completed 2026-08-30.
+
+**Activities and rounds**
+
 | Script | What it holds to |
 |---|---|
-| `verify-activity` | an activity's own page, self-enrolment, statements by reference |
-| `verify-activity-manager` | the manager's activity screens |
-| `verify-boards` | the ranking window per round, the combined board's columns, the clock |
-| `verify-closed` | what a paused or finished round refuses, from every way in |
-| `verify-notifications` | what is announced, where it sits, where clicking it goes |
+| `verify-activity` | an activity's own page, self-enrolment, and the documents behind both |
+| `verify-activity-manager` | what a manager does to an activity: publishes its documents, sets how people join, makes accounts for a class that has none |
+| `verify-activity-type` | the activity type is chosen from what this Client can present, in the create form and the settings form |
+| `verify-series` | moving a round, stopping it, and being told about it |
+| `verify-settings` | when the standings may be read, and whether a finished round keeps its problems |
+| `verify-closed` | what a paused or finished round shows and still accepts, from every way in |
+| `verify-copy` | copying a round, and being told that a copy is a shape and not a history |
+| `verify-lockdown` | a running round puts the rest out of reach, scoped to its own activity |
+| `verify-points` | what a problem is worth in its round, and what it may be written in |
+| `verify-groups` | several people competing as one, on the manager's screen |
+
+**Problems, statements and submitting**
+
+| Script | What it holds to |
+|---|---|
+| `verify-first` | a brand new problem: statement, attachment and package, published together as version 1 |
+| `verify-menus` | an image menu that offers only images, and a link menu for the rest |
+| `verify-limits` | the limits a participant reads, on the two axes a package states them |
+| `verify-submit-modal` | sending from the submissions panel, and the bar's two controls |
+| `verify-attachments` | what a submission carries, and who may read each part of it |
+| `verify-submission-origin` | the address, browser and session on one submission's detail — and on no list |
+
+**Results and boards**
+
+| Script | What it holds to |
+|---|---|
 | `verify-results` | the results feed: disclosure, the freeze, the asterisk, `extra` |
-| `verify-series` | shifting a round, stopping it, starting it again |
-| `verify-seven`, `verify-six` | two batches of accepted changes, kept as regressions |
-| `verify-submit-modal` | sending from the submissions panel |
-| `verify-sync` | the two halves of the fake agreeing about the same activity |
+| `verify-boards` | the ranking window per round, the combined board's columns, the clock, the panel |
+| `verify-excluded` | a manager rules a submission out of the ranking, and the screens follow |
+| `verify-systemic` | systemic users: not counted, not ranked, still able to submit |
+
+**The shell, navigation and what an installation looks like**
+
+| Script | What it holds to |
+|---|---|
+| `verify-shell` | the shell follows the session — one page, two chromes, no flash of the wrong one |
+| `verify-nav` | the front pages, the instance mark, and navigation obeying permissions |
+| `verify-navbar` | more entries than window: the middle scrolls, the mark and the foot links do not |
+| `verify-clicks` | the name opens the thing it names, on the four screens where it did not |
+| `verify-notifications` | what is announced, where it sits, where clicking it goes |
+| `verify-theme` | the colour scheme applied, remembered, and legible once it is dark |
+| `verify-prefs` | one setting, one store, across the application shell and a public page |
+| `verify-name` | the instance names itself: beside the mark in both shells, and in the tab |
+| `verify-instance` | an operator writes what the instance says about itself, including saying nothing |
+| `verify-maintenance` | what a person sees while the Server is away, and that it covers the login form too |
+
+**Accounts, sessions and links**
+
+| Script | What it holds to |
+|---|---|
+| `verify-login` | a refused sign-in is still reported as refused, not as an unknown failure |
+| `verify-merge` | carrying one account's work onto another, and the preview that guards it |
+| `verify-sessions` | what is connected, what only signed in, and the empty state |
+| `verify-device-id` | the name this browser gives itself: minted, kept, and surviving refused storage |
+| `verify-share-field` | the link a manager copies, under each of the three policies |
+| `verify-share-link` | that link opened by somebody signed out, password intact through the sign-in screen |
+
+**Runners, and work that leaves the building**
+
+| Script | What it holds to |
+|---|---|
+| `verify-runners` | closing the Runner panel takes the Runner out of the address too |
+| `verify-runner-tags` | which Runners judge which work, on the two screens that decide it |
 | `verify-uva` | a problem judged elsewhere: its statement is a copy served from here, and no participant screen reaches another host |
 | `verify-external-judging` | the instance switch that lets work leave the building: off to begin with, and its saved value survives leaving the screen |
 | `verify-external-content` | the hosts the Server may fetch from: added and removed entries survive leaving the screen, and the switch being off is said plainly |
-| `verify-systemic` | systemic users: not counted, not ranked, still able to submit |
+| `verify-lti` | the launched interface: confined to one activity, and honest when it cannot open |
+
+**Carrying an activity, and the fake agreeing with itself**
+
+| Script | What it holds to |
+|---|---|
+| `verify-exchange` | exporting an activity and importing it back, through the real screens |
+| `verify-sync` | the two halves of the fake agreeing about the same activity |
+
+**Kept as regressions**
+
+| Script | What it holds to |
+|---|---|
+| `verify-six`, `verify-seven` | two batches of accepted changes |
+| `verify-deps` | the two dependency lists that changed shape: one refetch, and a link straight to a Runner |
 
 ## A single failure is worth re-running
 
@@ -153,16 +231,24 @@ visible rather than forgotten:
 - **`apiBase.ts`** — that the Client asks `/api/v1` and nothing else. Its check
   needs the **real** HTTP client, which is the opposite of the configuration
   every script here runs under, and there is no orchestration for two servers.
-- **The censoring of an external link in a statement**, and **the instance
+- ~~**The censoring of an external link in a statement**, and **the instance
   mark**. Both had a script; both were failing, and both carry their own copy of
   the harness from before `cdp.mjs` existed. Port them onto it when somebody next
-  touches those screens rather than leaving something red in the suite.
+  touches those screens rather than leaving something red in the suite.~~
+  **Half closed, and the stated reason is gone — 2026-08-30.** The instance mark
+  is covered: `verify-name` asserts it in both shells and in the tab, and
+  `verify-nav` reads it too. The censoring is still uncovered — `ContentView.tsx`
+  replaces a link to an unpermitted host with a `<span>`, and no script here
+  asserts it. But neither is blocked on a harness any more: `grep -L "harness.mjs"
+  scripts/verify/verify-*.mjs` returns nothing, so all 47 import the shared one.
 
-**None of them carries an inline harness any more.** Fifteen did until
-2026-08-18, each a copy of `cdp.mjs`'s internals at whatever revision it was
-pasted at; the move onto Playwright deleted all fifteen, which is where most of
-that change's eleven hundred removed lines came from. A new script imports
-`harness.mjs`, and there is no longer an older way for one to be written in.
+**None of them carries an inline harness any more**, and that is measured rather
+than remembered: `grep -L "harness.mjs" scripts/verify/verify-*.mjs` returned
+nothing on 2026-08-30. Fifteen did until 2026-08-18, each a copy of `cdp.mjs`'s
+internals at whatever revision it was pasted at; the move onto Playwright deleted
+all fifteen, which is where most of that change's eleven hundred removed lines
+came from. A new script imports `harness.mjs`, and there is no longer an older way
+for one to be written in.
 
 ## Traps these encode
 

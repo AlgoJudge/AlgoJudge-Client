@@ -92,26 +92,50 @@ from nineteen.
 | `npm run lint:deps` | dependency lists at every `useApiEffect` call site |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run build` | `tsc && vite build` |
+| `npm run preview` | serve the production build |
 | `npm run check:package` | round-trips a Runner package through the real builder |
 | `npm run check:content` | parses and validates every `content.md` fixture |
+| `npm run check:exchange` | the exchange bundle, and that every field of the four manager shapes is carried or deliberately left |
+| `npm run check:zawodyweb` | the §9 converter, against fixtures written from ZawodyWeb's documented format |
+| `npm run check:access` | when a credential for the problem archive may still be sent |
 | `npm run check:events` | drives the event socket against a stub `WebSocket` |
 | `npm run check:i18n` | every `t("…")` a screen asks for, against every language file |
 | `npm run check:api` | lists every endpoint the HTTP layer calls; checks it against an OpenAPI document when given one |
 | `npm run check:ui` | drives a real browser over the screens, against the fake API |
+| `npm run check:e2e` | one test against a full stack that is already up |
 | `npm run check:browsers` | that closing our browsers does not close anybody else's |
 | `npm run browsers` | `-- list`, `-- stop <pid>`, `-- stop --all` |
 
-Lint, `lint:deps`, typecheck and build are the gate and all four must exit 0
-before anything is merged; the `check:` scripts cover what the Client owns and
-are run when it changes — the two formats (`check:content`, `check:package`),
-the event transport (`check:events`) and the translations (`check:i18n`). All
-four are CI steps.
+**The table above is the whole of `package.json`'s `scripts`**, checked against
+it on 2026-08-30. It listed thirteen of the eighteen until then: `preview`,
+`check:exchange`, `check:zawodyweb`, `check:access` and `check:e2e` were missing.
 
-**There is a test runner now** — Playwright, since 2026-08-18, and it serves two
+**Thirteen npm steps gate, counted from `.github/workflows/ci.yml` on
+2026-08-30.** Lint, `lint:deps`, typecheck and build, then eight `check:` steps
+in the `build` job — `check:content`, `check:package`, `check:exchange`,
+`check:zawodyweb`, `check:access`, `check:events`, `check:i18n`, `check:api` —
+and `check:ui` in `browser-checks`, which is nine `check:` steps in all. No job
+carries `continue-on-error`, so every one of them must exit 0 before anything is
+merged; the `docker` job, which builds the image and checks the nginx fallback,
+blocks on the same terms. `check:api` is the only step that cannot go red as it
+is invoked — see below.
+
+`ci.yml` says *"Keep this list and the one in CLAUDE.md the same"*, and the
+instruction had been broken. This said **four things gate** — lint, `lint:deps`,
+typecheck and build — and named `check:content`, `check:package`, `check:events`
+and `check:i18n` as the CI `check:` steps. Of the nine, `check:exchange`,
+`check:zawodyweb` and `check:access` appeared nowhere in this file at all, and
+`check:api` and `check:ui` were described further down as not gating. So a change
+could break the exchange bundle, the ZawodyWeb converter or the archive
+credential rule and this file would still have called the run complete.
+Corrected 2026-08-30, from `ci.yml` rather than from memory.
+
+**There is a test runner** — Playwright, since 2026-08-18, and it serves two
 suites that must not be confused. `playwright.ui.config.mjs` is `check:ui`: the
 browser checks, against the fake API, with a dev server it starts itself.
 `playwright.config.mjs` is `check:e2e`: one test against a full stack that is
-already up. Neither gates a merge; only the first runs in CI.
+already up. **`check:ui` gates since 2026-08-30**; `check:e2e` runs nowhere
+automatically, because nothing in CI has a stack to point it at.
 
 `check:i18n` catches the one defect none of the others can. **A missing key is
 not an error**: i18next falls back to the key itself, which *is* the English
@@ -202,10 +226,10 @@ gate.
 ## Rules
 
 - One Client supports users, managers, and administrators.
-- New activity and task types use renderer registries.
+- New activity and problem types use renderer registries.
 - Renderers are selected by the type discriminator, one string formatted
-  `name@version` — not two fields. See `renderers/TypeRegistry.ts`.
-- Never execute untrusted code supplied by a task package.
+  `name@version` — not two fields. See `src/renderers/TypeRegistry.ts`.
+- Never execute untrusted code supplied by a problem package.
 - An unknown type must not break the application.
 - WebSocket accelerates updates; REST remains the reproducible source of state.
 - Do not move code-execution logic into the Client.
@@ -321,8 +345,19 @@ configurable again.
 **There is a Server now, and it does not agree with this repository everywhere.**
 `SERVER_CONTRACT.md` records the places where the two cannot both be right —
 three manager reads whose paths carry two different response shapes, a bug in
-`check:api`, and what the Server serves today. Nothing in it has been applied:
-they are proposals. Read it before changing anything under `src/api/http/`.
+`check:api`, and what the Server serves today. Read it before changing anything
+under `src/api/http/`.
+
+**It is a snapshot of 2026-08-08, and the entries it ruled against the Client
+were applied.** This paragraph said *"Nothing in it has been applied: they are
+proposals"* until 2026-08-30. Verified today: entry 2's four manager reads sit
+under `/manager/` in `src/api/http/ManagerApiHttp.ts` —
+`/manager/activities/summary`, `/manager/activities`,
+`/manager/activities/{idOrSlug}` and `/manager/activities/{activityId}/series` —
+and entry 4's `src/api/fake/refuse.ts` exists with `Utils.throwError` deleted,
+`src/api/fake/Utils.ts` saying where it went. What is still open is §12, the
+twelve questions no document settles, one of them since closed; read that
+section rather than the whole file as the open list.
 
 ### The fake's fixtures (2026-08-07)
 

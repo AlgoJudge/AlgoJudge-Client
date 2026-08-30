@@ -48,10 +48,22 @@ const schemaFor = (generic) => {
     return page ? `${page[1]}DtoPageDto` : `${type}Dto`;
 };
 
-/** `${encodeURIComponent(problemId)}` is a path parameter called `problemId`. */
+/**
+ * `${encodeURIComponent(problemId)}` is a path parameter called `problemId`.
+ *
+ * A *trailing* interpolation is an appended query string rather than a segment:
+ * `` `/lti/placements${query}` `` is `GET /lti/placements`, which the Server does
+ * serve. Turning it into `{param}` asked for a path nobody serves, so two
+ * endpoints reported as unserved while the Server served both.
+ *
+ * A slash before it means it is a segment after all, and stays `{param}` — the
+ * Client has no such call today, and this is here so that adding one does not
+ * silently delete the last segment of its path.
+ */
 const toTemplate = (raw) => raw
     .slice(1, -1)
     .replace(/\$\{\s*encodeURIComponent\(\s*([A-Za-z0-9_.]+)\s*\)\s*\}/g, (_, name) => `{${name.split(".").pop()}}`)
+    .replace(/(?<!\/)\$\{[^}]*\}$/, "")
     .replace(/\$\{[^}]*\}/g, "{param}");
 
 const calls = [];
