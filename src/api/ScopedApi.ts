@@ -81,7 +81,9 @@ import {
     SeriesProblemInput,
     UserChangedEvent,
     UserInput,
+    InstanceFontInput,
     InstanceLogoInput,
+    InstanceThemeInput,
     AccessKey,
     AccessKeyValue,
     ExternalContent,
@@ -561,6 +563,22 @@ export class ScopedManagerApi {
     }
     getInstanceDocumentHistory(kind: InstanceDocumentKind): Promise<InstanceDocumentRef[]> {
         return this.managerApi.getInstanceDocumentHistory(kind, this.signal);
+    }
+
+    setInstanceTheme(input: InstanceThemeInput): Promise<InstanceInfo> {
+        return this.managerApi.setInstanceTheme(input, this.signal);
+    }
+    clearInstanceTheme(): Promise<InstanceInfo> {
+        return this.managerApi.clearInstanceTheme(this.signal);
+    }
+    getInstanceFonts(): Promise<string[]> {
+        return this.managerApi.getInstanceFonts(this.signal);
+    }
+    addInstanceFont(input: InstanceFontInput): Promise<InstanceInfo> {
+        return this.managerApi.addInstanceFont(input, this.signal);
+    }
+    removeInstanceFont(name: string): Promise<InstanceInfo> {
+        return this.managerApi.removeInstanceFont(name, this.signal);
     }
 
     getActivities(filter: ManagedActivityFilter = {}): Promise<Page<ManagedActivity>> {

@@ -226,6 +226,22 @@ keeping rather than rewriting.
   card.
 - **Its pills are not in `innerText` either**, for the same reason an input's
   value is not: read `[class*=Pill-label]`.
+- **No backtick in a comment inside a page script.** The probe strings here are
+  template literals, so a backtick anywhere in them — including in prose
+  explaining the code — ends the literal, and the failure is a `SyntaxError`
+  pointing at a line that looks fine. It has cost two runs.
+- **A colour read back from `color-mix()` is not `rgb(...)`.** Chrome computes it
+  to `color(srgb 0.87 0.85 0.79)`, and a parser written for `rgb()` answers
+  `NaN` rather than failing. Assert on values the product emits as plain hex.
+- **A branded colour has to be waited for, not slept on.** The defaults are
+  drawn while `/instance` is in flight, so a script that waits for text and then
+  reads a colour reads the *unbranded* one. Wait on
+  `document.documentElement.dataset.instance === "loaded"`.
+- **`/login` is not the public shell if a session is still in the tab.**
+  `?fakeUser=` writes it to `sessionStorage` and `/login` then redirects into the
+  application, so `document.querySelector("header")` finds `AppShell.Header`
+  instead of the public bar. Clear the session first — and only the session, if
+  the instance's own settings must survive.
 
 ## Writing another
 

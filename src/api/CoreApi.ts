@@ -138,6 +138,89 @@ export interface InstanceInfo {
      * address — only whether the door is open.
      */
     externalJudgingEnabled: boolean,
+    /**
+     * The operator's colours and typeface. **Absent means the installation has
+     * set none**, and the Client draws the theme it ships with.
+     *
+     * The values travel here rather than as a file reference, unlike every
+     * document beside them: the shell needs them before the first paint, and a
+     * second round trip would guarantee a flash of the wrong colours on every
+     * arrival.
+     */
+    theme?: InstanceTheme,
+}
+
+/**
+ * What an installation looks like.
+ *
+ * **Every colour is optional and absent means the product's default** — never
+ * black and never empty. The Server omits a key nobody set rather than sending
+ * `null`, so a reader must treat *not there* and *not set* as one thing.
+ */
+export interface InstanceTheme {
+    light?: ThemeColours,
+    dark?: ThemeColours,
+    fontFamily?: string,
+    fontFamilyHeadings?: string,
+    /** The faces to draw with, already resolved to addresses. */
+    fonts: InstanceFont[],
+    /** The file this was published from, so the panel can offer it back. */
+    fileId: string,
+    sha256: string,
+}
+
+/**
+ * One colour scheme, stated in full.
+ *
+ * A dark scheme worked out from a light one fails a contrast floor
+ * unpredictably, and `verify-theme.mjs` asserts one — so both are set rather
+ * than one derived.
+ */
+export interface ThemeColours {
+    /* Brand. One hex each; the ten Mantine shades are generated from it, which
+       is why one value reaches a pale tile, a rule and dark text on it. */
+    primary?: string,
+    secondary?: string,
+    accent?: string,
+    /**
+     * Its own key rather than a shade of `primary`: in an identity system a
+     * link is usually a different hue, not a lighter brand colour.
+     */
+    link?: string,
+
+    /* Surface and text. */
+    body?: string,
+    surface?: string,
+    text?: string,
+    dimmed?: string,
+    border?: string,
+
+    /* The shell. Hover and muted are mixed from these with `color-mix()` rather
+       than asked for, so they track whatever the operator set. */
+    navBackground?: string,
+    navText?: string,
+    navActiveBackground?: string,
+    navActiveText?: string,
+    headerBackground?: string,
+    headerText?: string,
+}
+
+/**
+ * One font face, as an `@font-face` needs it.
+ *
+ * **The address is the Server's, built from a stored file.** An operator names
+ * a face they uploaded and never writes a URL — which is what keeps a value
+ * somebody typed out of a request somebody else's browser makes.
+ */
+export interface InstanceFont {
+    /** The name the file was published under, and what a theme calls it by. */
+    name: string,
+    family: string,
+    weight: number,
+    style: string,
+    url: string,
+    sha256: string,
+    sizeBytes: number,
 }
 
 /** What a signed-out screen is told about one provider. */

@@ -1,9 +1,20 @@
+/* The public shell's bar. Its three colours come from the instance when it has
+   set them; `var(--aj-…, <what it always was>)` is the fallback, so an
+   installation with no theme is unchanged.
+
+   `light-dark()` inside a `var()` fallback is expanded by
+   `postcss-preset-mantine` — read in the plugin rather than assumed: it keeps
+   the prefix and suffix around the macro, so the two rules it writes are
+   `var(--aj-…, <light>)` and `var(--aj-…, <dark>)`. Both halves stay
+   `light-dark()` declarations, so the specificity that bit on 2026-08-29 is
+   unchanged. */
 .header {
     height: rem(56px);
     /* No margin of its own: the page below it is spaced by its own container,
        and 120 px here put every public page a screenful down. */
-    background-color: var(--mantine-color-body);
-    border-bottom: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+    background-color: var(--aj-header-bg, var(--mantine-color-body));
+    border-bottom: rem(1px) solid
+        var(--aj-header-border, light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4)));
 }
 
 .inner {
@@ -19,7 +30,7 @@
     padding: rem(8px) rem(12px);
     border-radius: var(--mantine-radius-sm);
     text-decoration: none;
-    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+    color: var(--aj-header-text, light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0)));
     font-size: var(--mantine-font-size-sm);
     font-weight: 500;
 

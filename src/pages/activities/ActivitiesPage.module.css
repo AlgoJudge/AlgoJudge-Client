@@ -6,12 +6,18 @@
    than the page while its text was made *lighter*, which is 2.22:1 in the light
    scheme too. It recedes towards the page colour now, and the text softens
    instead of fading out. */
+/* The instance's own surface where it has set one, and the shades this file has
+   always used where it has not. `var(--aj-…, light-dark(a, b))` keeps both
+   halves `light-dark()` declarations — postcss expands the macro inside the
+   fallback and leaves the prefix alone — so the specificity that bit on
+   2026-08-29 is unchanged: `.item` and `.active` still either both use it or
+   neither does. */
 .item {
     margin: var(--mantine-spacing-md);
-    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+    background-color: var(--aj-surface, light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6)));
     padding: var(--mantine-spacing-md) var(--mantine-spacing-xl);
     cursor: pointer;
-    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+    color: var(--aj-dimmed, light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1)));
 
     @mixin hover {
         box-shadow: var(--mantine-shadow-md);
@@ -19,12 +25,12 @@
         z-index: 100000;
         /* Was the background it already had, so hovering moved nothing but the
            shadow. */
-        background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+        background-color: var(--aj-surface-hover, light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5)));
     }
 }
 
 .active {
-    background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+    background-color: var(--aj-surface-active, light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5)));
     /* Was `--mantine-text-color`, which Mantine does not define — the
        declaration was dropped and the colour inherited. Invisible in light,
        where what it inherits is black.
@@ -34,10 +40,10 @@
        rule under `[data-mantine-color-scheme="dark"]`, which outranks a plain
        `.active`. Written as a var, `.item`'s dimmed colour won here in the dark
        scheme only — measured, after this file was "fixed". */
-    color: light-dark(var(--mantine-color-black), var(--mantine-color-dark-0));
+    color: var(--aj-text, light-dark(var(--mantine-color-black), var(--mantine-color-dark-0)));
 
     @mixin hover {
-        background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-4));
+        background-color: var(--aj-surface-hover, light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-4)));
     }
 }
 

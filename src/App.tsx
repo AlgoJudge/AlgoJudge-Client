@@ -4,8 +4,7 @@ import { CodeHighlightAdapterProvider } from '@mantine/code-highlight';
 import { shikiAdapter } from './components/codehighlight/shikiAdapter';
 import './App.css';
 
-import { MantineProvider } from '@mantine/core';
-import { theme } from './theme';
+import { BrandingProvider } from './provider/BrandingProvider';
 import { Notifications } from '@mantine/notifications';
 import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { lazy, ReactNode } from 'react';
@@ -251,9 +250,21 @@ function App() {
     ], { basename: import.meta.env.BASE_URL });
 
     return (
-            <MantineProvider theme={theme}>
+            /* The API first, because everything below asks it something, and it
+               renders nothing of its own. */
+            <ApiProvider>
+                {/* And the instance above the theme, which is the whole of what
+                    lets an installation carry its own colours: `MantineProvider`
+                    was the outermost provider until 2026-08-30 and the instance
+                    was fetched four levels under it, so the theme it was handed
+                    could never depend on the installation.
+
+                    It also puts the maintenance page **inside** the branded
+                    provider, so a Server that has withdrawn shows the operator's
+                    page rather than ours. */}
+                <InstanceProvider>
+                <BrandingProvider>
                 <CodeHighlightAdapterProvider adapter={shikiAdapter}>
-                <ApiProvider>
                     {/* Above the session, because an outage breaks the login
                         screen too: a Server that cannot answer `/account`
                         cannot answer `/identity/login` either. While it is
@@ -265,34 +276,33 @@ function App() {
                         session as the public one. Permissions sit inside the
                         session, because they are a property of it. */}
                     <AuthProvider>
-                        <InstanceProvider>
-                            <PermissionsProvider>
-                                {/* Inside the session, because the socket is
-                                    authenticated by it and lives exactly as
-                                    long. */}
-                                <EventsProvider>
-                                    {/* Bottom **left**: the right-hand corner
-                                        is the submissions panel's, and the
-                                        right-hand edge above it is the
-                                        navigation a notification was landing
-                                        on. */}
-                                    <Notifications position="bottom-left" />
-                                    {/* Inside the session, because the ticket is
-                                        claimed as the person the launch resolved
-                                        to — and above the router, because the
-                                        shell a route draws depends on whether
-                                        this tab is inside a launch. */}
-                                    <LaunchProvider>
-                                        <RouterProvider router={router} />
-                                    </LaunchProvider>
-                                </EventsProvider>
-                            </PermissionsProvider>
-                        </InstanceProvider>
+                        <PermissionsProvider>
+                            {/* Inside the session, because the socket is
+                                authenticated by it and lives exactly as
+                                long. */}
+                            <EventsProvider>
+                                {/* Bottom **left**: the right-hand corner
+                                    is the submissions panel's, and the
+                                    right-hand edge above it is the
+                                    navigation a notification was landing
+                                    on. */}
+                                <Notifications position="bottom-left" />
+                                {/* Inside the session, because the ticket is
+                                    claimed as the person the launch resolved
+                                    to — and above the router, because the
+                                    shell a route draws depends on whether
+                                    this tab is inside a launch. */}
+                                <LaunchProvider>
+                                    <RouterProvider router={router} />
+                                </LaunchProvider>
+                            </EventsProvider>
+                        </PermissionsProvider>
                     </AuthProvider>
                     </MaintenanceProvider>
-                </ApiProvider>
                 </CodeHighlightAdapterProvider>
-            </MantineProvider>
+                </BrandingProvider>
+                </InstanceProvider>
+            </ApiProvider>
     );
 }
 

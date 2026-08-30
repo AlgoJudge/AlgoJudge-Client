@@ -47,11 +47,13 @@ import {
     Trial,
     SeriesProblemInput,
     UserInput,
+    InstanceFontInput,
     InstanceLogoInput,
     AccessKey,
     AccessKeyValue,
     ExternalContent,
     InstanceSettingsInput,
+    InstanceThemeInput,
     NewStatement,
     UserSession,
     UserUpdateInput,
@@ -336,6 +338,27 @@ export class ManagerApiHttp implements ManagerApi {
     getInstanceDocumentHistory(kind: InstanceDocumentKind, signal: AbortSignal): Promise<InstanceDocumentRef[]> {
         return this.http.request<InstanceDocumentRef[]>(
             `/instance/documents/${encodeURIComponent(kind)}`, "GET", { signal });
+    }
+
+    setInstanceTheme(input: InstanceThemeInput, signal: AbortSignal): Promise<InstanceInfo> {
+        return this.http.request<InstanceInfo>("/instance/theme", "PUT", { signal, body: input });
+    }
+
+    clearInstanceTheme(signal: AbortSignal): Promise<InstanceInfo> {
+        return this.http.request<InstanceInfo>("/instance/theme", "DELETE", { signal });
+    }
+
+    getInstanceFonts(signal: AbortSignal): Promise<string[]> {
+        return this.http.request<string[]>("/instance/fonts", "GET", { signal });
+    }
+
+    addInstanceFont(input: InstanceFontInput, signal: AbortSignal): Promise<InstanceInfo> {
+        return this.http.request<InstanceInfo>("/instance/fonts", "POST", { signal, body: input });
+    }
+
+    removeInstanceFont(name: string, signal: AbortSignal): Promise<InstanceInfo> {
+        return this.http.request<InstanceInfo>(
+            `/instance/fonts/${encodeURIComponent(name)}`, "DELETE", { signal });
     }
 
     getActivities(filter: ManagedActivityFilter, signal: AbortSignal): Promise<Page<ManagedActivity>> {
