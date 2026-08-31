@@ -36,7 +36,7 @@ const READY = `document.documentElement.dataset.permissions === "ready"`;
 await send("Page.setDeviceMetricsOverride", { width: 1500, height: 1200, deviceScaleFactor: 1, mobile: false });
 
 // 1 — a manager who does not administer the installation is refused it.
-await go(`${APP}/manager?fakeUser=amy`, `document.body.innerText.includes("Panel") && ${READY}`);
+await go(`${APP}/manager?fakeUser=amy`, `document.body.innerText.includes("Zarządzanie") && ${READY}`);
 check(!await evaluate(`return document.body.innerText.includes("Instancja");`),
     "a manager is not offered the instance screen");
 await go(`${APP}/manager/instance`, `document.body.innerText.length > 100 && ${READY}`);
@@ -91,7 +91,7 @@ await click(`[...document.querySelectorAll("tbody tr")]
     .find(r => r.innerText.includes("Polityka prywatno"))
     ?.querySelector("button")`);
 await wait(2000);
-await click(button("Przestań publikować"));
+await click(button("Cofnij publikację"));
 await wait(2000);
 check(await evaluate(`
     const navbar = document.querySelector("[data-testid=app-navbar]");

@@ -70,7 +70,7 @@ check(link !== null && /\/activities\/PROG-1-LA#PROG1-LA$/.test(link),
 check(await evaluate(`
     const switches = [...document.querySelectorAll("input[type=checkbox]")];
     return switches.some(s => s.checked && s.closest("label, [data-testid=switch]")
-        ?.textContent.includes("Ukryj"));
+        ?.textContent.includes("Nie pokazuj na liście"));
 `), "and the activity is marked as hidden from the list");
 await shot("mact-settings");
 
@@ -144,7 +144,7 @@ await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid
 await wait(1200);
 check(await evaluate(`
     const modal = document.querySelector("[data-testid=modal]");
-    return modal !== null && !/Zapisz do|Enrol into/.test(modal.innerText);
+    return modal !== null && !/Zapisz do|Enrol in/.test(modal.innerText);
 `), "and does not ask which activity, because it already knows");
 await evaluate(`
     const modal = document.querySelector("[data-testid=modal]");
@@ -182,7 +182,7 @@ const offers = await evaluate(`
     const buttons = [...document.querySelectorAll("button")].map(b => b.textContent);
     return {
         copy: buttons.some(text => text.includes("Skopiuj na nową edycję")),
-        withdraw: buttons.some(text => text.includes("Wycofaj")),
+        withdraw: buttons.some(text => text.includes("Cofnij publikację")),
     };
 `);
 check(offers.copy, "an activity can be copied for a new run");

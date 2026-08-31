@@ -65,7 +65,7 @@ check(await evaluate(`
 `), "the rules box is marked required too");
 check(!/akceptuję go — |akceptuję go —/.test(await body()),
     "and its label names the document once, not twice");
-await click(`[...document.querySelectorAll("button")].find(b => /Zapoznałem/.test(b.textContent))`);
+await click(`document.querySelector("[data-testid=rules-link]")`);
 await wait(2500);
 check(await evaluate(`return document.querySelector("[data-testid=modal]") !== null;`),
     "the rules open over the enrolment form");
