@@ -30,7 +30,7 @@ await openSessions("Horsefighter");
 const mine = await panel();
 check(mine.rows.length > 0, `Amy's own account lists sessions (${mine.rows.length})`);
 // Mantine uppercases badge text, so these are matched case-insensitively.
-check(/Aktywna|Active/i.test(mine.text), "one of them is marked active");
+check(/Połączona|Connected/i.test(mine.text), "one of them is marked connected");
 check(/ta sesja|this one/i.test(mine.text), "and the one doing the asking says so");
 check(/×2/.test(mine.text), "two open connections are counted, not flattened to a flag");
 check(/Bez połączenia|Not connected/i.test(mine.text),

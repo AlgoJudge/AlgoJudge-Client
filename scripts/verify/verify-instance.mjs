@@ -91,7 +91,7 @@ await click(`[...document.querySelectorAll("tbody tr")]
     .find(r => r.innerText.includes("Polityka prywatno"))
     ?.querySelector("button")`);
 await wait(2000);
-await click(button("Przestań publikować"));
+await click(button("Cofnij publikację"));
 await wait(2000);
 check(await evaluate(`
     const navbar = document.querySelector("[data-testid=app-navbar]");
