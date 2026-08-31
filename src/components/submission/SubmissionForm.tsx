@@ -63,12 +63,30 @@ export default function SubmissionForm({ activity, problem, series, onSent }: Su
     // A problem change must not carry the previous problem's draft with it —
     // which is now reachable without a route change, because the modal switches
     // problems in place.
+    //
+    // **The slug alone, not `offered`.** That array is new whenever `spec` or
+    // `config` is a new object, and a refetch — a reconnect causes one on every
+    // screen — hands back equal documents with fresh identities. As a dependency
+    // it erased whatever was being typed at the time.
     useEffect(() => {
         setCode("");
         setFile(null);
         setError(undefined);
         setLanguage(offered[0]?.id ?? null);
-    }, [problem.slug, offered]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [problem.slug]);
+
+    // What the assignment offers can change under a reader — a manager editing it
+    // mid-round. The selection then has to stop naming a language that is gone;
+    // the draft stays. Keyed on the ids, because the array is never the same
+    // twice.
+    const offeredIds = offered.map(l => l.id).join("\n");
+    useEffect(() => {
+        setLanguage(current => current !== null && offered.some(l => l.id === current)
+            ? current
+            : (offered[0]?.id ?? null));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [offeredIds]);
 
     // The series this problem belongs to. A round that has not started, was
     // stopped, or has ended is refused here rather than by the Server after
