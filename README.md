@@ -8,25 +8,20 @@ and administrators, with permission-aware views.
 
 ## What it does
 
-Every screen that has something to fetch reads the API: 35 of the 45 `.tsx`
-files under `src/pages/` call `useApi`, `useApiEffect` or `useApiCall`. The ten
-that do not have nothing to fetch — the sign-in form, the four LTI outcome
-pages, the two error pages, the manager index, and two sub-components handed a
-`ManagedSeries` by their parent.
+Every screen that has something to fetch reads the API. Which implementation
+answers is a configuration question rather than a screen's: `ApiFactory` serves
+the fake or the real HTTP client. See *Running without a Server*.
 
-Which implementation answers is a configuration question, not a screen's:
-`ApiFactory` serves the fake or the real HTTP client. See *Running without a
-Server*.
-
-| Area | State |
+| Area | Where |
 |---|---|
-| Activity list, problem list, problem view | reads the API |
-| Submission list, submission details, source code view | reads the API |
-| Ranking, questions and announcements | reads the API |
-| Manager panel — sixteen screens, from activities to the LTI platforms | reads the API, except the index, which is a menu |
+| Activities, problems, submissions, source view, ranking, questions | `src/pages/` |
+| Manager panel — sixteen screens, from activities to the LTI platforms | `src/pages/manager/` |
 | Sign in and register | wired to the Server |
 | Live status over WebSocket | `src/api/ws/WebSocketEvents.ts`, mounted as `<EventsProvider>` in `src/App.tsx` |
-| Renderer registry keyed by the `name@version` discriminator | `src/renderers/TypeRegistry.ts`, with the registrations in `src/renderers/index.ts` |
+| Renderer registry keyed by the `name@version` discriminator | `src/renderers/TypeRegistry.ts`, registered in `src/renderers/index.ts` |
+
+Views never call `fetch` directly. They go through `useApi`, `useApiEffect` or
+`useApiCall`, which supply an `AbortSignal` scoped to the component.
 
 ## Technology
 
@@ -93,6 +88,9 @@ certificate, exporting one through `dotnet dev-certs` if there is none yet. It
 configures the dev server rather than the bundle, and it needs the .NET SDK, so
 it is off by default and plain HTTP is what most work needs.
 
+Every `VITE_`-prefixed value is embedded in the published bundle, so none of
+them can hold a secret.
+
 ### Working against the fake
 
 The fake API carries a few development affordances, all read from the address and
@@ -109,12 +107,9 @@ nothing of the sort.
 
 All three seeded accounts use the password `Test1!`.
 
-Every `VITE_`-prefixed value is embedded in the published bundle, so none of
-them can hold a secret.
-
 ### Where the API is
 
-`/api/v1`, on whatever host serves it. This is not configurable, and the Client
+`/api/v1`, on whatever host serves it. **This is not configurable** — the Client
 appends it itself, so `VITE_APP_API_BASE_URL` names only the origin:
 
 | Configured | The Client asks |
@@ -122,13 +117,6 @@ appends it itself, so `VITE_APP_API_BASE_URL` names only the origin:
 | `https://api.example.com` | `https://api.example.com/api/v1/…` |
 | `/` | `/api/v1/…` — the same origin the application is served from |
 | *(empty)* | nothing: the fake API is used instead |
-
-The path is fixed because the Client and the Server may share a domain, and
-there the API cannot live at the root — the root is the application. A prefix
-that is only sometimes present is one every deployment has to get right on its
-own, and getting it wrong is quiet: the Client asks the right host for the wrong
-path and nginx answers with the application's own `index.html` instead of an
-error.
 
 A value configured in either of the older shapes — ending in `/v1` or `/api/v1`
 — is accepted and normalised rather than refused. See `src/api/http/apiBase.ts`.
@@ -163,8 +151,8 @@ docker run -p 8080:80 -e API_BASE_URL=https://api.example.org \
   ghcr.io/algojudge/algojudge-client:1.2.3
 ```
 
-**One image serves every installation.** The address is
-read from the container's environment when it starts, not from the build:
+**One image serves every installation.** The address is read from the
+container's environment when it starts, not from the build:
 
 | Variable | Meaning |
 |---|---|
@@ -177,8 +165,7 @@ page every browser reads.
 
 The `VITE_APP_*` build arguments still exist and are left empty on purpose. Vite
 inlines them into the bundle, so setting one binds the image to a single
-installation — which is the thing the entrypoint exists to avoid. Build with one
-only if you deliberately want an image that cannot be reconfigured.
+installation — which is the thing the entrypoint exists to avoid.
 
 Building it yourself is the same as what CI does:
 
@@ -204,52 +191,10 @@ src/
 public/locales/ Polish and English translations
 ```
 
-Views never call `fetch` directly. They go through `useApi`, `useApiEffect` or
-`useApiCall`, which supply an `AbortSignal` scoped to the component.
-
-## Routes
-
-Forty of them, in `src/App.tsx`. The shell a route draws is part of the route
-tree, so they are grouped by it.
-
-| Shell | Routes |
-|---|---|
-| None — drawn inside a course page, where the platform supplies the chrome | `/lti/launched`, `/lti/failed`, `/lti/sign-in`, `/lti/conflict`, `/lti/choose` |
-| The visitor's | `/login`, `/register` |
-| Whichever the session calls for | `/`, `/terms`, `/privacy`, `/cookies`, `/accessibility` |
-
-Everything below is behind one session guard, and behind `LaunchShell`, which
-draws the confined interface for a tab that arrived through a framed launch.
-
-| Route | View |
-|---|---|
-| `/account` | the account's own page |
-| `/activities` | activity list |
-| `/activities/:activityId` | the activity's own page, or the form to enrol |
-| `/activities/:activityId/problems` | problem list, and `/:problemId` for one problem |
-| `/activities/:activityId/submit/:problemId?` | submission form |
-| `/activities/:activityId/submissions` | submission list, `/:submissionId` details, `/code` source |
-| `/activities/:activityId/ranking` | ranking |
-| `/activities/:activityId/questions` | questions and announcements |
-| `/activities/:activityId/rules` | rules |
-
-The manager panel is sixteen routes, lazily loaded as one chunk a participant
-never downloads. Each is guarded by the permissions its own entry in
-`src/pages/manager/managerAreas.ts` declares, so a screen cannot be listed in
-the menu under one permission and guarded by another.
-
-| Route | Screen |
-|---|---|
-| `/manager` | the panel's index |
-| `/manager/activities`, `/manager/activities/:activityId` | activities, and one activity |
-| `/manager/problems`, `/manager/problems/:problemId` | the problem library, and one problem |
-| `/manager/submissions`, `/manager/submissions/:submissionId` | submissions, and one submission |
-| `/manager/users`, `/manager/grants`, `/manager/permission-templates` | accounts and what they may do |
-| `/manager/questions` | questions and announcements |
-| `/manager/runners` | Runners |
-| `/manager/instance` | what the installation says about itself |
-| `/manager/external-content` | the hosts the Server may fetch a document from |
-| `/manager/oidc`, `/manager/lti` | identity providers, and LTI platforms |
+The route tree is `src/App.tsx`. The manager panel is lazily loaded as one chunk
+a participant never downloads, and each of its screens is guarded by the
+permissions its own entry in `src/pages/manager/managerAreas.ts` declares — so a
+screen cannot be listed in the menu under one permission and guarded by another.
 
 ## Architecture rules
 
@@ -262,8 +207,9 @@ over WebSocket is also reproducible through REST.
 
 - [AlgoJudge-Server](https://github.com/AlgoJudge/AlgoJudge-Server) — API, persistent state, authorization
 - [AlgoJudge-Runner](https://github.com/AlgoJudge/AlgoJudge-Runner) — isolated execution and evaluation
-- [AlgoJudge-External-Runner](https://github.com/AlgoJudge/AlgoJudge-External-Runner) — a second Runner, forwarding submissions to external judging systems; UVa Online Judge is its one integration, serving `uva@1` against `onlinejudge.org`
+- [AlgoJudge-External-Runner](https://github.com/AlgoJudge/AlgoJudge-External-Runner) — a second Runner, forwarding submissions to external judging systems
 - [AlgoJudge-Ops](https://github.com/AlgoJudge/AlgoJudge-Ops) — the production Compose stack, which is what ships this image to an installation
+- [AlgoJudge-Docs](https://github.com/AlgoJudge/AlgoJudge-Docs) — the public documentation site, whose `/client/` section describes every screen here
 
 ## Contributing
 
