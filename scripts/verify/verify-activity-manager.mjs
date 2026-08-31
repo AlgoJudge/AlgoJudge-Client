@@ -144,7 +144,7 @@ await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid
 await wait(1200);
 check(await evaluate(`
     const modal = document.querySelector("[data-testid=modal]");
-    return modal !== null && !/Zapisz do|Enrol into/.test(modal.innerText);
+    return modal !== null && !/Zapisz do|Enrol in/.test(modal.innerText);
 `), "and does not ask which activity, because it already knows");
 await evaluate(`
     const modal = document.querySelector("[data-testid=modal]");
@@ -182,7 +182,7 @@ const offers = await evaluate(`
     const buttons = [...document.querySelectorAll("button")].map(b => b.textContent);
     return {
         copy: buttons.some(text => text.includes("Skopiuj na nową edycję")),
-        withdraw: buttons.some(text => text.includes("Wycofaj")),
+        withdraw: buttons.some(text => text.includes("Cofnij publikację")),
     };
 `);
 check(offers.copy, "an activity can be copied for a new run");

@@ -205,6 +205,7 @@ export default function ActivityPage() {
                                                     // where it belongs —
                                                     // repeating it here said the
                                                     // same thing twice.
+                                                    data-testid="rules-link"
                                                     onClick={() => setReading(true)}
                                                 >
                                                     {t("I have read and accept the rules")}
