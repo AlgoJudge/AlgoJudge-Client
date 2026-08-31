@@ -122,6 +122,36 @@ if (!orphan.some(i => i.message === "Group {{group}} has no tests" && i.values?.
     ok("a group with no tests is refused");
 }
 
+// **The validator has to survive the file it was written to complain about.**
+// `config.yml` is edited by hand, so `groups` arrives missing, or as a mapping
+// somebody indented wrongly, or as a string. The validator reported that and
+// then iterated the same value four lines later, so it threw `TypeError` and the
+// finding it had just recorded was never delivered: the manager saw a crash
+// instead of the sentence naming the mistake.
+//
+// Nothing here is type-checked into existence — `PackageConfig.groups` is
+// declared as a required array, which is exactly why TypeScript is no help.
+for (const [name, groups] of [
+    ["missing", undefined],
+    ["null", null],
+    ["a mapping", {}],
+    ["a string", "1"],
+    ["a number", 3],
+]) {
+    let reported;
+    try {
+        reported = validatePackage(tests, { ...config, groups }, []);
+    } catch (e) {
+        fail(`config.yml with groups ${name} threw instead of reporting: ${e}`);
+        continue;
+    }
+    if (!reported.some(i => i.level === "error" && i.message === "config.yml has no groups section")) {
+        fail(`config.yml with groups ${name} was accepted: ${JSON.stringify(reported)}`);
+    } else {
+        ok(`config.yml with groups ${name} is reported, not thrown`);
+    }
+}
+
 const samples = await buildSampleArchive(tests.filter(t => t.group === 0));
 const sampleEntries = Object.keys(unzipSync(new Uint8Array(await samples.arrayBuffer()))).sort();
 if (JSON.stringify(sampleEntries) !== JSON.stringify(["0a.in", "0a.out"])) {
