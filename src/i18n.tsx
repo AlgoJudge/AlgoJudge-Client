@@ -10,7 +10,15 @@ i18n
     .use(initReactI18next)
     .init({
         fallbackLng: 'en',
-        debug: true,
+
+        /*
+         * **Development only.** Unconditional, this logged initialisation,
+         * every namespace load and a line per missing key into the console of
+         * every browser on every installation — noise of exactly the kind the
+         * `pl-PL` note below explains is worth removing, because it is what
+         * hides a real error.
+         */
+        debug: import.meta.env.DEV,
 
         /*
          * **A colon in a key is part of the key, not a namespace.**
