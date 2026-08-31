@@ -21,16 +21,35 @@ INDEX=/usr/share/nginx/html/index.html
 : "${API_BASE_URL:=}"
 : "${USE_FAKE_API:=false}"
 
-# Rewritten rather than appended, so restarting a container does not leave two
-# of these and the second silently winning.
+# One value, made safe to sit inside a JSON string inside a <script> element.
+#
+# Order matters: backslashes first, or the backslashes this adds are escaped a
+# second time. `</` becomes `<\/` because the HTML parser ends the element at
+# `</script` wherever it appears, string literal or not — `\/` is JSON's own
+# escape for a slash and reads back identically. Control characters are dropped
+# rather than escaped: JSON forbids them raw in a string and neither of these two
+# values has any business holding one.
+#
+# BusyBox sh has no ${var//x/y} and no printf %q, so this is sed on a pipe.
+json_string() {
+    printf '%s' "$1" \
+        | tr -d '\000-\037' \
+        | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's|</|<\\/|g'
+}
+
+# **Both stay strings.** `ApiFactory` compares `useFakeApi` to "true" and
+# `apiBase` calls .trim() on the URL, so emitting a bare boolean would switch the
+# fake off silently and throw on the other.
 CONFIG=$(printf '<script>window.__ALGOJUDGE__ = {"apiBaseUrl":"%s","useFakeApi":"%s"};</script>' \
-    "$API_BASE_URL" "$USE_FAKE_API")
+    "$(json_string "$API_BASE_URL")" "$(json_string "$USE_FAKE_API")")
 
 if grep -q '__ALGOJUDGE__' "$INDEX"; then
-    # `|` as the delimiter: a URL is full of slashes. The placeholder is one
-    # line, written that way in index.html for exactly this reason.
-    awk -v line="$CONFIG" '
-        /__ALGOJUDGE__/ { print line; next }
+    # **Through the environment, not `awk -v`.** A `-v` assignment is processed
+    # for escape sequences before the program ever runs, so it would decode the
+    # backslashes added just above and hand back the string they were escaping.
+    # ENVIRON is read verbatim.
+    ALGOJUDGE_CONFIG="$CONFIG" awk '
+        /__ALGOJUDGE__/ { print ENVIRON["ALGOJUDGE_CONFIG"]; next }
         { print }
     ' "$INDEX" > "$INDEX.tmp" && mv "$INDEX.tmp" "$INDEX"
     echo "algojudge: configured with API_BASE_URL='${API_BASE_URL}' USE_FAKE_API='${USE_FAKE_API}'"

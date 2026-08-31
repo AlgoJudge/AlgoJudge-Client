@@ -47,7 +47,29 @@ check(await evaluate(`return location.hash === "";`),
     "and the fragment is cleared, so it does not sit in the address bar");
 await shot("link-arrived");
 
-// And it still works: accepting and pressing enrol puts them in.
+// **A password with a per cent sign in it is still a password.** `%ra` is not a
+// valid escape, so decoding the fragment threw `URIError` out of an effect and
+// took the whole activity page with it — a blank screen for a link an organiser
+// had every right to write. Checked here rather than after enrolling, because
+// the two activities with a password policy are the only ones that draw this
+// form and enrolling removes it.
+await go(`${APP}/activities/PROG-1-LB#50%rabat`, `document.body.innerText.length > 0`);
+await wait(800);
+
+check(await evaluate(`return location.pathname === "/activities/PROG-1-LB";`),
+    "an activity opened with a malformed escape in the fragment still draws");
+check(/Zapisz się na tę aktywność/.test(await body()),
+    "and it is the enrolment form rather than an empty error boundary");
+check(await evaluate(`
+    const field = document.querySelector("input[type=password]");
+    return field ? field.value : "";
+`) === "50%rabat", "with the fragment taken literally, since it decodes to nothing else");
+await shot("link-malformed");
+
+// Back with the real one, and it still works: accepting and pressing enrol puts
+// them in.
+await go(`${APP}/activities/PROG-1-LB#PROG1-LA`, `document.body.innerText.length > 0`);
+await wait(800);
 await click(`[...document.querySelectorAll("input[type=checkbox]")].at(-1)`);
 await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "enrol")`);
 await wait(3500);

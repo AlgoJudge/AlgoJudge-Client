@@ -14,12 +14,38 @@ import { Handout, openHandout } from "./handout";
  * be said the same way every time.
  */
 
+/**
+ * One field, quoted so that a spreadsheet reads it back as it was written.
+ *
+ * Two separate problems, and neither is hypothetical here: a login may hold a
+ * comma or a quote, which without RFC 4180 quoting shifts every column after it
+ * so the file stops mapping logins to passwords — and a login beginning `=`,
+ * `+`, `-` or `@` is a **formula** to Excel and LibreOffice, which will evaluate
+ * it and can be made to read the password in the cell beside it. Bulk creation
+ * takes a manager-typed prefix, and the Server's password alphabet is not
+ * constrained by this repository.
+ *
+ * The apostrophe is the documented spreadsheet escape: it forces the cell to
+ * text and is not shown.
+ */
+const cell = (value: string) => {
+    const guarded = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+    return `"${guarded.replace(/"/g, '""')}"`;
+};
+
 /** The handout a manager prints or pastes into a spreadsheet. */
 const credentialsCsv = (credentials: CreatedCredential[]) =>
-    ["username,password", ...credentials.map(c => `${c.username},${c.password}`)].join("\n");
+    [
+        `${cell("username")},${cell("password")}`,
+        ...credentials.map(c => `${cell(c.username)},${cell(c.password)}`),
+    ].join("\r\n");
 
 const downloadCredentials = (created: CreatedCredential[]) => {
-    const blob = new Blob([credentialsCsv(created)], { type: "text/csv" });
+    // **The byte order mark goes in the file and not on the screen.** Excel
+    // reads a CSV without one in the system code page, which mangles every
+    // accented login; the preview on screen is already text in a page that
+    // declares its encoding, and a mark there would draw as a stray character.
+    const blob = new Blob(["\uFEFF", credentialsCsv(created)], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;

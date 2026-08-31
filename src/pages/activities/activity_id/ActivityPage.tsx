@@ -9,8 +9,20 @@ import DocumentModal from "../../../components/content/DocumentModal";
 import LoadState from "../../../components/LoadState";
 import RequiredAsterisk from "../../../components/RequiredAsterisk";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
+import { takeJoinPassword } from "../../../utils/joinPassword";
 
 const ContentView = lazy(() => import("../../../content/ContentView"));
+
+// A malformed escape decodes to itself rather than throwing. A password somebody
+// put a literal `%` in is still a password; unguarded, it threw `URIError` out of
+// an effect and the activity page never drew. Same shape as `referenceName`.
+const decoded = (text: string): string => {
+    try {
+        return decodeURIComponent(text);
+    } catch {
+        return text;
+    }
+};
 
 /**
  * An activity's own page, in its two forms.
@@ -49,12 +61,20 @@ export default function ActivityPage() {
      * referrer header — which is why the share link puts it there. It is taken
      * once and cleared, so it does not sit in the address bar afterwards or end
      * up in a screenshot of somebody's browser.
+     *
+     * **Or out of the stash**, where a federated sign-in left it: that journey
+     * returns to an address the Server was given, so the fragment cannot ride
+     * along without becoming the log entry it exists to avoid. See
+     * `joinPassword.ts`.
      */
     useEffect(() => {
-        const fromLink = location.hash.replace(/^#/, "");
+        const inAddress = location.hash.replace(/^#/, "");
+        const fromLink = inAddress || takeJoinPassword(location.pathname);
         if (!fromLink) return;
-        setPassword(decodeURIComponent(fromLink));
-        window.history.replaceState(null, "", location.pathname + location.search);
+        setPassword(decoded(fromLink));
+        // Only when there is something to clear: the stashed one was never in
+        // the address to begin with.
+        if (inAddress) window.history.replaceState(null, "", location.pathname + location.search);
     }, [location.hash, location.pathname, location.search]);
 
     const error = useApiEffect(async (api) => {

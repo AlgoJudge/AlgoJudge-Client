@@ -41,3 +41,11 @@ scripts/verify/out/
 test-results/
 playwright-report/
 .zawodyweb-check/
+
+# An installation's own values, and never a secret — but a VITE_-prefixed value
+# is inlined into the bundle every browser reads, so a file that is both
+# committed and public is a trap worth closing. `.dockerignore` already keeps it
+# out of the image and says why; this keeps it out of the history.
+.env
+.env.*
+!.env.example

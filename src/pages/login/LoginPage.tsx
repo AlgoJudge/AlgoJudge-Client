@@ -10,6 +10,7 @@ import { resolvedApiBase } from '../../api/http/apiBase';
 import { UnauthorizedError } from '../../api/ApiError';
 import { useAuth } from '../../provider/authContext';
 import { useInstance } from '../../provider/instanceContext';
+import { stashJoinPassword } from '../../utils/joinPassword';
 import classes from './LoginPage.module.css';
 
 /**
@@ -55,6 +56,28 @@ export default function LoginPage() {
     // participant's own screen rather than the manager panel: most people who
     // sign in are participants.
     const destination = (location.state as { from?: string } | null)?.from ?? '/activities';
+
+    /*
+     * The same place, split for the journey through a provider.
+     *
+     * **The fragment must not become a `returnUrl`.** A self-enrolment link
+     * carries the activity's password there so that no server sees it; a query
+     * parameter the Server reads is an access log, a proxy, and the provider's
+     * redirect. So the address given to the Server is the path and query alone,
+     * and the fragment is stashed for this tab — `ActivityPage` collects it on
+     * arrival.
+     *
+     * `destination` itself is untouched: signing in with a password redirects
+     * locally, where the fragment reaches the activity without a server ever
+     * holding it.
+     */
+    const fragment = destination.indexOf('#');
+    const returnUrl = fragment === -1 ? destination : destination.slice(0, fragment);
+    const joinPassword = fragment === -1 ? undefined : destination.slice(fragment + 1);
+    // The path on its own, because that is what the activity screen has to
+    // compare against when it decides whether the stash is addressed to it.
+    const search = returnUrl.indexOf('?');
+    const returnUrlPath = search === -1 ? returnUrl : returnUrl.slice(0, search);
 
     const submit = async () => {
         if (login.trim().length === 0 || password.length === 0) {
@@ -164,8 +187,14 @@ export default function LoginPage() {
                                         // Server. A client-side navigation would
                                         // never reach either.
                                         component="a"
+                                        // The password stays in the tab rather
+                                        // than in the address the Server is
+                                        // handed. See `returnUrl` above.
+                                        onClick={() => {
+                                            if (joinPassword) stashJoinPassword(returnUrlPath, joinPassword);
+                                        }}
                                         href={`${resolvedApiBase()}/identity/providers/${encodeURIComponent(provider.slug)}`
-                                            + `/challenge?returnUrl=${encodeURIComponent(destination)}`}
+                                            + `/challenge?returnUrl=${encodeURIComponent(returnUrl)}`}
                                     >
                                         {t('Continue with {{provider}}', { provider: provider.displayName })}
                                     </Button>

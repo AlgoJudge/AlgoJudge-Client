@@ -1,6 +1,6 @@
 import {
     Accordion, Alert, AppShell, Badge, Burger, Card, Checkbox, Chip, CloseButton, Combobox,
-    createTheme, Loader, Modal, MultiSelect, Notification, NumberInput, Paper, PasswordInput,
+    createTheme, JsonInput, Loader, Modal, MultiSelect, Notification, NumberInput, Paper, PasswordInput,
     ScrollArea, SegmentedControl, Select, TagsInput, Textarea, TextInput,
     Switch,
 } from "@mantine/core";
@@ -101,6 +101,9 @@ export const theme = createTheme({
          */
         TextInput: TextInput.extend({ defaultProps: { wrapperProps: testid("field") } }),
         Textarea: Textarea.extend({ defaultProps: { wrapperProps: testid("field") } }),
+        // The three opaque documents on an assignment are these, and they were
+        // the one input a check could not address by id.
+        JsonInput: JsonInput.extend({ defaultProps: { wrapperProps: testid("field") } }),
         PasswordInput: PasswordInput.extend({ defaultProps: { wrapperProps: testid("field") } }),
         NumberInput: NumberInput.extend({ defaultProps: { wrapperProps: testid("field") } }),
         Select: Select.extend({ defaultProps: { wrapperProps: testid("field") } }),

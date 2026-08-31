@@ -147,8 +147,16 @@ export default function ManagerProblemPage() {
             if (seen.state === "completed") {
                 // The measurement is opaque to the Server and arrives as text.
                 // Guarded rather than cast: a document this screen does not
-                // recognise is an ordinary case, not a crash.
-                const parsed = JSON.parse(seen.measurement ?? "{}") as { measured?: unknown };
+                // recognise is an ordinary case, not a crash — and that has to
+                // include text which is not JSON at all. A Runner writing a
+                // stack trace threw `SyntaxError` here, past the very message
+                // below that was written for it.
+                let parsed: { measured?: unknown } = {};
+                try {
+                    parsed = JSON.parse(seen.measurement ?? "{}") as { measured?: unknown };
+                } catch {
+                    // Left empty: no rows, which is the case handled below.
+                }
                 const rows = Array.isArray(parsed.measured)
                     ? parsed.measured as PackageMeasurement[]
                     : undefined;

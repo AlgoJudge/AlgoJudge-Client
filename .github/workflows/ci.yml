@@ -190,3 +190,43 @@ jobs:
           # A deep link is not a file on disk; without the nginx fallback this 404s.
           curl -fsS http://localhost:8080/activities/PCN1/problems >/dev/null
           docker stop ci-check
+
+      # The entrypoint writes an operator's own string into a <script> element,
+      # which is the one place in this image where a configured value becomes
+      # code. The step above proves the container serves; it runs with the empty
+      # defaults, so it cannot see an escaping regression. This one hands it a
+      # value carrying every character that has ever broken that line.
+      - name: Configure it with an awkward value
+        env:
+          AWKWARD: 'https://api.example.com/"};alert(1);//</script><script>x</script>\back'
+        run: |
+          docker run -d --name ci-config -p 8081:80 \
+            -e API_BASE_URL="$AWKWARD" -e USE_FAKE_API=false algojudge-client:ci
+          for i in $(seq 1 15); do
+            curl -sS http://localhost:8081/ >/dev/null && break
+            sleep 1
+          done
+          curl -fsS http://localhost:8081/ -o configured.html
+          docker stop ci-config
+          node -e '
+            const html = require("node:fs").readFileSync("configured.html", "utf8");
+            const lines = html.split("\n").filter(l => l.includes("__ALGOJUDGE__"));
+            if (lines.length !== 1) {
+              throw new Error(`expected one configuration line, found ${lines.length}`);
+            }
+            // Anchored: a value that closed the element early would leave the
+            // rest of itself outside the match.
+            const m = lines[0].match(/^\s*<script>window\.__ALGOJUDGE__ = (.*);<\/script>$/);
+            if (!m) throw new Error("not one well-formed script element: " + lines[0]);
+            const parsed = JSON.parse(m[1]);
+            // Both strings, or `ApiFactory` stops recognising "true" and
+            // `apiBase` throws on .trim().
+            if (typeof parsed.apiBaseUrl !== "string" || typeof parsed.useFakeApi !== "string") {
+              throw new Error("both values must be strings: " + JSON.stringify(parsed));
+            }
+            if (parsed.apiBaseUrl !== process.env.AWKWARD) {
+              throw new Error(`did not round trip: ${JSON.stringify(parsed.apiBaseUrl)}`
+                + ` != ${JSON.stringify(process.env.AWKWARD)}`);
+            }
+            console.log("ok: the configuration line survived the value intact");
+          '

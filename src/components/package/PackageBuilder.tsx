@@ -927,6 +927,14 @@ export default function PackageBuilder(
                                             calibration: { ...c.calibration, measured },
                                         }));
                                     }
+                                } catch (e) {
+                                    // **Caught, or a trial fails in silence.**
+                                    // `onMeasure` reports what went wrong by
+                                    // throwing — the Runner's own words for a
+                                    // refused package among them — and without
+                                    // this every one of those was an unhandled
+                                    // rejection that reached no screen.
+                                    setError(e instanceof Error ? e.message : String(e));
                                 } finally {
                                     setMeasuring(false);
                                 }

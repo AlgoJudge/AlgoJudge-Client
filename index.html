@@ -13,8 +13,13 @@
       baked into the bundle and the image is bound to whatever URL it was built
       with. The decision of 2026-08-03 is one image per installation, configured
       when the container starts — so the value is read from here, and the
-      container's entrypoint rewrites this line with `envsubst` before nginx
-      serves it.
+      container's entrypoint rewrites this whole line before nginx serves it.
+      Not `envsubst`: a `${…}` token here would be read literally by
+      `npm run dev`, which substitutes nothing. `docker-entrypoint.sh` says so.
+
+      **The name below belongs on one line, and on no other line of this file.**
+      The entrypoint replaces every line that matches it — which is why none of
+      this prose spells it out.
 
       Left as an empty object in the repository on purpose: `npm run dev` never
       goes through the entrypoint, and reads `import.meta.env` as it always did.

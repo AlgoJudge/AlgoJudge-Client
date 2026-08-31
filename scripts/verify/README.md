@@ -129,6 +129,7 @@ in the suite and a gap in the table looked the same. Completed 2026-08-30.
 |---|---|
 | `verify-first` | a brand new problem: statement, attachment and package, published together as version 1 |
 | `verify-menus` | an image menu that offers only images, and a link menu for the rest |
+| `verify-opaque` | the assignment's three documents typed a character at a time, not pasted whole |
 | `verify-limits` | the limits a participant reads, on the two axes a package states them |
 | `verify-submit-modal` | sending from the submissions panel, and the bar's two controls |
 | `verify-attachments` | what a submission carries, and who may read each part of it |
@@ -167,7 +168,7 @@ in the suite and a gap in the table looked the same. Completed 2026-08-30.
 | `verify-sessions` | what is connected, what only signed in, and the empty state |
 | `verify-device-id` | the name this browser gives itself: minted, kept, and surviving refused storage |
 | `verify-share-field` | the link a manager copies, under each of the three policies |
-| `verify-share-link` | that link opened by somebody signed out, password intact through the sign-in screen |
+| `verify-share-link` | that link opened by somebody signed out, password intact through the sign-in screen, and a malformed escape in the fragment |
 
 **Runners, and work that leaves the building**
 

@@ -33,7 +33,15 @@ export const validatePackage = (tests: TestFile[], config: PackageConfig, fileNa
         issues.push({ level: "error", message: "config.yml has no groups section", file: "config.yml" });
     }
 
-    for (const group of config.groups ?? []) {
+    // **Normalised once, and everything below reads this.** The type says
+    // `PackageGroup[]`, so nothing here is type-checked against a `config.yml`
+    // somebody wrote by hand — and four of the five uses below had no guard, so
+    // the very file the check above reports threw `TypeError` out of the
+    // validator and the finding was never delivered. `build.ts` normalises the
+    // same way for the reader path.
+    const groups = Array.isArray(config.groups) ? config.groups : [];
+
+    for (const group of groups) {
         // Zero or a negative number is not "inherit" — it is a limit nothing can
         // pass. An emptied field removes the override instead.
         if (group.limits?.timeMs !== undefined && group.limits.timeMs <= 0) {
@@ -78,13 +86,13 @@ export const validatePackage = (tests: TestFile[], config: PackageConfig, fileNa
     }
 
     const testGroups = new Set(tests.map(t => t.group));
-    for (const group of config.groups) {
+    for (const group of groups) {
         if (!testGroups.has(group.group)) {
             issues.push({ level: "error", message: "Group {{group}} has no tests", values: { group: group.group } });
         }
     }
     for (const group of testGroups) {
-        if (!config.groups.some(g => g.group === group)) {
+        if (!groups.some(g => g.group === group)) {
             issues.push({
                 level: "error",
                 message: "Group {{group}} has tests but is not in the configuration",
@@ -93,8 +101,8 @@ export const validatePackage = (tests: TestFile[], config: PackageConfig, fileNa
         }
     }
 
-    const total = config.groups.reduce((sum, g) => sum + g.points, 0);
-    if (config.groups.length > 0 && total !== 100) {
+    const total = groups.reduce((sum, g) => sum + g.points, 0);
+    if (groups.length > 0 && total !== 100) {
         // Not an error: a problem may deliberately be worth something other than
         // a hundred. It is almost always a mistake, so it is said out loud.
         issues.push({ level: "warning", message: "The groups add up to {{total}} points, not 100", values: { total } });

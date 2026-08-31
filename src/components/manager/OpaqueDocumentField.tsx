@@ -1,4 +1,5 @@
 import { JsonInput } from "@mantine/core";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 /**
@@ -42,11 +43,40 @@ export default function OpaqueDocumentField({
     // Formatted rather than round-tripped as typed: this is a stored document
     // being read back, not a draft being preserved, and two spaces of indent is
     // what makes a limits block legible at a glance.
-    const text = value === undefined || value === null ? "" : JSON.stringify(value, null, 2);
+    const stored = value === undefined || value === null ? "" : JSON.stringify(value, null, 2);
 
-    const parse = (written: string) => {
+    /*
+     * **What is being typed lives here, not in the prop.**
+     *
+     * Driven straight from `value`, every keystroke that was not already a
+     * complete JSON object left the prop unchanged, so the next render put the
+     * previous text back and the character disappeared. These three documents
+     * could be pasted whole and never typed — and `validationError` could never
+     * fire either, because the text was always something this field had just
+     * serialised itself.
+     */
+    const [text, setText] = useState(stored);
+    const [refused, setRefused] = useState<"syntax" | "shape" | undefined>(undefined);
+    // What this field last sent up, as the parent hands it back. Anything else
+    // arriving in `value` came from somewhere else — another assignment, or a
+    // modal reopened — and that is the only thing worth adopting over what
+    // somebody is in the middle of writing.
+    const echo = useRef(stored);
+
+    useEffect(() => {
+        if (stored === echo.current) return;
+        echo.current = stored;
+        setText(stored);
+        setRefused(undefined);
+    }, [stored]);
+
+    const edit = (written: string) => {
+        setText(written);
+
         const trimmed = written.trim();
         if (trimmed.length === 0) {
+            setRefused(undefined);
+            echo.current = "";
             onChange(undefined);
             return;
         }
@@ -55,11 +85,18 @@ export default function OpaqueDocumentField({
             // An object or absent. A scalar or an array reaches every reader's
             // `isRecord` guard and is dropped there silently, so it is refused
             // where somebody can still fix it.
-            if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return;
+            if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+                setRefused("shape");
+                return;
+            }
+            setRefused(undefined);
+            echo.current = JSON.stringify(parsed, null, 2);
             onChange(parsed);
         } catch {
-            // Left for `validationError` to report. Not cleared: a half-typed
-            // document must not wipe what is stored.
+            // Half-typed, which is most of the time somebody is typing. Said out
+            // loud, and what is stored is left alone until this is a document
+            // again.
+            setRefused("syntax");
         }
     };
 
@@ -69,8 +106,13 @@ export default function OpaqueDocumentField({
             description={description}
             placeholder={placeholder}
             value={text}
-            onChange={parse}
-            validationError={t("This is not a JSON object")}
+            onChange={edit}
+            // Reported as it is written rather than on blur: `validationError`
+            // is Mantine's own check, and it cannot see the second rule — a
+            // number or an array is valid JSON and still not a document.
+            error={refused === "syntax" ? t("This is not valid JSON")
+                : refused === "shape" ? t("This is not a JSON object")
+                    : undefined}
             formatOnBlur
             autosize
             minRows={4}

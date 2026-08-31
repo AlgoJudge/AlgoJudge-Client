@@ -61,7 +61,18 @@ export default function ActivitySubmissions({ activity, series }: ActivitySubmis
     const onProblem = useMatch("/activities/:activityId/problems/:problemId");
     const onSubmit = useMatch("/activities/:activityId/submit/:problemId");
     const problemId = onProblem?.params.problemId ?? onSubmit?.params.problemId;
-    const [open, setOpen] = useState(() => sessionStorage.getItem(OPEN_KEY) === "true");
+    // **Guarded, because this is not one screen.** The shell mounts the panel
+    // outside the `Outlet`, so a throw here is thrown while rendering the layout
+    // and takes the header, the navbar and every route with it — and storage
+    // does not return nothing where it is blocked, it throws. Collapsed is the
+    // default anyway.
+    const [open, setOpen] = useState(() => {
+        try {
+            return sessionStorage.getItem(OPEN_KEY) === "true";
+        } catch {
+            return false;
+        }
+    });
     const [sending, setSending] = useState(false);
     const [items, setItems] = useState<SubmissionSummary[]>([]);
 
@@ -88,10 +99,14 @@ export default function ActivitySubmissions({ activity, series }: ActivitySubmis
     if (!activity || !activityId || !slug) return null;
 
     const toggle = () => {
-        setOpen(current => {
-            sessionStorage.setItem(OPEN_KEY, String(!current));
-            return !current;
-        });
+        const next = !open;
+        setOpen(next);
+        try {
+            sessionStorage.setItem(OPEN_KEY, String(next));
+        } catch {
+            // Storage refused. The panel still opens; it stops remembering
+            // across a reload, which is visibly odd rather than broken.
+        }
     };
 
     return (
