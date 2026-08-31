@@ -136,6 +136,12 @@ await shot("s-navbar-collapsed");
 // or the form is on screen. `document.body !== null` was true before the session
 // had resolved, so this read the address mid-flight and failed about one run in
 // four.
+//
+// **The second half of that disjunction is only sound because `LoginPage`
+// renders a loader while `status` is `loading`.** Without that guard the form is
+// on screen before the session is known, this returns on the wrong branch, and
+// the assertion below reads `/login` while the redirect is still coming — which
+// is the same race by another route, and the one that was reddening CI.
 await go(`${APP}/login`,
     `location.pathname !== "/login" || document.querySelector("input[type=password]") !== null`);
 check(await evaluate(`return location.pathname;`) !== "/login",
