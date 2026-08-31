@@ -1,6 +1,6 @@
 import {
-    Alert, Anchor, Box, Button, Container, Divider, LoadingOverlay, Paper, PasswordInput, Stack, Text,
-    TextInput, Title,
+    Alert, Anchor, Box, Button, Center, Container, Divider, Loader, LoadingOverlay, Paper,
+    PasswordInput, Stack, Text, TextInput, Title,
 } from '@mantine/core';
 import { IconInfoCircle } from '@tabler/icons-react';
 import { useState } from 'react';
@@ -74,6 +74,12 @@ export default function LoginPage() {
             setBusy(false);
         }
     };
+
+    // **Waited out rather than guessed**, the same three states `RequireSession`
+    // and `SessionShell` read. Rendering the form while the session is still
+    // being asked for shows a sign-in screen to somebody who is already signed
+    // in, for as long as the answer takes, and then replaces it with a redirect.
+    if (status === 'loading') return <Center my="xl"><Loader size="xl" /></Center>;
 
     if (status === 'authenticated') return <Navigate to={destination} replace />;
 

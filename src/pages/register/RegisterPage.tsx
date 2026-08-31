@@ -1,6 +1,6 @@
 import {
-    Alert, Anchor, Box, Button, Checkbox, Container, Group, LoadingOverlay, Paper, PasswordInput,
-    Stack, Text, TextInput, Title,
+    Alert, Anchor, Box, Button, Center, Checkbox, Container, Group, Loader, LoadingOverlay, Paper,
+    PasswordInput, Stack, Text, TextInput, Title,
 } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { useState } from "react";
@@ -85,6 +85,11 @@ export default function RegisterPage() {
             setBusy(false);
         }
     };
+
+    // The same three states the sign-in screen reads, and for the same reason:
+    // a registration form shown to somebody already signed in, then replaced by
+    // a redirect, is a flash of the wrong screen on every load.
+    if (status === "loading") return <Center my="xl"><Loader size="xl" /></Center>;
 
     if (status === "authenticated") return <Navigate to="/activities" replace />;
     if (!instance.localRegistrationEnabled) {
