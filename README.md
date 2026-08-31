@@ -35,8 +35,7 @@ Tabler Icons. Polish and English, with translations in `public/locales/`.
 
 ## Requirements
 
-Node.js 24 or later, and npm. Node 24 "Krypton" is the active LTS line; Node 22
-went into maintenance in October 2025.
+Node.js 24 or later, and npm. Node 24 "Krypton" is the active LTS line.
 
 The version lives in `.nvmrc`, which is what CI reads and what `nvm use` picks
 up. `package.json` states the same floor under `engines`, so `npm ci` says so
@@ -248,9 +247,6 @@ over WebSocket is also reproducible through REST.
 - [AlgoJudge-Runner](https://github.com/AlgoJudge/AlgoJudge-Runner) — isolated execution and evaluation
 - [AlgoJudge-Runner-UVa](https://github.com/AlgoJudge/AlgoJudge-Runner-UVa) — a second Runner, forwarding `uva@1` submissions to `onlinejudge.org`
 - [AlgoJudge-Ops](https://github.com/AlgoJudge/AlgoJudge-Ops) — the production Compose stack, which is what ships this image to an installation
-- `AlgoJudge-Identity-Keycloak` and `AlgoJudge-Identity-Authentik` — **two**
-  supported identity deployments for `auth.algojudge.app`, neither a fallback for
-  the other. An installation runs one
 
 ## Contributing
 
@@ -263,6 +259,6 @@ By contributing you agree that your work is licensed under the terms below.
 ## License
 
 This project is licensed under the MIT License.
-See LICENSE.
+See [LICENSE](LICENSE).
 
-Authors are listed in AUTHORS.txt.
+Authors are listed in [AUTHORS.txt](AUTHORS.txt).
