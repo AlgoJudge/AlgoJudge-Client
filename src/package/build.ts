@@ -1,4 +1,5 @@
 import { emptyConfig, PackageConfig, TestFile } from "./types";
+import { zipArchive } from "./archive";
 
 /**
  * Assembles and reads the package archive, in the browser.
@@ -29,10 +30,7 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
 export const buildPackage = async (contents: PackageContents): Promise<Blob> => {
-    const [{ stringify }, { zipSync }] = await Promise.all([
-        import("yaml"),
-        import("fflate"),
-    ]);
+    const { stringify } = await import("yaml");
 
     const files: Record<string, Uint8Array> = {};
 
@@ -53,7 +51,7 @@ export const buildPackage = async (contents: PackageContents): Promise<Blob> => 
         files[`solutions/${contents.modelSolution.name}`] = encoder.encode(contents.modelSolution.content);
     }
 
-    return new Blob([zipSync(files, { level: 6 })], { type: "application/zip" });
+    return new Blob([await zipArchive(files)], { type: "application/zip" });
 };
 
 /**
@@ -123,11 +121,10 @@ export const readPackage = async (file: Blob): Promise<PackageContents> => {
  * the whole problem.
  */
 export const buildSampleArchive = async (tests: TestFile[]): Promise<Blob> => {
-    const { zipSync } = await import("fflate");
     const files: Record<string, Uint8Array> = {};
     for (const test of tests) {
         files[`${test.name}.in`] = encoder.encode(test.input);
         if (test.output !== undefined) files[`${test.name}.out`] = encoder.encode(test.output);
     }
-    return new Blob([zipSync(files, { level: 6 })], { type: "application/zip" });
+    return new Blob([await zipArchive(files)], { type: "application/zip" });
 };
