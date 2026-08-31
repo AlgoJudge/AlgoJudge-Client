@@ -906,6 +906,7 @@
     "This instance requires an email address": "Ta instancja wymaga adresu e-mail",
     "This is a large export ({{mb}} MB). It is assembled in your browser, so give it a moment.": "To duży eksport ({{mb}} MB). Powstaje w Twojej przeglądarce, więc daj mu chwilę.",
     "This is not a JSON object": "To nie jest obiekt JSON",
+    "This is not valid JSON": "To nie jest poprawny JSON",
     "This is the front page that ships with the software. Replace it in the instance settings.": "To strona główna dostarczona wraz z oprogramowaniem. Zastąp ją w ustawieniach instancji.",
     "This is the only time these passwords can be read. Save or print them now.": "To jedyny moment, gdy te hasła da się odczytać. Zapisz je albo wydrukuj teraz.",
     "This is the package stored for the version shown.": "To paczka zapisana w pokazywanej wersji.",
