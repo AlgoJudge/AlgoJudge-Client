@@ -2,6 +2,7 @@
 import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { createHash } from "node:crypto";
 import { unzipSync, zipSync } from "fflate";
 
 const OUT = ".package-check";
@@ -270,6 +271,45 @@ if (JSON.stringify(sampleEntries) !== JSON.stringify(["0a.in", "0a.out"])) {
     const issues = validatePackage(contents.tests, contents.config, []);
     if (!Array.isArray(issues)) fail("validation did not survive a bare config");
     else ok("validation survives a bare config");
+}
+
+// **Every archive this product builds goes through `zipArchive`**, which stamps
+// a fixed date on each entry. `fflate` defaults that date to *the current
+// time*, so an archive built twice from identical bytes was two different files
+// with two different SHA-256 - and the Server stores a file under the digest of
+// its bytes, which made one package two.
+//
+// Two checks, because they catch different mistakes: the first refuses a fourth
+// call site that skips the helper, the second proves the helper still does what
+// it exists for.
+{
+    const offenders = [];
+    const scan = (directory) => {
+        for (const entry of readdirSync(directory, { withFileTypes: true })) {
+            const path = join(directory, entry.name);
+            if (entry.isDirectory()) scan(path);
+            else if (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) {
+                if (path.replaceAll("\\", "/") === "src/package/archive.ts") continue;
+                if (/\bzipSync\s*\(/.test(readFileSync(path, "utf8"))) offenders.push(path);
+            }
+        }
+    };
+    scan("src");
+    if (offenders.length) fail(`zipSync is called outside src/package/archive.ts: ${offenders.join(", ")}`);
+    else ok("every archive is built through zipArchive");
+
+    const built = async () => new Uint8Array(await (await buildPackage({
+        config: emptyConfig(), tests: [{ name: "1a", input: "2 3", output: "5" }],
+    })).arrayBuffer());
+    const first = await built();
+    await new Promise(r => setTimeout(r, 1100));
+    const second = await built();
+    const digest = (b) => createHash("sha256").update(b).digest("hex");
+    if (digest(first) !== digest(second)) {
+        fail("the same package built a second later is a different file");
+        console.error(`         ${digest(first)}`);
+        console.error(`         ${digest(second)}`);
+    } else ok("and the same package built a second later is the same bytes");
 }
 
 console.log(process.exitCode ? "\nFAILED" : "\nall checks passed");

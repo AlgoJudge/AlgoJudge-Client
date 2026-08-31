@@ -1,4 +1,5 @@
 import { Bundle, BUNDLE_TYPE, FILES_PREFIX, MANIFEST_NAME } from "./types";
+import { zipArchive } from "../package/archive";
 
 /**
  * Reading and writing the exchange archive, in the browser.
@@ -62,14 +63,12 @@ export const writeBundle = async (contents: BundleContents): Promise<Blob> => {
     const bytes = weigh(contents);
     if (bytes > REFUSE_BYTES) throw new BundleTooLarge(bytes, heaviest(contents));
 
-    const { zipSync } = await import("fflate");
-
     const entries: Record<string, Uint8Array> = {
         [MANIFEST_NAME]: encoder.encode(JSON.stringify(contents.bundle, null, 2)),
     };
     for (const [sha256, file] of contents.files) entries[`${FILES_PREFIX}${sha256}`] = file;
 
-    return new Blob([zipSync(entries, { level: 6 })], { type: "application/zip" });
+    return new Blob([await zipArchive(entries)], { type: "application/zip" });
 };
 
 /**
