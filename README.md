@@ -245,7 +245,7 @@ over WebSocket is also reproducible through REST.
 
 - [AlgoJudge-Server](https://github.com/AlgoJudge/AlgoJudge-Server) — API, persistent state, authorization
 - [AlgoJudge-Runner](https://github.com/AlgoJudge/AlgoJudge-Runner) — isolated execution and evaluation
-- [AlgoJudge-Runner-UVa](https://github.com/AlgoJudge/AlgoJudge-Runner-UVa) — a second Runner, forwarding `uva@1` submissions to `onlinejudge.org`
+- [AlgoJudge-External-Runner](https://github.com/AlgoJudge/AlgoJudge-External-Runner) — a second Runner, forwarding submissions to external judging systems; UVa Online Judge is its one integration, serving `uva@1` against `onlinejudge.org`
 - [AlgoJudge-Ops](https://github.com/AlgoJudge/AlgoJudge-Ops) — the production Compose stack, which is what ships this image to an installation
 
 ## Contributing
