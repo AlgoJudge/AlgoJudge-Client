@@ -160,7 +160,10 @@ const credentials = await evaluate(`
     const modal = document.querySelector("[data-testid=modal]");
     return modal ? modal.innerText : "";
 `);
-check(/username,password/.test(credentials) && /grupa-la-001/.test(credentials),
+// Quoted, header included. The preview is not a prettier form of the file: a
+// manager selects it and pastes it into a spreadsheet, where a login holding a
+// comma shifts every column after it exactly as it would in the download.
+check(/"username","password"/.test(credentials) && /"grupa-la-001"/.test(credentials),
     "the credentials are handed over once, as a list to keep");
 check(/jedyny moment|only time/i.test(credentials),
     "and it says so, because there is no second chance");
