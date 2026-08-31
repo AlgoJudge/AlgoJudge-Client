@@ -68,6 +68,17 @@ a full stack that is already up.
 
 ## Configuration
 
+Development reads `.env`, which is **not in the repository**. Copy the example
+and adjust:
+
+```bash
+cp .env.example .env
+```
+
+It points at a Server on `https://localhost:7004`, which is where that project's
+own launch profile puts it. **Clear the value to work against the fake API** and
+need no Server at all — see *Running without a Server*.
+
 Build-time variables, read by Vite:
 
 | Variable | Purpose |
@@ -75,6 +86,12 @@ Build-time variables, read by Vite:
 | `VITE_APP_API_BASE_URL` | **origin** of AlgoJudge-Server, not a base URL — see below |
 | `VITE_APP_USE_FAKE_API` | `true` forces the fake API implementation |
 | `VITE_APP_DEBUG_AUTHENTICATION` | `true` bypasses the route guard. **Development only and off by default**: a production build ignores it, so no deployment can be configured into having no authentication |
+
+`VITE_DOTNET_CERT` is the fourth, and the odd one out. `vite.config.ts` reads it
+to serve the **development server** over HTTPS with the ASP.NET development
+certificate, exporting one through `dotnet dev-certs` if there is none yet. It
+configures the dev server rather than the bundle, and it needs the .NET SDK, so
+it is off by default and plain HTTP is what most work needs.
 
 ### Working against the fake
 
