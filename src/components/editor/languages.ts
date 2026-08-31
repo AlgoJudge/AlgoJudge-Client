@@ -33,8 +33,8 @@
  * compiler.
  *
  * It mirrors `AlgoJudge-Runner/crates/aj-standard-io/src/language.rs` and
- * `AlgoJudge-Runner-UVa/src/language.rs`, which are the catalogues of record.
- * Where they disagree, the Runner is right and this is out of date.
+ * `AlgoJudge-External-Runner/src/uva/language.rs`, which are the catalogues of
+ * record. Where they disagree, the Runner is right and this is out of date.
  */
 
 interface Toolchain {
