@@ -6,13 +6,13 @@ courses, with automatic evaluation of submitted solutions.
 This is its web frontend. One application serves participants, activity managers
 and administrators, with permission-aware views.
 
-## Status
+## What it does
 
-Every screen that has something to fetch reads the API. **Measured 2026-08-30**:
-35 of the 45 `.tsx` files under `src/pages/` call `useApi`, `useApiEffect` or
-`useApiCall` (`grep -rl "useApi" src/pages/`). The ten that do not have nothing
-to fetch — the sign-in form, the four LTI outcome pages, the two error pages, the
-manager index, and two sub-components handed a `ManagedSeries` by their parent.
+Every screen that has something to fetch reads the API: 35 of the 45 `.tsx`
+files under `src/pages/` call `useApi`, `useApiEffect` or `useApiCall`. The ten
+that do not have nothing to fetch — the sign-in form, the four LTI outcome
+pages, the two error pages, the manager index, and two sub-components handed a
+`ManagedSeries` by their parent.
 
 Which implementation answers is a configuration question, not a screen's:
 `ApiFactory` serves the fake or the real HTTP client. See *Running without a
@@ -27,12 +27,6 @@ Server*.
 | Sign in and register | wired to the Server |
 | Live status over WebSocket | `src/api/ws/WebSocketEvents.ts`, mounted as `<EventsProvider>` in `src/App.tsx` |
 | Renderer registry keyed by the `name@version` discriminator | `src/renderers/TypeRegistry.ts`, with the registrations in `src/renderers/index.ts` |
-
-> **This table said something else until 2026-08-30.** It called the first three
-> rows and half the fourth "static templates", and the last two "not
-> implemented", which was true when it was written and had not been true for
-> some time: the registry arrived on 2026-08-03 (`36af927`) and the event socket
-> on 2026-08-06 (`84c6c49`).
 
 ## Technology
 
@@ -66,18 +60,12 @@ Tested on Node 24.20.0 with npm 11.19.0.
 On Windows PowerShell use `npm.cmd` if the execution policy blocks `npm.ps1`.
 
 Lint, `lint:deps`, typecheck and build are the gate, and so is every `check:`
-script CI runs. Counted from `.github/workflows/ci.yml` on 2026-08-30: nine
-`check:` steps, all of them in jobs with no `continue-on-error` —
-`check:content`, `check:package`, `check:exchange`, `check:zawodyweb`,
-`check:access`, `check:events`, `check:i18n` and `check:api` in the `build` job,
-and `check:ui` in `browser-checks`. Only `check:api` cannot go red as it is
-invoked: with no OpenAPI document it prints the endpoints and exits 0.
+script CI runs: `check:content`, `check:package`, `check:exchange`,
+`check:zawodyweb`, `check:access`, `check:events`, `check:i18n` and `check:api`
+in the `build` job, and `check:ui`, a Playwright suite, in `browser-checks`.
 
-**`check:ui` gates since 2026-08-30.** It is a Playwright suite, in CI since
-2026-08-18, and it ran with `continue-on-error` until it stopped being able to
-go red without a defect — anything written before that date saying it does not
-gate is out of date. `npm run check:e2e` is the other suite and runs nowhere
-automatically: it wants a full stack that is already up.
+`npm run check:e2e` is the other suite and runs nowhere automatically: it wants
+a full stack that is already up.
 
 ## Configuration
 
@@ -159,7 +147,7 @@ docker run -p 8080:80 -e API_BASE_URL=https://api.example.org \
   ghcr.io/algojudge/algojudge-client:1.2.3
 ```
 
-**One image serves every installation** (decided 2026-08-03). The address is
+**One image serves every installation.** The address is
 read from the container's environment when it starts, not from the build:
 
 | Variable | Meaning |
@@ -186,7 +174,6 @@ docker build -t algojudge-client .
 which is what makes a deep link such as `/activities/PCN1/problems` survive a
 refresh. Hashed assets are cached for a year, `index.html` never.
 
-
 ## Project structure
 
 ```text
@@ -206,8 +193,8 @@ Views never call `fetch` directly. They go through `useApi`, `useApiEffect` or
 
 ## Routes
 
-Forty of them, enumerated from `src/App.tsx` on 2026-08-30. The shell a route
-draws is part of the route tree, so they are grouped by it.
+Forty of them, in `src/App.tsx`. The shell a route draws is part of the route
+tree, so they are grouped by it.
 
 | Shell | Routes |
 |---|---|
@@ -248,29 +235,34 @@ the menu under one permission and guarded by another.
 | `/manager/external-content` | the hosts the Server may fetch a document from |
 | `/manager/oidc`, `/manager/lti` | identity providers, and LTI platforms |
 
-## Contributing
+## Architecture rules
 
-`main` is the integration and default branch; changes arrive through pull
-requests. Run lint, `lint:deps`, typecheck and build before opening one.
-
-Architecture rules that apply here: the Client renders, it never evaluates.
-Untrusted JavaScript from a problem package must never be executed, an unknown
-activity or problem type must fail into a controlled message rather than break
-the application, and anything delivered over WebSocket must also be reproducible
-through REST.
+The Client renders; it never evaluates. Untrusted JavaScript from a problem
+package is never executed, an unknown activity or problem type fails into a
+controlled message rather than breaking the application, and anything delivered
+over WebSocket is also reproducible through REST.
 
 ## Related repositories
 
 - [AlgoJudge-Server](https://github.com/AlgoJudge/AlgoJudge-Server) — API, persistent state, authorization
 - [AlgoJudge-Runner](https://github.com/AlgoJudge/AlgoJudge-Runner) — isolated execution and evaluation
-- `AlgoJudge-Runner-UVa` — a second Runner, forwarding `uva@1` submissions to `onlinejudge.org`
-- `AlgoJudge-Ops` — the production Compose stack, which is what ships this image to an installation
+- [AlgoJudge-Runner-UVa](https://github.com/AlgoJudge/AlgoJudge-Runner-UVa) — a second Runner, forwarding `uva@1` submissions to `onlinejudge.org`
+- [AlgoJudge-Ops](https://github.com/AlgoJudge/AlgoJudge-Ops) — the production Compose stack, which is what ships this image to an installation
 - `AlgoJudge-Identity-Keycloak` and `AlgoJudge-Identity-Authentik` — **two**
   supported identity deployments for `auth.algojudge.app`, neither a fallback for
   the other. An installation runs one
 
-The last four are private.
+## Contributing
+
+Open an issue saying what you expected, what happened, and how to reproduce it.
+Or open a pull request against `main`: one subject per pull request, with a note
+on what changes and why.
+
+By contributing you agree that your work is licensed under the terms below.
 
 ## License
 
-See [LICENSE](LICENSE). Contributors are listed in [AUTHORS.txt](AUTHORS.txt).
+This project is licensed under the MIT License.
+See LICENSE.
+
+Authors are listed in AUTHORS.txt.
