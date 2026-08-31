@@ -286,7 +286,7 @@ if (!opened) {
     const after = (await evaluate(`return document.body.innerText;`)).toLowerCase();
     if (after.includes("Czeka na decyzję".toLowerCase())) {
         fail("the placement still says it is waiting after being accepted");
-    } else if (!after.includes("zgoda jest")) {
+    } else if (!after.includes("zgoda udzielona")) {
         fail("the placement does not say the sharing was accepted");
     } else {
         pass("accepting the sharing is recorded and the row says so");

@@ -109,7 +109,7 @@ await evaluate(`
 await click(`[...document.querySelectorAll("[data-testid=modal] button")]
     .find(b => b.dataset.testid === "do-not-count")`);
 
-check(await until(`/nie liczone/i.test(document.body.innerText)`),
+check(await until(`/nieliczone/i.test(document.body.innerText)`),
     "and the submission carries the marker once ruled on");
 await shot("excluded-manager");
 

@@ -70,7 +70,7 @@ check(link !== null && /\/activities\/PROG-1-LA#PROG1-LA$/.test(link),
 check(await evaluate(`
     const switches = [...document.querySelectorAll("input[type=checkbox]")];
     return switches.some(s => s.checked && s.closest("label, [data-testid=switch]")
-        ?.textContent.includes("Ukryj"));
+        ?.textContent.includes("Nie pokazuj na liście"));
 `), "and the activity is marked as hidden from the list");
 await shot("mact-settings");
 
