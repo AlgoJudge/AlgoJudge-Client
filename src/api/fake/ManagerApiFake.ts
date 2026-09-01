@@ -2270,6 +2270,32 @@ export class ManagerApiFake implements ManagerApi {
             ...series,
             matchingRunners: this.matchingRunners(
                 tagsInForce(series.runnerTags, record.activity.runnerTags)),
+            // **Read from the library, not remembered from the attachment.**
+            // These three were written once, when the problem was attached, and
+            // publishing a new version of it changed none of them — so an
+            // assignment went on claiming the version that was current the day
+            // it was made. Pinning the new one then drew "v2 / v1", which reads
+            // as the library being *behind* the round.
+            //
+            // The Server computes the current version on every read —
+            // `SeriesService`, `versions.Max(v => v.Version)` — and an unpinned
+            // assignment is judged against whatever is newest at the time. This
+            // is that, so the fake stops disagreeing with it.
+            problems: series.problems.map(assignment => {
+                const source = this.library.find(r => r.problem.id === assignment.problemId);
+                if (!source) return assignment;
+
+                const effective = assignment.pinnedProblemVersionId
+                    ? source.versions.find(v => v.id === assignment.pinnedProblemVersionId)
+                    : source.versions[0];
+
+                return {
+                    ...assignment,
+                    currentVersion: source.problem.currentVersion,
+                    pinnedVersion: assignment.pinnedProblemVersionId ? effective?.version : undefined,
+                    hasPackage: effective?.hasPackage ?? false,
+                };
+            }),
         };
     }
 
