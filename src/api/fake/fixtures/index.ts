@@ -333,6 +333,14 @@ export const createDataset = (files: FakeFiles): Dataset => {
                     // The row stays and keeps its verdict: an exclusion rules on
                     // what it counts for, not on what the judge said.
                     excluded: attempt.excluded === true,
+                    // **What it was written in**, which the Server sends on both
+                    // the summary and the detail. Absent here, so the source
+                    // screen asked `languageOf(props)`, got nothing, and drew
+                    // every seeded submission as plain text — while the manager's
+                    // view of the same row, whose fixture does set this,
+                    // highlighted. The list said "—" in the language column for
+                    // the same reason.
+                    props: { type: assignment.problem.type ?? "standard-io@1", language: attempt.language },
                 };
                 mine.push(summary);
 

@@ -10,7 +10,7 @@ import ProblemStatusBadge from "../../../../../components/problem/ProblemStatusB
 import PdfStatement from "../../../../../content/PdfStatement";
 import { useApi, useApiEffect } from "../../../../../provider/apiContext";
 import LoadState from "../../../../../components/LoadState";
-import { statementRenderers } from "../../../../../renderers";
+import { problemShape, statementRenderers } from "../../../../../renderers";
 import { languageName, pickLanguage } from "../../../../../components/content/languageName";
 import { isStatementFile } from "../../../../../content/types";
 import ProblemLimits from "../../../../../components/problem/ProblemLimits";
@@ -112,6 +112,11 @@ export default function ProblemPage() {
     }
 
     const Statement = statementRenderers.resolve(problem.type).value;
+    // **Whose limits these are.** An assignment's `config` is opaque to the
+    // Server and honoured by whoever judges — so for a problem judged by an
+    // archive, a manager could write time and memory into it and this screen
+    // would present them as the rules. They are not; the archive's are.
+    const shape = problemShape.resolve(problem.type).value;
     const base = baseLimits(problem.config);
     const downloads = problem.attachments.filter(a => !isStatementFile(a.name));
     const chosen = chooseStatement(problem.statements, chosenLanguage, i18n.language);
@@ -143,7 +148,7 @@ export default function ProblemPage() {
                           * to a participant, so the badges say nothing rather
                           * than guessing.
                           */}
-                        {base && (
+                        {shape.limits && base && (
                             <>
                                 <Badge variant="light" leftSection={<IconClock size={14} />}>
                                     {showTime(base.timeMs)}
@@ -220,7 +225,7 @@ export default function ProblemPage() {
               * are what a participant reads while working out whether their
               * approach fits, which is after they have read the problem.
               */}
-            <ProblemLimits config={problem.config} />
+            {shape.limits && <ProblemLimits config={problem.config} />}
 
             {problem.samples && problem.samples.length > 0 && (
                 <Text size="sm" c="dimmed">

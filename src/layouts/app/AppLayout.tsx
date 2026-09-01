@@ -329,7 +329,17 @@ const InstanceMark = ({ collapsed }: { collapsed: boolean }) => {
                 navigation's own colour an operator's mark disappears. Seventy per
                 cent of the width, centred, so it reads without dominating. */}
             <NavLink to="/" className={classes.mark} data-collapsed={collapsed || undefined}>
-                <Image src={logoUrl} alt="" fit="contain" h={collapsed ? 36 : 72} w="80%" mx="auto" />
+                {/* Scaled, not a fixed pixel height: Mantine's own sizes all
+                    carry `--mantine-scale`, and a mark that ignored it was the
+                    one thing in the panel that did not grow with the rest. */}
+                <Image
+                    src={logoUrl}
+                    alt=""
+                    fit="contain"
+                    h={collapsed ? 36 : "calc(6rem * var(--mantine-scale))"}
+                    w="80%"
+                    mx="auto"
+                />
             </NavLink>
             <Divider my="md" className={classes.divider} />
         </>

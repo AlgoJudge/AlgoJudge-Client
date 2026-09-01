@@ -179,6 +179,17 @@ export interface ProblemTypeOption {
     /** English label, and the translation key the screens use. */
     label: string;
     description: string;
+    /**
+     * **This one arrives by import and never by hand.**
+     *
+     * The Client still draws it — an imported problem has to be readable — but
+     * it is not offered on the New problem form, because that form cannot make a
+     * working one. What identifies a `uva@1` problem is
+     * `props.uva.problemNumber` and the external mark, both written by the
+     * import and neither askable for here; choosing it from the list produced a
+     * problem the archive could not be asked about and no Runner would take.
+     */
+    imported?: true;
 }
 
 const PROBLEM_TYPE_CATALOGUE: ProblemTypeOption[] = [
@@ -190,6 +201,7 @@ const PROBLEM_TYPE_CATALOGUE: ProblemTypeOption[] = [
     },
     {
         id: "uva@1",
+        imported: true,
         label: "Judged on UVa Online Judge",
         description: "The statement is a copy of the archive's, and the solution is forwarded to "
             + "onlinejudge.org to be judged there. There are no tests here and no partial credit: "
@@ -205,15 +217,101 @@ const PROBLEM_TYPE_CATALOGUE: ProblemTypeOption[] = [
 ];
 
 /**
+ * What a problem type **has**.
+ *
+ * **The Server cannot answer this and is forbidden from learning to.**
+ * `Problem.External` is a boolean it stores and compares against a Runner's own,
+ * and `ProblemVersion.Props` is opaque to it — "it does not read this and must
+ * not branch on a problem type". So the shape of the editor is decided here,
+ * beside the renderers, where every other type-specific decision already lives.
+ *
+ * Read by the manager's editor to decide which tabs exist, and by the
+ * participant's problem screen to decide whether limits are this installation's
+ * to state at all — the same question, asked from two sides, which is why this
+ * is not called "editing".
+ *
+ * The fallback is the `standard-io@1` answer, because that is what every screen
+ * assumed before this existed: a type this build does not know keeps the screens
+ * it has always been given rather than losing half of them.
+ */
+export interface ProblemShape {
+    /**
+     * Whether this installation builds the package a solution is judged against.
+     *
+     * **Not "no package yet".** A `uva@1` problem is judged by the archive
+     * against the archive's tests, so a *Missing* badge is a false statement
+     * rather than a warning, "package unchanged" describes a thing that never
+     * existed, and a trial run has nothing to run — the Server refuses to create
+     * one for an external problem, and the request simply times out.
+     */
+    package: boolean;
+    /**
+     * Whether the time and memory a solution is judged under are this
+     * installation's to set.
+     *
+     * `false` where somebody else's judge decides them. **Nothing enforces this
+     * on either side** — an assignment's `config` is opaque to the Server — so a
+     * manager can write limits that are never honoured and then be shown them as
+     * though they were. Saying so is the only guard there is.
+     */
+    limits: boolean;
+    /**
+     * What identifies this problem outside the installation, read from the
+     * version's `props`.
+     *
+     * **Shown, never edited.** It is written once at import and carried forward
+     * by the Server on every later version. Until this existed no screen showed
+     * it at all, so nothing told a manager which archive problem an imported
+     * entry points at.
+     */
+    identity?: {
+        /** Translation key for the label. */
+        label: string;
+        /** The value to show, or `undefined` where this version carries none. */
+        read: (props: unknown) => string | undefined;
+    };
+    /**
+     * What the manager has to be told about what is absent, as translation keys.
+     *
+     * A tab that is simply gone is a puzzle; the same tab absent with a sentence
+     * is an answer.
+     */
+    notices?: string[];
+}
+
+export const problemShape = new TypeRegistry<ProblemShape>({ package: true, limits: true })
+    .register("uva@*", {
+        package: false,
+        limits: false,
+        identity: {
+            label: "Problem in the archive",
+            read: (props) => {
+                const number = (props as { uva?: { problemNumber?: unknown } } | null | undefined)
+                    ?.uva?.problemNumber;
+                return typeof number === "number" ? String(number) : undefined;
+            },
+        },
+        notices: [
+            "This problem is judged by onlinejudge.org against its own tests, so it carries no package here.",
+            "The time and memory it is judged under are the archive's, and cannot be set here.",
+        ],
+    });
+
+/**
  * The types a manager may choose from: those this Client can actually draw.
  *
  * Filtered rather than listed, so a type whose statement or result renderer was
  * never registered cannot be offered. Choosing one would produce a problem whose
  * every screen says the type is unsupported — a state a manager can reach by
  * importing, but should not be able to reach by picking from a list.
+ *
+ * **And the same for a type that only an import can make.** `imported` is the
+ * other half of that sentence: `uva@1` is drawn perfectly well and cannot be
+ * created, so it is registered and not offered.
  */
 export const problemTypes = (): ProblemTypeOption[] => PROBLEM_TYPE_CATALOGUE.filter(type =>
-    statementRenderers.resolve(type.id).supported && resultRenderers.resolve(type.id).supported);
+    !type.imported
+    && statementRenderers.resolve(type.id).supported && resultRenderers.resolve(type.id).supported);
 
 /**
  * An activity type a manager may create, on the same terms as a problem type.

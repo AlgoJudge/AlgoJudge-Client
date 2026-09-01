@@ -9,6 +9,8 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
     FileScope, ManagedProblem, ManagedProblemVersion, ManagedUserSummary, ProblemFile, ProblemVisibility,
 } from "../../../../api/ManagerApi";
+import { StatementRef } from "../../../../api/FileApi";
+import FilePreview, { PreviewableFile } from "../../../../components/files/FilePreview";
 import { Attachment } from "../../../../api/ParticipantApi";
 import LanguageTabs, { DEFAULT_LANGUAGE } from "../../../../components/content/LanguageTabs";
 import ContentEditor from "../../../../components/content/ContentEditor";
@@ -21,7 +23,7 @@ import { emptyDocument, isStatementFile, isStatementName, statementFileName } fr
 import { tryValidateContent } from "../../../../content/validate";
 import { useApiCall, useApiEffect } from "../../../../provider/apiContext";
 import { sha256 } from "../../../../utils/sha256";
-import { statementRenderers } from "../../../../renderers";
+import { problemShape, statementRenderers } from "../../../../renderers";
 import { canEmbed, embedReference, linkReference } from "../../../../content/reference";
 
 export default function ManagerProblemPage() {
@@ -43,6 +45,17 @@ export default function ManagerProblemPage() {
     // One state rather than one per tab: publishing sends them together, because
     // a version carries every language it was published with.
     const [sources, setSources] = useState<Record<string, string>>({ [DEFAULT_LANGUAGE]: emptyDocument() });
+    /**
+     * The statements this editor cannot open, kept so that publishing does not
+     * throw them away.
+     *
+     * **A version's statements are replaced wholesale**, and they were assembled
+     * from the Markdown map alone — so publishing anything at all on an imported
+     * problem replaced its `content.pdf` with an empty `content.md`. The bytes
+     * were the archive's and there was no second copy.
+     */
+    const [carried, setCarried] = useState<StatementRef[]>([]);
+    const [preview, setPreview] = useState<PreviewableFile | undefined>(undefined);
     const [language, setLanguage] = useState<string>(DEFAULT_LANGUAGE);
     const [note, setNote] = useState("");
     const [uploadScope, setUploadScope] = useState<FileScope>("participant");
@@ -62,6 +75,7 @@ export default function ManagerProblemPage() {
         // looking at an older version — starts a new one.
         setStaged([]);
         setRemoved([]);
+        setCarried([]);
         const loaded = await api.managerApi.getProblem(problemId);
         setProblem(loaded);
         setUsers(await api.managerApi.searchUsers(""));
@@ -83,9 +97,19 @@ export default function ManagerProblemPage() {
             const refs = await api.managerApi.getProblemContent(problemId, newest.id);
             const loadedSources: Record<string, string> = { [DEFAULT_LANGUAGE]: emptyDocument() };
             for (const ref of refs) {
+                // **Only what this editor can open.** A statement is not always
+                // Markdown: an archive import's is `content.pdf`, and reading
+                // its bytes as text put a PDF in the Markdown editor, which then
+                // reported a missing `content@1` header it could never have had.
+                // The file list below already knows about these — see
+                // `carriedStatements` — and this is the half that did not.
+                if (!isStatementName(ref.name)) continue;
                 loadedSources[ref.language ?? DEFAULT_LANGUAGE] = await api.fileApi.getText(ref.fileId);
             }
             setSources(loadedSources);
+            // The other half of the loop above: what it skipped is not rubbish,
+            // it is the statement, and publishing has to hand it back.
+            setCarried(refs.filter(ref => !isStatementName(ref.name)));
             setLanguage(DEFAULT_LANGUAGE);
         }
     }, [problemId, selectedId, reload]);
@@ -213,13 +237,33 @@ export default function ManagerProblemPage() {
         // The statement goes up the same way everything else does. Its name is
         // the Server's to decide from the language, so what is uploaded is only
         // the text and what is published is only an id.
-        const statements = await Promise.all(Object.entries(sources).map(async ([tag, text]) => {
-            const language = tag === DEFAULT_LANGUAGE ? undefined : tag;
-            const stored = await store(
-                new Blob([text], { type: "text/markdown" }),
-                statementFileName(language));
-            return { language, fileId: stored.id };
-        }));
+        // **One statement per language, and Markdown only wins where somebody
+        // wrote it.** An imported problem's default statement is the archive's
+        // `content.pdf`, and the editor seeds every language slot with an empty
+        // document — so publishing anything at all used to replace that PDF with
+        // a blank `content.md`, with no second copy of the bytes anywhere.
+        const kept = new Map(carried.map(ref => [ref.language ?? DEFAULT_LANGUAGE, ref]));
+        const written = (text: string) => text.trim() !== emptyDocument().trim();
+
+        const edited = await Promise.all(Object.entries(sources)
+            .filter(([tag, text]) => !kept.has(tag) || written(text))
+            .map(async ([tag, text]) => {
+                const language = tag === DEFAULT_LANGUAGE ? undefined : tag;
+                const stored = await store(
+                    new Blob([text], { type: "text/markdown" }),
+                    statementFileName(language));
+                return { language, fileId: stored.id };
+            }));
+
+        // Re-published by id: the Server names a statement from its bytes, so a
+        // carried PDF comes back as `content.pdf` rather than as whatever it was
+        // called when it was fetched.
+        const statements = [
+            ...[...kept.entries()]
+                .filter(([tag]) => !written(sources[tag] ?? ""))
+                .map(([, ref]) => ({ language: ref.language, fileId: ref.fileId })),
+            ...edited,
+        ];
 
         await call(api => api.managerApi.createProblemVersion(problemId, {
             note: note.trim() || undefined,
@@ -258,6 +302,9 @@ export default function ManagerProblemPage() {
     if (!problem) return <LoadState error={loadError} loading={!loadError} />;
 
     const Statement = statementRenderers.resolve(problem.type).value;
+    // What this type gives a manager to edit. Everything below that used to
+    // assume a package asks this instead.
+    const editing = problemShape.resolve(problem.type).value;
     const newest = versions[0];
     const selected = versions.find(v => v.id === selectedId) ?? newest;
     // History is read, not rewritten: an older version takes no new statement,
@@ -265,6 +312,7 @@ export default function ManagerProblemPage() {
     // that would change it is disabled.
     const isNewest = selected?.id === newest?.id;
     const locked = !!problem.archivedAt || !isNewest;
+    const identity = editing.identity?.read(selected?.props);
 
     // What the next version would hold: what this one holds, less what the draft
     // removes, plus what it adds. Every screen below reads this rather than the
@@ -294,9 +342,19 @@ export default function ManagerProblemPage() {
     // A statement this tab cannot open: a `content.pdf` from an archive import.
     // It is the statement, so it is not an attachment — and it is not Markdown,
     // so the editor beside it is not editing it.
-    const carriedStatements = files
-        .filter(f => f.state !== "removed" && isStatementFile(f.name) && !isStatementName(f.name))
-        .map(f => f.name);
+    // **From the version's statements, not from its files.** The two agree on
+    // the Server, which stores a statement among the version's files — but the
+    // statement list is what this actually is, it is already loaded, and it is
+    // the list publishing hands back. Reading it here means the notice and the
+    // carrying can never disagree about what is being carried.
+    const carriedStatements = carried.map(ref => ref.name);
+
+    // Shown where the bytes exist and the browser will draw them. `canEmbed` is
+    // the same predicate a statement uses to decide whether a reference embeds
+    // or links, which keeps one answer to "can this be looked at" rather than
+    // two that drift.
+    const canPreview = (file: DraftFile) =>
+        file.state !== "removed" && file.url !== undefined && canEmbed(file.mimeType);
 
     // The preview gets the real files, so a figure appears in it exactly as it
     // will on the participant's screen — including the notice when the name
@@ -335,6 +393,10 @@ export default function ManagerProblemPage() {
 
     const unstage = (name: string) => setStaged(current => current.filter(entry => entry.file.name !== name));
     const publishes = staged.length > 0 || removed.length > 0 || packageDraft !== undefined;
+    // `?tab=package` can arrive for a problem that has none — a bookmark, or a
+    // link sent before anybody knew. Falling back beats an empty panel.
+    const asked = query.get("tab") ?? "content";
+    const tab = asked === "package" && !editing.package ? "content" : asked;
 
     return (
         <Stack gap="md">
@@ -344,14 +406,41 @@ export default function ManagerProblemPage() {
                         <Title order={2}>{problem.name}</Title>
                         {problem.archivedAt && <Badge color="gray">{t("Archived")}</Badge>}
                     </Group>
-                    <Text size="sm" c="dimmed" ff="monospace">{problem.slug} · {problem.type}</Text>
+                    <Group gap="xs">
+                        <Text size="sm" c="dimmed" ff="monospace">{problem.slug} · {problem.type}</Text>
+                        {/* Written at import and carried forward by the Server on
+                            every later version. No screen showed it before, so
+                            nothing said which archive problem this points at.
+
+                            `tt="none"` because a badge shouts by default, and
+                            this sits beside the quiet line carrying the slug. */}
+                        {identity !== undefined && (
+                            <Badge variant="light" size="sm" tt="none">
+                                {t(editing.identity!.label)} {identity}
+                            </Badge>
+                        )}
+                    </Group>
                 </Stack>
                 <Button data-testid="back" variant="default" leftSection={<IconArrowLeft size={16} />} onClick={() => navigate("/manager/problems")}>
                     {t("Back")}
                 </Button>
             </Group>
 
+            <FilePreview file={preview} onClose={() => setPreview(undefined)} />
+
             {error && <Alert color="red" withCloseButton onClose={() => setError(undefined)}>{error}</Alert>}
+
+            {/* Said once, at the top: a tab that is simply gone is a puzzle, and
+                the same tab absent with a sentence is an answer. */}
+            {(editing.notices ?? []).length > 0 && (
+                <Alert color="blue" icon={<IconInfoCircle size={18} />}>
+                    <Stack gap={4}>
+                        {editing.notices!.map(notice => (
+                            <Text key={notice} size="sm">{t(notice)}</Text>
+                        ))}
+                    </Stack>
+                </Alert>
+            )}
 
             {problem.archivedAt && (
                 <Alert color="gray" icon={<IconAlertTriangle size={18} />}>
@@ -380,7 +469,7 @@ export default function ManagerProblemPage() {
             {/* The open tab is in the URL, as it is on the activity screen:
                 "look at this problem's package" is a link somebody sends. */}
             <Tabs
-                value={query.get("tab") ?? "content"}
+                value={tab}
                 onChange={value => setQuery(q => {
                     if (value && value !== "content") q.set("tab", value);
                     else q.delete("tab");
@@ -390,7 +479,7 @@ export default function ManagerProblemPage() {
                 <Tabs.List>
                     <Tabs.Tab value="content">{t("Statement")}</Tabs.Tab>
                     <Tabs.Tab value="files">{t("Attachments")} ({files.length})</Tabs.Tab>
-                    <Tabs.Tab value="package">{t("Package")}</Tabs.Tab>
+                    {editing.package && <Tabs.Tab value="package">{t("Package")}</Tabs.Tab>}
                     <Tabs.Tab value="versions">{t("Versions")} ({versions.length})</Tabs.Tab>
                     <Tabs.Tab value="sharing">{t("Sharing")}</Tabs.Tab>
                 </Tabs.List>
@@ -532,10 +621,27 @@ export default function ManagerProblemPage() {
                                         <Table.Tr key={file.name} opacity={file.state === "removed" ? 0.5 : 1}>
                                             <Table.Td>
                                                 <Group gap="xs" wrap="nowrap">
+                                                    {/* **The name opens it**, where there is
+                                                        something to open and the browser can
+                                                        draw it — otherwise checking that the
+                                                        right figure went up, or what an
+                                                        imported statement actually says, meant
+                                                        downloading it and leaving the page.
+
+                                                        `Text` rather than a button, which is
+                                                        this screen's established way of making
+                                                        a name clickable, and what keeps the
+                                                        statement row honestly free of controls
+                                                        over the statement. */}
                                                     <Text
                                                         size="sm"
                                                         ff="monospace"
                                                         td={file.state === "removed" ? "line-through" : undefined}
+                                                        c={canPreview(file) ? "blue" : undefined}
+                                                        style={canPreview(file) ? { cursor: "pointer" } : undefined}
+                                                        onClick={canPreview(file)
+                                                            ? () => setPreview(file)
+                                                            : undefined}
                                                     >
                                                         {file.name}
                                                     </Text>
@@ -647,7 +753,7 @@ export default function ManagerProblemPage() {
                     </Stack>
                 </Tabs.Panel>
 
-                <Tabs.Panel value="package" pt="md">
+                {editing.package && <Tabs.Panel value="package" pt="md">
                     {/* Keyed by version: switching to another one, or publishing,
                         starts the builder again and opens what that version holds.
                         A problem with no version yet builds its first package here
@@ -662,7 +768,7 @@ export default function ManagerProblemPage() {
                         onDraftChange={handleDraft}
                         onMeasure={measure}
                     />
-                </Tabs.Panel>
+                </Tabs.Panel>}
 
                 <Tabs.Panel value="versions" pt="md">
                     <Table striped>
@@ -672,7 +778,7 @@ export default function ManagerProblemPage() {
                                 <Table.Th>{t("Date")}</Table.Th>
                                 <Table.Th>{t("Author")}</Table.Th>
                                 <Table.Th>{t("What changed")}</Table.Th>
-                                <Table.Th>{t("Package")}</Table.Th>
+                                {editing.package && <Table.Th>{t("Package")}</Table.Th>}
                                 <Table.Th />
                             </Table.Tr>
                         </Table.Thead>
@@ -692,11 +798,17 @@ export default function ManagerProblemPage() {
                                     </Table.Td>
                                     <Table.Td><Text size="sm">{version.createdByName ?? "—"}</Text></Table.Td>
                                     <Table.Td><Text size="sm" c="dimmed">{version.note ?? "—"}</Text></Table.Td>
-                                    <Table.Td>
-                                        {version.hasPackage
-                                            ? <Badge variant="light" color="teal" size="sm">{t("Uploaded")}</Badge>
-                                            : <Badge variant="light" color="gray" size="sm">{t("Missing")}</Badge>}
-                                    </Table.Td>
+                                    {/* **Absent, not missing.** A type judged
+                                        elsewhere has no package to be without,
+                                        and every version of one wore a Missing
+                                        badge for ever. */}
+                                    {editing.package && (
+                                        <Table.Td>
+                                            {version.hasPackage
+                                                ? <Badge variant="light" color="teal" size="sm">{t("Uploaded")}</Badge>
+                                                : <Badge variant="light" color="gray" size="sm">{t("Missing")}</Badge>}
+                                        </Table.Td>
+                                    )}
                                     <Table.Td>
                                         <Group justify="flex-end">
                                             {/* Selecting a version points the
@@ -791,9 +903,11 @@ export default function ManagerProblemPage() {
                                     <Badge variant="light" size="sm" color="red">−{removed.length}</Badge>
                                 </Tooltip>
                             )}
-                            <Badge variant="light" size="sm" color={packageDraft ? "teal" : "gray"}>
-                                {packageDraft ? t("new package") : t("package unchanged")}
-                            </Badge>
+                            {editing.package && (
+                                <Badge variant="light" size="sm" color={packageDraft ? "teal" : "gray"}>
+                                    {packageDraft ? t("new package") : t("package unchanged")}
+                                </Badge>
+                            )}
                         </Group>
                         <Group gap="xs">
                             {packageDraft?.blocked && (

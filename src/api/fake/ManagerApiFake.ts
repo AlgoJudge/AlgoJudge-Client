@@ -81,7 +81,7 @@ import { ActivityRecord, createActivityLibrary } from "./fixtures/activities";
 import { signedInUserId } from "./CoreApiFake";
 import { buildPackage } from "../../package/build";
 import { emptyConfig, isPackageFile, PackageConfig, PACKAGE_ARCHIVE, SAMPLES_ARCHIVE } from "../../package/types";
-import { isStatementName, statementFileName } from "../../content/types";
+import { isStatementFile } from "../../content/types";
 import { createProblemLibrary, ME, ProblemRecord } from "./fixtures/problems";
 import { createQuestions } from "./fixtures/questions";
 import { createRunners } from "./fixtures/runners";
@@ -143,6 +143,21 @@ const password = (): string => {
 };
 
 const newId = () => `018f2c00-0000-7000-8000-${Math.random().toString(16).slice(2, 14).padEnd(12, "0")}`;
+
+/**
+ * What a statement is stored as, from the file that became it.
+ *
+ * `content.md` and `content-en.md` for Markdown, `content.pdf` for a PDF an
+ * import fetched. The extension follows the bytes: the Server renames on attach
+ * and the Client reads the convention off the name, so a statement misnamed here
+ * is a statement no screen can open.
+ */
+const statementNameFor = (uploaded: string, language?: string): string => {
+    const dot = uploaded.lastIndexOf(".");
+    const extension = dot > 0 ? uploaded.slice(dot + 1).toLowerCase() : "md";
+    const kept = /^[a-z0-9]{1,8}$/.test(extension) ? extension : "md";
+    return language ? `content-${language}.${kept}` : `content.${kept}`;
+};
 
 export class ManagerApiFake implements ManagerApi {
     readonly eventDispatcher = new ManagerEventDispatcherImpl();
@@ -1778,8 +1793,13 @@ export class ManagerApiFake implements ManagerApi {
         // `examples.zip` is derived from the package, so a new package replaces
         // it and an unchanged one leaves it alone.
         const rebuilt = new Set([PACKAGE_ARCHIVE, ...(input.package ? [SAMPLES_ARCHIVE] : [])]);
+        // **`isStatementFile`, not `isStatementName`.** The first asks "is this
+        // the document"; the second asks "is this Markdown the editor can open",
+        // and `content.pdf` answers no to the second — so an imported statement
+        // was carried forward here *as an ordinary attachment* and published
+        // again as a statement, and every edit added another copy of it.
         const carried = (previous?.files ?? []).filter(f =>
-            !isStatementName(f.name) && !rebuilt.has(f.name) && !removed.has(f.name));
+            !isStatementFile(f.name) && !rebuilt.has(f.name) && !removed.has(f.name));
 
         // The checksums were checked where the bytes arrived, in `fileApi`. What
         // is left to refuse here is what a *version* may not hold.
@@ -1787,7 +1807,7 @@ export class ManagerApiFake implements ManagerApi {
             if (!this.files.has(entry.fileId)) {
                 invalid(`No such file: ${entry.name}`, "file.missing");
             }
-            if (isStatementName(entry.name)) {
+            if (isStatementFile(entry.name)) {
                 // `content.md` and its translations are the statement, written in
                 // the editor. Attaching one here would put a second answer beside
                 // the one published.
@@ -1838,7 +1858,13 @@ export class ManagerApiFake implements ManagerApi {
             : input.statements.map(statement => {
                 const stored = this.files.meta(statement.fileId);
                 return {
-                    name: statement.language ? `content-${statement.language}.md` : "content.md",
+                    // **Named after what it is, not after what most statements
+                    // are.** This wrote `.md` whatever went in, so a UVa import's
+                    // PDF arrived called `content.md` and the editor opened it as
+                    // Markdown and said the `content@1` header was missing. That
+                    // is the defect `StatementNamingTests.A_pdf_statement_is_named_as_a_pdf`
+                    // pins on the Server, and the fake was still reproducing it.
+                    name: statementNameFor(stored.name, statement.language),
                     language: statement.language,
                     fileId: statement.fileId,
                     sha256: stored.sha256,
@@ -1861,22 +1887,30 @@ export class ManagerApiFake implements ManagerApi {
         }
 
         version.files = [
-            // The name follows from the language rather than from what anybody
-            // typed: `content.md`, `content-en.md`.
+            // The name follows from the language and from the bytes, not from
+            // what anybody typed: `content.md`, `content-en.md`, `content.pdf`.
+            //
+            // **The type is the stored file's**, and was hardcoded to Markdown —
+            // so an imported PDF statement was listed as `text/markdown`, which
+            // is the kind of small lie that makes a screen decide it cannot be
+            // shown. The URL goes with it for the same reason the staged branch
+            // below carries one: a file nothing can address is a file nothing can
+            // preview.
             ...(input.statements ?? []).map(statement => {
                 const stored = this.files.meta(statement.fileId);
                 return {
-                    name: statementFileName(statement.language),
+                    name: statementNameFor(stored.name, statement.language),
                     scope: "participant" as const,
-                    mimeType: "text/markdown",
+                    mimeType: stored.mimeType,
                     sizeBytes: stored.sizeBytes,
                     sha256: stored.sha256,
+                    url: this.files.url(statement.fileId),
                 };
             }),
             // Carried forward when nothing was published: the statement files of
             // the previous version, which `carried` deliberately leaves out.
             ...(input.statements === undefined
-                ? (previous?.files ?? []).filter(f => isStatementName(f.name) && !removed.has(f.name))
+                ? (previous?.files ?? []).filter(f => isStatementFile(f.name) && !removed.has(f.name))
                 : []),
             ...carried,
             ...staged.map(entry => {
@@ -2241,6 +2275,32 @@ export class ManagerApiFake implements ManagerApi {
             ...series,
             matchingRunners: this.matchingRunners(
                 tagsInForce(series.runnerTags, record.activity.runnerTags)),
+            // **Read from the library, not remembered from the attachment.**
+            // These three were written once, when the problem was attached, and
+            // publishing a new version of it changed none of them — so an
+            // assignment went on claiming the version that was current the day
+            // it was made. Pinning the new one then drew "v2 / v1", which reads
+            // as the library being *behind* the round.
+            //
+            // The Server computes the current version on every read —
+            // `SeriesService`, `versions.Max(v => v.Version)` — and an unpinned
+            // assignment is judged against whatever is newest at the time. This
+            // is that, so the fake stops disagreeing with it.
+            problems: series.problems.map(assignment => {
+                const source = this.library.find(r => r.problem.id === assignment.problemId);
+                if (!source) return assignment;
+
+                const effective = assignment.pinnedProblemVersionId
+                    ? source.versions.find(v => v.id === assignment.pinnedProblemVersionId)
+                    : source.versions[0];
+
+                return {
+                    ...assignment,
+                    currentVersion: source.problem.currentVersion,
+                    pinnedVersion: assignment.pinnedProblemVersionId ? effective?.version : undefined,
+                    hasPackage: effective?.hasPackage ?? false,
+                };
+            }),
         };
     }
 
