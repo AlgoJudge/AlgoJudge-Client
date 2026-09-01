@@ -97,7 +97,17 @@ export class HttpClient {
 
         try {
             return await response.json() as T;
-        } catch { /* several endpoints answer with an empty body */ }
+        } catch (error) {
+            // **A body that could not be read is not an empty one.** Several
+            // endpoints answer with nothing and `{}` is the right answer for
+            // those — but the same line swallowed a read the caller had aborted
+            // and handed the screen a successful page with no `items`. Sixteen
+            // screens put `result.items` straight into state, so the next render
+            // threw on `undefined` instead of anything reporting a cancelled
+            // request. `useApiEffect` already discards an aborted run; it never
+            // got the chance, because this said the request had succeeded.
+            if (options.signal?.aborted) throw error;
+        }
         return {} as T;
     }
 
