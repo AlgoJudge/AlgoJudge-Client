@@ -6,6 +6,18 @@ courses, with automatic evaluation of submitted solutions.
 This is its web frontend. One application serves participants, activity managers
 and administrators, with permission-aware views.
 
+## Documentation
+
+**[docs.algojudge.pl](https://docs.algojudge.pl/en/client/)** is written for
+somebody who does not have this source open — every screen, in both languages.
+This README is the other half: what the repository is, and how to build, run and
+change it.
+
+| | |
+|---|---|
+| [`/en/client/`](https://docs.algojudge.pl/en/client/) | every screen, the participant's and the manager's |
+| [`/pl/client/`](https://docs.algojudge.pl/pl/client/) | the same in Polish, using this interface's own words |
+
 ## What it does
 
 Every screen that has something to fetch reads the API. Which implementation
@@ -209,7 +221,7 @@ over WebSocket is also reproducible through REST.
 - [AlgoJudge-Runner](https://github.com/AlgoJudge/AlgoJudge-Runner) — isolated execution and evaluation
 - [AlgoJudge-External-Runner](https://github.com/AlgoJudge/AlgoJudge-External-Runner) — a second Runner, forwarding submissions to external judging systems
 - [AlgoJudge-Ops](https://github.com/AlgoJudge/AlgoJudge-Ops) — the production Compose stack, which is what ships this image to an installation
-- [AlgoJudge-Docs](https://github.com/AlgoJudge/AlgoJudge-Docs) — the public documentation site, whose `/client/` section describes every screen here
+- [AlgoJudge-Docs](https://github.com/AlgoJudge/AlgoJudge-Docs) — the source of the documentation site linked under *Documentation* above
 
 ## Contributing
 
