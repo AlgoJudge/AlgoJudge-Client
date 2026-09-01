@@ -81,7 +81,7 @@ import { ActivityRecord, createActivityLibrary } from "./fixtures/activities";
 import { signedInUserId } from "./CoreApiFake";
 import { buildPackage } from "../../package/build";
 import { emptyConfig, isPackageFile, PackageConfig, PACKAGE_ARCHIVE, SAMPLES_ARCHIVE } from "../../package/types";
-import { isStatementName, statementFileName } from "../../content/types";
+import { isStatementName } from "../../content/types";
 import { createProblemLibrary, ME, ProblemRecord } from "./fixtures/problems";
 import { createQuestions } from "./fixtures/questions";
 import { createRunners } from "./fixtures/runners";
@@ -1882,16 +1882,24 @@ export class ManagerApiFake implements ManagerApi {
         }
 
         version.files = [
-            // The name follows from the language rather than from what anybody
-            // typed: `content.md`, `content-en.md`.
+            // The name follows from the language and from the bytes, not from
+            // what anybody typed: `content.md`, `content-en.md`, `content.pdf`.
+            //
+            // **The type is the stored file's**, and was hardcoded to Markdown —
+            // so an imported PDF statement was listed as `text/markdown`, which
+            // is the kind of small lie that makes a screen decide it cannot be
+            // shown. The URL goes with it for the same reason the staged branch
+            // below carries one: a file nothing can address is a file nothing can
+            // preview.
             ...(input.statements ?? []).map(statement => {
                 const stored = this.files.meta(statement.fileId);
                 return {
-                    name: statementFileName(statement.language),
+                    name: statementNameFor(stored.name, statement.language),
                     scope: "participant" as const,
-                    mimeType: "text/markdown",
+                    mimeType: stored.mimeType,
                     sizeBytes: stored.sizeBytes,
                     sha256: stored.sha256,
+                    url: this.files.url(statement.fileId),
                 };
             }),
             // Carried forward when nothing was published: the statement files of
