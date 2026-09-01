@@ -10,6 +10,7 @@ import {
     FileScope, ManagedProblem, ManagedProblemVersion, ManagedUserSummary, ProblemFile, ProblemVisibility,
 } from "../../../../api/ManagerApi";
 import { StatementRef } from "../../../../api/FileApi";
+import FilePreview, { PreviewableFile } from "../../../../components/files/FilePreview";
 import { Attachment } from "../../../../api/ParticipantApi";
 import LanguageTabs, { DEFAULT_LANGUAGE } from "../../../../components/content/LanguageTabs";
 import ContentEditor from "../../../../components/content/ContentEditor";
@@ -54,6 +55,7 @@ export default function ManagerProblemPage() {
      * were the archive's and there was no second copy.
      */
     const [carried, setCarried] = useState<StatementRef[]>([]);
+    const [preview, setPreview] = useState<PreviewableFile | undefined>(undefined);
     const [language, setLanguage] = useState<string>(DEFAULT_LANGUAGE);
     const [note, setNote] = useState("");
     const [uploadScope, setUploadScope] = useState<FileScope>("participant");
@@ -347,6 +349,13 @@ export default function ManagerProblemPage() {
     // carrying can never disagree about what is being carried.
     const carriedStatements = carried.map(ref => ref.name);
 
+    // Shown where the bytes exist and the browser will draw them. `canEmbed` is
+    // the same predicate a statement uses to decide whether a reference embeds
+    // or links, which keeps one answer to "can this be looked at" rather than
+    // two that drift.
+    const canPreview = (file: DraftFile) =>
+        file.state !== "removed" && file.url !== undefined && canEmbed(file.mimeType);
+
     // The preview gets the real files, so a figure appears in it exactly as it
     // will on the participant's screen — including the notice when the name
     // points at nothing.
@@ -416,6 +425,8 @@ export default function ManagerProblemPage() {
                     {t("Back")}
                 </Button>
             </Group>
+
+            <FilePreview file={preview} onClose={() => setPreview(undefined)} />
 
             {error && <Alert color="red" withCloseButton onClose={() => setError(undefined)}>{error}</Alert>}
 
@@ -610,10 +621,27 @@ export default function ManagerProblemPage() {
                                         <Table.Tr key={file.name} opacity={file.state === "removed" ? 0.5 : 1}>
                                             <Table.Td>
                                                 <Group gap="xs" wrap="nowrap">
+                                                    {/* **The name opens it**, where there is
+                                                        something to open and the browser can
+                                                        draw it — otherwise checking that the
+                                                        right figure went up, or what an
+                                                        imported statement actually says, meant
+                                                        downloading it and leaving the page.
+
+                                                        `Text` rather than a button, which is
+                                                        this screen's established way of making
+                                                        a name clickable, and what keeps the
+                                                        statement row honestly free of controls
+                                                        over the statement. */}
                                                     <Text
                                                         size="sm"
                                                         ff="monospace"
                                                         td={file.state === "removed" ? "line-through" : undefined}
+                                                        c={canPreview(file) ? "blue" : undefined}
+                                                        style={canPreview(file) ? { cursor: "pointer" } : undefined}
+                                                        onClick={canPreview(file)
+                                                            ? () => setPreview(file)
+                                                            : undefined}
                                                     >
                                                         {file.name}
                                                     </Text>

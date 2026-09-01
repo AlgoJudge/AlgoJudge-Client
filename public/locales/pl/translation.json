@@ -911,6 +911,7 @@
     "This cannot be answered": "Na to nie da się odpowiedzieć",
     "This course only": "Tylko ten kurs",
     "This export is {{mb}} MB, over the limit. The largest are: {{largest}}. Export one round at a time.": "Ten eksport ma {{mb}} MB i przekracza limit. Największe to: {{largest}}. Eksportuj po jednej rundzie.",
+    "This file has not been stored yet, so there is nothing to show.": "Ten plik nie został jeszcze zapisany, więc nie ma czego pokazać.",
     "This grant is the whole answer inside the activity": "To nadanie rozstrzyga wszystko wewnątrz aktywności",
     "This installation cannot be reached from here. It may be starting, or the connection may be down; this page returns on its own once it answers.": "Nie można się tu połączyć z tą instalacją. Może się uruchamiać albo połączenie może być zerwane; ta strona wróci sama, gdy Server odpowie.",
     "This installation holds no key for the archive, so you are browsing what it publishes to everybody.": "Ta instalacja nie ma klucza do archiwum, więc przeglądasz to, co archiwum udostępnia wszystkim.",
