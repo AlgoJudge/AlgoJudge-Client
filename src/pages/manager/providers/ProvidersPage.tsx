@@ -12,7 +12,7 @@ import {
 } from "../../../api/ManagerApi";
 import LoadState from "../../../components/LoadState";
 import { CopyButton } from "../../../components/buttons";
-import { useApiCall, useApiEffect } from "../../../provider/apiContext";
+import { optional, useApiCall, useApiEffect } from "../../../provider/apiContext";
 
 /**
  * Registering the identity providers this installation trusts, and the queue of
@@ -90,7 +90,7 @@ export default function ProvidersPage() {
 
     const loadError = useApiEffect(async (api) => {
         setProviders(await api.managerApi.getIdentityProviders());
-        setTemplates(await api.managerApi.getPermissionTemplates());
+        setTemplates(await optional(api.managerApi.getPermissionTemplates(), []));
         setQueue((await api.managerApi.getDeletionRequests({ state: "open", pageSize: 50 })).items);
     }, [reload]);
 

@@ -14,7 +14,7 @@ import {
 import LoadState from "../../../components/LoadState";
 import PermissionSetEditor from "../../../components/permissions/PermissionSetEditor";
 import ActivityTime from "../../../components/time/ActivityTime";
-import { useApiCall, useApiEffect } from "../../../provider/apiContext";
+import { optional, useApiCall, useApiEffect } from "../../../provider/apiContext";
 
 const PAGE_SIZE = 20;
 
@@ -60,8 +60,9 @@ export default function GrantsPage() {
 
     const loadError = useApiEffect(async (api) => {
         setCatalogue(await api.managerApi.getPermissionCatalogue());
-        setTemplates(await api.managerApi.getPermissionTemplates());
-        setUsers(await api.managerApi.searchUsers(""));
+        // Pickers, not the page. See `optional`.
+        setTemplates(await optional(api.managerApi.getPermissionTemplates(), []));
+        setUsers(await optional(api.managerApi.searchUsers(""), []));
         setActivities(await api.managerApi.getManagedActivities());
 
         setGrants(undefined);

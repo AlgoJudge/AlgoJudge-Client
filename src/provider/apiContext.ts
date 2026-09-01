@@ -1,5 +1,6 @@
 import { createContext, DependencyList, useCallback, useContext, useEffect, useState } from "react";
 import { Api } from "../api/Api";
+import { ForbiddenError } from "../api/ApiError";
 import { ScopedApi } from "../api/ScopedApi";
 import { useConnectionGeneration } from "./connectionContext";
 
@@ -62,6 +63,32 @@ export const useApiEffect = (f: (api: ScopedApi) => Promise<void>, deps: Depende
     }, [...deps, generation]);
     /* eslint-enable react-hooks/exhaustive-deps */
     return error;
+}
+
+/**
+ * One load whose refusal must not take the screen with it.
+ *
+ * **A convenience is not a dependency.** A screen's effect awaits its loads in
+ * one sequence, so the first refusal skips every load after it and `loadError`
+ * replaces the whole page. The grant editor asks for the permission templates
+ * and the account list to fill two pickers with; a manager holds neither
+ * `template:read` nor `user:read:all`, so both answer 403 — and the Participants
+ * tab died on the first of them while the roster it exists to show, which the
+ * same account may read perfectly well, was never even requested.
+ *
+ * Only 403 is absorbed. A network failure, a 500 or an aborted read still take
+ * the screen down, because those are not answers about what somebody may see.
+ *
+ * @param load the request, already started
+ * @param fallback what the screen shows instead — an empty picker, not no page
+ */
+export async function optional<T>(load: Promise<T>, fallback: T): Promise<T> {
+    try {
+        return await load;
+    } catch (error) {
+        if (error instanceof ForbiddenError) return fallback;
+        throw error;
+    }
 }
 
 /**

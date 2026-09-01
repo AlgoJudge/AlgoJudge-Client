@@ -11,7 +11,7 @@ import ActivityTime from "../../../components/time/ActivityTime";
 import CredentialsModal from "../../../components/users/CredentialsModal";
 import TemporaryAccountsModal from "../../../components/users/TemporaryAccountsModal";
 import MergeAccountModal from "../../../components/users/MergeAccountModal";
-import { useApiCall, useApiEffect } from "../../../provider/apiContext";
+import { optional, useApiCall, useApiEffect } from "../../../provider/apiContext";
 import { useInstance } from "../../../provider/instanceContext";
 
 const PAGE_SIZE = 20;
@@ -70,7 +70,7 @@ export default function UsersPage() {
 
     const loadError = useApiEffect(async (api) => {
         setActivities(await api.managerApi.getManagedActivities());
-        setTemplates(await api.managerApi.getPermissionTemplates());
+        setTemplates(await optional(api.managerApi.getPermissionTemplates(), []));
 
         setItems(undefined);
         const result = await api.managerApi.getUsers({
