@@ -83,6 +83,13 @@ export default function ManagerProblemPage() {
             const refs = await api.managerApi.getProblemContent(problemId, newest.id);
             const loadedSources: Record<string, string> = { [DEFAULT_LANGUAGE]: emptyDocument() };
             for (const ref of refs) {
+                // **Only what this editor can open.** A statement is not always
+                // Markdown: an archive import's is `content.pdf`, and reading
+                // its bytes as text put a PDF in the Markdown editor, which then
+                // reported a missing `content@1` header it could never have had.
+                // The file list below already knows about these — see
+                // `carriedStatements` — and this is the half that did not.
+                if (!isStatementName(ref.name)) continue;
                 loadedSources[ref.language ?? DEFAULT_LANGUAGE] = await api.fileApi.getText(ref.fileId);
             }
             setSources(loadedSources);
