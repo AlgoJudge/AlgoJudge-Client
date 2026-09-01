@@ -393,13 +393,55 @@ const GUESS: SeedProblem = {
  * arithmetic that divides by the reported maximum was, until this existed,
  * indistinguishable from the arithmetic that assumed one.
  */
+/**
+ * What a manager would write beside the archive's PDF.
+ *
+ * Short on purpose: it exists to be *switched to*, not to be read. The archive's
+ * own statement stays the default, because that is what an import produces.
+ */
+const uvaStatementPl = `---
+version: 1
+---
+
+Dla zadanej liczby $n$ rozważ ciąg: jeżeli $n$ jest parzyste, następnym wyrazem
+jest $n/2$; w przeciwnym razie $3n + 1$. Ciąg kończy się na $1$.
+
+**Długością cyklu** nazywamy liczbę wyrazów, licząc $n$ i końcową jedynkę.
+
+## Wejście
+
+Pary liczb $i$ oraz $j$, po jednej parze w wierszu.
+
+## Wyjście
+
+Dla każdej pary: $i$, $j$ oraz największa długość cyklu dla liczb od $i$ do $j$
+włącznie, w tej samej kolejności, w jakiej podano $i$ i $j$.
+
+\`\`\`in
+1 10
+100 200
+\`\`\`
+
+\`\`\`out
+1 10 20
+100 200 125
+\`\`\`
+
+Ocenia [UVa Online Judge](https://onlinejudge.org), na własnych testach.
+`;
+
 const UVA_3N1: SeedProblem = {
     id: "prob-uva-100", slug: "UVa-100", name: "The 3n + 1 problem", currentVersion: 1,
     type: "uva@1",
-    // The archive's own PDF, copied in at import. The Markdown below is what a
-    // manager would have to write by hand to replace it, and nothing does.
+    // The archive's own PDF, copied in at import.
     statement: uvaStatementPdf,
     statementIsPdf: true,
+    // **A translation beside a PDF**, which is the combination nothing else
+    // here has: the default statement is a document the archive wrote and the
+    // translation is Markdown somebody wrote afterwards. It is what puts the
+    // language switcher above a PDF statement, and without it that switcher
+    // could not be seen at all.
+    translations: { pl: uvaStatementPl },
 };
 
 // ──────────────────────────────────────────────────────────── the contest
