@@ -217,7 +217,7 @@ const PROBLEM_TYPE_CATALOGUE: ProblemTypeOption[] = [
 ];
 
 /**
- * What a problem type gives a **manager** to edit.
+ * What a problem type **has**.
  *
  * **The Server cannot answer this and is forbidden from learning to.**
  * `Problem.External` is a boolean it stores and compares against a Runner's own,
@@ -225,11 +225,16 @@ const PROBLEM_TYPE_CATALOGUE: ProblemTypeOption[] = [
  * not branch on a problem type". So the shape of the editor is decided here,
  * beside the renderers, where every other type-specific decision already lives.
  *
+ * Read by the manager's editor to decide which tabs exist, and by the
+ * participant's problem screen to decide whether limits are this installation's
+ * to state at all — the same question, asked from two sides, which is why this
+ * is not called "editing".
+ *
  * The fallback is the `standard-io@1` answer, because that is what every screen
- * assumed before this existed: a type this build does not know keeps the editor
- * it has always been given rather than losing half of it.
+ * assumed before this existed: a type this build does not know keeps the screens
+ * it has always been given rather than losing half of them.
  */
-export interface ProblemEditing {
+export interface ProblemShape {
     /**
      * Whether this installation builds the package a solution is judged against.
      *
@@ -274,7 +279,7 @@ export interface ProblemEditing {
     notices?: string[];
 }
 
-export const problemEditing = new TypeRegistry<ProblemEditing>({ package: true, limits: true })
+export const problemShape = new TypeRegistry<ProblemShape>({ package: true, limits: true })
     .register("uva@*", {
         package: false,
         limits: false,

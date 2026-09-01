@@ -23,7 +23,7 @@ import { emptyDocument, isStatementFile, isStatementName, statementFileName } fr
 import { tryValidateContent } from "../../../../content/validate";
 import { useApiCall, useApiEffect } from "../../../../provider/apiContext";
 import { sha256 } from "../../../../utils/sha256";
-import { problemEditing, statementRenderers } from "../../../../renderers";
+import { problemShape, statementRenderers } from "../../../../renderers";
 import { canEmbed, embedReference, linkReference } from "../../../../content/reference";
 
 export default function ManagerProblemPage() {
@@ -304,7 +304,7 @@ export default function ManagerProblemPage() {
     const Statement = statementRenderers.resolve(problem.type).value;
     // What this type gives a manager to edit. Everything below that used to
     // assume a package asks this instead.
-    const editing = problemEditing.resolve(problem.type).value;
+    const editing = problemShape.resolve(problem.type).value;
     const newest = versions[0];
     const selected = versions.find(v => v.id === selectedId) ?? newest;
     // History is read, not rewritten: an older version takes no new statement,

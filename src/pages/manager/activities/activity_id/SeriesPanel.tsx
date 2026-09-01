@@ -16,7 +16,7 @@ import {
     ManagedActivity, ManagedProblem, ManagedProblemVersion, ManagedSeries, ManagedSeriesProblem,
     SeriesInput, SeriesProblemInput,
 } from "../../../../api/ManagerApi";
-import { problemEditing } from "../../../../renderers";
+import { problemShape } from "../../../../renderers";
 import ZonedDateTimeInput from "../../../../components/time/ZonedDateTimeInput";
 import CleanCopyModal from "../../../../components/copy/CleanCopyModal";
 import ExportButton from "../../../../components/exchange/ExportButton";
@@ -608,7 +608,7 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                                                                 by the archive, and wore this warning on
                                                                 every round it was ever attached to. */}
                                                             {!assignment.hasPackage
-                                                                && problemEditing.resolve(
+                                                                && problemShape.resolve(
                                                                     problems.find(one => one.id === assignment.problemId)?.type,
                                                                 ).value.package && (
                                                                 <Tooltip label={t("No package: nothing can be judged")}>
