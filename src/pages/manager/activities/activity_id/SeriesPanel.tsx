@@ -16,6 +16,7 @@ import {
     ManagedActivity, ManagedProblem, ManagedProblemVersion, ManagedSeries, ManagedSeriesProblem,
     SeriesInput, SeriesProblemInput,
 } from "../../../../api/ManagerApi";
+import { problemEditing } from "../../../../renderers";
 import ZonedDateTimeInput from "../../../../components/time/ZonedDateTimeInput";
 import CleanCopyModal from "../../../../components/copy/CleanCopyModal";
 import ExportButton from "../../../../components/exchange/ExportButton";
@@ -602,8 +603,14 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                                                                 </Badge>}
                                                             {/* Nothing judges without a package, and the
                                                                 time to learn that is before the round
-                                                                opens. */}
-                                                            {!assignment.hasPackage && (
+                                                                opens — **unless the type has none to
+                                                                begin with**. A `uva@1` problem is judged
+                                                                by the archive, and wore this warning on
+                                                                every round it was ever attached to. */}
+                                                            {!assignment.hasPackage
+                                                                && problemEditing.resolve(
+                                                                    problems.find(one => one.id === assignment.problemId)?.type,
+                                                                ).value.package && (
                                                                 <Tooltip label={t("No package: nothing can be judged")}>
                                                                     <Badge variant="light" color="red" size="sm" leftSection={<IconAlertTriangle size={11} />}>
                                                                         {t("Missing")}
