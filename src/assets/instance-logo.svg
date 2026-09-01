@@ -68,15 +68,16 @@
     <!-- The signal: accepted, judging, failed. It stands on the desk, to the
          right of the screen, touching nothing.
 
-         Centred in the gap it stands in rather than pushed to the end of the
-         desk: the screen ends at 270 and the desk at 334, so the middle is 302
-         and the whole tower — post, case and lamps — is built on that line. It
-         sat on 321, hard against the desk's right edge, which read as crowded.
-         The post now lands over the desk's right leg at 296, which is where a
-         thing standing on a table wants to be. -->
-    <rect x="297" y="118" width="10" height="34" rx="4" fill="#868e96" />
-    <rect x="289" y="34" width="26" height="84" rx="13" fill="#f8f9fa" stroke="#868e96" stroke-width="3" />
-    <circle cx="302" cy="52" r="9" fill="#37b24d" />
-    <circle cx="302" cy="76" r="9" fill="#f59f00" />
-    <circle cx="302" cy="100" r="9" fill="#f03e3e" />
+         Placed a third of the way across the gap it stands in, not halfway and
+         not at the end: the screen ends at 270 and the desk at 334, so the line
+         is 270 + 64/3 = 291, and the whole tower — post, case and lamps — is
+         built on it. It sat on 321, hard against the desk's right edge, which
+         read as crowded; the middle, 302, left it looking adrift. Eight pixels
+         of desk still separate the case from the screen, so the two do not
+         touch. -->
+    <rect x="286" y="118" width="10" height="34" rx="4" fill="#868e96" />
+    <rect x="278" y="34" width="26" height="84" rx="13" fill="#f8f9fa" stroke="#868e96" stroke-width="3" />
+    <circle cx="291" cy="52" r="9" fill="#37b24d" />
+    <circle cx="291" cy="76" r="9" fill="#f59f00" />
+    <circle cx="291" cy="100" r="9" fill="#f03e3e" />
 </svg>
