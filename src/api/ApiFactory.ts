@@ -59,4 +59,33 @@ export class ApiFactory {
         }
         return HttpApiFactory.create(apiBaseUrl(origin));
     }
+
+    /**
+     * Why this Client cannot reach a Server, where that is a configuration
+     * error rather than a choice. `undefined` when there is no such error.
+     *
+     * **An empty `apiBaseUrl` in a substituted placeholder is a broken
+     * deployment.** `docker-entrypoint.sh` defaults `API_BASE_URL` to the empty
+     * string, so an image started without it writes
+     * `{"apiBaseUrl":"","useFakeApi":"false"}` into `index.html` — and
+     * {@link create} reads that as "no origin", falls through to the fake and
+     * serves a complete invented installation, with invented people and invented
+     * contests, to somebody who believes they are looking at their own. Opening
+     * into fiction is a worse failure than refusing to open.
+     *
+     * **The placeholder is what tells that apart from development.** A
+     * substituted one carries the key whatever its value; the one this
+     * repository ships is `{}`, which is `npm run dev` reading
+     * `import.meta.env` — and that still gets the fake, deliberately.
+     */
+    public static misconfiguration(): string | undefined {
+        const runtime = typeof window === "undefined" ? undefined : window.__ALGOJUDGE__;
+
+        if (runtime === undefined || !("apiBaseUrl" in runtime)) return undefined;
+        if (configured(runtime.apiBaseUrl) !== undefined) return undefined;
+        // Asking for the fake is still allowed, because it was asked for.
+        if (configured(runtime.useFakeApi) === "true") return undefined;
+
+        return "API_BASE_URL is empty on this Client container.";
+    }
 }
