@@ -21,7 +21,7 @@ import { emptyDocument, isStatementFile, isStatementName, statementFileName } fr
 import { tryValidateContent } from "../../../../content/validate";
 import { useApiCall, useApiEffect } from "../../../../provider/apiContext";
 import { sha256 } from "../../../../utils/sha256";
-import { statementRenderers } from "../../../../renderers";
+import { problemEditing, statementRenderers } from "../../../../renderers";
 import { canEmbed, embedReference, linkReference } from "../../../../content/reference";
 
 export default function ManagerProblemPage() {
@@ -265,6 +265,9 @@ export default function ManagerProblemPage() {
     if (!problem) return <LoadState error={loadError} loading={!loadError} />;
 
     const Statement = statementRenderers.resolve(problem.type).value;
+    // What this type gives a manager to edit. Everything below that used to
+    // assume a package asks this instead.
+    const editing = problemEditing.resolve(problem.type).value;
     const newest = versions[0];
     const selected = versions.find(v => v.id === selectedId) ?? newest;
     // History is read, not rewritten: an older version takes no new statement,
@@ -272,6 +275,7 @@ export default function ManagerProblemPage() {
     // that would change it is disabled.
     const isNewest = selected?.id === newest?.id;
     const locked = !!problem.archivedAt || !isNewest;
+    const identity = editing.identity?.read(selected?.props);
 
     // What the next version would hold: what this one holds, less what the draft
     // removes, plus what it adds. Every screen below reads this rather than the
@@ -342,6 +346,10 @@ export default function ManagerProblemPage() {
 
     const unstage = (name: string) => setStaged(current => current.filter(entry => entry.file.name !== name));
     const publishes = staged.length > 0 || removed.length > 0 || packageDraft !== undefined;
+    // `?tab=package` can arrive for a problem that has none — a bookmark, or a
+    // link sent before anybody knew. Falling back beats an empty panel.
+    const asked = query.get("tab") ?? "content";
+    const tab = asked === "package" && !editing.package ? "content" : asked;
 
     return (
         <Stack gap="md">
@@ -351,7 +359,20 @@ export default function ManagerProblemPage() {
                         <Title order={2}>{problem.name}</Title>
                         {problem.archivedAt && <Badge color="gray">{t("Archived")}</Badge>}
                     </Group>
-                    <Text size="sm" c="dimmed" ff="monospace">{problem.slug} · {problem.type}</Text>
+                    <Group gap="xs">
+                        <Text size="sm" c="dimmed" ff="monospace">{problem.slug} · {problem.type}</Text>
+                        {/* Written at import and carried forward by the Server on
+                            every later version. No screen showed it before, so
+                            nothing said which archive problem this points at.
+
+                            `tt="none"` because a badge shouts by default, and
+                            this sits beside the quiet line carrying the slug. */}
+                        {identity !== undefined && (
+                            <Badge variant="light" size="sm" tt="none">
+                                {t(editing.identity!.label)} {identity}
+                            </Badge>
+                        )}
+                    </Group>
                 </Stack>
                 <Button data-testid="back" variant="default" leftSection={<IconArrowLeft size={16} />} onClick={() => navigate("/manager/problems")}>
                     {t("Back")}
@@ -359,6 +380,18 @@ export default function ManagerProblemPage() {
             </Group>
 
             {error && <Alert color="red" withCloseButton onClose={() => setError(undefined)}>{error}</Alert>}
+
+            {/* Said once, at the top: a tab that is simply gone is a puzzle, and
+                the same tab absent with a sentence is an answer. */}
+            {(editing.notices ?? []).length > 0 && (
+                <Alert color="blue" icon={<IconInfoCircle size={18} />}>
+                    <Stack gap={4}>
+                        {editing.notices!.map(notice => (
+                            <Text key={notice} size="sm">{t(notice)}</Text>
+                        ))}
+                    </Stack>
+                </Alert>
+            )}
 
             {problem.archivedAt && (
                 <Alert color="gray" icon={<IconAlertTriangle size={18} />}>
@@ -387,7 +420,7 @@ export default function ManagerProblemPage() {
             {/* The open tab is in the URL, as it is on the activity screen:
                 "look at this problem's package" is a link somebody sends. */}
             <Tabs
-                value={query.get("tab") ?? "content"}
+                value={tab}
                 onChange={value => setQuery(q => {
                     if (value && value !== "content") q.set("tab", value);
                     else q.delete("tab");
@@ -397,7 +430,7 @@ export default function ManagerProblemPage() {
                 <Tabs.List>
                     <Tabs.Tab value="content">{t("Statement")}</Tabs.Tab>
                     <Tabs.Tab value="files">{t("Attachments")} ({files.length})</Tabs.Tab>
-                    <Tabs.Tab value="package">{t("Package")}</Tabs.Tab>
+                    {editing.package && <Tabs.Tab value="package">{t("Package")}</Tabs.Tab>}
                     <Tabs.Tab value="versions">{t("Versions")} ({versions.length})</Tabs.Tab>
                     <Tabs.Tab value="sharing">{t("Sharing")}</Tabs.Tab>
                 </Tabs.List>
@@ -654,7 +687,7 @@ export default function ManagerProblemPage() {
                     </Stack>
                 </Tabs.Panel>
 
-                <Tabs.Panel value="package" pt="md">
+                {editing.package && <Tabs.Panel value="package" pt="md">
                     {/* Keyed by version: switching to another one, or publishing,
                         starts the builder again and opens what that version holds.
                         A problem with no version yet builds its first package here
@@ -669,7 +702,7 @@ export default function ManagerProblemPage() {
                         onDraftChange={handleDraft}
                         onMeasure={measure}
                     />
-                </Tabs.Panel>
+                </Tabs.Panel>}
 
                 <Tabs.Panel value="versions" pt="md">
                     <Table striped>
@@ -679,7 +712,7 @@ export default function ManagerProblemPage() {
                                 <Table.Th>{t("Date")}</Table.Th>
                                 <Table.Th>{t("Author")}</Table.Th>
                                 <Table.Th>{t("What changed")}</Table.Th>
-                                <Table.Th>{t("Package")}</Table.Th>
+                                {editing.package && <Table.Th>{t("Package")}</Table.Th>}
                                 <Table.Th />
                             </Table.Tr>
                         </Table.Thead>
@@ -699,11 +732,17 @@ export default function ManagerProblemPage() {
                                     </Table.Td>
                                     <Table.Td><Text size="sm">{version.createdByName ?? "—"}</Text></Table.Td>
                                     <Table.Td><Text size="sm" c="dimmed">{version.note ?? "—"}</Text></Table.Td>
-                                    <Table.Td>
-                                        {version.hasPackage
-                                            ? <Badge variant="light" color="teal" size="sm">{t("Uploaded")}</Badge>
-                                            : <Badge variant="light" color="gray" size="sm">{t("Missing")}</Badge>}
-                                    </Table.Td>
+                                    {/* **Absent, not missing.** A type judged
+                                        elsewhere has no package to be without,
+                                        and every version of one wore a Missing
+                                        badge for ever. */}
+                                    {editing.package && (
+                                        <Table.Td>
+                                            {version.hasPackage
+                                                ? <Badge variant="light" color="teal" size="sm">{t("Uploaded")}</Badge>
+                                                : <Badge variant="light" color="gray" size="sm">{t("Missing")}</Badge>}
+                                        </Table.Td>
+                                    )}
                                     <Table.Td>
                                         <Group justify="flex-end">
                                             {/* Selecting a version points the
@@ -798,9 +837,11 @@ export default function ManagerProblemPage() {
                                     <Badge variant="light" size="sm" color="red">−{removed.length}</Badge>
                                 </Tooltip>
                             )}
-                            <Badge variant="light" size="sm" color={packageDraft ? "teal" : "gray"}>
-                                {packageDraft ? t("new package") : t("package unchanged")}
-                            </Badge>
+                            {editing.package && (
+                                <Badge variant="light" size="sm" color={packageDraft ? "teal" : "gray"}>
+                                    {packageDraft ? t("new package") : t("package unchanged")}
+                                </Badge>
+                            )}
                         </Group>
                         <Group gap="xs">
                             {packageDraft?.blocked && (
