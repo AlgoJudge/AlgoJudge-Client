@@ -484,10 +484,19 @@ export default function AppLayout() {
                 looked at, and stays mounted while the reader moves between its
                 screens — so nothing is announced twice and nothing is missed. */}
             <ActivityNotifications activityId={activity?.id} slug={activity?.slug} />
-            {/* Beside them, in the other corner, and only inside an activity. */}
-            {/* The shell already holds both, and the panel's modal needs the
-                rounds to offer a problem — so nothing is fetched twice. */}
-            <ActivitySubmissions activity={activity} series={series} />
+            {/* Beside them, in the other corner, and only inside an activity
+                somebody is actually in. The shell already holds both, and the
+                panel's modal needs the rounds to offer a problem — so nothing is
+                fetched twice.
+
+                **Enrolment, because the panel sends.** Its Send button opens the
+                same form as the Submit screen, and the Server refuses a
+                submission from somebody who is not in the activity. The
+                navigation has hidden Submit from them all along; this was the
+                one door left open, for a manager looking at an activity they do
+                not take part in. */}
+            {activity?.membership === "enrolled"
+                && <ActivitySubmissions activity={activity} series={series} />}
         </AppShell>
     );
 }
