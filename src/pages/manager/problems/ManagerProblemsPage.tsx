@@ -1,8 +1,9 @@
 import { Alert, Badge, Button, Group, Modal, Pagination, Select, Stack, Switch, Table, Text, TextInput, Title, Tooltip } from "@mantine/core";
-import { IconArchive, IconArchiveOff, IconCopy, IconLock, IconPlus, IconSearch, IconTrash, IconUpload, IconUsers, IconWorld } from "@tabler/icons-react";
+import { IconArchive, IconArchiveOff, IconCopy, IconLock, IconPlus, IconSearch, IconTrash, IconUpload, IconUsers, IconWorld, IconWorldSearch } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import type { UvaPickerProblem } from "@algojudge/uva-explorer-react";
 import { ManagedProblem, ProblemVisibility } from "../../../api/ManagerApi";
 import LoadState from "../../../components/LoadState";
 import ActivityTime from "../../../components/time/ActivityTime";
@@ -11,6 +12,11 @@ import ExportButton from "../../../components/exchange/ExportButton";
 import ImportBundleModal from "../../../components/exchange/ImportBundleModal";
 import { collectProblemOnly } from "../../../exchange/collect";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
+import { useInstance } from "../../../provider/instanceContext";
+import { usePermissions } from "../../../provider/permissionsContext";
+import { UvaBrowseButton } from "../external/UvaBrowseButton";
+import { refusal } from "../external/access";
+import { ImportOutcome, importOne } from "../external/uvaImport";
 import { problemTypes } from "../../../renderers";
 
 const PAGE_SIZE = 20;
@@ -37,6 +43,8 @@ export default function ManagerProblemsPage() {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const call = useApiCall();
+    const { instance } = useInstance();
+    const { has } = usePermissions();
 
     const [copying, setCopying] = useState<ManagedProblem | undefined>(undefined);
     const [importing, setImporting] = useState(false);
@@ -49,6 +57,7 @@ export default function ManagerProblemsPage() {
     const [creating, setCreating] = useState(false);
     const [draft, setDraft] = useState({ slug: "", name: "", type: DEFAULT_TYPE });
     const [error, setError] = useState<string | undefined>(undefined);
+    const [notice, setNotice] = useState<string | undefined>(undefined);
     const [busy, setBusy] = useState(false);
     const [reload, setReload] = useState(0);
 
@@ -91,6 +100,64 @@ export default function ManagerProblemsPage() {
 
     if (!items) return <LoadState error={loadError} loading={!loadError} />;
 
+    /**
+     * Whether to offer the archive at all.
+     *
+     * **Two questions, and both have to be yes.** The switch is read off the
+     * public instance document, which every screen already holds — the settings
+     * screen's own `external-content` call needs `instance:update`, which a
+     * manager does not have, so asking there would 403 for exactly the people
+     * this button is for. And `problem:import:external` is what actually opens
+     * the archive: without it the first click spends nothing and refuses.
+     */
+    const mayBrowseArchive = instance.externalJudgingEnabled
+        && has("problem:import:external");
+
+    /**
+     * A selection, imported one at a time.
+     *
+     * Counted rather than tabulated: the problems that arrive are about to
+     * appear in the list underneath, so what is worth saying here is how many
+     * did not, and which.
+     */
+    const importFromArchive = async (problems: UvaPickerProblem[]) => {
+        setError(undefined);
+        setNotice(undefined);
+        setBusy(true);
+        try {
+            const done: ImportOutcome[] = [];
+            for (const problem of problems) {
+                done.push(await call(scoped => importOne(scoped, {
+                    number: problem.number,
+                    title: problem.title,
+                    statementUrl: problem.urls.statement_pdf,
+                })));
+            }
+
+            const made = done.filter(one => one.ok);
+            // Already here is not a failure — somebody chose a problem this
+            // library holds, and the answer is that it holds it.
+            const already = done.filter(one => !one.ok && one.reason === "duplicate");
+            const failed = done.filter(one => !one.ok && one.reason !== "duplicate");
+
+            const said = [
+                made.length > 0 && t("Imported: {{count}}", { count: made.length }),
+                already.length > 0 && t("Already in the library: {{count}}", { count: already.length }),
+            ].filter(Boolean).join(" · ");
+            if (said.length > 0) setNotice(said);
+
+            if (failed.length > 0) {
+                setError(t("Could not import: {{numbers}}", {
+                    numbers: failed.map(one => one.number).join(", "),
+                }));
+            }
+
+            setReload(n => n + 1);
+        } finally {
+            setBusy(false);
+        }
+    };
+
     const chosenType = problemTypes().find(type => type.id === draft.type);
 
     return (
@@ -103,6 +170,17 @@ export default function ManagerProblemsPage() {
                     </Text>
                 </Stack>
                 <Group gap="sm">
+                    {mayBrowseArchive && (
+                        <UvaBrowseButton
+                            variant="default"
+                            disabled={busy}
+                            leftSection={<IconWorldSearch size={16} />}
+                            onRefused={r => setError(r && refusal(t, r.code))}
+                            onPicked={importFromArchive}
+                        >
+                            {t("Browse UVa Online Judge")}
+                        </UvaBrowseButton>
+                    )}
                     <Button data-testid="import-file" variant="default" leftSection={<IconUpload size={16} />} onClick={() => setImporting(true)}>
                         {t("Import from a file")}
                     </Button>
@@ -113,6 +191,7 @@ export default function ManagerProblemsPage() {
             </Group>
 
             {error && <Alert color="red" withCloseButton onClose={() => setError(undefined)}>{error}</Alert>}
+            {notice && <Alert color="blue" withCloseButton onClose={() => setNotice(undefined)}>{notice}</Alert>}
 
             <Group gap="md" wrap="wrap">
                 <TextInput
