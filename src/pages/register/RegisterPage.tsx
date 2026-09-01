@@ -44,11 +44,17 @@ export default function RegisterPage() {
     const [reading, setReading] = useState<LegalDocumentKind | undefined>(undefined);
 
     // What the box asks somebody to accept, out of what this instance published.
-    // The box is required either way — `acceptedTerms` is required by the API,
-    // and what is accepted is the instance's terms whether or not it wrote them
-    // down — but a link is only offered to a document that exists.
     const readable = publishedLegalKinds(instance.documents)
         .filter(kind => kind === "terms" || kind === "privacy");
+
+    // **Asked for only where there is something to accept.** The box was
+    // required unconditionally until 2026-09-01, on the stated grounds that
+    // `acceptedTerms` is required by the API — which is not true: registration
+    // is ASP.NET Core Identity's own handler and it binds no such field. So an
+    // installation that publishes no terms demanded agreement to a document it
+    // does not have, showed no link because there was none to show, and refused
+    // the form until somebody ticked a bare asterisk.
+    const mustAccept = readable.includes("terms");
     const readingRef = reading
         ? pickDocumentRef(instance.documents, reading, i18n.language)
         : undefined;
@@ -63,9 +69,9 @@ export default function RegisterPage() {
             return setError(t("A password needs at least 12 characters"));
         }
         if (form.password !== form.repeat) return setError(t("The passwords differ"));
-        // The checkbox blocks the form rather than decorating it, and what it
-        // records travels with the account.
-        if (!accepted) return setError(t("The terms have to be accepted"));
+        // The checkbox blocks the form rather than decorating it — where there
+        // is a document behind it.
+        if (mustAccept && !accepted) return setError(t("The terms have to be accepted"));
 
         setError(undefined);
         setBusy(true);
@@ -186,7 +192,7 @@ export default function RegisterPage() {
                             onChange={e => setForm({ ...form, repeat: e.currentTarget.value })}
                             required
                         />
-                        <Checkbox
+                        {mustAccept && <Checkbox
                             checked={accepted}
                             onChange={e => setAccepted(e.currentTarget.checked)}
                             required
@@ -217,7 +223,7 @@ export default function RegisterPage() {
                                     ))}
                                 </Text>
                             }
-                        />
+                        />}
                         <Button fullWidth mt="md" loading={busy} onClick={submit}>
                             {t('Sign up')}
                         </Button>
