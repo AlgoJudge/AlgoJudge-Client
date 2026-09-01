@@ -179,6 +179,17 @@ export interface ProblemTypeOption {
     /** English label, and the translation key the screens use. */
     label: string;
     description: string;
+    /**
+     * **This one arrives by import and never by hand.**
+     *
+     * The Client still draws it — an imported problem has to be readable — but
+     * it is not offered on the New problem form, because that form cannot make a
+     * working one. What identifies a `uva@1` problem is
+     * `props.uva.problemNumber` and the external mark, both written by the
+     * import and neither askable for here; choosing it from the list produced a
+     * problem the archive could not be asked about and no Runner would take.
+     */
+    imported?: true;
 }
 
 const PROBLEM_TYPE_CATALOGUE: ProblemTypeOption[] = [
@@ -190,6 +201,7 @@ const PROBLEM_TYPE_CATALOGUE: ProblemTypeOption[] = [
     },
     {
         id: "uva@1",
+        imported: true,
         label: "Judged on UVa Online Judge",
         description: "The statement is a copy of the archive's, and the solution is forwarded to "
             + "onlinejudge.org to be judged there. There are no tests here and no partial credit: "
@@ -211,9 +223,14 @@ const PROBLEM_TYPE_CATALOGUE: ProblemTypeOption[] = [
  * never registered cannot be offered. Choosing one would produce a problem whose
  * every screen says the type is unsupported — a state a manager can reach by
  * importing, but should not be able to reach by picking from a list.
+ *
+ * **And the same for a type that only an import can make.** `imported` is the
+ * other half of that sentence: `uva@1` is drawn perfectly well and cannot be
+ * created, so it is registered and not offered.
  */
 export const problemTypes = (): ProblemTypeOption[] => PROBLEM_TYPE_CATALOGUE.filter(type =>
-    statementRenderers.resolve(type.id).supported && resultRenderers.resolve(type.id).supported);
+    !type.imported
+    && statementRenderers.resolve(type.id).supported && resultRenderers.resolve(type.id).supported);
 
 /**
  * An activity type a manager may create, on the same terms as a problem type.
