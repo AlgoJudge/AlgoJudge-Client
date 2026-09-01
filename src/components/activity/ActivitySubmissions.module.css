@@ -19,6 +19,29 @@
 }
 
 /*
+ * **Not on a phone.** 460px wide and pinned to the bottom, it is effectively the
+ * whole screen there, and it sat on top of whatever the page put in its own
+ * bottom-right corner — measured at 390px on 2026-09-01, where
+ * `elementFromPoint` over the submit form's send button returned this panel.
+ *
+ * Nothing is lost: every entry it offers, My submissions and Send both, is in
+ * the activity's own navigation already. Reserving room under a fixed element
+ * whose height changes as it opens would have been guesswork; leaving the fixed
+ * layer is not.
+ *
+ * Here rather than a `visibleFrom` on the component: that prop emitted no class
+ * at all on this `Paper` — measured, `mantine-visible-from-sm` was absent from
+ * `className` while the panel still had a width. The stylesheet is where the
+ * rest of this element's geometry already lives, and `Footer.module.css` uses
+ * the same breakpoint variable.
+ */
+@media (max-width: $mantine-breakpoint-sm) {
+    .panel {
+        display: none;
+    }
+}
+
+/*
  * A row of siblings, not one button wrapping the rest: the send button lives
  * here too, and a button inside a button is invalid markup.
  */

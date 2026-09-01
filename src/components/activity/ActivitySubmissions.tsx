@@ -110,6 +110,8 @@ export default function ActivitySubmissions({ activity, series }: ActivitySubmis
     };
 
     return (
+        // Not on a phone; the width it is hidden at lives beside the width it is
+        // drawn at, in `ActivitySubmissions.module.css`.
         <Paper withBorder shadow="md" radius="md" className={classes.panel} data-testid="submissions-panel">
             {/* Two controls side by side, not one inside the other. The bar used
                 to be a single button wrapping everything, and a button inside a
