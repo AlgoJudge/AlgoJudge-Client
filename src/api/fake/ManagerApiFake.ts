@@ -81,7 +81,7 @@ import { ActivityRecord, createActivityLibrary } from "./fixtures/activities";
 import { signedInUserId } from "./CoreApiFake";
 import { buildPackage } from "../../package/build";
 import { emptyConfig, isPackageFile, PackageConfig, PACKAGE_ARCHIVE, SAMPLES_ARCHIVE } from "../../package/types";
-import { isStatementName } from "../../content/types";
+import { isStatementFile } from "../../content/types";
 import { createProblemLibrary, ME, ProblemRecord } from "./fixtures/problems";
 import { createQuestions } from "./fixtures/questions";
 import { createRunners } from "./fixtures/runners";
@@ -1793,8 +1793,13 @@ export class ManagerApiFake implements ManagerApi {
         // `examples.zip` is derived from the package, so a new package replaces
         // it and an unchanged one leaves it alone.
         const rebuilt = new Set([PACKAGE_ARCHIVE, ...(input.package ? [SAMPLES_ARCHIVE] : [])]);
+        // **`isStatementFile`, not `isStatementName`.** The first asks "is this
+        // the document"; the second asks "is this Markdown the editor can open",
+        // and `content.pdf` answers no to the second — so an imported statement
+        // was carried forward here *as an ordinary attachment* and published
+        // again as a statement, and every edit added another copy of it.
         const carried = (previous?.files ?? []).filter(f =>
-            !isStatementName(f.name) && !rebuilt.has(f.name) && !removed.has(f.name));
+            !isStatementFile(f.name) && !rebuilt.has(f.name) && !removed.has(f.name));
 
         // The checksums were checked where the bytes arrived, in `fileApi`. What
         // is left to refuse here is what a *version* may not hold.
@@ -1802,7 +1807,7 @@ export class ManagerApiFake implements ManagerApi {
             if (!this.files.has(entry.fileId)) {
                 invalid(`No such file: ${entry.name}`, "file.missing");
             }
-            if (isStatementName(entry.name)) {
+            if (isStatementFile(entry.name)) {
                 // `content.md` and its translations are the statement, written in
                 // the editor. Attaching one here would put a second answer beside
                 // the one published.
@@ -1905,7 +1910,7 @@ export class ManagerApiFake implements ManagerApi {
             // Carried forward when nothing was published: the statement files of
             // the previous version, which `carried` deliberately leaves out.
             ...(input.statements === undefined
-                ? (previous?.files ?? []).filter(f => isStatementName(f.name) && !removed.has(f.name))
+                ? (previous?.files ?? []).filter(f => isStatementFile(f.name) && !removed.has(f.name))
                 : []),
             ...carried,
             ...staged.map(entry => {
