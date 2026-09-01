@@ -144,6 +144,21 @@ const password = (): string => {
 
 const newId = () => `018f2c00-0000-7000-8000-${Math.random().toString(16).slice(2, 14).padEnd(12, "0")}`;
 
+/**
+ * What a statement is stored as, from the file that became it.
+ *
+ * `content.md` and `content-en.md` for Markdown, `content.pdf` for a PDF an
+ * import fetched. The extension follows the bytes: the Server renames on attach
+ * and the Client reads the convention off the name, so a statement misnamed here
+ * is a statement no screen can open.
+ */
+const statementNameFor = (uploaded: string, language?: string): string => {
+    const dot = uploaded.lastIndexOf(".");
+    const extension = dot > 0 ? uploaded.slice(dot + 1).toLowerCase() : "md";
+    const kept = /^[a-z0-9]{1,8}$/.test(extension) ? extension : "md";
+    return language ? `content-${language}.${kept}` : `content.${kept}`;
+};
+
 export class ManagerApiFake implements ManagerApi {
     readonly eventDispatcher = new ManagerEventDispatcherImpl();
 
@@ -1838,7 +1853,13 @@ export class ManagerApiFake implements ManagerApi {
             : input.statements.map(statement => {
                 const stored = this.files.meta(statement.fileId);
                 return {
-                    name: statement.language ? `content-${statement.language}.md` : "content.md",
+                    // **Named after what it is, not after what most statements
+                    // are.** This wrote `.md` whatever went in, so a UVa import's
+                    // PDF arrived called `content.md` and the editor opened it as
+                    // Markdown and said the `content@1` header was missing. That
+                    // is the defect `StatementNamingTests.A_pdf_statement_is_named_as_a_pdf`
+                    // pins on the Server, and the fake was still reproducing it.
+                    name: statementNameFor(stored.name, statement.language),
                     language: statement.language,
                     fileId: statement.fileId,
                     sha256: stored.sha256,
