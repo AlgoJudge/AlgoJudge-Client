@@ -37,11 +37,32 @@ await go(`${APP}/activities/PROG-1-LA/problems/uva100?fakeUser=amy`,
     `document.body.innerText.includes("uva100")`);
 await wait(1800);
 
+// **The switcher first, which is new here.** The problem now carries a Polish
+// translation beside the archive's PDF, and a Polish interface prefers the
+// translation — correctly, that is what a translation is for. So the default
+// statement has to be asked for before the assertion below can be made, and the
+// asking is itself worth checking: a document statement with a translation
+// beside it is the one combination this fixture has and nothing else does.
+const switcher = await evaluate(`
+    const control = document.querySelector("[class*=SegmentedControl]");
+    return control ? control.innerText.replace(/\s+/g, " ").trim() : null;
+`);
+check(switcher !== null && /domy[śs]lna/i.test(switcher),
+    `the statement can be switched between the archive's and a translation (${switcher})`);
+
+await evaluate(`
+    const label = [...document.querySelectorAll("[class*=SegmentedControl] *")]
+        .find(n => /Treść domyślna/.test(n.textContent) && n.children.length === 0);
+    if (label) label.click();
+    return label !== undefined;
+`);
+await wait(1200);
+
 const statement = await evaluate(`
     const object = document.querySelector('object[type="application/pdf"]');
     return { drawn: object !== null, data: object ? object.getAttribute("data") : "" };
 `);
-check(statement.drawn, "a PDF statement is drawn rather than offered as a download");
+check(statement.drawn, "and the default one is the archive's PDF, drawn rather than offered as a download");
 // A blob or a path of ours. Either way it is not another host — which is the
 // whole reason a statement is copied in at import rather than linked.
 check(statement.data.startsWith("blob:") || statement.data.startsWith("/") || statement.data.includes(new URL(APP).host),
