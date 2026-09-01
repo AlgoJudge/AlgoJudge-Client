@@ -9,6 +9,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
     FileScope, ManagedProblem, ManagedProblemVersion, ManagedUserSummary, ProblemFile, ProblemVisibility,
 } from "../../../../api/ManagerApi";
+import { StatementRef } from "../../../../api/FileApi";
 import { Attachment } from "../../../../api/ParticipantApi";
 import LanguageTabs, { DEFAULT_LANGUAGE } from "../../../../components/content/LanguageTabs";
 import ContentEditor from "../../../../components/content/ContentEditor";
@@ -43,6 +44,16 @@ export default function ManagerProblemPage() {
     // One state rather than one per tab: publishing sends them together, because
     // a version carries every language it was published with.
     const [sources, setSources] = useState<Record<string, string>>({ [DEFAULT_LANGUAGE]: emptyDocument() });
+    /**
+     * The statements this editor cannot open, kept so that publishing does not
+     * throw them away.
+     *
+     * **A version's statements are replaced wholesale**, and they were assembled
+     * from the Markdown map alone — so publishing anything at all on an imported
+     * problem replaced its `content.pdf` with an empty `content.md`. The bytes
+     * were the archive's and there was no second copy.
+     */
+    const [carried, setCarried] = useState<StatementRef[]>([]);
     const [language, setLanguage] = useState<string>(DEFAULT_LANGUAGE);
     const [note, setNote] = useState("");
     const [uploadScope, setUploadScope] = useState<FileScope>("participant");
@@ -62,6 +73,7 @@ export default function ManagerProblemPage() {
         // looking at an older version — starts a new one.
         setStaged([]);
         setRemoved([]);
+        setCarried([]);
         const loaded = await api.managerApi.getProblem(problemId);
         setProblem(loaded);
         setUsers(await api.managerApi.searchUsers(""));
@@ -93,6 +105,9 @@ export default function ManagerProblemPage() {
                 loadedSources[ref.language ?? DEFAULT_LANGUAGE] = await api.fileApi.getText(ref.fileId);
             }
             setSources(loadedSources);
+            // The other half of the loop above: what it skipped is not rubbish,
+            // it is the statement, and publishing has to hand it back.
+            setCarried(refs.filter(ref => !isStatementName(ref.name)));
             setLanguage(DEFAULT_LANGUAGE);
         }
     }, [problemId, selectedId, reload]);
@@ -220,13 +235,33 @@ export default function ManagerProblemPage() {
         // The statement goes up the same way everything else does. Its name is
         // the Server's to decide from the language, so what is uploaded is only
         // the text and what is published is only an id.
-        const statements = await Promise.all(Object.entries(sources).map(async ([tag, text]) => {
-            const language = tag === DEFAULT_LANGUAGE ? undefined : tag;
-            const stored = await store(
-                new Blob([text], { type: "text/markdown" }),
-                statementFileName(language));
-            return { language, fileId: stored.id };
-        }));
+        // **One statement per language, and Markdown only wins where somebody
+        // wrote it.** An imported problem's default statement is the archive's
+        // `content.pdf`, and the editor seeds every language slot with an empty
+        // document — so publishing anything at all used to replace that PDF with
+        // a blank `content.md`, with no second copy of the bytes anywhere.
+        const kept = new Map(carried.map(ref => [ref.language ?? DEFAULT_LANGUAGE, ref]));
+        const written = (text: string) => text.trim() !== emptyDocument().trim();
+
+        const edited = await Promise.all(Object.entries(sources)
+            .filter(([tag, text]) => !kept.has(tag) || written(text))
+            .map(async ([tag, text]) => {
+                const language = tag === DEFAULT_LANGUAGE ? undefined : tag;
+                const stored = await store(
+                    new Blob([text], { type: "text/markdown" }),
+                    statementFileName(language));
+                return { language, fileId: stored.id };
+            }));
+
+        // Re-published by id: the Server names a statement from its bytes, so a
+        // carried PDF comes back as `content.pdf` rather than as whatever it was
+        // called when it was fetched.
+        const statements = [
+            ...[...kept.entries()]
+                .filter(([tag]) => !written(sources[tag] ?? ""))
+                .map(([, ref]) => ({ language: ref.language, fileId: ref.fileId })),
+            ...edited,
+        ];
 
         await call(api => api.managerApi.createProblemVersion(problemId, {
             note: note.trim() || undefined,
@@ -305,9 +340,12 @@ export default function ManagerProblemPage() {
     // A statement this tab cannot open: a `content.pdf` from an archive import.
     // It is the statement, so it is not an attachment — and it is not Markdown,
     // so the editor beside it is not editing it.
-    const carriedStatements = files
-        .filter(f => f.state !== "removed" && isStatementFile(f.name) && !isStatementName(f.name))
-        .map(f => f.name);
+    // **From the version's statements, not from its files.** The two agree on
+    // the Server, which stores a statement among the version's files — but the
+    // statement list is what this actually is, it is already loaded, and it is
+    // the list publishing hands back. Reading it here means the notice and the
+    // carrying can never disagree about what is being carried.
+    const carriedStatements = carried.map(ref => ref.name);
 
     // The preview gets the real files, so a figure appears in it exactly as it
     // will on the participant's screen — including the notice when the name
