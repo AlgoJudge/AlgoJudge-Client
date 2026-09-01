@@ -69,13 +69,19 @@ export default function SubmissionPage() {
                     >
                         {t("Problem")}
                     </Button>
-                    <Button
-                        component={Link}
-                        to={`/activities/${activity.slug}/submissions/${submission.id}/code`}
-                        leftSection={<IconTerminal2 size={16} />}
-                    >
-                        {t("Source code")}
-                    </Button>
+                    {/* Offered only when there is something behind it. The
+                        activity's attachment table decides whether an author may
+                        read their own source, and a button onto an empty screen
+                        is a promise this page cannot keep. */}
+                    {submission.files.length > 0 && (
+                        <Button
+                            component={Link}
+                            to={`/activities/${activity.slug}/submissions/${submission.id}/code`}
+                            leftSection={<IconTerminal2 size={16} />}
+                        >
+                            {t("Source code")}
+                        </Button>
+                    )}
                 </Group>
             </Group>
 
