@@ -44,8 +44,22 @@ export default function CodePage() {
         setActive(submission.files[0]?.fileName ?? null);
     }, [activityId, submissionId]);
 
-    if (!activity || !submission || !active) {
+    if (!activity || !submission) {
         return <LoadState error={loadError} loading={!loadError} />;
+    }
+
+    // **Loaded, and there is nothing to show.** The Server sends only the files
+    // this reader may see, and an activity whose attachment table says nothing
+    // about `source` withholds it from the submission's own author — so `files`
+    // arrives empty and no request for one is ever issued. Without this the page
+    // kept a spinner turning for ever, which reads as "still loading" and never
+    // stops being wrong.
+    if (!active) {
+        return (
+            <Alert color="gray" title={t("The source code is not available")}>
+                {t("This submission's files are not shared with you. Whoever runs the activity decides which of them a participant may read.")}
+            </Alert>
+        );
     }
 
     const current = files[active] ?? "";

@@ -1,7 +1,7 @@
 import { Button, Card, Group, Stack, Text, Title } from "@mantine/core";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Activity, ProblemDetail, Series } from "../../../../api/ParticipantApi";
 import { useApiEffect } from "../../../../provider/apiContext";
 import LoadState from "../../../../components/LoadState";
@@ -69,6 +69,25 @@ export default function SubmitPage() {
     // one problem to another, where the previous one is still in state.
     if (!activity || !series || (problemId && problem?.slug !== problemId)) {
         return <LoadState error={loadError} loading={!loadError} />;
+    }
+
+    // **The Server refuses this, so the page says so rather than drawing a form
+    // that cannot work.** The navigation has never offered Submit to somebody
+    // who is not enrolled; the address stayed reachable by hand.
+    if (activity.membership !== "enrolled") {
+        return (
+            <Stack gap="md">
+                <Title>{t("Submit")}</Title>
+                <Text c="dimmed">
+                    {t("Only somebody enrolled in this activity may submit to it.")}
+                </Text>
+                <Group>
+                    <Button component={Link} to={`/activities/${activity.slug}`}>
+                        {t("Go to the activity")}
+                    </Button>
+                </Group>
+            </Stack>
+        );
     }
 
     if (!problem) {

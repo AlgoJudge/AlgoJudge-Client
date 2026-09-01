@@ -39,6 +39,8 @@ import { MaintenanceProvider } from './provider/MaintenanceProvider';
 import { EventsProvider } from './provider/EventsProvider';
 import { InstanceProvider } from './provider/InstanceProvider';
 import { PermissionsProvider } from './provider/PermissionsProvider';
+import NotFoundPage from './pages/error/NotFoundPage';
+import RouteErrorPage from './pages/error/RouteErrorPage';
 import RequireSession from './routers/Authentication';
 import RequirePermission from './routers/RequirePermission';
 import { areaFor, MANAGER_PERMISSIONS } from './pages/manager/managerAreas';
@@ -87,6 +89,7 @@ function App() {
         // itself, and then draws its chrome around an empty page — which is what
         // `/` did the moment a second shell was added beside the first.
         {
+            errorElement: <RouteErrorPage />,
             // Where a launch lands, and the three ways one can end badly.
             //
             // **No shell at all.** These are drawn inside a course page, where
@@ -126,6 +129,7 @@ function App() {
             // The visitor's shell, and only the visitor's: an application shell
             // around a sign-in form would offer navigation to nowhere.
             element: <Layout />,
+            errorElement: <RouteErrorPage />,
             children: [
                 {
                     path: "/login",
@@ -145,6 +149,7 @@ function App() {
             // whether to have an account at all. The shell follows the session
             // so that reading one does not take the application away.
             element: <SessionShell />,
+            errorElement: <RouteErrorPage />,
             children: [
                 {
                     path: "/",
@@ -166,6 +171,12 @@ function App() {
                     path: "/accessibility",
                     element: <LegalPage />
                 },
+                {
+                    // Last, and it matches nothing a route above already claims:
+                    // React Router ranks a splat below every static path.
+                    path: "*",
+                    element: <NotFoundPage />
+                },
             ]
         },
         {
@@ -177,6 +188,7 @@ function App() {
             // framed launch and the full application for every other one; §5.2
             // will not have the mode entered because a URL said so.
             element: <RequireSession><LaunchShell /></RequireSession>,
+            errorElement: <RouteErrorPage />,
             children: [
                 {
                     path: "/account",

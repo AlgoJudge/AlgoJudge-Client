@@ -11,7 +11,7 @@ import { isStaffGrant } from "../../../../api/permissions";
 import PermissionSetEditor from "../../../../components/permissions/PermissionSetEditor";
 import TemporaryAccountsModal from "../../../../components/users/TemporaryAccountsModal";
 import ActivityTime from "../../../../components/time/ActivityTime";
-import { useApiCall, useApiEffect } from "../../../../provider/apiContext";
+import { optional, useApiCall, useApiEffect } from "../../../../provider/apiContext";
 import { usePermissions } from "../../../../provider/permissionsContext";
 
 /**
@@ -60,8 +60,11 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
 
     const loadError = useApiEffect(async (api) => {
         setCatalogue(await api.managerApi.getPermissionCatalogue());
-        setTemplates(await api.managerApi.getPermissionTemplates());
-        setUsers(await api.managerApi.searchUsers(""));
+        // Both fill a picker in the grant editor and neither is what this tab is
+        // for, so a manager who may not read them gets the pickers empty and the
+        // roster all the same.
+        setTemplates(await optional(api.managerApi.getPermissionTemplates(), []));
+        setUsers(await optional(api.managerApi.searchUsers(""), []));
         // What may be handed out here is what the signed-in manager holds **in
         // this activity**, which is not the same set as their system rights.
         setGrantable(await api.managerApi.getMyPermissions(activity.id));

@@ -321,7 +321,17 @@ export interface ProfileInput {
 
 export interface RegisterInput extends ProfileInput {
     password: string,
-    /** Refused without it, and recorded with the account. */
+    /**
+     * **The Server does not read this.** Registration is ASP.NET Core Identity's
+     * own `MapIdentityApi` handler, which binds no such field — so the consent is
+     * asked for in the browser and recorded nowhere. It said "refused without it,
+     * and recorded with the account" until 2026-09-01, and `RegisterPage`
+     * demanded a tick on the strength of that sentence even where the
+     * installation published no terms to tick.
+     *
+     * Kept on the wire because the fake enforces it, and because it is the field
+     * a Server that recorded consent would read.
+     */
     acceptedTerms: boolean,
 }
 
