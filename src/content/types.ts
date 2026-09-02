@@ -63,9 +63,21 @@ export const isStatementName = (name: string): boolean => STATEMENT.test(name);
  * Now that a statement can be `content.pdf`, asking the Markdown question about
  * it files the problem's own statement under its attachments.
  */
-const STATEMENT_FILE = /^content(?:-[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*)?\.[^.]+$/i;
+const STATEMENT_FILE = /^content(?:-([A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*))?\.[^.]+$/i;
 
 export const isStatementFile = (name: string): boolean => STATEMENT_FILE.test(name);
+
+/**
+ * The language of a statement file, **whatever it is written in**.
+ *
+ * {@link statementLanguage} answers the same question about Markdown alone,
+ * because the editor it serves opens nothing else. This one serves whoever has
+ * to sort a version's files without caring: `content-pl.pdf` is the Polish
+ * statement, and reading it with the Markdown regex says it is not a statement
+ * at all.
+ */
+export const statementFileLanguage = (name: string): string | undefined =>
+    STATEMENT_FILE.exec(name)?.[1]?.toLowerCase();
 
 /** The file name a statement in this language is stored under. */
 export const statementFileName = (language?: string): string =>

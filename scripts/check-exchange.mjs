@@ -13,7 +13,7 @@ const OUT = ".exchange-check";
 
 execFileSync("npx", ["tsc",
     "src/exchange/types.ts", "src/exchange/bundle.ts", "src/exchange/plan.ts",
-    "src/exchange/dates.ts", "src/exchange/project.ts",
+    "src/exchange/dates.ts", "src/exchange/project.ts", "src/exchange/partition.ts",
     "--outDir", OUT, "--rootDir", "src",
     "--module", "esnext", "--target", "es2022", "--moduleResolution", "bundler", "--skipLibCheck",
     // TypeScript 6 makes naming files beside a tsconfig.json an error rather
@@ -48,6 +48,7 @@ const { writeBundle, readBundle, weigh, danglingAssignments, REFUSE_BYTES } =
 const { planImport, summarise, freeSlug } = await import(`../${OUT}/exchange/plan.js`);
 const { shiftTo, anchorOf } = await import(`../${OUT}/exchange/dates.js`);
 const { projectActivity, projectSeries, projectProblem } = await import(`../${OUT}/exchange/project.js`);
+const { partition, mediaTypeOf } = await import(`../${OUT}/exchange/partition.js`);
 
 const fail = (message) => { console.error("FAIL:", message); process.exitCode = 1; };
 const ok = (message) => console.log("  ok  ", message);
@@ -79,9 +80,10 @@ for (const shape of ["activity", "series", "assignment", "problem"]) {
 const bytes = (text) => new TextEncoder().encode(text);
 
 const files = new Map([
-    ["aaa", bytes("# Spójność grafu\n")],
+    ["aaa", bytes("%PDF-1.4 not really a pdf")],
     ["bbb", bytes("PK-not-really-a-zip")],
     ["ccc", bytes("# Regulamin\n")],
+    ["ddd", bytes("# Spójność grafu\n")],
 ]);
 
 const bundle = {
@@ -94,7 +96,8 @@ const bundle = {
             slug: "spojnosc-grafu", name: "Spójność grafu", type: "standard-io@1",
             external: false, note: "v3", props: { marker: 1 },
             files: [
-                { name: "content.md", scope: "participant", sha256: "aaa" },
+                { name: "content.pdf", scope: "participant", sha256: "aaa" },
+                { name: "content-pl.md", scope: "participant", sha256: "ddd" },
                 { name: "package.zip", scope: "runner", sha256: "bbb" },
             ],
         },
@@ -207,7 +210,7 @@ check(danglingAssignments(bundle).length === 0, "and a whole bundle reports none
 // ── 5. Matching against the library: slug and content, never slug alone ─────
 
 const library = [
-    { id: "p-same", slug: "spojnosc-grafu", name: "Spójność grafu", archived: false, sha256: ["aaa", "bbb"] },
+    { id: "p-same", slug: "spojnosc-grafu", name: "Spójność grafu", archived: false, sha256: ["aaa", "ddd", "bbb"] },
 ];
 const same = planImport(bundle, library);
 check(same.problems[0].action === "reuse" && !same.problems[0].asks,
@@ -226,7 +229,7 @@ check(fresh.problems[0].action === "create" && !fresh.problems[0].asks,
 // **The order of the digests must not matter.** A library listing them the
 // other way round is the same problem, and a comparison over arrays would have
 // called it a different one and asked a question nobody needed to answer.
-const reordered = planImport(bundle, [{ ...library[0], sha256: ["bbb", "aaa"] }]);
+const reordered = planImport(bundle, [{ ...library[0], sha256: ["bbb", "aaa", "ddd"] }]);
 check(reordered.problems[0].action === "reuse", "the digests are compared as a set, not a sequence");
 
 // A subset must not pass for a match: a library problem holding only the
@@ -295,6 +298,56 @@ check(statementLanguage("content.md") === undefined, "content.md is the default 
 check(statementLanguage("content-en.md") === "en", "content-en.md is a translation");
 check(statementLanguage("figure.png") === false, "and a figure is not a statement");
 check(isStatement("content-uk.md") && !isStatement("package.zip"), "isStatement agrees with it");
+
+// **A PDF is a statement too, and reading `.md` alone made one unimportable.**
+// The Server names a statement from the media type of the bytes it stored, so
+// `content.pdf` is what a UVa import writes and what the ZawodyWeb converter
+// writes for a problem whose text was a PDF.
+check(statementLanguage("content.pdf") === undefined, "content.pdf is a default statement as well");
+check(statementLanguage("content-pl.pdf") === "pl", "and content-pl.pdf is a translation of one");
+
+// **The invariant the two repositories share, checked over the names this
+// product actually produces.** `PackageNames.IsStatement` on the Server accepts
+// every `content.` and `content-` name and refuses one among a version's
+// ordinary files, with `version.file.isStatement`. A name this side does not
+// call a statement is therefore a name the import walks into that refusal with
+// — part way through, after problems have already been created.
+const theServerCallsItAStatement = (name) =>
+    name.startsWith("content.") || name.startsWith("content-");
+const disagreements = [
+    "content.md", "content.pdf", "content-pl.md", "content-pl.pdf", "content-uk.md",
+    "package.zip", "examples.zip", "figure.png", "dane.txt", "contents.md",
+].filter(name => theServerCallsItAStatement(name) !== isStatement(name));
+check(disagreements.length === 0,
+    "the two sides agree on every name the product writes"
+    + (disagreements.length ? `: ${disagreements.join(", ")}` : ""));
+
+// **And the routing itself, not only the predicate it asks.** `apply.ts` is
+// deliberately not compiled here — it talks to the API — so with `partition`
+// inside it the most a check could reach was `isStatement`, and a file sent to
+// the wrong side of the split stayed invisible. That is the shape of the defect
+// this section exists for, so the split is now a pure module and is driven.
+const split = partition(back.bundle.problems[0], new Map([
+    ["aaa", "id-pdf"], ["ddd", "id-pl"], ["bbb", "id-package"],
+]));
+check(split.statements.length === 2,
+    `both statements are published as statements (${split.statements.length})`);
+check(split.statements[0].language === undefined && split.statements[1].language === "pl",
+    "the PDF is the default and the Markdown is the Polish translation");
+check(split.files.length === 0,
+    `and nothing content.* is left among the ordinary files (${split.files.length})`);
+check(split.packageFileId === "id-package" && split.samplesFileId === undefined,
+    "the package is recognised as the package");
+
+// **The media type the bytes go up under, which decides the name they come back
+// down under.** The Server derives a statement's extension from what it
+// recorded; a Blob with no type is `application/octet-stream`, and under that a
+// PDF statement is stored as `content.md` and handed to a Markdown parser.
+check(mediaTypeOf("content.pdf") === "application/pdf", "a PDF says it is a PDF");
+check(mediaTypeOf("content-pl.md") === "text/markdown", "and Markdown says it is Markdown");
+check(mediaTypeOf("rysunek-1.png") === "image/png", "a figure says it is a picture");
+check(mediaTypeOf("dane") === "application/octet-stream",
+    "and something with no extension keeps the old default");
 
 // ── 8. The ceiling is stated, not discovered ────────────────────────────────
 
