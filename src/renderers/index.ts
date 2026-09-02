@@ -9,6 +9,7 @@ import PointsRanking from "./ranking/PointsRanking";
 import UnsupportedRanking from "./ranking/UnsupportedRanking";
 import { RankingProps } from "./ranking/parse";
 import { TypeRegistry } from "./TypeRegistry";
+import { uploadableExtensions } from "../components/editor/languages";
 
 // KaTeX and the block renderers are only needed on a statement or the rules
 // page, and KaTeX alone is a quarter of a megabyte. Split out so that the
@@ -117,7 +118,14 @@ export interface SubmitRenderer {
 export const submitRenderers = new TypeRegistry<SubmitRenderer | null>(null)
     .register("standard-io@*", {
         code: true,
-        file: { accept: [".cpp", ".cc", ".py", ".txt"], label: "Solution file", description: "" },
+        // **From the catalogue, not written out beside it.** The list and the
+        // toolchains it has to cover drifted once already; `languages.ts` keeps
+        // them together and `check:languages` holds them there.
+        file: {
+            accept: uploadableExtensions("standard-io@1"),
+            label: "Solution file",
+            description: "",
+        },
         language: true,
     })
     .register("uva@*", {
@@ -142,7 +150,7 @@ export const submitRenderers = new TypeRegistry<SubmitRenderer | null>(null)
     .register("output-only@*", {
         code: false,
         file: {
-            accept: [".zip", ".out", ".txt"],
+            accept: uploadableExtensions("output-only@1"),
             label: "Answer file",
             description: "One archive with an answer per test, or a single file for a problem with one test",
         },

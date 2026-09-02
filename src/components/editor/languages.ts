@@ -151,3 +151,28 @@ export const pastedFileName = (type: string | undefined, id: string | undefined)
  */
 export const knownLanguages = (type: string | undefined): string[] =>
     Object.keys(catalogueFor(type));
+
+/**
+ * Every extension a solution may be **uploaded** under, per problem type.
+ *
+ * Here rather than beside the submit renderer, because the list this has to
+ * agree with is the catalogue above it: the Runner refuses a file whose name the
+ * chosen toolchain does not accept, and it does so as a compilation error before
+ * anything is built. Kept apart, the two drift — and they did. This list lived
+ * in `renderers/index.ts`, predated the eighteen-toolchain catalogue of
+ * 2026-08-22, and never gained `.c`: the form offered eight C toolchains and
+ * then refused every file one of them could be written in, so a C solution
+ * could be pasted and never uploaded.
+ *
+ * A superset of any one toolchain's own extensions, deliberately: the browser's
+ * filter is a convenience and the Runner is the gate, so narrowing it per
+ * chosen language would only hide a file a participant might legitimately
+ * rename. `check:languages` asserts every toolchain here has somewhere to land.
+ */
+const UPLOADABLE: Record<string, string[]> = {
+    "standard-io@1": [".c", ".cpp", ".cc", ".cxx", ".c++", ".py"],
+    "output-only@1": [".zip", ".out", ".txt"],
+};
+
+export const uploadableExtensions = (type: string | undefined): string[] =>
+    UPLOADABLE[type ?? ""] ?? UPLOADABLE["standard-io@1"];
