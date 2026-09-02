@@ -1,11 +1,10 @@
 import { ScopedApi } from "../api/ScopedApi";
-import { NewProblemFile, NewStatement, SeriesInput } from "../api/ManagerApi";
-import { PACKAGE_ARCHIVE, SAMPLES_ARCHIVE } from "../package/types";
+import { SeriesInput } from "../api/ManagerApi";
 import { sha256 } from "../utils/sha256";
 import { BundleContents } from "./bundle";
 import { anchorOf, shiftTo } from "./dates";
 import { ImportPlan } from "./plan";
-import { BundledProblem, isStatement, statementLanguage } from "./types";
+import { mediaTypeOf, partition } from "./partition";
 import { Progress } from "./collect";
 
 /**
@@ -71,33 +70,16 @@ const uploadAll = async (
         }
 
         report?.(++done, named.size, name);
-        const stored = await api.fileApi.upload(new Blob([bytes as BlobPart]), name, declared);
+        const stored = await api.fileApi.upload(
+            // **Typed, and the type is load-bearing.** The Server names a
+            // statement from the media type of the bytes it stored, and a Blob
+            // with none arrives as `application/octet-stream` — under which a
+            // PDF statement is stored as `content.md` and drawn as Markdown.
+            new Blob([bytes as BlobPart], { type: mediaTypeOf(name) }), name, declared);
         ids.set(declared, stored.id);
     }
 
     return ids;
-};
-
-/** A version's files, split the three ways `createProblemVersion` takes them. */
-const partition = (problem: BundledProblem, ids: Map<string, string>) => {
-    const statements: NewStatement[] = [];
-    const files: NewProblemFile[] = [];
-    let packageFileId: string | undefined;
-    let samplesFileId: string | undefined;
-
-    for (const file of problem.files) {
-        const fileId = ids.get(file.sha256);
-        if (!fileId) throw new Error(`${problem.slug}: ${file.name} was not stored`);
-
-        if (file.name === PACKAGE_ARCHIVE) packageFileId = fileId;
-        else if (file.name === SAMPLES_ARCHIVE) samplesFileId = fileId;
-        else if (isStatement(file.name)) {
-            const language = statementLanguage(file.name);
-            statements.push({ fileId, language: language === false ? undefined : language });
-        } else files.push({ fileId, name: file.name, scope: file.scope });
-    }
-
-    return { statements, files, packageFileId, samplesFileId };
 };
 
 export const applyBundle = async (

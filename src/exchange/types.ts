@@ -4,6 +4,7 @@ import {
 } from "../api/ManagerApi";
 import { ActivityDocumentKind } from "../api/ParticipantApi";
 import { SeriesImportanceScope } from "../api/seriesImportance";
+import { isStatementFile, statementFileLanguage } from "../content/types";
 
 /**
  * The exchange bundle: a problem, a round or a whole activity, leaving one
@@ -299,12 +300,25 @@ export const FIELDS = {
     }),
 } as const;
 
-/** `content.md`, or `content-<language>.md` for a translation. */
-export const statementLanguage = (name: string): string | undefined | false => {
-    if (name === "content.md") return undefined;
-    const match = /^content-([A-Za-z0-9-]+)\.md$/.exec(name);
-    return match ? match[1] : false;
-};
+/**
+ * A statement's language in a bundle: absent for the default, the subtag for a
+ * translation, `false` for anything that is not a statement at all.
+ *
+ * **It read `.md` alone until 2026-09-02, and a PDF statement could not be
+ * imported.** The Server names a statement from the media type of the bytes it
+ * stored, so a UVa import writes `content.pdf` and so does the ZawodyWeb
+ * converter — and this side filed that name under `files`, where the Server
+ * refuses `content.*` outright with `version.file.isStatement`. The import died
+ * part way through, after problems had already been created.
+ *
+ * The extension never travels: `apply.ts` sends a language and a file id, and
+ * the Server derives the name again from the bytes. So the question here is the
+ * one `content/types.ts` already answers — *is this the document, rather than
+ * material beside it* — and it is asked of that module rather than answered a
+ * third time in a third regex.
+ */
+export const statementLanguage = (name: string): string | undefined | false =>
+    isStatementFile(name) ? statementFileLanguage(name) : false;
 
 /** Whether a stored file is a statement rather than material beside one. */
 export const isStatement = (name: string): boolean => statementLanguage(name) !== false;
