@@ -94,6 +94,7 @@ from nineteen.
 | `npm run build` | `tsc && vite build` |
 | `npm run preview` | serve the production build |
 | `npm run check:package` | round-trips a Runner package through the real builder |
+| `npm run check:languages` | every toolchain the submit form offers has a file extension it accepts |
 | `npm run check:content` | parses and validates every `content.md` fixture |
 | `npm run check:exchange` | the exchange bundle, and that every field of the four manager shapes is carried or deliberately left |
 | `npm run check:zawodyweb` | the §9 converter, against fixtures written from ZawodyWeb's documented format |
@@ -110,11 +111,12 @@ from nineteen.
 it on 2026-08-30. It listed thirteen of the eighteen until then: `preview`,
 `check:exchange`, `check:zawodyweb`, `check:access` and `check:e2e` were missing.
 
-**Thirteen npm steps gate, counted from `.github/workflows/ci.yml` on
-2026-08-30.** Lint, `lint:deps`, typecheck and build, then eight `check:` steps
-in the `build` job — `check:content`, `check:package`, `check:exchange`,
-`check:zawodyweb`, `check:access`, `check:events`, `check:i18n`, `check:api` —
-and `check:ui` in `browser-checks`, which is nine `check:` steps in all. No job
+**Fourteen npm steps gate, counted from `.github/workflows/ci.yml` on
+2026-09-02.** Lint, `lint:deps`, typecheck and build, then nine `check:` steps
+in the `build` job — `check:content`, `check:package`, `check:languages`,
+`check:exchange`, `check:zawodyweb`, `check:access`, `check:events`,
+`check:i18n`, `check:api` — and `check:ui` in `browser-checks`, which is ten
+`check:` steps in all. No job
 carries `continue-on-error`, so every one of them must exit 0 before anything is
 merged; the `docker` job, which builds the image and checks the nginx fallback,
 blocks on the same terms. `check:api` is the only step that cannot go red as it

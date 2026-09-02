@@ -59,6 +59,11 @@ jobs:
       - name: Check the package format
         run: npm run check:package
 
+      # A toolchain offered by the submit form that the same form's file
+      # field then refuses is a language a participant can only paste.
+      - name: Check the language catalogue against what may be uploaded
+        run: npm run check:languages
+
       # The exchange bundle, and the partition it is: every field of the four
       # manager shapes is carried or deliberately left, and the compiler will
       # not let that list fall behind the API.
