@@ -2097,6 +2097,17 @@ export class ManagerApiFake implements ManagerApi {
      * Server.
      */
     private queueRejudge(submission: ManagedSubmissionDetail): ManagedSubmissionDetail {
+        // **The attempt this one replaces leaves the queue with it**, as on the
+        // Server: two queued attempts on one submission were handed to two
+        // Runners and judged twice. Only a queued one is touched — an attempt
+        // already running is finished by the Runner holding it, and the new one
+        // waits behind it there.
+        for (const overtaken of submission.attemptList) {
+            if (overtaken.state !== "queued") continue;
+            overtaken.state = "superseded";
+            overtaken.finishedAt = new Date().toISOString();
+        }
+
         const attempt: ManagedAttempt = {
             id: `${submission.id}-job-${submission.attemptList.length + 1}`,
             attempt: submission.attemptList.length + 1,

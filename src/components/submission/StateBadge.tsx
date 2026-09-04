@@ -27,6 +27,7 @@ const colorFor = ({ state, score, maxScore }: StateBadgeProps): string => {
         case "running": return "blue";
         case "failed": return "red";
         case "queued":
+        case "superseded":
         case "cancelled": return "gray";
         case "completed":
             if (score === undefined || maxScore === undefined || maxScore === 0) return "teal";
