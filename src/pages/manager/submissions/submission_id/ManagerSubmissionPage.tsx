@@ -141,9 +141,21 @@ const STATE_COLOUR: Record<JobState, string> = {
     completed: "teal",
     failed: "red",
     cancelled: "gray",
+    superseded: "gray",
 };
 
-const isFinished = (state: JobState) => state === "completed" || state === "failed";
+/**
+ * Whether an attempt is over, and so cannot be cancelled.
+ *
+ * The Server refuses four states here and this listed two, with the button's
+ * own `disabled` making up one of the difference — so a cancelled attempt was
+ * correctly unclickable under a tooltip offering to cancel it. `superseded`
+ * joins them for the same reason: a rejudge overtook it, and there is nothing
+ * left to stop.
+ */
+const isFinished = (state: JobState) =>
+    state === "completed" || state === "failed"
+    || state === "cancelled" || state === "superseded";
 
 /**
  * One submission, with every attempt it has had.
@@ -334,7 +346,7 @@ export default function ManagerSubmissionPage() {
                                                     variant="subtle"
                                                     color="red"
                                                     size="compact-sm"
-                                                    disabled={isFinished(attempt.state) || attempt.state === "cancelled"}
+                                                    disabled={isFinished(attempt.state)}
                                                     loading={busy}
                                                     onClick={() => run(() => call(api =>
                                                         api.managerApi.cancelAttempt(submission.id, attempt.id)))}

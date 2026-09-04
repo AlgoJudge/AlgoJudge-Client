@@ -18,6 +18,7 @@ const STATE_COLOUR: Record<JobState, string> = {
     completed: "teal",
     failed: "red",
     cancelled: "gray",
+    superseded: "gray",
 };
 
 const STATES: JobState[] = ["queued", "running", "completed", "failed", "cancelled"];

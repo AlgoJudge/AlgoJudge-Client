@@ -419,7 +419,16 @@ export interface ProblemDetail {
     submissionsLeft?: number,
 }
 
-export type JobState = "queued" | "running" | "completed" | "failed" | "cancelled";
+/**
+ * `superseded` is an attempt a rejudge overtook while it was still queued.
+ *
+ * Distinct from `cancelled`, which a manager does on purpose — an attempt list
+ * saying somebody cancelled an attempt nobody cancelled is a misreading the
+ * reader has no way to check. It never appears as a *submission's* state, only
+ * an attempt's: the newest attempt is always the one a rejudge just added.
+ */
+export type JobState =
+    "queued" | "running" | "completed" | "failed" | "cancelled" | "superseded";
 
 export interface SubmissionSummary {
     id: string,
