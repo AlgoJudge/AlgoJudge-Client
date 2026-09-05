@@ -23,6 +23,7 @@ export interface PackageContents {
     config: PackageConfig;
     tests: TestFile[];
     checker?: ExtraFile;
+    interactor?: ExtraFile;
     modelSolution?: ExtraFile;
 }
 
@@ -46,6 +47,9 @@ export const buildPackage = async (contents: PackageContents): Promise<Blob> => 
     }
     if (contents.checker) {
         files[`checker/${contents.checker.name}`] = encoder.encode(contents.checker.content);
+    }
+    if (contents.interactor) {
+        files[`interactor/${contents.interactor.name}`] = encoder.encode(contents.interactor.content);
     }
     if (contents.modelSolution) {
         files[`solutions/${contents.modelSolution.name}`] = encoder.encode(contents.modelSolution.content);
@@ -109,6 +113,7 @@ export const readPackage = async (file: Blob): Promise<PackageContents> => {
         config,
         tests: [...tests.values()].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })),
         checker: extra("checker/"),
+        interactor: extra("interactor/"),
         modelSolution: extra("solutions/"),
     };
 };

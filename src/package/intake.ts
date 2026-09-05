@@ -12,6 +12,7 @@ import { parseTestName, TestFile } from "./types";
 export interface Intake {
     tests: TestFile[];
     checker?: ExtraFile;
+    interactor?: ExtraFile;
     modelSolution?: ExtraFile;
     /** Named so a manager can see what was ignored rather than wonder. */
     unrecognised: string[];
@@ -20,6 +21,14 @@ export interface Intake {
 const SOURCE = /\.(cpp|cc|c|py|java|rs|go|pas)$/i;
 
 const isChecker = (name: string) => /chk|check/i.test(name) && SOURCE.test(name);
+/**
+ * **Tested before the checker**, and that ordering is the whole of it.
+ *
+ * `interactor.cpp` matches neither of the other two, so order would not seem to
+ * matter — but `interactive-checker.cpp` matches this **and** `isChecker`, and
+ * the more specific has to win. `/inter/` alone would swallow `interpolate.cpp`.
+ */
+const isInteractor = (name: string) => /interactor|interakt|interactive/i.test(name) && SOURCE.test(name);
 const isModel = (name: string) => /model|wzor|sol/i.test(name) && SOURCE.test(name);
 
 export const intakeFiles = async (files: File[]): Promise<Intake> => {
@@ -45,6 +54,7 @@ export const intakeFiles = async (files: File[]): Promise<Intake> => {
     const tests = new Map<string, TestFile>();
     const unrecognised: string[] = [];
     let checker: ExtraFile | undefined;
+    let interactor: ExtraFile | undefined;
     let modelSolution: ExtraFile | undefined;
 
     for (const entry of flat) {
@@ -59,6 +69,10 @@ export const intakeFiles = async (files: File[]): Promise<Intake> => {
             if (/\.in$/i.test(entry.name)) existing.input = entry.content;
             else existing.output = entry.content;
             tests.set(parsed.name, existing);
+            continue;
+        }
+        if (isInteractor(entry.name)) {
+            interactor = { name: entry.name, content: entry.content };
             continue;
         }
         if (isChecker(entry.name)) {
@@ -76,6 +90,7 @@ export const intakeFiles = async (files: File[]): Promise<Intake> => {
         tests: [...tests.values()].sort((a, b) =>
             a.name.localeCompare(b.name, undefined, { numeric: true })),
         checker,
+        interactor,
         modelSolution,
         unrecognised,
     };

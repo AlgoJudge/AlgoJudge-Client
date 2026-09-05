@@ -15,16 +15,21 @@ export const validatePackage = (tests: TestFile[], config: PackageConfig, fileNa
         issues.push({ level: "error", message: "The package has no tests" });
     }
 
-    // Without a checker an expected output is the only thing that decides a
-    // verdict, so a missing `.out` is not a warning.
-    if (!config.checker) {
-        for (const test of tests.filter(t => t.output === undefined)) {
-            issues.push({
-                level: "error",
-                message: "No expected output and no checker",
-                file: `${test.name}.in`,
-            });
-        }
+    // **Every test needs its `.out`, whatever decides the verdict.** This was
+    // conditional on there being no checker until 2026-09-05, which described a
+    // package the Runner has never accepted: `TestSet::read` refuses one outright
+    // and says why in as many words — "a checker replaces the comparison, not the
+    // file". A checker is given it as `argv[3]` and an interactor reads it to
+    // know the answer, so it is the reference in all three arrangements.
+    //
+    // So the Client was building packages that pass here and fail at judging
+    // time, on every submission, reported as an infrastructure failure.
+    for (const test of tests.filter(t => t.output === undefined)) {
+        issues.push({
+            level: "error",
+            message: "No expected output",
+            file: `${test.name}.in`,
+        });
     }
 
     if (!Array.isArray(config.groups)) {
@@ -108,8 +113,24 @@ export const validatePackage = (tests: TestFile[], config: PackageConfig, fileNa
         issues.push({ level: "warning", message: "The groups add up to {{total}} points, not 100", values: { total } });
     }
 
+    // **One or the other, never both.** They decide the same question, and a
+    // package that declares both has not said which of them judges. The Runner
+    // refuses it; saying so here is what stops a manager publishing one.
+    if (config.checker && config.interactor) {
+        issues.push({
+            level: "error",
+            message: "A package declares a checker or an interactor, never both",
+        });
+    }
+
     if (config.checker && !fileNames.includes(config.checker.source.split("/").pop() ?? "")) {
         issues.push({ level: "error", message: "The checker named in the configuration is not in the package" });
+    }
+    if (config.interactor && !fileNames.includes(config.interactor.source.split("/").pop() ?? "")) {
+        issues.push({
+            level: "error",
+            message: "The interactor named in the configuration is not in the package",
+        });
     }
     if (config.modelSolution && !fileNames.includes(config.modelSolution.source.split("/").pop() ?? "")) {
         issues.push({ level: "error", message: "The model solution named in the configuration is not in the package" });

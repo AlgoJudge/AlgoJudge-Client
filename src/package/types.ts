@@ -151,8 +151,22 @@ export interface PackageConfig {
     languages?: string[];
     overrideLimits?: Record<string, Partial<PackageLimits>>;
     groups: PackageGroup[];
-    /** Absent means the `.out` files decide. */
+    /**
+     * Absent means the `.out` files decide.
+     *
+     * It is handed the participant's answer as the program writes it, so it must
+     * read it once and forwards — a pipe cannot be seeked or read twice.
+     */
     checker?: PackageProgram;
+    /**
+     * The problem is interactive, and this program is the other side of it.
+     *
+     * The submission is given no input file: everything it reads is produced by
+     * this program in answer to what the submission wrote. It stands **instead**
+     * of a checker, never beside one — the two decide the same question, and the
+     * Runner refuses a package that declares both.
+     */
+    interactor?: PackageProgram;
     /** Used for calibration, never for judging. */
     modelSolution?: PackageProgram;
     /** How a measurement of the model solution turns into a limit. */

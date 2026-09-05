@@ -125,9 +125,12 @@ await shot("f-package");
 // renders through `Code`, so without a source file the component that
 // @mantine/code-highlight rewrote for Shiki is drawn by nothing and an upgrade
 // of it cannot go red.
+// **By name, not by `accept`.** Three inputs offer the same extensions — the
+// checker, the interactor and the model solution — so a search by that takes
+// whichever the DOM happens to hold first, and would keep passing while
+// targeting the wrong control.
 await evaluate(`
-    const input = [...document.querySelectorAll("input[type=file]")]
-        .find(i => (i.accept || "").includes(".cpp"));
+    const input = document.querySelector("input[data-testid=checker-file]");
     if (!input) throw new Error("no checker input");
     const data = new DataTransfer();
     data.items.add(new File(["int add(int a, int b) {\\n    return a + b;\\n}\\n"],

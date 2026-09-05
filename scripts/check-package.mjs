@@ -9,6 +9,7 @@ const OUT = ".package-check";
 
 execFileSync("npx", ["tsc",
     "src/package/types.ts", "src/package/validate.ts", "src/package/build.ts", "src/package/calibration.ts",
+    "src/package/intake.ts",
     "--outDir", OUT, "--rootDir", "src/package",
     "--module", "esnext", "--target", "es2022", "--moduleResolution", "bundler", "--skipLibCheck",
     // TypeScript 6 makes naming files beside a tsconfig.json an error rather
@@ -33,6 +34,7 @@ addExtensions(OUT);
 
 const { buildPackage, readPackage, buildSampleArchive } = await import(`../${OUT}/build.js`);
 const { validatePackage, hasErrors } = await import(`../${OUT}/validate.js`);
+const { intakeFiles } = await import(`../${OUT}/intake.js`);
 const { emptyConfig } = await import(`../${OUT}/types.js`);
 const { applyCalibration, measuredGroups, suggestedForGroup } = await import(`../${OUT}/calibration.js`);
 
@@ -94,6 +96,47 @@ else ok("all four tests survived, in order, byte for byte");
 if (back.checker?.name !== "checker.cpp") fail("checker did not survive");
 else ok("checker survived");
 
+// **An interactive package, whole.** The config key travelled for free from the
+// beginning — the whole object is written as YAML — but the source did not, and
+// nothing said so: the archive came back naming an interactor it no longer held,
+// the validator was silent, and the Runner refused the package at judging time
+// with a green "ready" left behind in the editor.
+const interactiveConfig = { ...config, checker: undefined, interactor: { source: "interactor/talk.cpp", language: "cpp" } };
+const interactor = { name: "talk.cpp", content: "// asks and answers\nint main(){}\n" };
+const interactive = await readPackage(await buildPackage({ config: interactiveConfig, tests, interactor }));
+
+if (interactive.config.interactor?.source !== "interactor/talk.cpp") fail("the interactor config did not survive");
+else if (interactive.config.checker !== undefined) fail("a checker appeared from nowhere");
+else if (interactive.interactor?.name !== "talk.cpp") fail("the interactor's source did not survive the round trip");
+else if (interactive.interactor.content !== interactor.content) fail("the interactor's source differs");
+else ok("an interactive package survives, config and source together");
+
+console.log("\nloose files, classified by name");
+
+// **Order is the assertion.** `interactor.cpp` matches no other predicate, so
+// this would pass whatever the order — but `interactive-checker.cpp` matches the
+// interactor's pattern *and* the checker's, and the more specific has to win.
+// A file named for neither must stay unrecognised rather than be guessed at.
+const named = (name) => new File([`// ${name}`], name, { type: "text/plain" });
+for (const [name, expected] of [
+    ["checker.cpp", "checker"],
+    ["chk.py", "checker"],
+    ["interactor.cpp", "interactor"],
+    ["interactive-checker.cpp", "interactor"],
+    ["model.cpp", "modelSolution"],
+    ["interpolate.cpp", undefined],
+]) {
+    const taken = await intakeFiles([named(name)]);
+    const landed = ["checker", "interactor", "modelSolution"].find(k => taken[k]?.name === name);
+    if (landed !== expected) {
+        fail(`${name} was taken as ${landed ?? "unrecognised"}, expected ${expected ?? "unrecognised"}`);
+    } else if (expected === undefined && !taken.unrecognised.includes(name)) {
+        fail(`${name} was neither classified nor reported as unrecognised`);
+    } else {
+        ok(`${name} → ${expected ?? "unrecognised"}`);
+    }
+}
+
 console.log("\nvalidation");
 
 const clean = validatePackage(tests, config, ["0a.in", "0a.out", "1a.in", "1a.out", "1b.in", "1b.out", "2a.in", "2a.out", "checker.cpp"]);
@@ -101,12 +144,39 @@ if (hasErrors(clean)) fail(`a valid package reported errors: ${JSON.stringify(cl
 else ok("a valid package passes");
 
 const noOutput = [{ name: "1a", group: 1, letter: "a", input: "x" }];
-const withoutChecker = { ...config, checker: undefined, groups: [{ group: 1, points: 100 }] };
-const issues = validatePackage(noOutput, withoutChecker, ["1a.in"]);
-if (!issues.some(i => i.level === "error" && i.message.includes("No expected output"))) {
-    fail("a test with no .out and no checker was accepted");
+const oneGroup = { groups: [{ group: 1, points: 100 }] };
+
+// **Whatever decides the verdict, the file has to be there.** The Runner refuses
+// a package without it in every arrangement — a checker is handed it as argv[3],
+// an interactor reads it to know the answer — so all three are checked, and the
+// two with a judging program are the ones the Client used to wave through.
+for (const [what, extra] of [
+    ["no checker", { checker: undefined }],
+    ["a checker", { checker: config.checker }],
+    ["an interactor", { checker: undefined, interactor: { source: "interactor/talk.cpp", language: "cpp" } }],
+]) {
+    const issues = validatePackage(noOutput, { ...config, ...oneGroup, ...extra }, ["1a.in", "checker.cpp", "talk.cpp"]);
+    if (!issues.some(i => i.level === "error" && i.message.includes("No expected output"))) {
+        fail(`a test with no .out and ${what} was accepted`);
+    } else {
+        ok(`a test with no .out and ${what} is refused`);
+    }
+}
+
+const both = validatePackage(tests, { ...config, interactor: { source: "interactor/talk.cpp", language: "cpp" } },
+    ["0a.in", "0a.out", "1a.in", "1a.out", "1b.in", "1b.out", "2a.in", "2a.out", "checker.cpp", "talk.cpp"]);
+if (!both.some(i => i.level === "error" && i.message.includes("never both"))) {
+    fail("a package declaring a checker and an interactor was accepted");
 } else {
-    ok("a test with no .out and no checker is refused");
+    ok("a checker and an interactor together are refused");
+}
+
+const absent = validatePackage(tests, { ...config, checker: undefined, interactor: { source: "interactor/talk.cpp", language: "cpp" } },
+    ["0a.in", "0a.out", "1a.in", "1a.out", "1b.in", "1b.out", "2a.in", "2a.out"]);
+if (!absent.some(i => i.level === "error" && i.message.includes("interactor named in the configuration"))) {
+    fail("an interactor named but absent was accepted");
+} else {
+    ok("an interactor named but absent is refused");
 }
 
 const pathy = validatePackage(tests, config, ["../escape.in"]);
