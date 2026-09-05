@@ -60,11 +60,12 @@ export const intakeFiles = async (files: File[]): Promise<Intake> => {
     for (const entry of flat) {
         const parsed = parseTestName(entry.name);
         if (parsed) {
+            // The same as `readPackage`: a lone `1a.out` must arrive as a test
+            // with no input, not one with an empty input.
             const existing = tests.get(parsed.name) ?? {
                 name: parsed.name,
                 group: parsed.group,
                 letter: parsed.letter,
-                input: "",
             };
             if (/\.in$/i.test(entry.name)) existing.input = entry.content;
             else existing.output = entry.content;

@@ -40,7 +40,14 @@ export const buildPackage = async (contents: PackageContents): Promise<Blob> => 
     files["config.yml"] = encoder.encode(stringify(contents.config));
 
     for (const test of contents.tests) {
-        files[`tests/${test.name}.in`] = encoder.encode(test.input);
+        // **Both guarded, and the input's guard is the newer half.** Written
+        // unconditionally, an absent input becomes a zero-byte entry — which the
+        // Runner reads as "the file is there and is empty", not as "there is
+        // none". A package that validates here would then judge every test
+        // against nothing.
+        if (test.input !== undefined) {
+            files[`tests/${test.name}.in`] = encoder.encode(test.input);
+        }
         if (test.output !== undefined) {
             files[`tests/${test.name}.out`] = encoder.encode(test.output);
         }
@@ -92,11 +99,14 @@ export const readPackage = async (file: Blob): Promise<PackageContents> => {
         const match = /^tests\/(\d+)([a-z]+)\.(in|out)$/i.exec(path);
         if (!match) continue;
         const name = `${match[1]}${match[2].toLowerCase()}`;
+        // **No `input: ""` here.** Seeded, an archive with no `.in` came back
+        // as a test with an *empty* input, and nothing downstream could tell
+        // the two apart — which is exactly what an interactive package needs to
+        // say. `output` was never seeded; this makes the pair symmetric.
         const existing = tests.get(name) ?? {
             name,
             group: Number(match[1]),
             letter: match[2].toLowerCase(),
-            input: "",
         };
         if (match[3].toLowerCase() === "in") existing.input = decoder.decode(entries[path]);
         else existing.output = decoder.decode(entries[path]);
@@ -128,7 +138,7 @@ export const readPackage = async (file: Blob): Promise<PackageContents> => {
 export const buildSampleArchive = async (tests: TestFile[]): Promise<Blob> => {
     const files: Record<string, Uint8Array> = {};
     for (const test of tests) {
-        files[`${test.name}.in`] = encoder.encode(test.input);
+        if (test.input !== undefined) files[`${test.name}.in`] = encoder.encode(test.input);
         if (test.output !== undefined) files[`${test.name}.out`] = encoder.encode(test.output);
     }
     return new Blob([await zipArchive(files)], { type: "application/zip" });
