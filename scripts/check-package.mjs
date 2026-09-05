@@ -9,6 +9,7 @@ const OUT = ".package-check";
 
 execFileSync("npx", ["tsc",
     "src/package/types.ts", "src/package/validate.ts", "src/package/build.ts", "src/package/calibration.ts",
+    "src/package/intake.ts",
     "--outDir", OUT, "--rootDir", "src/package",
     "--module", "esnext", "--target", "es2022", "--moduleResolution", "bundler", "--skipLibCheck",
     // TypeScript 6 makes naming files beside a tsconfig.json an error rather
@@ -33,6 +34,7 @@ addExtensions(OUT);
 
 const { buildPackage, readPackage, buildSampleArchive } = await import(`../${OUT}/build.js`);
 const { validatePackage, hasErrors } = await import(`../${OUT}/validate.js`);
+const { intakeFiles } = await import(`../${OUT}/intake.js`);
 const { emptyConfig } = await import(`../${OUT}/types.js`);
 const { applyCalibration, measuredGroups, suggestedForGroup } = await import(`../${OUT}/calibration.js`);
 
@@ -94,6 +96,94 @@ else ok("all four tests survived, in order, byte for byte");
 if (back.checker?.name !== "checker.cpp") fail("checker did not survive");
 else ok("checker survived");
 
+// **An interactive package, whole.** The config key travelled for free from the
+// beginning — the whole object is written as YAML — but the source did not, and
+// nothing said so: the archive came back naming an interactor it no longer held,
+// the validator was silent, and the Runner refused the package at judging time
+// with a green "ready" left behind in the editor.
+const interactiveConfig = { ...config, checker: undefined, interactor: { source: "interactor/talk.cpp", language: "cpp" } };
+const interactor = { name: "talk.cpp", content: "// asks and answers\nint main(){}\n" };
+const interactive = await readPackage(await buildPackage({ config: interactiveConfig, tests, interactor }));
+
+if (interactive.config.interactor?.source !== "interactor/talk.cpp") fail("the interactor config did not survive");
+else if (interactive.config.checker !== undefined) fail("a checker appeared from nowhere");
+else if (interactive.interactor?.name !== "talk.cpp") fail("the interactor's source did not survive the round trip");
+else if (interactive.interactor.content !== interactor.content) fail("the interactor's source differs");
+else ok("an interactive package survives, config and source together");
+
+// **An absent input is an absent entry.** Written unconditionally it becomes a
+// zero-byte file, which the Runner reads as "the file is there and says
+// nothing" — every test judged against an empty input rather than against the
+// conversation. Nothing else in this script looks at entry names.
+const bare = [{ name: "1a", group: 1, letter: "a" }];
+const bareArchive = await buildPackage({
+    config: { ...interactiveConfig, groups: [{ group: 1, points: 100, tests: 1 }] },
+    tests: bare,
+    interactor,
+});
+const bareEntries = Object.keys(unzipSync(new Uint8Array(await bareArchive.arrayBuffer()))).sort();
+if (bareEntries.some(e => e.startsWith("tests/"))) {
+    fail(`a test with no files still wrote ${bareEntries.filter(e => e.startsWith("tests/")).join(", ")}`);
+} else {
+    ok("a test with neither file writes no entry at all");
+}
+
+// The other half of the same rule, and the half that needs a file to exist:
+// an archive whose test has only a `.out` must read back with **no** input, not
+// with an empty one. `typecheck` cannot see the difference — `""` is a string.
+const halfArchive = await buildPackage({
+    config: { ...interactiveConfig, groups: [{ group: 1, points: 100, tests: 1 }] },
+    tests: [{ name: "1a", group: 1, letter: "a", output: "5" }],
+    interactor,
+});
+const halfBack = await readPackage(halfArchive);
+const half = halfBack.tests[0];
+if (!half) fail("an archive with a lone .out read back no test");
+else if (half.input !== undefined) fail(`a lone .out read back as input ${JSON.stringify(half.input)}`);
+else if (half.output !== "5") fail("the expected output did not survive");
+else ok("a lone .out reads back as a test with no input");
+
+const bareBack = await readPackage(bareArchive);
+if (bareBack.tests.length !== 0) fail("an archive with no test files read tests from nowhere");
+else ok("and reads back as no tests, which the declared count then names");
+
+console.log("\nloose files, classified by name");
+
+// **Order is the assertion.** `interactor.cpp` matches no other predicate, so
+// this would pass whatever the order — but `interactive-checker.cpp` matches the
+// interactor's pattern *and* the checker's, and the more specific has to win.
+// A file named for neither must stay unrecognised rather than be guessed at.
+const named = (name) => new File([`// ${name}`], name, { type: "text/plain" });
+for (const [name, expected] of [
+    ["checker.cpp", "checker"],
+    ["chk.py", "checker"],
+    ["interactor.cpp", "interactor"],
+    ["interactive-checker.cpp", "interactor"],
+    ["model.cpp", "modelSolution"],
+    ["interpolate.cpp", undefined],
+]) {
+    const taken = await intakeFiles([named(name)]);
+    const landed = ["checker", "interactor", "modelSolution"].find(k => taken[k]?.name === name);
+    if (landed !== expected) {
+        fail(`${name} was taken as ${landed ?? "unrecognised"}, expected ${expected ?? "unrecognised"}`);
+    } else if (expected === undefined && !taken.unrecognised.includes(name)) {
+        fail(`${name} was neither classified nor reported as unrecognised`);
+    } else {
+        ok(`${name} → ${expected ?? "unrecognised"}`);
+    }
+}
+
+// **A lone `.out` arrives as a test with no input, not an empty one.** The seed
+// that used to pre-fill `input: ""` made the two the same value, and no guard
+// downstream could tell them apart — which is exactly what an interactive
+// package has to say. `typecheck` cannot see this: `""` is a valid string.
+const loneOut = await intakeFiles([new File(["5"], "1a.out", { type: "text/plain" })]);
+const only = loneOut.tests[0];
+if (!only) fail("a lone 1a.out produced no test at all");
+else if (only.input !== undefined) fail(`a lone 1a.out gave input ${JSON.stringify(only.input)}, not undefined`);
+else if (only.output !== "5") fail("the output did not arrive");
+else ok("a lone 1a.out is a test with no input, not one with an empty input");
+
 console.log("\nvalidation");
 
 const clean = validatePackage(tests, config, ["0a.in", "0a.out", "1a.in", "1a.out", "1b.in", "1b.out", "2a.in", "2a.out", "checker.cpp"]);
@@ -101,12 +191,77 @@ if (hasErrors(clean)) fail(`a valid package reported errors: ${JSON.stringify(cl
 else ok("a valid package passes");
 
 const noOutput = [{ name: "1a", group: 1, letter: "a", input: "x" }];
-const withoutChecker = { ...config, checker: undefined, groups: [{ group: 1, points: 100 }] };
-const issues = validatePackage(noOutput, withoutChecker, ["1a.in"]);
-if (!issues.some(i => i.level === "error" && i.message.includes("No expected output"))) {
-    fail("a test with no .out and no checker was accepted");
+const oneGroup = { groups: [{ group: 1, points: 100 }] };
+
+// **What a test needs depends on what judges it, and on nothing else.** These
+// are the Runner's rules, from `TestSet::read`: with neither program the `.out`
+// file is the whole verdict, a checker replaces the comparison, and an
+// interactor replaces the input as well. Asserting anything stricter here
+// refuses packages that judge; anything looser is a green "ready" on a package
+// the Runner throws out at judging time.
+const judgedByInteractor = { checker: undefined, interactor: { source: "interactor/talk.cpp", language: "cpp" } };
+const names = ["1a.in", "checker.cpp", "talk.cpp"];
+
+for (const [what, extra, refused] of [
+    ["no checker", { checker: undefined }, true],
+    ["a checker", { checker: config.checker }, false],
+    ["an interactor", judgedByInteractor, false],
+]) {
+    const issues = validatePackage(noOutput, { ...config, ...oneGroup, ...extra }, names);
+    const said = issues.some(i => i.level === "error" && i.message.includes("No expected output"));
+    if (said !== refused) {
+        fail(`a test with no .out and ${what} was ${said ? "refused" : "accepted"}`);
+    } else {
+        ok(`a test with no .out and ${what} is ${refused ? "refused" : "accepted"}`);
+    }
+}
+
+const noInput = [{ name: "1a", group: 1, letter: "a", output: "5" }];
+for (const [what, extra, refused] of [
+    ["no judging program", { checker: undefined }, true],
+    ["a checker", { checker: config.checker }, true],
+    ["an interactor", judgedByInteractor, false],
+]) {
+    const issues = validatePackage(noInput, { ...config, ...oneGroup, ...extra }, names);
+    const said = issues.some(i => i.level === "error" && i.message.includes("No input"));
+    if (said !== refused) {
+        fail(`a test with no .in and ${what} was ${said ? "refused" : "accepted"}`);
+    } else {
+        ok(`a test with no .in and ${what} is ${refused ? "refused" : "accepted"}`);
+    }
+}
+
+// **A declared count is an interactive problem's census and nothing else's.**
+const counted = (extra, tests) => validatePackage(
+    [], { ...config, ...extra, groups: [{ group: 1, points: 100, tests }] }, names);
+for (const [what, extra, fragment] of [
+    ["without an interactor", { checker: undefined }, "Only an interactive problem"],
+    ["at zero", judgedByInteractor, "award its points to anybody"],
+    ["past twenty-six", judgedByInteractor, "at most"],
+]) {
+    const count = what === "at zero" ? 0 : what === "past twenty-six" ? 27 : 3;
+    const issues = counted(extra, count);
+    if (!issues.some(i => i.level === "error" && i.message.includes(fragment))) {
+        fail(`a test count ${what} was accepted: ${JSON.stringify(issues)}`);
+    } else {
+        ok(`a test count ${what} is refused`);
+    }
+}
+
+const both = validatePackage(tests, { ...config, interactor: { source: "interactor/talk.cpp", language: "cpp" } },
+    ["0a.in", "0a.out", "1a.in", "1a.out", "1b.in", "1b.out", "2a.in", "2a.out", "checker.cpp", "talk.cpp"]);
+if (!both.some(i => i.level === "error" && i.message.includes("never both"))) {
+    fail("a package declaring a checker and an interactor was accepted");
 } else {
-    ok("a test with no .out and no checker is refused");
+    ok("a checker and an interactor together are refused");
+}
+
+const absent = validatePackage(tests, { ...config, checker: undefined, interactor: { source: "interactor/talk.cpp", language: "cpp" } },
+    ["0a.in", "0a.out", "1a.in", "1a.out", "1b.in", "1b.out", "2a.in", "2a.out"]);
+if (!absent.some(i => i.level === "error" && i.message.includes("interactor named in the configuration"))) {
+    fail("an interactor named but absent was accepted");
+} else {
+    ok("an interactor named but absent is refused");
 }
 
 const pathy = validatePackage(tests, config, ["../escape.in"]);

@@ -62,6 +62,15 @@ export interface PackageGroup {
     examples?: boolean;
     /** Narrows the global limits for this group alone. */
     limits?: Partial<PackageLimits>;
+    /**
+     * How many tests this group has, when the package ships no files for them.
+     *
+     * Only an interactive package may say it: elsewhere the files in `tests/`
+     * are the census, and a count beside them is a second source of truth that
+     * can disagree. It fixes the names — `1a`, `1b`, … — and not the files, so a
+     * count beside some files is the useful case. At most 26.
+     */
+    tests?: number;
 }
 
 export interface PackageProgram {
@@ -151,8 +160,25 @@ export interface PackageConfig {
     languages?: string[];
     overrideLimits?: Record<string, Partial<PackageLimits>>;
     groups: PackageGroup[];
-    /** Absent means the `.out` files decide. */
+    /**
+     * Absent means the `.out` files decide.
+     *
+     * It is handed the participant's answer as the program writes it, so it must
+     * read it once and forwards — a pipe cannot be seeked or read twice.
+     *
+     * With one the `.out` files need not be there at all: a checker replaces
+     * the comparison, not only the answer.
+     */
     checker?: PackageProgram;
+    /**
+     * The problem is interactive, and this program is the other side of it.
+     *
+     * The submission is given no input file: everything it reads is produced by
+     * this program in answer to what the submission wrote. It stands **instead**
+     * of a checker, never beside one — the two decide the same question, and the
+     * Runner refuses a package that declares both.
+     */
+    interactor?: PackageProgram;
     /** Used for calibration, never for judging. */
     modelSolution?: PackageProgram;
     /** How a measurement of the model solution turns into a limit. */
@@ -166,8 +192,21 @@ export interface TestFile {
     name: string;
     group: number;
     letter: string;
-    input: string;
-    /** Absent when a checker decides the verdict instead. */
+    /**
+     * The test's input, when the package ships one.
+     *
+     * **Absent and empty are different, and keeping them apart is the whole
+     * reason this is optional.** `undefined` means the archive has no `.in` for
+     * this test — which only an interactive package may say, because everywhere
+     * else the submission reads it. `""` means it ships an empty one.
+     */
+    input?: string;
+    /**
+     * The expected output, when the package ships one.
+     *
+     * Absent only where something else decides: a checker replaces the
+     * comparison, and an interactor knows the answer by construction.
+     */
     output?: string;
 }
 

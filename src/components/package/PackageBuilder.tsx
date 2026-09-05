@@ -194,10 +194,12 @@ export default function PackageBuilder(
     const filesInput = useRef<HTMLInputElement>(null);
     const packageInput = useRef<HTMLInputElement>(null);
     const checkerInput = useRef<HTMLInputElement>(null);
+    const interactorInput = useRef<HTMLInputElement>(null);
     const modelInput = useRef<HTMLInputElement>(null);
 
     const [tests, setTests] = useState<TestFile[]>([]);
     const [checker, setChecker] = useState<ExtraFile | undefined>(undefined);
+    const [interactor, setInteractor] = useState<ExtraFile | undefined>(undefined);
     const [modelSolution, setModelSolution] = useState<ExtraFile | undefined>(undefined);
     const [unrecognised, setUnrecognised] = useState<string[]>([]);
     const [opened, setOpened] = useState(false);
@@ -226,16 +228,25 @@ export default function PackageBuilder(
     }, [tests]);
 
     const fileNames = useMemo(() => [
-        ...tests.flatMap(t => t.output === undefined ? [`${t.name}.in`] : [`${t.name}.in`, `${t.name}.out`]),
+        ...tests.flatMap(t => [
+            ...(t.input === undefined ? [] : [`${t.name}.in`]),
+            ...(t.output === undefined ? [] : [`${t.name}.out`]),
+        ]),
         ...(checker ? [checker.name] : []),
+        ...(interactor ? [interactor.name] : []),
         ...(modelSolution ? [modelSolution.name] : []),
-    ], [tests, checker, modelSolution]);
+    ], [tests, checker, interactor, modelSolution]);
 
     const configWithPrograms = useMemo((): PackageConfig => ({
         ...config,
         checker: checker ? { source: `checker/${checker.name}`, language: languageOf(checker.name) } : undefined,
+        interactor: interactor ? { source: `interactor/${interactor.name}`, language: languageOf(interactor.name) } : undefined,
         modelSolution: modelSolution ? { source: `solutions/${modelSolution.name}`, language: languageOf(modelSolution.name) } : undefined,
-    }), [config, checker, modelSolution]);
+    }), [config, checker, interactor, modelSolution]);
+
+    // Which arrangement this package is in, which is what decides whether an
+    // absent file is an error or the author's choice.
+    const judging = checker !== undefined || interactor !== undefined;
 
     const issues = useMemo(
         () => validatePackage(tests, configWithPrograms, fileNames),
@@ -248,14 +259,21 @@ export default function PackageBuilder(
         [tests, configWithPrograms]);
 
     const build = useCallback(
-        () => buildPackage({ config: configWithPrograms, tests, checker, modelSolution }),
-        [configWithPrograms, tests, checker, modelSolution]);
+        () => buildPackage({ config: configWithPrograms, tests, checker, interactor, modelSolution }),
+        [configWithPrograms, tests, checker, interactor, modelSolution]);
 
     // The examples travel with the package because they are made from it. The
     // package itself never reaches a participant: it carries every hidden test.
+    // **An interactive problem publishes none.** There is no input file to hand
+    // over — the submission is given none either, and everything it reads is
+    // what the interactor sends back. An archive of `.out` files without them
+    // would be the answers with nothing to answer. The sample conversation
+    // belongs in the statement, where it can be shown as a conversation.
+    const publishesExamples = interactor === undefined && exampleTests.length > 0;
+
     const buildSamples = useCallback(
-        async () => exampleTests.length > 0 ? buildSampleArchive(exampleTests) : undefined,
-        [exampleTests]);
+        async () => publishesExamples ? buildSampleArchive(exampleTests) : undefined,
+        [publishesExamples, exampleTests]);
 
     // What the editor publishes. Reported rather than uploaded: a package cannot
     // be added to a version that already exists.
@@ -285,6 +303,7 @@ export default function PackageBuilder(
             ...intake.tests,
         ].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })));
         if (intake.checker) setChecker(intake.checker);
+        if (intake.interactor) setInteractor(intake.interactor);
         if (intake.modelSolution) setModelSolution(intake.modelSolution);
         setUnrecognised(intake.unrecognised);
         setTouched(true);
@@ -297,6 +316,7 @@ export default function PackageBuilder(
         setConfig(contents.config);
         setTests(contents.tests);
         setChecker(contents.checker);
+        setInteractor(contents.interactor);
         setModelSolution(contents.modelSolution);
         setUnrecognised([]);
     };
@@ -425,9 +445,12 @@ export default function PackageBuilder(
             name,
             group: adding.group,
             letter,
-            input: adding.input,
-            // An empty output means a checker decides; storing "" would write an
-            // empty `.out` file and make every answer wrong.
+            // **Empty means absent, for both.** Storing `""` would write a
+            // zero-byte file, which the Runner reads as a file that is there and
+            // says nothing — every answer wrong, or a submission handed nothing
+            // to read. Whether absence is allowed is the validator's business,
+            // and it depends on what judges the problem.
+            input: adding.input.length > 0 ? adding.input : undefined,
             output: adding.output.length > 0 ? adding.output : undefined,
         }].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })));
         setAdding(undefined);
@@ -449,6 +472,17 @@ export default function PackageBuilder(
         pick: () => void,
         clear: () => void,
         empty: string,
+        /**
+         * Why this row cannot be attached to, or nothing.
+         *
+         * **Shown rather than enforced silently.** A checker and an interactor
+         * decide the same question, so a package declares one or the other — and
+         * the way to say that is at the button somebody is about to press, not
+         * as an error after they have. Clearing the other one for them would
+         * throw away a file they attached; a bare disabled button would state no
+         * reason.
+         */
+        blockedBecause?: string,
     ) => (
         <Group justify="space-between" wrap="nowrap">
             <Group gap="xs">
@@ -472,15 +506,21 @@ export default function PackageBuilder(
                         {t("Preview")}
                     </Button>
                 )}
-                <Button
-                    variant="light"
-                    size="compact-sm"
-                    leftSection={<IconUpload size={14} />}
-                    disabled={disabled}
-                    onClick={pick}
-                >
-                    {program ? t("Replace") : t("Attach")}
-                </Button>
+                <Tooltip label={blockedBecause} disabled={!blockedBecause} withArrow multiline w={260}>
+                    {/* A disabled button fires no pointer events, so the tooltip
+                        needs something that does. */}
+                    <span>
+                        <Button
+                            variant="light"
+                            size="compact-sm"
+                            leftSection={<IconUpload size={14} />}
+                            disabled={disabled || blockedBecause !== undefined}
+                            onClick={pick}
+                        >
+                            {program ? t("Replace") : t("Attach")}
+                        </Button>
+                    </span>
+                </Tooltip>
                 {program && (
                     <Button variant="subtle" color="red" size="compact-sm" disabled={disabled} onClick={clear}>
                         <IconTrash size={14} />
@@ -676,11 +716,32 @@ export default function PackageBuilder(
                                 <Table.Tr key={test.name}>
                                     <Table.Td><Text size="sm" ff="monospace">{test.name}</Text></Table.Td>
                                     <Table.Td><Text size="sm">{test.group}</Text></Table.Td>
-                                    <Table.Td><Text size="sm" c="dimmed">{humanSize(sizes.get(test.name)?.input ?? 0)}</Text></Table.Td>
                                     <Table.Td>
-                                        <Text size="sm" c="dimmed">
+                                        {/* `0 B` for an absent file would be
+                                            indistinguishable from an empty one,
+                                            and one of the two is an error. */}
+                                        <Text
+                                            size="sm"
+                                            c={test.input === undefined && interactor === undefined ? "red" : "dimmed"}
+                                        >
+                                            {test.input === undefined
+                                                ? t("none")
+                                                : humanSize(sizes.get(test.name)?.input ?? 0)}
+                                        </Text>
+                                    </Table.Td>
+                                    <Table.Td>
+                                        {/* Red only where it is actually an
+                                            error. A checker replaces the
+                                            comparison and an interactor knows
+                                            the answer, so with either of them an
+                                            absent `.out` is the author's choice
+                                            rather than an omission. */}
+                                        <Text
+                                            size="sm"
+                                            c={test.output === undefined && !judging ? "red" : "dimmed"}
+                                        >
                                             {test.output === undefined
-                                                ? t("checker")
+                                                ? t("none")
                                                 : humanSize(sizes.get(test.name)?.output ?? 0)}
                                         </Text>
                                     </Table.Td>
@@ -691,7 +752,9 @@ export default function PackageBuilder(
                                                     variant="subtle"
                                                     size="compact-sm"
                                                     onClick={() => setPreview([
-                                                        { name: `${test.name}.in`, content: test.input },
+                                                        ...(test.input === undefined
+                                                            ? []
+                                                            : [{ name: `${test.name}.in`, content: test.input }]),
                                                         ...(test.output === undefined
                                                             ? []
                                                             : [{ name: `${test.name}.out`, content: test.output }]),
@@ -797,15 +860,27 @@ export default function PackageBuilder(
                         t("Checker"), checker,
                         () => checkerInput.current?.click(),
                         () => { setChecker(undefined); setTouched(true); },
-                        t("None — the .out files decide"))}
+                        t("None — the .out files decide"),
+                        interactor ? t("A package declares a checker or an interactor, never both") : undefined)}
+                    {programRow(
+                        t("Interactor"), interactor,
+                        () => interactorInput.current?.click(),
+                        () => { setInteractor(undefined); setTouched(true); },
+                        t("None — the problem is not interactive"),
+                        checker ? t("A package declares a checker or an interactor, never both") : undefined)}
                     {programRow(
                         t("Model solution"), modelSolution,
                         () => modelInput.current?.click(),
                         () => { setModelSolution(undefined); setTouched(true); },
                         t("None — limits cannot be calibrated"))}
-                    <input ref={checkerInput} type="file" accept=".cpp,.cc,.c,.py,.java,.rs,.go,.pas" style={{ display: "none" }}
+                    {/* Named rather than found by `accept`: three inputs offer the
+                        same extensions, so a search by that takes whichever the
+                        DOM happens to hold first. */}
+                    <input ref={checkerInput} data-testid="checker-file" type="file" accept=".cpp,.cc,.c,.py,.java,.rs,.go,.pas" style={{ display: "none" }}
                         onChange={e => { takeProgram(e.currentTarget.files?.[0], setChecker); e.currentTarget.value = ""; }} />
-                    <input ref={modelInput} type="file" accept=".cpp,.cc,.c,.py,.java,.rs,.go,.pas" style={{ display: "none" }}
+                    <input ref={interactorInput} data-testid="interactor-file" type="file" accept=".cpp,.cc,.c,.py,.java,.rs,.go,.pas" style={{ display: "none" }}
+                        onChange={e => { takeProgram(e.currentTarget.files?.[0], setInteractor); e.currentTarget.value = ""; }} />
+                    <input ref={modelInput} data-testid="model-file" type="file" accept=".cpp,.cc,.c,.py,.java,.rs,.go,.pas" style={{ display: "none" }}
                         onChange={e => { takeProgram(e.currentTarget.files?.[0], setModelSolution); e.currentTarget.value = ""; }} />
                 </Stack>
                 <Text size="xs" c="dimmed" mt="xs">
@@ -1048,7 +1123,7 @@ export default function PackageBuilder(
                 <Button
                     variant="subtle"
                     leftSection={<IconDownload size={16} />}
-                    disabled={exampleTests.length === 0}
+                    disabled={!publishesExamples}
                     onClick={async () => {
                         const samples = await buildSamples();
                         if (samples) download(samples, "examples.zip");
@@ -1058,9 +1133,11 @@ export default function PackageBuilder(
                 </Button>
             </Group>
             <Text size="xs" c="dimmed" mt={-8}>
-                {exampleTests.length > 0
-                    ? t("The tests in the groups marked as examples are published for the participant as examples.zip.")
-                    : t("No group is marked as examples, so the participant receives no example tests.")}
+                {interactor !== undefined
+                    ? t("An interactive problem publishes no example tests: there is no input file to hand over. Show a sample conversation in the statement instead.")
+                    : exampleTests.length > 0
+                        ? t("The tests in the groups marked as examples are published for the participant as examples.zip.")
+                        : t("No group is marked as examples, so the participant receives no example tests.")}
             </Text>
 
             <Modal
@@ -1145,7 +1222,7 @@ export default function PackageBuilder(
                         />
                         <Textarea
                             label={t("Output")}
-                            description={t("Leave empty when a checker decides the verdict")}
+                            description={t("Every test needs one, whatever decides the verdict")}
                             autosize
                             minRows={4}
                             maxRows={14}
