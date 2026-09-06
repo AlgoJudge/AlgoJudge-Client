@@ -87,6 +87,7 @@ import {
     AccessKey,
     AccessKeyValue,
     ExternalContent,
+    InstanceRedirects,
     InstanceSettingsInput,
     NewStatement,
     UserSession,
@@ -548,6 +549,10 @@ export class ScopedManagerApi {
     }
     getExternalContent(): Promise<ExternalContent> {
         return this.managerApi.getExternalContent(this.signal);
+    }
+
+    getInstanceRedirects(): Promise<InstanceRedirects> {
+        return this.managerApi.getInstanceRedirects(this.signal);
     }
     setExternalContentHosts(hosts: string[]): Promise<ExternalContent> {
         return this.managerApi.setExternalContentHosts(hosts, this.signal);

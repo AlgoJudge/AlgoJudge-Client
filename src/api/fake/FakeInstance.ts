@@ -185,6 +185,34 @@ export class FakeInstance {
     }
 
     /**
+     * The two redirect columns, unfiltered — what the panel's own read answers.
+     *
+     * **Not through `read()`**, which is the whole point: that method applies
+     * the Server's read-time filter, and a screen fed from it shows *none* for
+     * a setting that is there.
+     */
+    storedRedirects(): { signIn?: string; register?: string } {
+        return {
+            signIn: this.info.signInRedirectProvider,
+            register: this.info.registerRedirectProvider,
+        };
+    }
+
+    /**
+     * The providers a signed-out screen is offered, projected from the ones an
+     * operator has registered.
+     *
+     * **Two statements of one fact is what made this necessary.** The public
+     * answer's list and the manager panel's registrations were written out
+     * separately and happened to agree, so switching a provider off in the
+     * panel changed nothing a visitor saw — and the state this fake is worst at
+     * reproducing was exactly the one a redirect goes wrong in.
+     */
+    setProviders(providers: { slug: string; displayName: string }[]): void {
+        this.info = { ...this.info, providers };
+    }
+
+    /**
      * The settings the panel sends.
      *
      * **`InstanceSettingsInput`, not a hand-written subset of it.** The subset

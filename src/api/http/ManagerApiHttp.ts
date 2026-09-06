@@ -52,6 +52,7 @@ import {
     AccessKey,
     AccessKeyValue,
     ExternalContent,
+    InstanceRedirects,
     InstanceSettingsInput,
     InstanceThemeInput,
     NewStatement,
@@ -314,6 +315,10 @@ export class ManagerApiHttp implements ManagerApi {
 
     getExternalContent(signal: AbortSignal): Promise<ExternalContent> {
         return this.http.request<ExternalContent>("/instance/external-content", "GET", { signal });
+    }
+
+    getInstanceRedirects(signal: AbortSignal): Promise<InstanceRedirects> {
+        return this.http.request<InstanceRedirects>("/instance/redirects", "GET", { signal });
     }
 
     setExternalContentHosts(hosts: string[], signal: AbortSignal): Promise<ExternalContent> {

@@ -3,10 +3,12 @@ import {
     Tabs, Text, TextInput, Title, Tooltip,
 } from "@mantine/core";
 import { IconAlertTriangle, IconTrash, IconUpload } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
+import { FC, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { InstanceDocumentKind, InstanceDocumentRef } from "../../../api/CoreApi";
-import { AccessKey, InstanceSettingsInput } from "../../../api/ManagerApi";
+import {
+    AccessKey, InstanceRedirect, InstanceRedirects, InstanceSettingsInput,
+} from "../../../api/ManagerApi";
 import { DOCUMENT_KINDS, LOGO_ATTACHMENT } from "../../../api/instanceDocuments";
 import SharedDocumentsPanel from "../../../components/content/DocumentsPanel";
 import AppearancePanel from "./AppearancePanel";
@@ -38,8 +40,6 @@ const settingsOf = (instance: {
     showHero: boolean;
     accountDeletionEnabled: boolean;
     externalJudgingEnabled: boolean;
-    signInRedirectProvider?: string;
-    registerRedirectProvider?: string;
 }): InstanceSettingsInput => ({
     name: instance.name,
     localRegistrationEnabled: instance.localRegistrationEnabled,
@@ -50,17 +50,54 @@ const settingsOf = (instance: {
     showHero: instance.showHero,
     accountDeletionEnabled: instance.accountDeletionEnabled,
     externalJudgingEnabled: instance.externalJudgingEnabled,
-    // **Always sent, and blank rather than absent when there is none.** The
-    // Server reads an absent field as "leave it alone"; this form knows the
-    // whole answer, so it says so — otherwise clearing a redirect here would
-    // save nothing and the screen would show a value the Server still holds.
-    signInRedirectProvider: instance.signInRedirectProvider ?? "",
-    registerRedirectProvider: instance.registerRedirectProvider ?? "",
+    // **The two redirects are deliberately not here.** They come from a read
+    // of their own and are sent only when the operator changed one — see the
+    // save below. Anything redirect-shaped in this object would be re-seeded
+    // from the filtered public answer by the effect that follows `instance`,
+    // including the announcement this screen's own save causes.
 });
 
 /** The file a language's text is stored under: `privacy.md`, `privacy-en.md`. */
 const documentFileName = (kind: InstanceDocumentKind, language: string | undefined) =>
     language ? `${kind}-${language}.md` : `${kind}.md`;
+
+/**
+ * What a redirect is doing, when what it is doing is nothing.
+ *
+ * **The half of the failure nothing said out loud.** A redirect whose provider
+ * is switched off is not in force, the sign-in screen draws itself, and the
+ * installation has quietly stopped doing what it was configured to do. The
+ * Select alone cannot carry that: it shows a value, not a consequence.
+ *
+ * **Outside the Select, not inside it.** `theme.ts` gives every Select a
+ * `data-testid="field"` wrapper, and a check picks a field by the text inside
+ * that wrapper. A note about *logowanie* placed inside the registration field
+ * would make both wrappers match, and the check would go quietly wrong rather
+ * than red.
+ */
+const RedirectNote: FC<{ which: "sign-in" | "register"; redirect?: InstanceRedirect }> =
+    ({ which, redirect }) => {
+        const { t } = useTranslation();
+        if (!redirect?.slug || redirect.state === "inForce") return null;
+
+        const sentence = redirect.state === "disabled"
+            ? which === "sign-in"
+                ? t("This installation is set to send people straight to {{name}} to sign in, and that provider is switched off — so the screen is drawing itself instead. Switch the provider back on and the redirect resumes; choosing none removes the setting.", { name: redirect.displayName ?? redirect.slug })
+                : t("This installation is set to send people straight to {{name}} to create an account, and that provider is switched off — so the screen is drawing itself instead. Switch the provider back on and the redirect resumes; choosing none removes the setting.", { name: redirect.displayName ?? redirect.slug })
+            : which === "sign-in"
+                ? t("The sign-in redirect names {{slug}}, and no provider is registered under it. Nothing happens until one is registered and switched on — which is what lets this be set before the provider exists.", { slug: redirect.slug })
+                : t("The registration redirect names {{slug}}, and no provider is registered under it. Nothing happens until one is registered and switched on — which is what lets this be set before the provider exists.", { slug: redirect.slug });
+
+        return (
+            <Alert
+                color="yellow"
+                icon={<IconAlertTriangle size={18} />}
+                data-testid={`${which}-redirect-note`}
+            >
+                {sentence}
+            </Alert>
+        );
+    };
 
 export default function ManagerInstancePage() {
     const { t } = useTranslation();
@@ -68,6 +105,19 @@ export default function ManagerInstancePage() {
     const { instance, logoUrl } = useInstance();
 
     const [settings, setSettings] = useState<InstanceSettingsInput>(() => settingsOf(instance));
+
+    // What the Server holds, which the answer above cannot say while a
+    // provider is switched off. `undefined` until the read lands.
+    const [redirects, setRedirects] = useState<InstanceRedirects>();
+    const [redirectsFailed, setRedirectsFailed] = useState(false);
+
+    // **The operator's choice, and only that.** `undefined` means *follow what
+    // the Server reported*, which is what makes an untouched field an omitted
+    // one. Never re-seeded from an event: a `instanceChanged` arriving from
+    // somebody else mid-edit must not rewrite what this person is about to
+    // save.
+    const [signInChoice, setSignInChoice] = useState<string>();
+    const [registerChoice, setRegisterChoice] = useState<string>();
     const [error, setError] = useState<string | undefined>(undefined);
     const [busy, setBusy] = useState(false);
 
@@ -76,14 +126,103 @@ export default function ManagerInstancePage() {
     // draft follows it rather than drifting from it.
     useEffect(() => { setSettings(settingsOf(instance)); }, [instance]);
 
+    // **Read once, and not from the instance.** What the columns hold does not
+    // change when the public answer does, and re-reading on every announcement
+    // would fight the operator's own unsaved choice.
+    useApiEffect(async api => {
+        try {
+            setRedirects(await api.managerApi.getInstanceRedirects());
+        } catch (e) {
+            // **An abort is not a failure**, and catching here is what made it
+            // look like one: `useApiEffect` already ignores a request its own
+            // cleanup cancelled, but a `catch` inside the effect swallows it
+            // first. Under React's development double-invoke that is every
+            // mount, so the screen drew a value it had read and a note saying it
+            // could not read one, side by side. Seen in a browser on
+            // 2026-09-06; no amount of staring at the code would have shown it.
+            if (e instanceof Error && e.name === "AbortError") return;
+            // Held here rather than left to the page's error alert: the rest of
+            // the tab is still editable and still safe to save, because a field
+            // nobody could read is a field this form omits.
+            setRedirectsFailed(true);
+        }
+    }, []);
+
     // **A list rather than a text field, and that is the validation.** The
     // Server refuses a slug that names no enabled provider, because a redirect
     // to one would put every visitor on a 404; a picker cannot produce one, so
     // the refusal guards the API rather than this screen.
-    const redirectChoices = [
-        { value: "", label: t("None") },
-        ...instance.providers.map(p => ({ value: p.slug, label: p.displayName })),
-    ];
+    /**
+     * What a Select offers: none, every provider on offer, and — when the
+     * stored slug is not among them — one marked entry for the stored slug
+     * itself.
+     *
+     * **Only ever the stored value.** Offering an arbitrary disabled provider
+     * would let somebody aim a redirect at an address the Server answers 404
+     * to, which is what its 422 exists to refuse.
+     */
+    const choicesFor = (redirect: InstanceRedirect | undefined) => {
+        const base = [
+            { value: "", label: t("None") },
+            ...instance.providers.map(p => ({ value: p.slug, label: p.displayName })),
+        ];
+        if (!redirect?.slug || base.some(o => o.value === redirect.slug)) return base;
+
+        // **Reached in both directions, which is why it is not a disabled-only
+        // branch.** Writing a provider announces nothing, so this list can lag
+        // one either way: a provider just switched off may still be in it, and
+        // one just switched on may not be yet. A Select whose value names no
+        // option draws its placeholder, so the stored slug is added whenever
+        // the list does not already carry it.
+        const label = redirect.state === "disabled"
+            ? t("{{name}} — switched off, so the screen draws itself",
+                { name: redirect.displayName ?? redirect.slug })
+            : redirect.state === "unregistered"
+                ? t("{{slug}} — no provider is registered under this", { slug: redirect.slug })
+                : redirect.displayName ?? redirect.slug;
+
+        return [...base, { value: redirect.slug, label }];
+    };
+
+    /** What a Select shows: the operator's choice, else what the Server holds. */
+    const shown = (choice: string | undefined, redirect: InstanceRedirect | undefined) =>
+        choice ?? redirect?.slug ?? "";
+
+    /** Whether it is a decision rather than a value read back unchanged. */
+    const changed = (choice: string | undefined, redirect: InstanceRedirect | undefined) =>
+        choice !== undefined && choice !== (redirect?.slug ?? "");
+
+    /**
+     * The body of a settings save.
+     *
+     * **A redirect is sent only when the operator changed it**, and absent means
+     * leave it alone. This form cannot always see what the column holds — a
+     * provider switched off hides its own slug from the public answer — so
+     * saying nothing is the only honest thing it can say about a field nobody
+     * touched. It also keeps a second writer's change from being overwritten by
+     * a value read when this tab was opened.
+     */
+    const settingsBody = (): InstanceSettingsInput => ({
+        ...settings,
+        ...(changed(signInChoice, redirects?.signIn)
+            ? { signInRedirectProvider: signInChoice } : {}),
+        ...(changed(registerChoice, redirects?.register)
+            ? { registerRedirectProvider: registerChoice } : {}),
+    });
+
+    /**
+     * Saves, then asks again what the columns hold.
+     *
+     * The write answers with the public projection, which cannot say what was
+     * just stored — so without this the two Selects would snap back to *None*
+     * on the announcement this save itself caused.
+     */
+    const saveSettings = () => run(async () => {
+        await call(api => api.managerApi.updateInstanceSettings(settingsBody()));
+        setSignInChoice(undefined);
+        setRegisterChoice(undefined);
+        setRedirects(await call(api => api.managerApi.getInstanceRedirects()));
+    });
 
     const run = async (operation: () => Promise<unknown>) => {
         setError(undefined);
@@ -112,7 +251,18 @@ export default function ManagerInstancePage() {
                 </Text>
             </Stack>
 
-            {error && <Alert color="red" icon={<IconAlertTriangle size={18} />}>{error}</Alert>}
+            {/* Named so a check can ask whether a save was refused. Matching a
+                red alert by its colour, or by any word likely to appear in a
+                refusal, picks up the informational alerts on the other tabs. */}
+            {error && (
+                <Alert
+                    color="red"
+                    icon={<IconAlertTriangle size={18} />}
+                    data-testid="instance-error"
+                >
+                    {error}
+                </Alert>
+            )}
 
             <Tabs defaultValue="settings">
                 <Tabs.List>
@@ -167,19 +317,33 @@ export default function ManagerInstancePage() {
                             <Select
                                 label={t("Send the sign-in screen straight to a provider")}
                                 description={t("Nobody sees the sign-in screen: the browser goes to the provider and comes back signed in. ?admin=true still reaches the form, and a refused sign-in still lands here with its reason. Leave it at none and the screen draws itself.")}
-                                data={redirectChoices}
-                                value={settings.signInRedirectProvider ?? ""}
-                                onChange={value => setSettings({ ...settings, signInRedirectProvider: value ?? "" })}
+                                data={choicesFor(redirects?.signIn)}
+                                // `null` rather than "" while the answer is
+                                // outstanding: showing *None* for a second is the
+                                // same lie in miniature.
+                                value={redirects ? shown(signInChoice, redirects.signIn) : null}
+                                placeholder={t("Reading what this installation has stored…")}
+                                disabled={!redirects}
+                                onChange={value => setSignInChoice(value ?? "")}
                                 allowDeselect={false}
                             />
+                            <RedirectNote which="sign-in" redirect={redirects?.signIn} />
                             <Select
                                 label={t("Send the registration screen straight to a provider")}
                                 description={t("For an installation whose accounts come from a directory. It leads to the provider's own sign-in screen, where whoever offers registration offers it.")}
-                                data={redirectChoices}
-                                value={settings.registerRedirectProvider ?? ""}
-                                onChange={value => setSettings({ ...settings, registerRedirectProvider: value ?? "" })}
+                                data={choicesFor(redirects?.register)}
+                                value={redirects ? shown(registerChoice, redirects.register) : null}
+                                placeholder={t("Reading what this installation has stored…")}
+                                disabled={!redirects}
+                                onChange={value => setRegisterChoice(value ?? "")}
                                 allowDeselect={false}
                             />
+                            <RedirectNote which="register" redirect={redirects?.register} />
+                            {redirectsFailed && (
+                                <Alert color="yellow" icon={<IconAlertTriangle size={18} />}>
+                                    {t("The current redirect settings could not be read. Saving leaves both of them exactly as they are.")}
+                                </Alert>
+                            )}
                             <Switch
                                 label={t("Let people remove their own account")}
                                 description={t("On by default. It is a data-protection right before it is a feature; closing it should be a decision.")}
@@ -195,7 +359,7 @@ export default function ManagerInstancePage() {
                             <Group justify="flex-end">
                                 <Button data-testid="save"
                                     loading={busy}
-                                    onClick={() => void run(() => call(api => api.managerApi.updateInstanceSettings(settings)))}
+                                    onClick={() => void saveSettings()}
                                 >
                                     {t("Save")}
                                 </Button>

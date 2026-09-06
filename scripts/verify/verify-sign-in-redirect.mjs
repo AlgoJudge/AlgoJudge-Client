@@ -192,5 +192,114 @@ const after = await picker();
 check(after.value === "Uczelniane SSO",
     `the choice survives leaving the screen and coming back (${after.value})`);
 
+// ── the sequence that used to destroy it ────────────────────────────────────
+//
+// **This is the whole reason the panel stopped seeding its form from the public
+// answer.** With a redirect set and its provider switched off, that answer says
+// nothing — so the picker read *Brak*, and any save of this tab wrote the blank
+// back and cleared the column. An operator who disabled a provider for an hour
+// of maintenance came back to an installation that had quietly stopped
+// redirecting, and nothing anywhere said so.
+//
+// `visit()` throughout, never `go()`: `go()` rebuilds the fake, and
+// `?fakeSignInRedirect=` would re-seed the very column under test.
+
+/**
+ * Switch `university` on or off from the providers screen.
+ *
+ * **The switch is in the edit dialog, not on the card**, and that dialog's Save
+ * carries the same `data-testid` as the instance screen's — so both selectors
+ * are scoped to the modal. Written once because this walk needs it twice, and
+ * two copies differing by one word is how the second one rots.
+ */
+const setProviderEnabled = async () => {
+    await visit("/manager/oidc", `document.body.innerText.includes("Uczelniane")`);
+    await wait(1500);
+    await click(`[...document.querySelectorAll("[data-testid=card]")]`
+        + `.find(c => c.innerText.includes("university"))`
+        + `?.querySelector("button")`);
+    await wait(800);
+    const found = await evaluate(`
+        const boxes = [...document.querySelectorAll("[data-testid=modal] [data-testid=switch]")];
+        const ours = boxes.find(b => b.innerText.includes("ekranie logowania"));
+        if (!ours) return false;
+        ours.querySelector("input").click();
+        return true;
+    `);
+    await wait(400);
+    await click(`[...document.querySelectorAll("[data-testid=modal] button")]`
+        + `.find(b => b.dataset.testid === "save")`);
+    await wait(1200);
+    return found;
+};
+
+const toggled = await setProviderEnabled();
+check(toggled !== false, "the provider can be switched off from its own screen");
+
+await visit("/manager/instance", `document.body.innerText.includes("Instancja")`);
+await wait(1500);
+
+const off = await picker();
+check(off.value !== "Brak",
+    `a redirect whose provider is off does not read as none (${off.value})`);
+check((off.value ?? "").includes("Uczelniane"),
+    `and still names what is stored (${off.value})`);
+
+const noted = () => evaluate(`
+    const note = document.querySelector("[data-testid=sign-in-redirect-note]");
+    return note === null ? null : note.innerText.replace(/\\s+/g, " ").slice(0, 200);
+`);
+const note = await noted();
+check(note !== null, "and the screen says the redirect is not in force");
+await shot("sign-in-redirect-provider-off");
+
+// **The save that used to do the damage.** Something unrelated is changed and
+// the tab is saved, exactly as an operator would.
+// **One word, and no space in it.** The label reads *Pokazuj znak\u00a0w\u00a0aplikacji*
+// on screen: Polish does not leave a one-letter word at the end of a line, so
+// `w` carries a hard space and a needle written with an ordinary one matches
+// nothing. Matching a word avoids the whole question.
+await click(`[...document.querySelectorAll("[data-testid=switch]")]`
+    + `.find(s => /znak/.test(s.textContent))?.querySelector("input")`);
+await wait(300);
+await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "save")`);
+await wait(1500);
+
+// **That the save worked, not only that the value survived.** A form that sends
+// the redirect on every save is refused here — the slug names a provider that is
+// off — so the setting would survive for the wrong reason, and a check reading
+// only the picker would call that a pass.
+const refusal = await evaluate(`
+    const shown = document.querySelector("[data-testid=instance-error]");
+    return shown ? shown.innerText.replace(/\\s+/g, " ").slice(0, 160) : null;
+`);
+check(refusal === null, `the save itself went through (${refusal ?? "no refusal"})`);
+
+const survived = await picker();
+check((survived.value ?? "").includes("Uczelniane"),
+    `saving an unrelated switch leaves the redirect alone (${survived.value})`);
+check(await noted() !== null, "and the note is still there after the save");
+
+// **What a visitor is offered after this is not checked here, and cannot be.**
+// Everything above runs signed in as `john`, so `/login` answers by sending the
+// browser to `/activities` and the sign-in screen never draws. An assertion
+// written here passed on a screen that had not rendered — measured 2026-09-06,
+// where the whole body read `AlgoJudge` — which is a green that means nothing.
+//
+// So the fake's provider projection dropping a disabled registration is proved
+// by the read above rather than by a screen: the state comes back `disabled`,
+// which is the same list read the sign-in buttons are drawn from.
+
+// Switched back on, the redirect resumes — which is the property the column
+// keeping its value exists for.
+await setProviderEnabled();
+
+await visit("/manager/instance", `document.body.innerText.includes("Instancja")`);
+await wait(1500);
+const back = await picker();
+check(back.value === "Uczelniane SSO",
+    `switching the provider on puts the redirect back in force (${back.value})`);
+check(await noted() === null, "and the note goes away with it");
+
 report();
 close();

@@ -38,6 +38,8 @@ import {
     AccessKey,
     AccessKeyValue,
     ExternalContent,
+    InstanceRedirect,
+    InstanceRedirects,
     InstanceSettingsInput,
     NewStatement,
     UserSession,
@@ -271,6 +273,42 @@ export class ManagerApiFake implements ManagerApi {
             : [...kept, { name: key, updatedAt: new Date().toISOString() }]
                 .sort((a, b) => a.name.localeCompare(b.name));
         return this.keys.map(one => ({ ...one }));
+    }
+
+    /**
+     * The columns as they are, which is what the panel's form needs and what
+     * `getInstanceInfo` deliberately does not say.
+     */
+    async getInstanceRedirects(signal: AbortSignal): Promise<InstanceRedirects> {
+        await this.settle(signal);
+
+        const stored = this.instance.storedRedirects();
+        const describe = (slug: string | undefined): InstanceRedirect => {
+            if (slug === undefined) return { state: "none" };
+            const provider = this.providers.find(p => p.slug === slug);
+            return {
+                slug,
+                displayName: provider?.displayName,
+                state: provider === undefined ? "unregistered"
+                    : provider.enabled ? "inForce"
+                    : "disabled",
+            };
+        };
+
+        return { signIn: describe(stored.signIn), register: describe(stored.register) };
+    }
+
+    /**
+     * The list a signed-out screen is offered, restated from the registrations.
+     *
+     * Called after every write that could change it, because the two used to be
+     * independent statements of one fact and a provider switched off here
+     * reached no screen.
+     */
+    private projectProviders(): void {
+        this.instance.setProviders(this.providers
+            .filter(p => p.enabled)
+            .map(p => ({ slug: p.slug, displayName: p.displayName })));
     }
 
     async getExternalContent(signal: AbortSignal): Promise<ExternalContent> {
@@ -2371,6 +2409,7 @@ export class ManagerApiFake implements ManagerApi {
         };
 
         this.providers = [...this.providers, provider];
+        this.projectProviders();
         return copy(provider);
     }
 
@@ -2411,6 +2450,7 @@ export class ManagerApiFake implements ManagerApi {
         }
 
         this.providers = this.providers.map(p => p.id === id ? updated : p);
+        this.projectProviders();
         return copy(updated);
     }
 
@@ -2432,6 +2472,7 @@ export class ManagerApiFake implements ManagerApi {
         }
 
         this.providers = this.providers.filter(p => p.id !== id);
+        this.projectProviders();
     }
 
     async getDeletionRequests(
