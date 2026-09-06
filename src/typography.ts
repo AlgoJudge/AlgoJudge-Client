@@ -37,7 +37,28 @@ export const FALLBACK_STACK =
 /** The product's own stack: the shipped face, then the fallbacks. */
 export const PRODUCT_STACK = `Lato, ${FALLBACK_STACK}`;
 
+/**
+ * What a fixed-pitch face falls back to: Mantine's own default for
+ * `fontFamilyMonospace`, restated for the same reason `FALLBACK_STACK` is —
+ * naming a family and then replacing the token wholesale would drop the
+ * fallbacks Mantine had behind it.
+ */
+export const MONO_FALLBACK_STACK =
+    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace";
+
+/**
+ * The fixed-pitch stack. Quoted, because the family name has a space in it.
+ *
+ * **One token reaches every fixed-pitch surface**, through
+ * `--mantine-font-family-monospace`: `<Code>`, `<JsonInput>`, the gutter beside
+ * a highlighted source — and `components/editor/CodeEditor.tsx`, which passes
+ * this same constant to Monaco rather than writing a stack of its own, so the
+ * editor and the preview of the same file cannot disagree about the type.
+ */
+export const MONOSPACE_STACK = `"JetBrains Mono", ${MONO_FALLBACK_STACK}`;
+
 export const typography = createTheme({
     fontFamily: PRODUCT_STACK,
     headings: { fontFamily: PRODUCT_STACK },
+    fontFamilyMonospace: MONOSPACE_STACK,
 });
