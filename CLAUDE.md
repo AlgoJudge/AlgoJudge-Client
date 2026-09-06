@@ -764,10 +764,46 @@ pointed at nothing.
 **Inter 600 is here for one thing: the wordmark.** It is `font-display: block`
 rather than `swap`, and that is not a preference — see the next section.
 
+**JetBrains Mono is everything set in a fixed pitch**, and `typography.ts` points
+`fontFamilyMonospace` at it: `<Code>`, `<JsonInput>`, the gutter beside a
+highlighted source, and the editor. **Two files, because it is a variable face**
+— one per subset carries the whole weight range — and they are byte for byte the
+ones in `AlgoJudge-Docs`, for the reason Lato's are Keycloak's. `swap`, like
+Lato: there is no drawing here for a fallback to overflow, and holding a page of
+source invisible would be the worse trade.
+
 **The licence texts are in `public/`**, not beside the fonts. OFL §2 wants them
 in every copy of the font software, and the copy that reaches anybody is the
-built one; a file that only sits in `src/` is never emitted. Two files, because
-Inter's copyright line is not Lato's.
+built one; a file that only sits in `src/` is never emitted. Three files, because
+each family carries its own copyright line.
+
+## The editor follows the page (2026-09-07)
+
+Monaco was `theme="vs-dark"` whatever the application's scheme was, with a
+comment arguing that a code surface is read differently from a page of prose.
+It takes `vs` or `vs-dark` from `useComputedColorScheme` now.
+
+- **The prop, not a remount.** `@monaco-editor/react` applies `theme` through an
+  effect keyed on it, so a reader using the toggle sees the editor change with
+  the page. A `key=` would throw away the undo stack and the scroll position in
+  the middle of writing a solution.
+- **`setTheme` is global to the Monaco instance**, not per editor. Harmless
+  today — every editor on a screen computes the same scheme — and the reason two
+  editors cannot be shown in different themes at once.
+- **Monaco measures a glyph once**, at start-up, and lays every column out from
+  that number. JetBrains Mono is `font-display: swap`, so the first editor of a
+  cold load mounts on the fallback; `CodeEditor.tsx` calls
+  `monaco.editor.remeasureFonts()` once the face has loaded. Without it the text
+  is one width and the cursor another.
+- **`fontFamily` comes from `MONOSPACE_STACK`**, the same constant the theme
+  uses, so the editor and the highlighted preview of the same file cannot
+  disagree about the type.
+
+`verify-editor.mjs` holds all of it, and it asks **the browser** which face
+painted the glyphs rather than the stylesheet which one was requested —
+`getComputedStyle` reports the stack that was asked for, and a silent fall back
+to Consolas is invisible to it. Sabotaged three ways: the option removed, the
+theme pinned back to dark, the `.woff2` pointed at nothing.
 
 ## The mark is inlined, and it has to be (2026-09-06)
 
