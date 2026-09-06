@@ -275,6 +275,21 @@ keeping rather than rewriting.
 - **Monaco ignores a `value` set on its hidden textarea.** Click `.view-lines`
   and send `Input.insertText`. Read it back from `.view-lines`, with ` `
   normalised to a space.
+- **`getComputedStyle(el).fontFamily` never says which face drew the glyphs.** It
+  reports the stack that was *asked for*, so a page whose `@font-face` points at
+  the wrong file reads as perfect: the family resolves, the file downloads,
+  `document.fonts` says `loaded`, and every letter comes out of a system font.
+  `document.fonts.check()` is worse — `true` for a family nothing defines. Ask
+  the browser: `paintedWith(selector)` in the harness answers with a glyph count
+  per real font and whether each is a webfont.
+- **`paintedWith` needs the element that holds the text, not the one around it.**
+  The answer covers a node's own text runs, so a container reports an empty list
+  — `body` does, and so does Monaco's `.view-lines`. `.view-line > span` is what
+  has the glyphs. An empty list is not an error and reads exactly like a clean
+  result, so assert on what came back.
+- **An empty Monaco paints nothing.** A font check on a freshly opened editor
+  measures no glyphs at all and passes any assertion phrased as "no stray face".
+  Type a line in first.
 - **`performance.getEntriesByType("resource")` does not see an `<object>` load.**
   Sabotaged by pointing a statement's `<object>` at another host, the resource
   sweep stayed green and only an explicit check of the element's address went

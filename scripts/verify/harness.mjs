@@ -127,6 +127,45 @@ export async function open({ out = process.env.OUT ?? join(here, "out"), clock =
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
+    /**
+     * Which font actually painted an element.
+     *
+     * **`getComputedStyle(el).fontFamily` cannot answer this.** It reports the
+     * stack that was *asked for*, never the face that drew the glyphs — so a
+     * page whose `@font-face` points at the wrong file reads as perfect: the
+     * family resolves, the file downloads, `document.fonts` reports it `loaded`,
+     * and every letter comes out of a system font. `document.fonts.check()` is
+     * worse still: it answers `true` for a family nothing defines.
+     *
+     * Chrome will say, over the protocol. `CSS.getPlatformFontsForNode` returns
+     * one entry per real font with a glyph count and whether it is a webfont, so
+     * a mixture — `8× Times New Roman, 1× Inter` — is the shape of a fallback.
+     *
+     * This is the tenth capability rather than a tenth entry in `send`, because
+     * it needs three protocol calls in order and a session of its own; a call
+     * site should ask a question, not carry the protocol.
+     *
+     * **Name the element that holds the text, not the one around it.** The
+     * answer covers a node's own text runs, so a container answers with an empty
+     * list — `body` does, and so does Monaco's `.view-lines`. An empty list is
+     * not a failure and reads exactly like one, which is why a caller should
+     * assert on what came back rather than on nothing having come back wrong.
+     */
+    const paintedWith = async (selector) => {
+        const cdp = await page.context().newCDPSession(page);
+        try {
+            await cdp.send("DOM.enable");
+            await cdp.send("CSS.enable");
+            const { root } = await cdp.send("DOM.getDocument", { depth: -1, pierce: true });
+            const { nodeId } = await cdp.send("DOM.querySelector", { nodeId: root.nodeId, selector });
+            if (!nodeId) return null;
+            const { fonts } = await cdp.send("CSS.getPlatformFontsForNode", { nodeId });
+            return fonts.map(f => ({ family: f.familyName, webfont: f.isCustomFont, glyphs: f.glyphCount }));
+        } finally {
+            await cdp.detach();
+        }
+    };
+
     const shot = async (name) => {
         // Created here rather than assumed: a missing directory failed the
         // script at its first screenshot, which reads as the screen being wrong.
@@ -268,7 +307,7 @@ export async function open({ out = process.env.OUT ?? join(here, "out"), clock =
     if (clock) await page.clock.install();
 
     return {
-        send, evaluate, wait, shot, go, visit, click, type, setTextarea, tab, pages,
+        send, evaluate, wait, shot, go, visit, click, type, setTextarea, tab, pages, paintedWith,
         clock: {
             fastForward: (ticks) => page.clock.fastForward(ticks),
             runFor: (ticks) => page.clock.runFor(ticks),
