@@ -171,7 +171,8 @@ await evaluate(`
 `);
 await go(`${APP}/lti/launched?ticket=demo`, `document.body.innerText.length > 0`);
 
-const stranded = await evaluate(`return document.body.innerText;`);
+const stranded = (await evaluate(`return document.body.innerText;`))
+    .replaceAll(String.fromCharCode(160), " ");
 
 if (!stranded.includes("Otwórz w nowej karcie")) {
     fail("a launch with no session offers no way out of the frame; it says: "
@@ -235,7 +236,7 @@ await go(`${APP}/manager/lti?fakeUser=john`,
     // **The heading, then a row.** The heading renders before the placements
     // arrive, so waiting for it reads an empty table and calls it a screen that
     // says nothing.
-    `document.body.innerText.includes("Podpięcia w kursach")
+    `document.body.innerText.replaceAll(String.fromCharCode(160), " ").includes("Podpięcia w kursach")
         && document.body.innerText.includes("AMMPZ-2019")`);
 await shot("lti-manager");
 
@@ -476,7 +477,7 @@ const label = await evaluate(`
         .find(b => b.textContent.includes("Umieść"));
     return button ? button.textContent.trim() : "no button";
 `);
-if (label !== "Umieść w kursie") {
+if (label.replaceAll(String.fromCharCode(160), " ") !== "Umieść w kursie") {
     fail(`the placing button reads "${label}", so it is sharing a key again`);
 } else {
     pass("the placing button has a label of its own");
@@ -556,7 +557,7 @@ for (let i = 0; i < 30; i++) {
 }
 
 const asks = await evaluate(`
-    const text = document.body.innerText;
+    const text = document.body.innerText.replaceAll(String.fromCharCode(160), " ");
     const button = [...document.querySelectorAll("button")]
         .find(b => b.dataset.testid === "copy");
     return {

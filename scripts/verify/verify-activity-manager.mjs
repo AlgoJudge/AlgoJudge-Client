@@ -242,7 +242,11 @@ const states = await evaluate(`
     return [...document.querySelectorAll("tbody tr")]
         .map(row => row.cells[2] ? row.cells[2].textContent.trim() : "");
 `);
-check(states.includes("W przygotowaniu"),
+// **Folded, because Polish typography puts a non-breaking space after a
+// one-letter word.** A check that compares on the space *class* is
+// checking the typography rather than the copy, and reddens the day
+// somebody sets the orphan rule. Same fold in four other scripts.
+check(states.map(s => s.replaceAll(String.fromCharCode(160), " ")).includes("W przygotowaniu"),
     `the copy says it is being prepared (states: ${JSON.stringify(states)})`);
 
 await shot("activity-copied");

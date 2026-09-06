@@ -81,7 +81,12 @@ if (rows >= 2) {
 // That is the half a browser can see, and the half the gate cannot.
 
 const area = () => evaluate(`
-    return document.querySelector("[data-testid=app-main]").innerText.replace(/\s+/g, " ");
+    // **Two backslashes.** In a template literal \\s collapses to a plain
+    // "s", so the single-escaped form sent the browser /s+/g and replaced the
+    // letter rather than the whitespace. It passed only because the phrases
+    // asserted below happened to carry no "s" beside a space.
+    return document.querySelector("[data-testid=app-main]").innerText
+        .replace(/\\s+/g, " ");
 `);
 
 const offered = await area();

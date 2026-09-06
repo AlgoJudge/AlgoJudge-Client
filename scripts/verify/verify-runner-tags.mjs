@@ -33,16 +33,19 @@ const { check, report } = results();
 // typed a tag into the wrong one and read the answer back from it.
 
 /** A field found by its label, within a container — Mantine gives it no id. */
+// The fold is in the helpers because a label is interface copy, and Polish
+// typography puts a hard space after a one-letter word. Matching on the space
+// class is matching on the typography rather than on the words.
 const fieldIn = (container, label) => `[...((${container})?.querySelectorAll("[data-testid=field]") ?? [])]
-    .find(w => w.textContent.includes(${JSON.stringify(label)}))`;
+    .find(w => w.textContent.replaceAll(String.fromCharCode(160), " ").includes(${JSON.stringify(label)}))`;
 
 /** A `Switch` is not an `InputWrapper`, so it is found by its own root. */
 const switchIn = (container, label) => `[...((${container})?.querySelectorAll("[data-testid=switch]") ?? [])]
-    .find(w => w.textContent.includes(${JSON.stringify(label)}))`;
+    .find(w => w.textContent.replaceAll(String.fromCharCode(160), " ").includes(${JSON.stringify(label)}))`;
 
 /** The card a section title belongs to, which scopes the settings tab's fields. */
 const cardTitled = (title) => `[...document.querySelectorAll("[data-testid=card]")]
-    .find(c => c.textContent.includes(${JSON.stringify(title)}))`;
+    .find(c => c.textContent.replaceAll(String.fromCharCode(160), " ").includes(${JSON.stringify(title)}))`;
 
 /**
  * The tag pills a `TagsInput` is showing. Its value is not in `innerText`, and
@@ -83,7 +86,8 @@ await wait(2500);
 const MODAL = `document.querySelector("[data-testid=modal]")`;
 check(await evaluate(`return ${MODAL} !== null;`), "the Runner's panel opens");
 
-const runnerPanel = await evaluate(`return ${MODAL}?.innerText ?? "";`);
+const runnerPanel = (await evaluate(`return ${MODAL}?.innerText ?? "";`))
+    .replaceAll(String.fromCharCode(160), " ");
 check(/wyjmuje go z tej puli/i.test(runnerPanel),
     "the Runners screen says that naming a tag leaves the general pool");
 check(/pierwszej rejestracji/i.test(runnerPanel),

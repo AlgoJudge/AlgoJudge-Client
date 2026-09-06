@@ -33,7 +33,7 @@ const setDate = (label, hoursFromNow) => evaluate(`
 const save = async () => {
     await click(`(() => {
         const panel = [...document.querySelectorAll("[role=tabpanel]")]
-            .find(p => p.textContent.includes("Widoczność i zapisy"));
+            .find(p => p.textContent.replaceAll(String.fromCharCode(160), " ").includes("Widoczność i zapisy"));
         return [...(panel?.querySelectorAll("button") ?? [])]
             .find(b => b.dataset.testid === "save");
     })()`);

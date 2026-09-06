@@ -166,13 +166,13 @@ const widened = await evaluate(`
     if (input.disabled) return "disabled";
     return input.value;
 `);
-check(widened === "Tylko w tej aktywności",
+check(widened.replaceAll(String.fromCharCode(160), " ") === "Tylko w tej aktywności",
     `the examination is scoped to its activity in the panel (${widened})`);
 
 await click(scopeInput);
 await wait(700);
 await click(`[...document.querySelectorAll("[data-testid=combobox-option], [role=option]")]
-    .find(o => o.textContent.trim() === "W całym systemie")`);
+    .find(o => o.textContent.trim().replaceAll(String.fromCharCode(160), " ") === "W całym systemie")`);
 await wait(700);
 await click(`[...((${examBlock})?.querySelectorAll("button") ?? [])]
     .find(b => b.dataset.testid === "save")`);
@@ -180,7 +180,8 @@ await wait(2000);
 
 // Read back before leaving: a check that only looked at the participant screen
 // could not say whether the write or the read was the half that failed.
-const stored = await evaluate(`return ${scopeInput}?.value ?? "gone";`);
+const stored = (await evaluate(`return ${scopeInput}?.value ?? "gone";`))
+    .replaceAll(String.fromCharCode(160), " ");
 check(stored === "W całym systemie", `the panel kept the wider scope (${stored})`);
 
 await visit(`/activities?fakeAddress=${INSIDE}`,
