@@ -25,9 +25,9 @@
     min-height: calc(100svh - rem(136px));
 }
 
-/* One column until there is room for two, and then **not two equal ones**: the
-   sentence is the reason anybody is here and the drawing is decoration, so the
-   words get the wider half. Equal columns put this heading on four lines. */
+/* One column until there is room for two, and then **the drawing takes most of
+   it** — 2 : 5. The sentence is short enough to carry a narrow measure and the
+   picture is what the page is seen by before it is read. */
 .hero {
     /* Takes whatever the window leaves over, so the slack lands *around* the
        sentence and the drawing rather than as one band between them and the
@@ -41,7 +41,7 @@
 
 @media (min-width: $mantine-breakpoint-md) {
     .hero {
-        grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+        grid-template-columns: minmax(0, 2fr) minmax(0, 5fr);
     }
 }
 
@@ -67,6 +67,12 @@
    on a telephone gets the sentence and the buttons before it. */
 .picture {
     order: 2;
+}
+
+/* The whole of its column, which the column ratio above is what makes large.
+   No bleed past the edge: the width the grid gives it is the width it takes. */
+.picture {
+    width: 100%;
 }
 
 @media (min-width: $mantine-breakpoint-md) {

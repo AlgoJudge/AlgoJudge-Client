@@ -71,6 +71,11 @@ export const HomeHero: FC = () => {
                         leftSection={<IconBrandGithub size={16} />}
                         tt="none"
                         style={{ cursor: "pointer" }}
+                        // A little more air than the column's own rhythm, here
+                        // and before the buttons: the badge is a label rather
+                        // than a first line, and the buttons are the end of the
+                        // argument rather than the next sentence of it.
+                        mb="xs"
                     >
                         {t("Open source · Self-hosted")}
                     </Badge>
@@ -83,7 +88,7 @@ export const HomeHero: FC = () => {
                         {t("AlgoJudge is open-source, self-hosted software for programming contests and courses, with automatic evaluation of submitted solutions.")}
                     </Text>
 
-                    <Group>
+                    <Group mt="xs">
                         <Button
                             component={Link}
                             to="/login"
