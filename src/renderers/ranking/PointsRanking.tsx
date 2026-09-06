@@ -4,6 +4,7 @@ import { IconChevronDown, IconChevronRight, IconInfoCircle } from "@tabler/icons
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FindMeButton, FreezeBanner } from "./common";
+import { pendingLabel } from "./pending";
 import { RankingProps } from "./parse";
 import { freezeOf, pointsBoard, PointsCell } from "./scoreboard";
 import { useFindMe } from "./useFindMe";
@@ -26,7 +27,10 @@ const CellView = ({ cell }: { cell: PointsCell | undefined }) => {
     if (cell === undefined) return <>—</>;
     if (cell.points === undefined) {
         return (
-            <Tooltip label={t("Submitted during the freeze")}>
+            // Why, not just that. A withheld cell, one still being judged and one
+            // the judge never answered all draw a `?`, and calling all three a
+            // freeze named the wrong cause on two of them.
+            <Tooltip label={pendingLabel(t, cell.pending ?? "judging")}>
                 <span>?</span>
             </Tooltip>
         );

@@ -3,6 +3,7 @@ import ContestantName from "./ContestantName";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { FindMeButton, FreezeBanner } from "./common";
+import { pendingLabel } from "./pending";
 import { RankingProps } from "./parse";
 import { minutesAsClock } from "../../components/time/format";
 import { columnsOf, freezeOf, icpcBoard, IcpcCell } from "./scoreboard";
@@ -15,8 +16,9 @@ import classes from "./IcpcRanking.module.css";
  * One column per problem, not per series — which is why this is a separate
  * renderer rather than a sort order on the points table. Rank is by problems
  * solved, then by penalty time: the minute of the first accepted submission plus
- * twenty minutes for each rejected attempt before it. Unsolved problems
- * contribute nothing.
+ * twenty minutes for each **judged rejection** before it. Unsolved problems
+ * contribute nothing, and neither does a submission the judge never answered.
+ * Two rows level on both share a place.
  *
  * **The Server computes none of this.** It sends the results a reader may see
  * and this works out what they add up to — see `scoreboard.ts`. A Server
@@ -29,7 +31,7 @@ const CellView = ({ cell }: { cell: IcpcCell }) => {
 
     if (cell.pending) {
         return (
-            <Tooltip label={t("Submitted during the freeze")}>
+            <Tooltip label={pendingLabel(t, cell.pending)}>
                 <div className={classes.pending}>
                     <Text size="sm" fw={600}>?</Text>
                     <Text size="xs">{attempts}</Text>
@@ -41,8 +43,10 @@ const CellView = ({ cell }: { cell: IcpcCell }) => {
         return (
             <div className={classes.solved}>
                 <Text size="sm" fw={600}>{minutesAsClock(cell.acceptedAt)}</Text>
-                {/* An accepted problem still shows its cost: the attempts before it. */}
-                <Text size="xs">{attempts > 1 ? `+${attempts - 1}` : ""}</Text>
+                {/* An accepted problem still shows its cost: the rejections
+                    before it, which is what was charged for. Not the attempts —
+                    a submission nobody returned a verdict for is neither. */}
+                <Text size="xs">{cell.rejected > 0 ? `+${cell.rejected}` : ""}</Text>
             </div>
         );
     }
@@ -132,7 +136,7 @@ export default function IcpcRanking({ results, timeZone, ranked }: RankingProps)
                                 <Table.Td>{minutesAsClock(row.penalty)}</Table.Td>
                                 {columns.map(column => (
                                     <Table.Td key={column.slug} className={classes.cell}>
-                                        <CellView cell={row.cells[column.slug] ?? { attempts: 0 }} />
+                                        <CellView cell={row.cells[column.slug] ?? { attempts: 0, rejected: 0 }} />
                                     </Table.Td>
                                 ))}
                             </Table.Tr>

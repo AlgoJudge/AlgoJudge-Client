@@ -94,6 +94,13 @@ jobs:
       - name: Check the translations
         run: npm run check:i18n
 
+      # The boards are assembled here — the Server sends results and no ranking
+      # — so a wrong penalty is a wrong standing that lint, typecheck, the build
+      # and the browser suite all pass. Three faults were live at once when this
+      # step was added, none of them found by anything failing.
+      - name: Check the ranking arithmetic
+        run: npm run check:ranking
+
       # Not a gate: the Server publishes no OpenAPI document yet, so this only
       # prints the endpoints that will have to be served. It is here so the list
       # is visible in every run rather than only when somebody thinks to ask.

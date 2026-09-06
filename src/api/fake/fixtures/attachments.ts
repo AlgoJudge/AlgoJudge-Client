@@ -63,37 +63,64 @@ const externalResultDocument = (attempt: SeedAttempt) => ({
     compilation: { status: "OK" },
 });
 
-const resultDocument = (score: number, verdict: string) => ({
+/**
+ * A compilation error ran nothing, and still has a document.
+ *
+ * The Runner attaches one whose every test carries that verdict, worth nothing,
+ * with no measured memory — `failed(test, None, …)` reports no usage for a test
+ * that never started. A table showing one of them passing would be describing a
+ * program that was never built.
+ */
+const failedToCompileDocument = () => ({
     type: "standard-io@1",
     limits: { timeMs: 1000, memoryBytes: 256 * 1024 * 1024 },
-    compilation: { status: verdict === "Compilation error" ? "ERROR" : "OK", log: "" },
+    compilation: { status: "ERROR", log: "" },
     groups: [
-        { group: 1, points: score >= 30 ? 30 : 0, maxPoints: 30, status: score >= 30 ? "OK" : "ERROR" },
-        { group: 2, points: score >= 60 ? 30 : 0, maxPoints: 30, status: score >= 60 ? "OK" : "ERROR" },
-        { group: 3, points: score >= 100 ? 40 : 0, maxPoints: 40, status: score >= 100 ? "OK" : "ERROR" },
+        { group: 1, points: 0, maxPoints: 30, status: "ERROR" },
+        { group: 2, points: 0, maxPoints: 30, status: "ERROR" },
+        { group: 3, points: 0, maxPoints: 40, status: "ERROR" },
     ],
     tests: [
-        { no: "1a", group: 1, status: "OK", timeMs: 120, memoryBytes: 12 * 1024 * 1024, score: 30, maxScore: 30, note: "" },
-        {
-            no: "2a", group: 2,
-            status: score >= 60 ? "OK" : "ERROR",
-            timeMs: score >= 60 ? 340 : 1000, memoryBytes: 24 * 1024 * 1024,
-            score: score >= 60 ? 30 : 0, maxScore: 30,
-            // The Runner's own words travel verbatim; the reason is the value
-            // beside them. Absent on a pass, as the format states.
-            note: verdict === "Time limit exceeded" ? "Time limit exceeded" : "",
-            reason: score >= 60 ? undefined : "timeLimit",
-        },
-        {
-            no: "3a", group: 3,
-            status: score >= 100 ? "OK" : "ERROR",
-            timeMs: 620, memoryBytes: 48 * 1024 * 1024,
-            score: score >= 100 ? 40 : 0, maxScore: 40,
-            note: score >= 100 ? "" : "token 2 differs: expected 30, got 0",
-            reason: score >= 100 ? undefined : "wrongAnswer",
-        },
+        { no: "1a", group: 1, status: "ERROR", timeMs: 0, score: 0, maxScore: 30, note: "Compilation error", reason: "compilationError" },
+        { no: "2a", group: 2, status: "ERROR", timeMs: 0, score: 0, maxScore: 30, note: "Compilation error", reason: "compilationError" },
+        { no: "3a", group: 3, status: "ERROR", timeMs: 0, score: 0, maxScore: 40, note: "Compilation error", reason: "compilationError" },
     ],
 });
+
+const resultDocument = (score: number, verdict: string) => {
+    if (verdict === "Compilation error") return failedToCompileDocument();
+    return {
+        type: "standard-io@1",
+        limits: { timeMs: 1000, memoryBytes: 256 * 1024 * 1024 },
+        compilation: { status: "OK", log: "" },
+        groups: [
+            { group: 1, points: score >= 30 ? 30 : 0, maxPoints: 30, status: score >= 30 ? "OK" : "ERROR" },
+            { group: 2, points: score >= 60 ? 30 : 0, maxPoints: 30, status: score >= 60 ? "OK" : "ERROR" },
+            { group: 3, points: score >= 100 ? 40 : 0, maxPoints: 40, status: score >= 100 ? "OK" : "ERROR" },
+        ],
+        tests: [
+            { no: "1a", group: 1, status: "OK", timeMs: 120, memoryBytes: 12 * 1024 * 1024, score: 30, maxScore: 30, note: "" },
+            {
+                no: "2a", group: 2,
+                status: score >= 60 ? "OK" : "ERROR",
+                timeMs: score >= 60 ? 340 : 1000, memoryBytes: 24 * 1024 * 1024,
+                score: score >= 60 ? 30 : 0, maxScore: 30,
+                // The Runner's own words travel verbatim; the reason is the value
+                // beside them. Absent on a pass, as the format states.
+                note: verdict === "Time limit exceeded" ? "Time limit exceeded" : "",
+                reason: score >= 60 ? undefined : "timeLimit",
+            },
+            {
+                no: "3a", group: 3,
+                status: score >= 100 ? "OK" : "ERROR",
+                timeMs: 620, memoryBytes: 48 * 1024 * 1024,
+                score: score >= 100 ? 40 : 0, maxScore: 40,
+                note: score >= 100 ? "" : "token 2 differs: expected 30, got 0",
+                reason: score >= 100 ? undefined : "wrongAnswer",
+            },
+        ],
+    };
+};
 
 const store = (
     files: FakeFiles,

@@ -15,10 +15,15 @@ const main = () => evaluate(`
     };
 `);
 
-// A compilation failure of the reader's own: it has a log and no result
-// document, which is the pair worth checking — the contest publishes the table
-// and keeps the log to itself.
+// Three of the reader's own, because the contest's rule cuts differently
+// through each: it publishes the per-test table and keeps the log to itself.
+//
+// `FAILED` is a **compilation error**, which is a judged verdict — it has a log
+// and a document whose every test carries that verdict. `UNJUDGED` is an
+// evaluation that failed, which has a log and **no document at all**: nobody
+// ruled on the program, so there is nothing to tabulate.
 const FAILED = "sub-series-r1-team-7-A-57";
+const UNJUDGED = "sub-series-r1-team-7-D-65";
 const PASSED = "sub-series-r1-team-7-A-98";
 
 // ── 1. The per-test table comes out of an attachment ────────────────────────
@@ -36,9 +41,21 @@ await wait(2500);
 const asParticipant = await main();
 check(!/Log oceny/i.test(asParticipant.text),
     "a contest keeps the compiler log to its managers");
-check(/nie ma wyników testów/i.test(asParticipant.text),
-    "and a run that failed as infrastructure shows no result table either");
+// A compilation error is judged, so it has a table — and **no test in it
+// passed**, because nothing was built to run. A document showing 30/30 beside
+// `COMPILATION ERROR` describes a program that never existed.
+check(asParticipant.rows > 0 && !/30 \/ 30/.test(asParticipant.text),
+    `a compilation error tabulates its tests, none of them passing (${asParticipant.rows} rows)`);
 await shot("att-participant");
+
+// ── 2b. A run nobody judged has no table to publish ─────────────────────────
+await visit(`/activities/AMMPZ-2019/submissions/${UNJUDGED}`, `document.body.innerText.includes("Zgłoszenie")`);
+await wait(2500);
+const unjudged = await main();
+check(/nie ma wyników testów/i.test(unjudged.text),
+    "an evaluation that failed shows no result table");
+check(!/Log oceny/i.test(unjudged.text),
+    "and the judge's own message is a log like any other, so it stays with the managers");
 
 // ── 3. The same submission, read by a manager ───────────────────────────────
 // The table decides what reaches a **participant**. Whoever runs the activity

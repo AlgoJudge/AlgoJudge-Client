@@ -101,24 +101,26 @@ from nineteen.
 | `npm run check:access` | when a credential for the problem archive may still be sent |
 | `npm run check:events` | drives the event socket against a stub `WebSocket` |
 | `npm run check:i18n` | every `t("…")` a screen asks for, against every language file |
+| `npm run check:ranking` | the ICPC and points arithmetic: what a penalty charges for, and what a tie is |
 | `npm run check:api` | lists every endpoint the HTTP layer calls; checks it against an OpenAPI document when given one |
 | `npm run check:ui` | drives a real browser over the screens, against the fake API |
 | `npm run check:e2e` | one test against a full stack that is already up |
 | `npm run check:browsers` | that closing our browsers does not close anybody else's |
 | `npm run browsers` | `-- list`, `-- stop <pid>`, `-- stop --all` |
 
-**The table above is the whole of `package.json`'s `scripts`**, checked against
-it on 2026-08-30. It listed thirteen of the eighteen until then: `preview`,
+**The table above is the whole of `package.json`'s `scripts`** — nineteen since
+`check:ranking` was added on 2026-09-06, and checked against the file each time.
+It listed thirteen of the eighteen until 2026-08-30: `preview`,
 `check:exchange`, `check:zawodyweb`, `check:access` and `check:e2e` were missing.
 
-**Fourteen npm steps gate, counted from `.github/workflows/ci.yml` on
-2026-09-02.** Lint, `lint:deps`, typecheck and build, then nine `check:` steps
+**Fifteen npm steps gate, counted from `.github/workflows/ci.yml` on
+2026-09-06.** Lint, `lint:deps`, typecheck and build, then ten `check:` steps
 in the `build` job — `check:content`, `check:package`, `check:languages`,
 `check:exchange`, `check:zawodyweb`, `check:access`, `check:events`,
-`check:i18n`, `check:api` — and `check:ui` in `browser-checks`, which is ten
-`check:` steps in all. No job
-carries `continue-on-error`, so every one of them must exit 0 before anything is
-merged; the `docker` job, which builds the image and checks the nginx fallback,
+`check:i18n`, `check:ranking`, `check:api` — and `check:ui` in `browser-checks`,
+which is eleven `check:` steps in all. It was fourteen and nine until
+`check:ranking` joined them. No job carries `continue-on-error`, so every one of
+them must exit 0 before anything is merged; the `docker` job, which builds the image and checks the nginx fallback,
 blocks on the same terms. `check:api` is the only step that cannot go red as it
 is invoked — see below.
 
@@ -458,6 +460,32 @@ What the Server still owns is **disclosure**: the ranking window decides whether
 there is an answer, the freeze withholds outcomes, and `scoreVisibility` decides
 whose results are in it. A board is assembled here, so anything sent has already
 been disclosed — never add a field to the feed without asking who may read it.
+
+**What the ICPC board charges for, settled 2026-09-06 and held by
+`check:ranking`.** Nothing else can see this arithmetic go wrong:
+
+- **A minute is a minute begun.** Floored, never rounded — a run at 20:30 is in
+  the twentieth minute, as it is on every board this one gets compared against.
+  Rounding gave away half a minute nobody spent, on every solved problem.
+- **Twenty minutes per *judged* rejection before the accepted run**, not per
+  position in front of it. `failed` is an infrastructure failure the Server
+  stopped retrying and `cancelled` is a manager's doing; the Runner sends **no
+  score at all** for the first, because a zero would read as a wrong answer on
+  every board that shows it, and charging twenty minutes for it did that anyway
+  one floor up. Both are treated as a submission still in the queue: shown, and
+  charged nothing. So is one that genuinely is.
+- **A tie is a tie**, on both boards. Two rows level on everything the board
+  sorts by share a place, and the place after a shared one is the position.
+  Numbering by position invented an order out of whatever sequence the Server
+  sent the contestants in.
+
+Nothing after the accepted submission counts — ICPC charges for *every
+**previously** rejected run*, and the word does the work.
+
+**A `?` cell says which of three things it is** — withheld by the freeze,
+not judged yet, or no verdict ever returned. One label for all of them read
+*submitted during the freeze* above cells no freeze had touched. `pendingLabel`
+in `ranking/common.tsx` is the single wording, so the two boards cannot drift.
 
 **Corrected 2026-08-22.** This said there was no renderer registry and no
 `typeId`/`typeVersion` selection. There are **five registries** —
