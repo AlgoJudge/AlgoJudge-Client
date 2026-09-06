@@ -1298,5 +1298,17 @@
     "Send the registration screen straight to a provider": "Send the registration screen straight to a provider",
     "For an installation whose accounts come from a directory. It leads to the provider's own sign-in screen, where whoever offers registration offers it.": "For an installation whose accounts come from a directory. It leads to the provider's own sign-in screen, where whoever offers registration offers it.",
     "None": "None",
-    "Manage your account at {{provider}}": "Manage your account at {{provider}}"
+    "Manage your account at {{provider}}": "Manage your account at {{provider}}",
+    "Open source · Self-hosted": "Open source · Self-hosted",
+    "Programming contests and courses with automatic evaluation": "Programming contests and courses with automatic evaluation",
+    "AlgoJudge is open-source, self-hosted software for programming contests and courses, with automatic evaluation of submitted solutions.": "AlgoJudge is open-source, self-hosted software for programming contests and courses, with automatic evaluation of submitted solutions.",
+    "About the project": "About the project",
+    "Contests": "Contests",
+    "Organise programming competitions": "Organise programming competitions",
+    "Courses": "Courses",
+    "Create materials for students": "Create materials for students",
+    "Automatic evaluation": "Automatic evaluation",
+    "Fast and reliable verification of solutions": "Fast and reliable verification of solutions",
+    "Open the home page with an introduction to AlgoJudge": "Open the home page with an introduction to AlgoJudge",
+    "Shown above your own welcome page, to a visitor who is not signed in. Turn it off if your welcome page says everything you want said.": "Shown above your own welcome page, to a visitor who is not signed in. Turn it off if your welcome page says everything you want said."
 }

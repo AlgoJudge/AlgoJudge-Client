@@ -217,6 +217,9 @@ export class FakeInstance {
             requireConfirmedEmail: input.requireConfirmedEmail,
             showLogo: input.showLogo,
             showLocalSignIn: input.showLocalSignIn,
+            // Absent leaves it alone, the way the Server reads it — so a caller
+            // that predates the field cannot switch the introduction back on.
+            showHero: input.showHero ?? this.info.showHero,
             accountDeletionEnabled: input.accountDeletionEnabled,
             externalJudgingEnabled: input.externalJudgingEnabled,
             signInRedirectProvider:
@@ -412,6 +415,7 @@ export class FakeInstance {
             // away lost it. Named one by one is the rule; the cost of the rule is
             // that a field can be forgotten, and one was.
             showLocalSignIn: this.info.showLocalSignIn,
+            showHero: this.info.showHero,
             accountDeletionEnabled: this.info.accountDeletionEnabled,
             externalJudgingEnabled: this.info.externalJudgingEnabled,
             signInRedirectProvider: this.info.signInRedirectProvider,
@@ -439,6 +443,9 @@ export class FakeInstance {
             // entirely, which is what an operator who wants none does.
             showLogo: true,
             showLocalSignIn: true,
+            // Shipped on, so the front page a visitor lands on says what the
+            // software is even where the operator has written nothing.
+            showHero: true,
             // Two providers, because one is the case that hides every mistake:
             // a list, an ordering and a slug that has to reach the right one.
             // `?fakeProviders=off` is the installation that federates nothing,
@@ -494,6 +501,9 @@ export class FakeInstance {
         // that is the whole of the screen.
         const federated = flag("fakeProviders");
         const removable = flag("fakeAccountDeletion");
+        // The installation that has written its own front page and wants only
+        // its own words above it.
+        const hero = flag("fakeHero");
         // A slug rather than a switch, because what is interesting is *which*
         // provider — and because a slug nobody offers is its own case.
         const text = (name: string): string | undefined | null => {
@@ -515,6 +525,7 @@ export class FakeInstance {
         if (documented === false) instance.documents = [];
         if (federated === false) instance.providers = [];
         if (removable !== undefined) instance.accountDeletionEnabled = removable;
+        if (hero !== undefined) instance.showHero = hero;
         if (signInRedirect !== null) instance.signInRedirectProvider = signInRedirect;
         if (registerRedirect !== null) instance.registerRedirectProvider = registerRedirect;
 

@@ -112,6 +112,15 @@ export interface InstanceInfo {
      */
     showLocalSignIn: boolean,
     /**
+     * Whether the home page opens with the product's own introduction, for a
+     * visitor who is not signed in.
+     *
+     * **The switch is the Server's and the content is not.** The heading, the
+     * picture and the two links are this Client's, translated with the rest of
+     * its interface, so the wording changes in a release of the Client alone.
+     */
+    showHero: boolean,
+    /**
      * The identity providers this installation offers, for the buttons on the
      * sign-in screen.
      *

@@ -1459,6 +1459,12 @@ export interface InstanceSettingsInput {
     requireConfirmedEmail: boolean;
     showLogo: boolean;
     showLocalSignIn: boolean;
+    /**
+     * Whether the home page opens with the product's own introduction. Shipped
+     * on, and optional on the wire for the same reason as the two below: the
+     * Server reads absence as *leave it alone*. This screen always sends it.
+     */
+    showHero?: boolean;
     /** Whether a person may remove their own account. Shipped on. */
     accountDeletionEnabled: boolean;
     /**

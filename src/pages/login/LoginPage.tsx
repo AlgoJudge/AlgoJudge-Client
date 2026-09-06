@@ -12,6 +12,7 @@ import { useAuth } from '../../provider/authContext';
 import { useInstance } from '../../provider/instanceContext';
 import { stashJoinPassword } from '../../utils/joinPassword';
 import classes from './LoginPage.module.css';
+import { registrationOffered } from "../../api/registration";
 
 /**
  * Signing in.
@@ -170,7 +171,7 @@ export default function LoginPage() {
         <Container size={420} my={40}>
             <Title ta="center" className={classes.title}>{t('Login')}</Title>
 
-            {instance.localRegistrationEnabled && (
+            {registrationOffered(instance) && (
                 <Text c="dimmed" size="sm" ta="center" mt={5}>
                     {t('Do not have an account yet?')}{' '}
                     <Anchor component={Link} to="/register" size="sm">{t('Create account')}</Anchor>

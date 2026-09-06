@@ -5,18 +5,22 @@ import {
 import { generateColors, generateColorsMap } from "@mantine/colors-generator";
 import { InstanceTheme, ThemeColours } from "./api/CoreApi";
 import { theme as testIds } from "./theme";
+import { FALLBACK_STACK, typography } from "./typography";
 
 /**
  * An installation's own colours and typeface, turned into a Mantine theme.
  *
  * ## Absent means untouched, and that is the whole safety argument
  *
- * Nothing here writes a default. A key the installation did not set produces
- * **no variable at all**, so `buildTheme(undefined)` is byte for byte the theme
- * that was on screen before any of this existed — not a table of values that
- * happen to match it today and drift from Mantine's tomorrow. The shell's own
- * CSS carries the old value as a `var(--aj-…, <what it always was>)` fallback
- * for the same reason.
+ * `brandOverride` writes no default. A key the installation did not set
+ * produces **no variable at all** — not a table of values that happen to match
+ * Mantine's today and drift from them tomorrow. The shell's own CSS carries the
+ * plain value as a `var(--aj-…, <what it always was>)` fallback for the same
+ * reason.
+ *
+ * The one token the product does state for itself is its typeface, and it is
+ * in `typography.ts` rather than here precisely so this rule stays readable:
+ * everything in *this* file comes from the installation.
  *
  * ## Where each token lands
  *
@@ -48,22 +52,20 @@ import { theme as testIds } from "./theme";
 /** Mantine's own default primary, and so what an unset `primary` must stay. */
 const MANTINE_PRIMARY = "blue";
 
-/**
- * What a named face falls back to. Mantine's own default stack, restated: a
- * theme naming a family whose file has not loaded yet must not land on Times.
- */
-const FALLBACK_STACK =
-    "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif";
-
 type Colours = Record<string, MantineColorsTuple>;
 
 /**
- * The theme the provider is given: the test ids, plus whatever the installation
- * set. One call, so a screen never sees a theme that has one half and not the
- * other.
+ * The theme the provider is given: the test ids, the product's typeface, and
+ * whatever the installation set. One call, so a screen never sees a theme that
+ * has one layer and not the next.
  */
 export function buildTheme(branding: InstanceTheme | undefined): MantineThemeOverride {
-    return mergeThemeOverrides(testIds, brandOverride(branding));
+    // **Three layers, and the order decides who wins.** Test ids set nothing
+    // anybody sees; `typography` is the product's own face; the installation's
+    // branding is merged last, so an operator who names a family still gets it.
+    // Reversing the last two would make the product's default unoverridable,
+    // which is the one way this can be wrong and still look right.
+    return mergeThemeOverrides(testIds, typography, brandOverride(branding));
 }
 
 function brandOverride(branding: InstanceTheme | undefined): MantineThemeOverride {

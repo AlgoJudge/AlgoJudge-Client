@@ -35,6 +35,7 @@ const settingsOf = (instance: {
     requireConfirmedEmail: boolean;
     showLogo: boolean;
     showLocalSignIn: boolean;
+    showHero: boolean;
     accountDeletionEnabled: boolean;
     externalJudgingEnabled: boolean;
     signInRedirectProvider?: string;
@@ -46,6 +47,7 @@ const settingsOf = (instance: {
     requireConfirmedEmail: instance.requireConfirmedEmail,
     showLogo: instance.showLogo,
     showLocalSignIn: instance.showLocalSignIn,
+    showHero: instance.showHero,
     accountDeletionEnabled: instance.accountDeletionEnabled,
     externalJudgingEnabled: instance.externalJudgingEnabled,
     // **Always sent, and blank rather than absent when there is none.** The
@@ -149,6 +151,12 @@ export default function ManagerInstancePage() {
                                 label={t("Show the mark in the application")}
                                 checked={settings.showLogo}
                                 onChange={e => setSettings({ ...settings, showLogo: e.currentTarget.checked })}
+                            />
+                            <Switch
+                                label={t("Open the home page with an introduction to AlgoJudge")}
+                                description={t("Shown above your own welcome page, to a visitor who is not signed in. Turn it off if your welcome page says everything you want said.")}
+                                checked={settings.showHero}
+                                onChange={e => setSettings({ ...settings, showHero: e.currentTarget.checked })}
                             />
                             <Switch
                                 label={t("Show the password form on the sign-in screen")}

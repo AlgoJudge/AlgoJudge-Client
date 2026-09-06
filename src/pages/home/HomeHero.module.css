@@ -1,0 +1,47 @@
+/* The introduction above an installation's own front page. */
+
+/* One column until there is room for two, and then **not two equal ones**: the
+   sentence is the reason anybody is here and the drawing is decoration, so the
+   words get the wider half. Equal columns put this heading on four lines. */
+.hero {
+    align-items: center;
+    display: grid;
+    gap: var(--mantine-spacing-xl);
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: $mantine-breakpoint-md) {
+    .hero {
+        grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+    }
+}
+
+.title {
+    font-size: rem(34px);
+    font-weight: 800;
+    letter-spacing: rem(-1px);
+    line-height: 1.1;
+
+    /* Two lines rather than one long one, decided by the browser. A hard break
+       would need the sentence split across two translation keys, and it would
+       still land in the wrong place in whichever language was not measured. */
+    text-wrap: balance;
+}
+
+@media (min-width: $mantine-breakpoint-sm) {
+    .title {
+        font-size: rem(46px);
+    }
+}
+
+/* The picture is decoration and goes last when the columns stack, so a reader
+   on a telephone gets the sentence and the buttons before it. */
+.picture {
+    order: 2;
+}
+
+@media (min-width: $mantine-breakpoint-md) {
+    .picture {
+        order: 0;
+    }
+}

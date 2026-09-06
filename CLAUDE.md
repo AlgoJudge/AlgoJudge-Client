@@ -689,3 +689,60 @@ The Server filters the setting against the providers it offers, so a slug naming
 a disabled one is never advertised — and `src/api/fake/FakeInstance.ts` mirrors
 that filter, because two halves of the fake that disagreed would test the screens
 against a contract the Server does not offer.
+
+
+## The product's own face, and where it sits in the theme (2026-09-06)
+
+`buildTheme` merges **three** layers, and the order is the whole feature:
+
+```
+mergeThemeOverrides(testIds, typography, brandOverride(branding))
+```
+
+- `theme.ts` — test ids, and its comment promises no visual token. Nothing
+  typographic goes in there.
+- `typography.ts` — Lato, the product's own face. The **only** visual token this
+  Client sets for itself.
+- `brandOverride` — the installation's, merged **last**, so an operator naming
+  a family still gets it. Reversing the last two makes the product's default
+  unoverridable, which is the one way this can be wrong and still look right; a
+  sabotage in `verify-hero.mjs` holds it.
+
+The four `.woff2` files live in `src/assets/fonts/` and are declared in
+`index.css`, so Vite fingerprints them. They are **byte for byte the files in
+`AlgoJudge-Identity-Keycloak`**, so the type does not change under somebody
+crossing from the sign-in screen into the application. Lato has no weight 500;
+body is 400 and headings are 700, and both are sent rather than named.
+
+**Naming a face is not sending it**, and only `document.fonts.check()` can tell
+those apart — a computed `font-family` says what was asked for.
+
+## The introduction on the home page (2026-09-06)
+
+`HomeHero` draws what the *software* is, above what the *installation* is, for a
+visitor who is not signed in. `instance.showHero` governs it and ships on.
+
+- **Every word is this Client's.** The Server holds the switch and no content,
+  so a wording change is a release of one component. Do not add a field for the
+  text.
+- **It sits outside `HomePage`'s `Container size={900}`**, because it is two
+  columns and the operator's document is a column of prose.
+- **Nothing in it is a fixed colour.** It asks for the primary colour and
+  Mantine's dimmed text, exactly as every other screen does, so an installation
+  with its own palette does not get one panel in the product's blue.
+- **The page's own `Sign in` button is hidden while it is drawn.** Two identical
+  buttons to one screen is a question about which is the real one; both carry
+  `data-testid="sign-in"` and the check counts them.
+
+## A way in may be a provider (2026-09-06)
+
+`src/api/registration.ts` is the one definition: **local sign-ups or a register
+redirect**. Used by the public bar, the sign-in screen and the introduction.
+
+An installation whose accounts come from a directory has
+`localRegistrationEnabled` off — correctly, the Server refuses a local sign-up —
+and may still have a redirect set. Reading the flag alone hides the only door.
+
+**`RegisterPage`'s refusal panel still asks the local flag, and must.** Reaching
+it means `?admin=true` suppressed the redirect, and the form there would be a
+form the Server refuses.

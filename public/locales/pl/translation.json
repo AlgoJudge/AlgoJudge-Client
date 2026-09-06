@@ -1298,5 +1298,17 @@
     "Send the registration screen straight to a provider": "Przekieruj ekran rejestracji prosto do dostawcy",
     "For an installation whose accounts come from a directory. It leads to the provider's own sign-in screen, where whoever offers registration offers it.": "Dla instalacji, w której konta pochodzą z katalogu. Prowadzi na ekran logowania dostawcy — tam, gdzie rejestrację oferuje ten, kto ją oferuje.",
     "None": "Brak",
-    "Manage your account at {{provider}}": "Zarządzaj kontem w {{provider}}"
+    "Manage your account at {{provider}}": "Zarządzaj kontem w {{provider}}",
+    "Open source · Self-hosted": "Open source · Self-hosted",
+    "Programming contests and courses with automatic evaluation": "Zawody i kursy programistyczne z automatycznym ocenianiem",
+    "AlgoJudge is open-source, self-hosted software for programming contests and courses, with automatic evaluation of submitted solutions.": "AlgoJudge to otwartoźródłowe oprogramowanie self-hosted do organizacji zawodów i kursów programistycznych z automatycznym ocenianiem przesłanych rozwiązań.",
+    "About the project": "O projekcie",
+    "Contests": "Zawody",
+    "Organise programming competitions": "Organizuj konkursy programistyczne",
+    "Courses": "Kursy",
+    "Create materials for students": "Twórz materiały dla uczniów",
+    "Automatic evaluation": "Automatyczna ocena",
+    "Fast and reliable verification of solutions": "Szybka i wiarygodna weryfikacja rozwiązań",
+    "Open the home page with an introduction to AlgoJudge": "Otwórz stronę główną wprowadzeniem do AlgoJudge",
+    "Shown above your own welcome page, to a visitor who is not signed in. Turn it off if your welcome page says everything you want said.": "Pokazywane nad Twoją stroną powitalną, osobie niezalogowanej. Wyłącz, jeśli Twoja strona powitalna mówi już wszystko, co chcesz powiedzieć."
 }

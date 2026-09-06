@@ -94,6 +94,17 @@ check(await evaluate(`
     return [...main.querySelectorAll("button, a")].length === 0;
 `), "it offers nothing to press, because nothing would work");
 
+// …and the drawing beside the sentences is not a way round that. It is the
+// product's own illustration with an empty `alt`, so a reader on a screen
+// reader is told nothing extra and a reader looking at it cannot click it.
+check(await evaluate(`
+    const main = document.querySelector("[data-testid=maintenance]");
+    const picture = main?.querySelector("img");
+    return picture !== null && picture !== undefined
+        && picture.getAttribute("alt") === ""
+        && picture.closest("a") === null;
+`), "the drawing beside it is decoration, not a control");
+
 // ── And when the Server is fine ─────────────────────────────────────────────
 // The regression that would be worst to ship: a gate that blocks an
 // installation nobody is maintaining.
