@@ -336,19 +336,26 @@ function quoted(family: string | undefined): string | undefined {
  *
  * Written as a stylesheet because there is nowhere else for an `@font-face` to
  * go: a theme object has no room for one. Every part of it is either a value the
- * Server validated or an address the Server built — the operator never writes a
- * URL, which is what keeps this from being a way to make somebody else's browser
- * fetch from anywhere.
+ * Server validated or an address built here from a **stored file's id** — the
+ * operator names a face they uploaded and writes no URL at all, which is what
+ * keeps this from being a way to make somebody else's browser fetch from
+ * anywhere.
+ *
+ * `addressOf` is passed in rather than reached for, because this is a plain
+ * function and the file API lives on a context.
  *
  * `swap` deliberately: text drawn in the fallback and then re-drawn is better
  * than a screen with no text on it while a face loads.
  */
-export function fontFaces(branding: InstanceTheme | undefined): string {
+export function fontFaces(
+    branding: InstanceTheme | undefined,
+    addressOf: (fileId: string) => string,
+): string {
     return (branding?.fonts ?? [])
         .map(face => [
             "@font-face {",
             `  font-family: "${face.family}";`,
-            `  src: url("${face.url}") format("woff2");`,
+            `  src: url("${addressOf(face.fileId)}") format("woff2");`,
             `  font-weight: ${face.weight};`,
             `  font-style: ${face.style};`,
             "  font-display: swap;",

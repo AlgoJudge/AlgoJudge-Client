@@ -1942,7 +1942,7 @@ export class ManagerApiFake implements ManagerApi {
                     mimeType: stored.mimeType,
                     sizeBytes: stored.sizeBytes,
                     sha256: stored.sha256,
-                    url: this.files.url(statement.fileId),
+                    fileId: statement.fileId,
                 };
             }),
             // Carried forward when nothing was published: the statement files of
@@ -1954,8 +1954,8 @@ export class ManagerApiFake implements ManagerApi {
             ...staged.map(entry => {
                 // Everything but the name comes from the stored file: the
                 // reference says what it is called *here*, the file says what it
-                // is. The URL is the store's, so the preview shows the figure
-                // rather than a promise of one.
+                // is. The id is the store's, so whoever draws it reaches the
+                // bytes rather than a promise of them.
                 const stored = this.files.meta(entry.fileId);
                 return {
                     name: entry.name,
@@ -1963,13 +1963,17 @@ export class ManagerApiFake implements ManagerApi {
                     mimeType: stored.mimeType,
                     sizeBytes: stored.sizeBytes,
                     sha256: stored.sha256,
-                    url: this.files.url(entry.fileId),
+                    fileId: entry.fileId,
                 };
             }),
+            // **With its id**, which it never carried. The export walks a
+            // version's files and reads the bytes behind each, so an archive
+            // that named none was a package no bundle could carry.
             ...(archive ? [{
                 name: PACKAGE_ARCHIVE, scope: "runner" as const, mimeType: "application/zip",
                 sizeBytes: archive.size,
                 sha256: input.package ? this.files.meta(input.package.fileId).sha256 : await sha256(archive),
+                fileId: input.package?.fileId,
             }] : []),
             // The examples the participant downloads. Participant scope, so the
             // Server hands them over without the Client asking twice.
@@ -1977,7 +1981,7 @@ export class ManagerApiFake implements ManagerApi {
                 name: SAMPLES_ARCHIVE, scope: "participant" as const, mimeType: "application/zip",
                 sizeBytes: this.files.meta(input.package.samplesFileId).sizeBytes,
                 sha256: this.files.meta(input.package.samplesFileId).sha256,
-                url: this.files.url(input.package.samplesFileId),
+                fileId: input.package.samplesFileId,
             }] : []),
         ];
         record.problem.currentVersion = version.version;

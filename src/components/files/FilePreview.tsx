@@ -6,8 +6,15 @@ import PdfStatement from "../../content/PdfStatement";
 export interface PreviewableFile {
     name: string;
     mimeType: string;
-    /** Absent until the Server has stored it; a staged file carries a blob URL. */
-    url?: string;
+    /**
+     * Where the bytes are. Absent while a file is being published and has not
+     * been stored, which is a state this window says out loud.
+     *
+     * An **address**, resolved by whoever opens this: a stored file's is built
+     * from its id, and one staged in the editor is a blob URL over the bytes in
+     * hand. Naming it `url` invited a caller to hand over whatever field it had.
+     */
+    address?: string;
 }
 
 /**
@@ -18,10 +25,10 @@ export interface PreviewableFile {
  * they meant, had to save the file and open it outside the browser — for a PDF
  * fetched from an archive, that is the only way to see what was imported at all.
  *
- * Driven by `mimeType` and `url`, which is all an attachment row carries: the
- * list is names and sizes, not file ids, so there is nothing to fetch by. The
- * bytes are already addressable, and `PdfStatement` already knows how to frame a
- * PDF — this adds a window around them and nothing else.
+ * Driven by `mimeType` and an address, because that is what a row can always
+ * answer — a stored file and one staged in the editor are the same question
+ * here and have different answers. `PdfStatement` already knows how to frame a
+ * PDF; this adds a window around it and nothing else.
  *
  * Deliberately narrow: {@link canEmbed} decides what may be shown, and anything
  * else keeps the download button it has always had rather than opening a window
@@ -49,18 +56,18 @@ export default function FilePreview({
                 body: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" },
             }}
         >
-            {file?.url === undefined ? (
+            {file?.address === undefined ? (
                 <Text c="dimmed">{t("This file has not been stored yet, so there is nothing to show.")}</Text>
             ) : pdf ? (
-                <PdfStatement url={file.url} name={file.name} />
+                <PdfStatement url={file.address} name={file.name} />
             ) : (
                 <Stack gap="sm">
                     {/* `fit="contain"` and no fixed height: a figure is looked at
                         to check it is the right one, so it is shown whole rather
                         than cropped to a tidy box. */}
-                    <Image src={file.url} alt={file.name} fit="contain" mah="78vh" />
+                    <Image src={file.address} alt={file.name} fit="contain" mah="78vh" />
                     <Group justify="flex-end">
-                        <Anchor href={file.url} download={file.name} size="sm">
+                        <Anchor href={file.address} download={file.name} size="sm">
                             {t("Download")}
                         </Anchor>
                     </Group>

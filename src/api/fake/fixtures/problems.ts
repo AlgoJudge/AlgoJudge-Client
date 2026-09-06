@@ -154,7 +154,7 @@ const stored = (
         name, scope, mimeType,
         sizeBytes: seed.sizeBytes,
         sha256: seed.sha256,
-        url: files.url(seed.id),
+        fileId: seed.id,
     }, seed.id);
 };
 

@@ -263,7 +263,7 @@ export class FakeInstance {
         const mark = fileId === undefined ? undefined : (() => {
             const stored = this.files.meta(fileId);
             return {
-                url: this.files.url(fileId),
+                fileId,
                 mimeType: stored.mimeType,
                 sizeBytes: stored.sizeBytes,
                 sha256: stored.sha256,
@@ -323,7 +323,7 @@ export class FakeInstance {
                     family: face.family,
                     weight: face.weight ?? 400,
                     style: face.style ?? "normal",
-                    url: this.files.url(stored),
+                    fileId: stored,
                     sha256: meta.sha256,
                     sizeBytes: meta.sizeBytes,
                 };

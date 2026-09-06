@@ -2,6 +2,7 @@ import { StatementRef } from "../../FileApi";
 import {
     Activity,
     ActivityState,
+    Attachment,
     ProblemDetail,
     ProblemStatus,
     ProblemSummary,
@@ -15,7 +16,6 @@ import { openByClock, seriesState } from "../../seriesState";
 // handed the store rather than reaching for one of their own.
 import type { FakeFiles } from "../FileApiFake";
 import { attemptFiles, sourceFiles } from "./attachments";
-import { fakeSha } from "./problems";
 import {
     SeedActivity, SeedAssignment, SeedAttempt, SeedSeries, WORLD,
     attemptId, attemptTime, displayName, fractionOf, maxPointsOf, meOf, pointsOf,
@@ -150,6 +150,45 @@ export const createDataset = (files: FakeFiles): Dataset => {
      * uploaded, read back by id. A fake that skipped the store could not be
      * wrong in the way the real one can.
      */
+    /**
+     * A one-pixel PNG, so an `<img>` in a statement draws something.
+     *
+     * The seed used to give every attachment the address `"#"`, so the figure on
+     * the Dijkstra problem had never rendered in any browser check — which is
+     * how an address defect in the figures could live in the product unseen.
+     * Bytes rather than text because a text blob typed `image/png` is a broken
+     * picture, which would be the same blindness spelled differently.
+     */
+    const ONE_PIXEL_PNG = Uint8Array.from(atob(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+    ), c => c.charCodeAt(0));
+
+    /**
+     * Stores a problem's attachment and answers with the reference the
+     * participant gets.
+     *
+     * Named by where it is used, as a statement is: one library problem attached
+     * in two activities is two files, and one name would make them one.
+     */
+    const attachment = (
+        activity: SeedActivity,
+        assignment: SeedAssignment,
+        file: { name: string; mimeType: string; sizeBytes: number },
+    ): Attachment => {
+        const stored = file.mimeType.startsWith("image/")
+            ? files.seedBytes(`${activity.id}/${assignment.slug}/${file.name}`, file.mimeType, ONE_PIXEL_PNG)
+            : files.seedText(
+                `${activity.id}/${assignment.slug}/${file.name}`, file.mimeType,
+                `the fixture's ${file.name}`);
+        return files.mirror({
+            name: file.name,
+            mimeType: file.mimeType,
+            sizeBytes: file.sizeBytes,
+            fileId: stored.id,
+            sha256: stored.sha256,
+        }, stored.id);
+    };
+
     const statement = (
         activity: SeedActivity,
         assignment: SeedAssignment,
@@ -259,9 +298,8 @@ export const createDataset = (files: FakeFiles): Dataset => {
                         ...Object.entries(assignment.problem.translations ?? {}).map(([language, text]) =>
                             statement(activity, assignment, text, language)),
                     ],
-                    attachments: (assignment.problem.attachments ?? []).map(file => ({
-                        ...file, url: "#", sha256: fakeSha(file.name),
-                    })),
+                    attachments: (assignment.problem.attachments ?? [])
+                        .map(file => attachment(activity, assignment, file)),
                     samples: assignment.problem.samples,
                     // **The three documents, projected from the seed's one
                     // list.** `config` is what the Runner refuses against,
