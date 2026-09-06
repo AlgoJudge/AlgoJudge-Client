@@ -326,7 +326,7 @@ await evaluate(`
 `);
 await wait(7000);
 
-const converted = await modal();
+const converted = (await modal()).replaceAll(String.fromCharCode(160), " ");
 check(/Skonwertowane z archiwum ZawodyWeb/.test(converted),
     `the archive is recognised and converted (${converted.slice(0, 60)})`);
 

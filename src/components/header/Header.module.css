@@ -39,6 +39,33 @@
     }
 }
 
+/* React Router's own class, so it is global.
+
+   **The instance's primary colour, not a blue written here.** An installation
+   that carries its own palette would otherwise have one entry in the product's
+   blue and everything else in theirs — `--mantine-primary-color-filled` is the
+   colour Mantine already paints their buttons with. */
+.link:global(.active),
+.link:global(.active):hover {
+    color: var(--mantine-primary-color-filled);
+    font-weight: 700;
+    background-color: transparent;
+    position: relative;
+}
+
+/* Under the text rather than a border on the element: a border would change the
+   entry's height and shift every entry beside it the moment one is marked. */
+.link:global(.active)::after {
+    content: "";
+    position: absolute;
+    left: rem(12px);
+    right: rem(12px);
+    bottom: rem(-2px);
+    height: rem(3px);
+    border-radius: rem(2px);
+    background-color: var(--mantine-primary-color-filled);
+}
+
 .linkLabel {
     margin-right: rem(5px);
 }

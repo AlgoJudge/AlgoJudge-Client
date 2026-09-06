@@ -112,6 +112,15 @@ export interface InstanceInfo {
      */
     showLocalSignIn: boolean,
     /**
+     * Whether the home page opens with the product's own introduction, for a
+     * visitor who is not signed in.
+     *
+     * **The switch is the Server's and the content is not.** The heading, the
+     * picture and the two links are this Client's, translated with the rest of
+     * its interface, so the wording changes in a release of the Client alone.
+     */
+    showHero: boolean,
+    /**
      * The identity providers this installation offers, for the buttons on the
      * sign-in screen.
      *
@@ -124,6 +133,19 @@ export interface InstanceInfo {
      * An empty list is the ordinary case and means no buttons, not an error.
      */
     providers: PublicProvider[],
+    /**
+     * The provider the sign-in screen sends the browser straight to, instead of
+     * drawing itself. Absent means it draws itself.
+     *
+     * **It is always a member of `providers`, or it is absent.** The Server
+     * filters it against that very list, so this may be turned into a challenge
+     * address without first asking whether the other end would answer — and a
+     * provider switched off stops redirecting the same minute rather than
+     * leaving every visitor on a dead end.
+     */
+    signInRedirectProvider?: string,
+    /** The same, for the registration screen. */
+    registerRedirectProvider?: string,
     /**
      * Whether a person may remove their own account here. Shipped on; an
      * installation may close it.

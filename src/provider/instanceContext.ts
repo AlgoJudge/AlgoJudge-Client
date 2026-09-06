@@ -17,6 +17,16 @@ export interface InstanceContextType {
      * Absent only when the operator turned the mark off.
      */
     logoUrl: string | undefined;
+    /**
+     * Whether the installation has answered yet.
+     *
+     * The same fact `document.documentElement.dataset.instance` carries, from
+     * the same state — one source, two consumers. A screen that acts on a
+     * setting has to know the difference between "this installation does not
+     * redirect" and "nobody has said yet", because the defaults say the first
+     * while the answer is still in flight.
+     */
+    answered: boolean;
 }
 
 export const InstanceContext = createContext<InstanceContextType | undefined>(undefined);

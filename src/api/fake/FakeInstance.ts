@@ -2,7 +2,8 @@ import {
     InstanceDocumentKind, InstanceDocumentRef, InstanceInfo, InstanceTheme, LocalisedLogo, ThemeColours,
 } from "../CoreApi";
 import { parse as parseYaml } from "yaml";
-import { InstanceFontInput, ThemeInput, InstanceThemeInput } from "../ManagerApi";
+import { InstanceFontInput, InstanceSettingsInput, ThemeInput, InstanceThemeInput }
+    from "../ManagerApi";
 import { seedInstanceDocuments } from "./fixtures/documents";
 import { FakeFiles } from "./FileApiFake";
 import { invalid } from "./refuse";
@@ -165,18 +166,49 @@ export class FakeInstance {
     }
 
     read(): InstanceInfo {
-        return { ...this.info, documents: [...this.info.documents] };
+        // **The Server's filter, mirrored here on purpose.** A redirect naming a
+        // provider this answer does not also offer is not served, so a screen
+        // may build a challenge address out of it without asking. Two halves of
+        // the fake that disagreed would test the screens against a contract the
+        // Server does not offer.
+        const offered = (slug: string | undefined) =>
+            slug !== undefined && this.info.providers.some(p => p.slug === slug)
+                ? slug
+                : undefined;
+
+        return {
+            ...this.info,
+            documents: [...this.info.documents],
+            signInRedirectProvider: offered(this.info.signInRedirectProvider),
+            registerRedirectProvider: offered(this.info.registerRedirectProvider),
+        };
     }
 
-    settings(input: {
-        name?: string;
-        localRegistrationEnabled: boolean;
-        requireEmail: boolean;
-        requireConfirmedEmail: boolean;
-        showLogo: boolean;
-        accountDeletionEnabled: boolean;
-        externalJudgingEnabled: boolean;
-    }): InstanceInfo {
+    /**
+     * The settings the panel sends.
+     *
+     * **`InstanceSettingsInput`, not a hand-written subset of it.** The subset
+     * that used to be written here is why `showLocalSignIn` was accepted and
+     * then dropped on the floor: a field added to the panel and to the Server
+     * reached this method and matched nothing. Naming the type closes the class
+     * of bug rather than the one instance of it.
+     */
+    settings(input: InstanceSettingsInput): InstanceInfo {
+        // Absent means leave alone, blank clears, a slug sets — the Server's
+        // three states, because a screen tested against two would pass here and
+        // fail there.
+        const redirect = (stated: string | undefined, current: string | undefined) => {
+            if (stated === undefined) return current;
+            const slug = stated.trim().toLowerCase();
+            if (slug.length === 0) return undefined;
+            if (!this.info.providers.some(p => p.slug === slug)) {
+                invalid(
+                    `No enabled identity provider is registered under "${slug}"`,
+                    "instance.signInRedirect.unknown");
+            }
+            return slug;
+        };
+
         this.info = {
             ...this.info,
             name: input.name?.trim() || undefined,
@@ -184,8 +216,16 @@ export class FakeInstance {
             requireEmail: input.requireEmail,
             requireConfirmedEmail: input.requireConfirmedEmail,
             showLogo: input.showLogo,
+            showLocalSignIn: input.showLocalSignIn,
+            // Absent leaves it alone, the way the Server reads it — so a caller
+            // that predates the field cannot switch the introduction back on.
+            showHero: input.showHero ?? this.info.showHero,
             accountDeletionEnabled: input.accountDeletionEnabled,
             externalJudgingEnabled: input.externalJudgingEnabled,
+            signInRedirectProvider:
+                redirect(input.signInRedirectProvider, this.info.signInRedirectProvider),
+            registerRedirectProvider:
+                redirect(input.registerRedirectProvider, this.info.registerRedirectProvider),
         };
         this.persist();
         return this.read();
@@ -371,8 +411,15 @@ export class FakeInstance {
             requireEmail: this.info.requireEmail,
             requireConfirmedEmail: this.info.requireConfirmedEmail,
             showLogo: this.info.showLogo,
+            // Absent here until 2026-09-06, which is why toggling it and walking
+            // away lost it. Named one by one is the rule; the cost of the rule is
+            // that a field can be forgotten, and one was.
+            showLocalSignIn: this.info.showLocalSignIn,
+            showHero: this.info.showHero,
             accountDeletionEnabled: this.info.accountDeletionEnabled,
             externalJudgingEnabled: this.info.externalJudgingEnabled,
+            signInRedirectProvider: this.info.signInRedirectProvider,
+            registerRedirectProvider: this.info.registerRedirectProvider,
             // The theme is values rather than a file reference, so unlike the
             // documents and the mark it does survive a reload — which is what
             // lets somebody set one on this screen and then walk the others.
@@ -395,7 +442,10 @@ export class FakeInstance {
             // placeholder it ships with. `?fakeLogo=off` turns the mark off
             // entirely, which is what an operator who wants none does.
             showLogo: true,
-        showLocalSignIn: true,
+            showLocalSignIn: true,
+            // Shipped on, so the front page a visitor lands on says what the
+            // software is even where the operator has written nothing.
+            showHero: true,
             // Two providers, because one is the case that hides every mistake:
             // a list, an ordering and a slug that has to reach the right one.
             // `?fakeProviders=off` is the installation that federates nothing,
@@ -408,6 +458,12 @@ export class FakeInstance {
             accountDeletionEnabled: true,
             // And this one off, exactly as an installation gets it.
             externalJudgingEnabled: false,
+            // Neither screen redirects, which is what an installation that never
+            // touched this has. `?fakeSignInRedirect=university` is the other
+            // case, and `=nope` is the one where the setting names a provider
+            // that is not on offer.
+            signInRedirectProvider: undefined,
+            registerRedirectProvider: undefined,
         };
 
         // Merged over the defaults rather than trusting what was stored. A tab
@@ -445,6 +501,17 @@ export class FakeInstance {
         // that is the whole of the screen.
         const federated = flag("fakeProviders");
         const removable = flag("fakeAccountDeletion");
+        // The installation that has written its own front page and wants only
+        // its own words above it.
+        const hero = flag("fakeHero");
+        // A slug rather than a switch, because what is interesting is *which*
+        // provider — and because a slug nobody offers is its own case.
+        const text = (name: string): string | undefined | null => {
+            const value = query.get(name);
+            return value === null ? null : value === "off" ? undefined : value;
+        };
+        const signInRedirect = text("fakeSignInRedirect");
+        const registerRedirect = text("fakeRegisterRedirect");
         // The installation that carries its own colours. Off by default, because
         // the other forty-six checks read the screens as they ship.
         const themed = flag("fakeTheme");
@@ -458,6 +525,9 @@ export class FakeInstance {
         if (documented === false) instance.documents = [];
         if (federated === false) instance.providers = [];
         if (removable !== undefined) instance.accountDeletionEnabled = removable;
+        if (hero !== undefined) instance.showHero = hero;
+        if (signInRedirect !== null) instance.signInRedirectProvider = signInRedirect;
+        if (registerRedirect !== null) instance.registerRedirectProvider = registerRedirect;
 
         // Never restored from storage: the fake's providers are fixtures, and a
         // tab that kept an older list would offer a button whose slug the fake

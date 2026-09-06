@@ -4,7 +4,15 @@ import { InstanceInfo } from "../api/CoreApi";
 import { pickTranslation } from "../components/content/languageName";
 import { useApi } from "./apiContext";
 import { InstanceContext } from "./instanceContext";
-import placeholderLogo from "../assets/instance-logo.svg";
+// **Deliberately a drawing rather than a wordmark.** An operator who sees a
+// robot where their crest belongs knows something is unset, the way a legal
+// template says it is a template.
+//
+// The file is `AlgoJudge-Assets/illustrations/instance-logo.png` unaltered, and
+// its ground is white: in the navigation that is invisible, because the mark is
+// drawn in a light box there, and inside a document in the dark scheme it reads
+// as a white card. A drawing made for paper, behaving like one.
+import placeholderLogo from "../assets/instance-logo.png";
 
 /**
  * What the installation says about itself.
@@ -25,7 +33,11 @@ const DEFAULTS: InstanceInfo = {
     requireEmail: false,
     requireConfirmedEmail: false,
     showLogo: true,
-        showLocalSignIn: true,
+    showLocalSignIn: true,
+    // Shipped on, and drawn before the answer arrives: an installation with no
+    // welcome document of its own otherwise greets a visitor with a blank page
+    // for the length of a fetch.
+    showHero: true,
     // **Empty, and that is the safe default rather than the pessimistic one.**
     // A sign-in button drawn before the answer arrives would point at a provider
     // this installation may not have registered, and a 404 in the middle of
@@ -108,7 +120,7 @@ export const InstanceProvider: FC<{ children: ReactNode }> = ({ children }) => {
         : undefined;
 
     return (
-        <InstanceContext.Provider value={{ instance, logoUrl }}>
+        <InstanceContext.Provider value={{ instance, logoUrl, answered }}>
             {children}
         </InstanceContext.Provider>
     );

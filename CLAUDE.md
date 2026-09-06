@@ -662,3 +662,121 @@ Three pieces that are easy to reach for the wrong one:
 When this repository is checked out inside the AlgoJudge workspace,
 `../PROJECT_CONTEXT.md` is the primary architecture context and takes precedence
 over this file.
+
+## Sending somebody to a provider instead of drawing the screen
+
+Two instance settings hold a provider's **slug** — `signInRedirectProvider` and
+`registerRedirectProvider` — and when one is set the screen leaves for that
+provider rather than drawing itself. Four things about it are easy to get wrong:
+
+- **It is a full page load, `window.location.replace`.** A router navigation
+  would match the address against the route table and never make a request; the
+  journey leaves this application. `assign` would leave the screen in the
+  history, so Back from the provider returns to it and redirects again.
+- **Four things suppress it**, and each is somebody otherwise stuck:
+  `?admin=true`, which already meant *show me the local form*; **`?error=`**, a
+  refused federated sign-in landing here to be explained — redirecting that back
+  to the provider that just refused it is an unbounded loop; an instance that has
+  not answered, which would fire on the defaults; and a session that already
+  exists.
+- **The address is built in one place**, `src/api/providerChallenge.ts`, by the
+  buttons and by the redirect alike — so a check of one is a check of the other.
+- **The stash comes first.** A self-enrolment link carries the activity password
+  in the fragment; the redirect leaves the same way the buttons do and has to
+  keep it, or the password is lost on exactly the installations that redirect.
+
+The Server filters the setting against the providers it offers, so a slug naming
+a disabled one is never advertised — and `src/api/fake/FakeInstance.ts` mirrors
+that filter, because two halves of the fake that disagreed would test the screens
+against a contract the Server does not offer.
+
+
+## The product's own face, and where it sits in the theme (2026-09-06)
+
+`buildTheme` merges **three** layers, and the order is the whole feature:
+
+```
+mergeThemeOverrides(testIds, typography, brandOverride(branding))
+```
+
+- `theme.ts` — test ids, and its comment promises no visual token. Nothing
+  typographic goes in there.
+- `typography.ts` — Lato, the product's own face. The **only** visual token this
+  Client sets for itself.
+- `brandOverride` — the installation's, merged **last**, so an operator naming
+  a family still gets it. Reversing the last two makes the product's default
+  unoverridable, which is the one way this can be wrong and still look right; a
+  sabotage in `verify-hero.mjs` holds it.
+
+The `.woff2` files live in `src/assets/fonts/` and are declared in `index.css`,
+so Vite fingerprints them. The four Lato files are **byte for byte the ones in
+`AlgoJudge-Identity-Keycloak`**, so the type does not change under somebody
+crossing from the sign-in screen into the application. Lato has no weight 500;
+body is 400 and headings are 700, and both are sent rather than named.
+
+**Naming a face is not sending it**, and `document.fonts.check()` cannot tell
+those apart either — it answers `true` for a family nothing defines. Count the
+loaded faces in `document.fonts`, and count all of them: two weights across two
+subsets is four files, and a check on weights alone passes with the `latin` pair
+pointed at nothing.
+
+**Inter 600 is here for one thing: the wordmark.** It is `font-display: block`
+rather than `swap`, and that is not a preference — see the next section.
+
+**The licence texts are in `public/`**, not beside the fonts. OFL §2 wants them
+in every copy of the font software, and the copy that reaches anybody is the
+built one; a file that only sits in `src/` is never emitted. Two files, because
+Inter's copyright line is not Lato's.
+
+## The mark is inlined, and it has to be (2026-09-06)
+
+`Logo.tsx` injects `algojudge-text.svg` into the document rather than pointing
+an `<img>` at it. **An SVG referenced from `<img>` renders in a document of its
+own and cannot see this page's `@font-face`** — measured: through an `<img>` the
+wordmark came out in a system fallback, wider than its own viewBox, with the
+last letters clipped.
+
+That is also why `font-display: block`. A swap would show the fallback first,
+and the fallback is the one that overflows, so the mark would flash broken on
+every cold load.
+
+`dangerouslySetInnerHTML` is the cost, and it is safe for the reason the name
+warns about: the markup is a file in this repository, copied byte for byte from
+`AlgoJudge-Assets`. **Do not transcribe it into JSX** — a hand-written copy is a
+divergent variant that stops following its source.
+
+**Known, and not ours to fix here:** `algojudge-text.svg` leaves 201.16 user
+units where Inter 600 needs 215.52, so the wordmark overhangs its own drawing by
+7.1% whatever face arrives. `Logo.module.css` sets `overflow: visible` so
+nothing is clipped; the real fix is `width`/`viewBox` of 270.13 upstream in
+Assets, and that line goes when it lands.
+
+## The introduction on the home page (2026-09-06)
+
+`HomeHero` draws what the *software* is, above what the *installation* is, for a
+visitor who is not signed in. `instance.showHero` governs it and ships on.
+
+- **Every word is this Client's.** The Server holds the switch and no content,
+  so a wording change is a release of one component. Do not add a field for the
+  text.
+- **It sits outside `HomePage`'s `Container size={900}`**, because it is two
+  columns and the operator's document is a column of prose.
+- **Nothing in it is a fixed colour.** It asks for the primary colour and
+  Mantine's dimmed text, exactly as every other screen does, so an installation
+  with its own palette does not get one panel in the product's blue.
+- **The page's own `Sign in` button is hidden while it is drawn.** Two identical
+  buttons to one screen is a question about which is the real one; both carry
+  `data-testid="sign-in"` and the check counts them.
+
+## A way in may be a provider (2026-09-06)
+
+`src/api/registration.ts` is the one definition: **local sign-ups or a register
+redirect**. Used by the public bar, the sign-in screen and the introduction.
+
+An installation whose accounts come from a directory has
+`localRegistrationEnabled` off — correctly, the Server refuses a local sign-up —
+and may still have a redirect set. Reading the flag alone hides the only door.
+
+**`RegisterPage`'s refusal panel still asks the local flag, and must.** Reaching
+it means `?admin=true` suppressed the redirect, and the form there would be a
+form the Server refuses.

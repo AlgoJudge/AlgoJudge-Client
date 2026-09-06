@@ -2,7 +2,7 @@ import { Burger, Center, Container, Group, Menu, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconChevronDown } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { displayName } from '../../api/displayName';
 import { useAuth } from '../../provider/authContext';
 import { useApiEffect } from '../../provider/apiContext';
@@ -10,6 +10,7 @@ import Logo from '../logo/Logo';
 import classes from './Header.module.css';
 import { notifications } from '@mantine/notifications';
 import { useInstance } from '../../provider/instanceContext';
+import { registrationOffered } from '../../api/registration';
 
 function Header() {
     const [opened, { toggle }] = useDisclosure(false);
@@ -42,11 +43,13 @@ function Header() {
         }
     ] : [
         { link: '/', label: t('Home') },
-        // Offered only where it leads anywhere. An installation that takes no
-        // sign-ups shows no entry, and one that does must show it here: the
-        // sign-in screen carried the only link to it, so anybody landing on the
-        // front page had no way to an account at all.
-        ...(instance.localRegistrationEnabled ? [{ link: '/register', label: t('Register') }] : []),
+        // Offered only where it leads anywhere — and a provider counts, which
+        // is why this asks `registrationOffered` rather than the local flag on
+        // its own. An installation that takes no sign-ups shows no entry, and
+        // one that does must show it here: the sign-in screen carried the only
+        // link to it, so anybody landing on the front page had no way to an
+        // account at all.
+        ...(registrationOffered(instance) ? [{ link: '/register', label: t('Register') }] : []),
         { link: '/login', label: t('Login') },
     ];
 
@@ -75,10 +78,18 @@ function Header() {
             );
         }
 
+        // `NavLink` rather than `Link`, for the class React Router puts on
+        // whichever entry matches the address. The application shell has had
+        // this since it was written; the public bar is the half that did not.
+        //
+        // `end` is intent rather than necessity: this router already requires a
+        // segment boundary, so `to="/"` does not prefix-match `/login`, and
+        // removing `end` changes nothing here — measured, not assumed. It stays
+        // because the day an entry gains a child route is the day it matters.
         return (
-            <Link key={link.link} to={link.link} className={classes.link}>
+            <NavLink key={link.link} to={link.link} className={classes.link} end>
                 {link.label}
-            </Link>
+            </NavLink>
         );
     });
 
@@ -87,7 +98,7 @@ function Header() {
             <Container size="md">
                 <div className={classes.inner}>
                     <Group gap="sm" wrap="nowrap">
-                        <Link to="/"><Logo /></Link>
+                        <Link to="/"><Logo h="1.2em" /></Link>
                         {/* A visitor should be able to tell whose installation
                             they have landed on, not only whose software. */}
                         {instance.name && (

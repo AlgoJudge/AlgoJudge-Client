@@ -3,15 +3,16 @@ import {
     PasswordInput, Stack, Text, TextInput, Title,
 } from '@mantine/core';
 import { IconInfoCircle } from '@tabler/icons-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from "react-i18next";
 import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom';
-import { resolvedApiBase } from '../../api/http/apiBase';
+import { providerChallengeUrl } from '../../api/providerChallenge';
 import { UnauthorizedError } from '../../api/ApiError';
 import { useAuth } from '../../provider/authContext';
 import { useInstance } from '../../provider/instanceContext';
 import { stashJoinPassword } from '../../utils/joinPassword';
 import classes from './LoginPage.module.css';
+import { registrationOffered } from "../../api/registration";
 
 /**
  * Signing in.
@@ -20,6 +21,12 @@ import classes from './LoginPage.module.css';
  * no email, so the link would lead to an administrator's inbox by a longer road.
  * The screen says so instead of implying a self-service reset that does not
  * exist.
+ *
+ * **That is about a local account, and only a local account.** Somebody who
+ * signs in through a provider recovers their password there — the AlgoJudge
+ * Account's own screen has offered exactly that since 2026-09-06 — and this
+ * screen never sees it happen. Two surfaces, two answers, and the difference is
+ * which account the password belongs to.
  */
 export default function LoginPage() {
     const { t } = useTranslation();
@@ -31,7 +38,7 @@ export default function LoginPage() {
     const [error, setError] = useState<string | undefined>(undefined);
     const [busy, setBusy] = useState(false);
     // Read from the shared answer rather than fetched again here.
-    const { instance } = useInstance();
+    const { instance, answered } = useInstance();
     const [query] = useSearchParams();
 
     // A federated sign-in that was refused comes back here as a redirect, not as
@@ -79,6 +86,45 @@ export default function LoginPage() {
     const search = returnUrl.indexOf('?');
     const returnUrlPath = search === -1 ? returnUrl : returnUrl.slice(0, search);
 
+    /*
+     * Where this screen sends somebody who never gets to see it.
+     *
+     * **Four things suppress it, and each is a way somebody would otherwise be
+     * stuck.**
+     *
+     * `?admin=true` is the deliberate way back to the form, and it has to work
+     * here for the same reason it works above: an installation that redirects
+     * still has administrators.
+     *
+     * `?error=` is a *refused* federated sign-in landing here to be explained.
+     * Redirecting that back to the provider — which still holds a session and
+     * will hand out the same refused ticket — is an infinite loop through
+     * somebody else's servers with nothing on the screen, and it happens on an
+     * ordinary path on a correctly configured installation.
+     *
+     * An unanswered instance would fire on the defaults, and somebody already
+     * signed in has no business being sent to a provider at all.
+     */
+    const suppressed = query.get('admin') === 'true' || refusal !== null;
+    const redirectTo = answered && !suppressed && status === 'anonymous'
+        && instance.signInRedirectProvider
+        ? providerChallengeUrl(instance.signInRedirectProvider, returnUrl)
+        : undefined;
+
+    useEffect(() => {
+        if (!redirectTo) return;
+        // The activity password stays in the tab, exactly as the buttons below
+        // keep it. Without this, a self-enrolment link loses its password on
+        // precisely the installations that set a redirect.
+        if (joinPassword) stashJoinPassword(returnUrlPath, joinPassword);
+        // **`replace`, not `assign` and not a router navigation.** A router
+        // navigation would match this against the route table and never make a
+        // request — the journey leaves this application. `assign` would leave
+        // this screen in the history, so Back from the provider returns here and
+        // redirects again: a trap with no way out.
+        window.location.replace(redirectTo);
+    }, [redirectTo, joinPassword, returnUrlPath]);
+
     const submit = async () => {
         if (login.trim().length === 0 || password.length === 0) {
             setError(t('Give a login and a password'));
@@ -102,15 +148,30 @@ export default function LoginPage() {
     // and `SessionShell` read. Rendering the form while the session is still
     // being asked for shows a sign-in screen to somebody who is already signed
     // in, for as long as the answer takes, and then replaces it with a redirect.
-    if (status === 'loading') return <Center my="xl"><Loader size="xl" /></Center>;
+    if (status === 'loading' || !answered) return <Center my="xl"><Loader size="xl" /></Center>;
 
     if (status === 'authenticated') return <Navigate to={destination} replace />;
+
+    // The browser is leaving. Without this the form paints for one frame between
+    // the effect being scheduled and the navigation committing.
+    if (redirectTo) {
+        const going = instance.providers
+            .find(p => p.slug === instance.signInRedirectProvider)?.displayName ?? '';
+        return (
+            <Center my="xl">
+                <Stack align="center" gap="sm">
+                    <Loader size="xl" />
+                    <Text c="dimmed">{t('Taking you to {{provider}}…', { provider: going })}</Text>
+                </Stack>
+            </Center>
+        );
+    }
 
     return (
         <Container size={420} my={40}>
             <Title ta="center" className={classes.title}>{t('Login')}</Title>
 
-            {instance.localRegistrationEnabled && (
+            {registrationOffered(instance) && (
                 <Text c="dimmed" size="sm" ta="center" mt={5}>
                     {t('Do not have an account yet?')}{' '}
                     <Anchor component={Link} to="/register" size="sm">{t('Create account')}</Anchor>
@@ -193,8 +254,7 @@ export default function LoginPage() {
                                         onClick={() => {
                                             if (joinPassword) stashJoinPassword(returnUrlPath, joinPassword);
                                         }}
-                                        href={`${resolvedApiBase()}/identity/providers/${encodeURIComponent(provider.slug)}`
-                                            + `/challenge?returnUrl=${encodeURIComponent(returnUrl)}`}
+                                        href={providerChallengeUrl(provider.slug, returnUrl)}
                                     >
                                         {t('Continue with {{provider}}', { provider: provider.displayName })}
                                     </Button>

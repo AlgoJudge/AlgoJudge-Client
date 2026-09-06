@@ -80,8 +80,8 @@ await visit("/manager/problems/prob-uva-100?fakeUser=amy",
     `document.body.innerText.includes("3n + 1")`);
 await wait(1800);
 
-check(/dokumentem, a nie tekstem|document rather than text/i.test(await evaluate(
-    `return document.body.innerText;`)),
+check(/dokumentem, a nie tekstem|document rather than text/i.test(
+    (await evaluate(`return document.body.innerText;`)).replaceAll(String.fromCharCode(160), " ")),
     "the statement tab says the statement is a document rather than showing an empty editor");
 check((await evaluate(`return document.body.innerText;`)).includes("content.pdf"),
     "and names it");

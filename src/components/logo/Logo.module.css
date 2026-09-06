@@ -1,0 +1,36 @@
+/* The mark, inlined rather than referenced.
+
+   The file sets its own `width` and `height` in user units; those become the
+   intrinsic size of an inlined `<svg>`, so they are overridden here and the
+   drawing is sized by its box the way the `<Image>` before it was. `block`
+   because an inline element would sit on a text baseline and put a few pixels
+   of descender space under every bar it appears in. */
+.mark > svg {
+    display: block;
+    height: 100%;
+    width: auto;
+
+    /* **Not clipped, because the drawing is too narrow for its own text.**
+       Measured at font-size 41: "AlgoJudge" in Inter 600 is 215.52 user units
+       and the drawing leaves 201.16 from the text's origin to the right edge —
+       short by 14.36, or 7.1%. Google's subset, the Inter installed on this
+       machine and the named optical variant all render the identical width, so
+       it is the canvas rather than the face: `algojudge-text.svg` kept the
+       width of the outlined version, whose ink stops earlier.
+
+       An outermost `<svg>` clips by default, so without this the final "e" is
+       cut off. The real fix is upstream — `width` and `viewBox` of 270.13
+       rather than 255.77124 — and this line can go when it lands. Until then
+       nothing is hidden: the mark overhangs its box by six pixels at the size
+       the bar draws it, and the nearest thing to its right clears it by six. */
+    overflow: visible;
+
+    /* **Optically centred against the text beside it, not box-centred.** The
+       boxes already line up to a hundredth of a pixel — the drawing inside does
+       not: the gavel reaches higher above the letters than the descenders reach
+       below them, so the ink sits high in its own viewBox. Measured in the bar
+       at 1.2em: the mark's ink centre was 1.25px above the instance name's,
+       which is 6.5% of the drawing's height. A percentage rather than pixels,
+       so it holds wherever the mark is drawn larger or smaller. */
+    transform: translateY(6.5%);
+}

@@ -1,7 +1,10 @@
-import { Container, Group, Loader, Paper, Stack, Text, Title } from "@mantine/core";
+import {
+    Container, Group, Image, Loader, Paper, SimpleGrid, Stack, Text, Title,
+} from "@mantine/core";
 import { IconTool } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { ServerAway } from "../../provider/maintenanceContext";
+import illustration from "../../assets/hero.png";
 
 /**
  * What the whole interface becomes while the Server is away.
@@ -15,14 +18,22 @@ import { ServerAway } from "../../provider/maintenanceContext";
  * different facts and want different things done about them: one is waited out,
  * the other is somebody's to fix. The Client can tell them apart only by whether
  * anything answered at all, so that is what decides which is shown.
+ *
+ * The drawing beside them is the product's own, `alt=""` because it says
+ * nothing the sentences do not. **It is not a control**, and this page still
+ * has none: a picture cannot be pressed, and the check counts every `button`
+ * and every `a` inside the panel.
  */
 export default function MaintenancePage({ away }: { away: ServerAway }) {
     const { t } = useTranslation();
     const planned = away.level !== undefined;
 
     return (
-        <Container size={560} my={80}>
+        <Container size={940} my={80}>
             <Paper withBorder p="xl" radius="md" data-testid="maintenance">
+                {/* The words first, so a reader on a telephone is told what is
+                    happening before they are shown a robot. */}
+                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xl" style={{ alignItems: "center" }}>
                 <Stack gap="sm">
                     <Group gap="xs">
                         <IconTool size={22} />
@@ -51,6 +62,9 @@ export default function MaintenancePage({ away }: { away: ServerAway }) {
                         <Text size="xs" c="dimmed">{t("Waiting for the Server")}</Text>
                     </Group>
                 </Stack>
+
+                <Image src={illustration} alt="" />
+                </SimpleGrid>
             </Paper>
         </Container>
     );

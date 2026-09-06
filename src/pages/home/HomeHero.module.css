@@ -1,0 +1,82 @@
+/* The introduction above an installation's own front page. */
+
+/* **At least the window.** A strip above a document reads as a banner to scroll
+   past; a screen's worth reads as the page. The subtraction is the public
+   shell's own chrome — a 56px bar and the container's 40px above and below —
+   so the introduction ends where the fold is rather than a little past it.
+
+   `svh` and not `vh`: on a telephone `vh` is the height with the browser's own
+   bars *hidden*, so the first paint is taller than the window and the features
+   row starts below the fold. The `vh` line before it is the fallback, and a
+   browser that understands both takes the second. */
+.section {
+    display: flex;
+    flex-direction: column;
+    /* **Spread, not centred.** Centring a block shorter than the window leaves
+       the same dead band above the badge as below the tiles, and the one under
+       the bar is the one a reader notices. This starts where the page starts
+       and lets the space fall between the two halves, which is the proportion
+       the visual was drawn at. `gap` is the floor, so a window too short for
+       the block still keeps them apart. */
+    justify-content: space-between;
+    gap: rem(48px);
+    margin-bottom: var(--mantine-spacing-xl);
+    min-height: calc(100vh - rem(136px));
+    min-height: calc(100svh - rem(136px));
+}
+
+/* One column until there is room for two, and then **the drawing takes most of
+   it** — 2 : 5. The sentence is short enough to carry a narrow measure and the
+   picture is what the page is seen by before it is read. */
+.hero {
+    /* Takes whatever the window leaves over, so the slack lands *around* the
+       sentence and the drawing rather than as one band between them and the
+       tiles. `align-items: center` is what then spends it. */
+    flex: 1;
+    align-items: center;
+    display: grid;
+    gap: var(--mantine-spacing-xl);
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: $mantine-breakpoint-md) {
+    .hero {
+        grid-template-columns: minmax(0, 2fr) minmax(0, 5fr);
+    }
+}
+
+.title {
+    font-size: rem(34px);
+    font-weight: 800;
+    letter-spacing: rem(-1px);
+    line-height: 1.1;
+
+    /* Two lines rather than one long one, decided by the browser. A hard break
+       would need the sentence split across two translation keys, and it would
+       still land in the wrong place in whichever language was not measured. */
+    text-wrap: balance;
+}
+
+@media (min-width: $mantine-breakpoint-sm) {
+    .title {
+        font-size: rem(46px);
+    }
+}
+
+/* The picture is decoration and goes last when the columns stack, so a reader
+   on a telephone gets the sentence and the buttons before it. */
+.picture {
+    order: 2;
+}
+
+/* The whole of its column, which the column ratio above is what makes large.
+   No bleed past the edge: the width the grid gives it is the width it takes. */
+.picture {
+    width: 100%;
+}
+
+@media (min-width: $mantine-breakpoint-md) {
+    .picture {
+        order: 0;
+    }
+}

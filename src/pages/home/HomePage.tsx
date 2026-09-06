@@ -14,6 +14,7 @@ import { useInstance } from "../../provider/instanceContext";
 import { usePermissions } from "../../provider/permissionsContext";
 
 const ContentView = lazy(() => import("../../content/ContentView"));
+const HomeHero = lazy(() => import("./HomeHero"));
 
 /**
  * The front page, in its two forms.
@@ -28,6 +29,11 @@ const ContentView = lazy(() => import("../../content/ContentView"));
  * or the placeholder that ships with the software. It is supplied as an
  * attachment, so an operator writes the same syntax a problem statement uses and
  * the page cannot reach outside the instance.
+ *
+ * **Above the document, for a visitor who is not signed in, the product says
+ * what it is.** `showHero` governs it, and an installation whose own page says
+ * everything it wants said turns it off. It sits outside the container below
+ * because it is two columns wide and the document is a column of prose.
  */
 
 
@@ -69,7 +75,15 @@ export default function HomePage() {
         ? [{ name: LOGO_ATTACHMENT, mimeType: "image/svg+xml", sizeBytes: 0, url: logoUrl, sha256: "" }]
         : [];
 
+    const heroShown = !signedIn && status !== "loading" && instance.showHero;
+
     return (
+        <>
+        {heroShown && (
+            <Suspense fallback={null}>
+                <HomeHero />
+            </Suspense>
+        )}
         <Container size={900}>
             <Stack gap="lg">
                 {/* An instance that has written no front page shows none. Not a
@@ -98,9 +112,12 @@ export default function HomePage() {
                     </>
                 ) : null}
 
-                {!signedIn && status !== "loading" && (
+                {/* Not beside the hero's own, which says the same word and
+                    goes to the same screen. Two identical buttons on one page
+                    is a question about which one is the real one. */}
+                {!signedIn && status !== "loading" && !heroShown && (
                     <Group>
-                        <Button component={Link} to="/login" leftSection={<IconLogin size={16} />} size="md">
+                        <Button component={Link} to="/login" data-testid="sign-in" leftSection={<IconLogin size={16} />} size="md">
                             {t("Sign in")}
                         </Button>
                     </Group>
@@ -180,5 +197,6 @@ export default function HomePage() {
                 )}
             </Stack>
         </Container>
+        </>
     );
 }
