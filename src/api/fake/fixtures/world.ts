@@ -512,11 +512,22 @@ const ROUND_1: SeedSeries = {
     attempts: [
         // The reader's own, which is also the submissions list and the panel.
         { contestant: "team-7", problem: "C", at: 43, language: "java", state: "completed", verdict: "Runtime error", score: 0 },
-        { contestant: "team-7", problem: "A", at: 57, language: "cpp", state: "failed", verdict: "Compilation error", log: "main.cpp:7:5: error: 'cout' was not declared in this scope" },
+        // A compilation error is a **judged** verdict worth nothing, not a
+        // failure to judge: the Runner scores it and the board charges it its
+        // twenty minutes. `failed` is reserved for the case below, where
+        // nothing came back at all.
+        { contestant: "team-7", problem: "A", at: 57, language: "cpp", state: "completed", verdict: "Compilation error", score: 0, log: "main.cpp:7:5: error: 'cout' was not declared in this scope" },
         { contestant: "team-7", problem: "C", at: 72, language: "python", state: "completed", verdict: "Time limit exceeded", score: 0 },
         { contestant: "team-7", problem: "B", at: 85, language: "cpp", state: "completed", verdict: "Wrong answer", score: 40 },
         { contestant: "team-7", problem: "A", at: 98, language: "cpp", state: "completed", verdict: "Accepted", score: 100, extra: { cyclesUsed: 4_120_000, peakMemoryMb: 38 } },
         { contestant: "team-7", problem: "B", at: 111, language: "cpp", state: "running" },
+        // Nobody ever got a verdict for this one. It draws a `?` like a queued
+        // submission and costs nothing, which is the whole of what a board may
+        // say about a failure of its own. **Before the freeze**, deliberately:
+        // team 2's below is after it and reads as withheld to everybody without
+        // `ranking:read:unfrozen`, which left this state unreachable on the ICPC
+        // board for the reader it is drawn for.
+        { contestant: "team-7", problem: "D", at: 65, language: "cpp", state: "failed", log: "the Runner stopped before it reported" },
         { contestant: "team-7", problem: "A", at: 116, language: "cpp", state: "queued" },
 
         { contestant: "team-1", problem: "A", at: 12, language: "cpp", state: "completed", verdict: "Accepted", score: 100, extra: { cyclesUsed: 2_980_000, peakMemoryMb: 24 } },

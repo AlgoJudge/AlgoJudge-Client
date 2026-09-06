@@ -32,6 +32,8 @@ dist-ssr
 .content-check/
 # Output of `npm run check:events`.
 .events-check/
+# Output of `npm run check:ranking`.
+.ranking-check/
 # Output of `npm run check:languages`. It was the one check whose scratch
 # directory was not listed here, so running it left something `git add -A`
 # would have committed.

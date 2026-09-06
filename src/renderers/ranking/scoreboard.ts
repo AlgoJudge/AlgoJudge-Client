@@ -61,39 +61,108 @@ export const narrow = (results: ActivityResults, seriesId: string | undefined): 
     };
 };
 
-/** Minutes from the round's start, which is what a penalty counts in. */
+/**
+ * Minutes from the round's start, which is what a penalty counts in.
+ *
+ * **Floored, not rounded.** A submission at twenty minutes and thirty seconds is
+ * in the twentieth minute, and that is what every board this one gets compared
+ * against says. Rounding said twenty-one — half a minute nobody spent, on every
+ * solved problem, and enough to swap two teams that were level.
+ */
 const minuteOf = (result: ContestantResult, startDate: string | undefined): number => {
     if (startDate === undefined) return 0;
-    return Math.max(0, Math.round((Date.parse(result.submittedAt) - Date.parse(startDate)) / 60000));
+    return Math.max(0, Math.floor((Date.parse(result.submittedAt) - Date.parse(startDate)) / 60000));
 };
 
-/** A judged result worth full marks. Anything else is a rejection. */
+/** A judged result worth full marks. */
 const accepted = (result: ContestantResult, maxPoints: number): boolean =>
     result.frozen !== true && result.state === "completed" && (result.points ?? 0) >= maxPoints;
 
-/** Nothing has come back for it yet — being judged, or withheld by a freeze. */
-const unresolved = (result: ContestantResult): boolean =>
-    result.frozen === true || result.state === "queued" || result.state === "running";
+/**
+ * Judged, and not worth full marks — the only thing ICPC charges for.
+ *
+ * Written as the mirror of `accepted` on purpose: between them they cover every
+ * result somebody actually got an answer to, and what neither matches is a
+ * submission nobody has an answer for. That one is charged nothing.
+ */
+const rejected = (result: ContestantResult, maxPoints: number): boolean =>
+    result.frozen !== true && result.state === "completed" && (result.points ?? 0) < maxPoints;
 
 /**
- * Places the rows.
+ * Why a cell has no outcome to show: withheld, still being judged, or never
+ * judged at all. Both boards render it, so both say the same thing about it.
+ */
+export type Pending = "frozen" | "judging" | "unjudged";
+
+/**
+ * Which of those a cell's submissions amount to, or `undefined` where it has an
+ * outcome.
+ *
+ * A freeze is a decision to withhold; judging is a wait; an evaluation that
+ * **failed or was cancelled** is neither — nothing further is coming for it
+ * unless a manager rejudges it or rules it out. Three different things to be
+ * told, and one label over all of them said *submitted during the freeze* above
+ * cells no freeze had touched.
+ *
+ * The last two sit here rather than among the rejections because neither is a
+ * wrong answer. The Runner sends **no score at all** for a failure, so that a
+ * zero cannot read as one on a board; charging twenty minutes for it does that
+ * anyway. So the board treats a submission nobody judged the way it treats one
+ * nobody has judged **yet**.
+ */
+const pendingOf = (results: ContestantResult[]): Pending | undefined => {
+    if (results.some(result => result.frozen === true)) return "frozen";
+    if (results.some(result => result.state === "queued" || result.state === "running")) return "judging";
+    if (results.some(result => result.state === "failed" || result.state === "cancelled")) return "unjudged";
+    return undefined;
+};
+
+/**
+ * Places the rows, and **gives rows that tie the same place**.
+ *
+ * Two contestants level on everything the board sorts by are equal, not first
+ * and second. Numbering by position invented an order the arithmetic does not
+ * have — and the order it invented was whatever sequence the Server happened to
+ * send the contestants in, which is stable, arbitrary, and reads as a ruling.
+ * The place after a shared one is the position, so two firsts are followed by a
+ * third.
  *
  * Left unplaced under `participantOnly`, where the Server sends the reader's own
  * results and nobody else's: a standing among people whose scores you may not
  * see is not a standing, and a "1" against a table of one is a claim the data
  * does not support.
  */
-const place = <T extends { rank?: number }>(rows: T[], ranked: boolean): T[] =>
-    rows.map((row, index) => ranked ? { ...row, rank: index + 1 } : row);
+const place = <T extends { rank?: number }>(
+    rows: T[],
+    ranked: boolean,
+    level: (above: T, row: T) => boolean,
+): T[] => {
+    if (!ranked) return rows;
+    let rank = 0;
+    return rows.map((row, index) => {
+        if (index === 0 || !level(rows[index - 1], row)) rank = index + 1;
+        return { ...row, rank };
+    });
+};
 
 // ────────────────────────────────────────────────────────────────────── ICPC
 
 export interface IcpcCell {
+    /** How many times they submitted. All of them, judged or not. */
     attempts: number;
+    /**
+     * Judged rejections before the accepted submission — what the twenty minutes
+     * are charged for, and the `+2` a solved cell prints.
+     *
+     * **Not `attempts - 1`.** That counted everything standing in front of the
+     * accepted run, a submission the judge never returned a verdict for
+     * included.
+     */
+    rejected: number;
     /** Minutes from the round's start, at the first accepted submission. */
     acceptedAt?: number;
-    /** Something is still out: being judged, or withheld by the freeze. */
-    pending?: boolean;
+    /** Why there is nothing to show — see {@link Pending}. */
+    pending?: Pending;
 }
 
 export interface IcpcRow {
@@ -116,9 +185,14 @@ export interface IcpcRow {
 /**
  * One contestant's cell for one problem.
  *
- * Attempts after the accepted one are not counted: ICPC stops charging once a
- * problem is solved, and somebody who submits again out of habit is not
- * penalised for it.
+ * Two counts, and they are deliberately not the same number: what was sent, and
+ * what it cost. **Nothing after the accepted submission is either** — ICPC stops
+ * charging once a problem is solved, and somebody who submits again out of habit
+ * is not penalised for it.
+ *
+ * Before it, only the **judged rejections** are charged. Counting positions
+ * instead was the same arithmetic for as long as every submission came back with
+ * a verdict, and wrong the moment one did not.
  */
 const icpcCell = (
     mine: ContestantResult[],
@@ -127,13 +201,18 @@ const icpcCell = (
 ): IcpcCell => {
     const ordered = [...mine].sort((a, b) => Date.parse(a.submittedAt) - Date.parse(b.submittedAt));
     const winner = ordered.findIndex(result => accepted(result, maxPoints));
+    const before = winner >= 0 ? ordered.slice(0, winner) : ordered;
+    const charged = before.filter(result => rejected(result, maxPoints)).length;
+
     if (winner >= 0) {
-        return { attempts: winner + 1, acceptedAt: minuteOf(ordered[winner], startDate) };
+        return {
+            attempts: ordered.length,
+            rejected: charged,
+            acceptedAt: minuteOf(ordered[winner], startDate),
+        };
     }
-    return {
-        attempts: ordered.length,
-        ...(ordered.some(unresolved) ? { pending: true } : {}),
-    };
+    const pending = pendingOf(ordered);
+    return { attempts: ordered.length, rejected: charged, ...(pending ? { pending } : {}) };
 };
 
 export const icpcBoard = (results: ActivityResults, ranked: boolean): IcpcRow[] => {
@@ -151,7 +230,7 @@ export const icpcBoard = (results: ActivityResults, ranked: boolean): IcpcRow[] 
             const cell = icpcCell(mine, column.maxPoints, startOf.get(column.seriesId));
             if (cell.acceptedAt !== undefined) {
                 solved += 1;
-                penalty += cell.acceptedAt + (cell.attempts - 1) * PENALTY_PER_REJECTION;
+                penalty += cell.acceptedAt + cell.rejected * PENALTY_PER_REJECTION;
             }
             cells[column.slug] = cell;
         }
@@ -166,17 +245,19 @@ export const icpcBoard = (results: ActivityResults, ranked: boolean): IcpcRow[] 
         };
     });
 
-    // Most solved first, then least time.
+    // Most solved first, then least time. Level on both is level: there is no
+    // further tiebreak here, so the board says so rather than picking one.
     rows.sort((a, b) => b.solved - a.solved || a.penalty - b.penalty);
-    return place(rows, ranked);
+    return place(rows, ranked,
+        (above, row) => above.solved === row.solved && above.penalty === row.penalty);
 };
 
 // ──────────────────────────────────────────────────────────────────── points
 
 export interface PointsCell {
     points?: number;
-    /** Withheld by a freeze, or still being judged. */
-    pending?: boolean;
+    /** Why there is nothing to show — see {@link Pending}. */
+    pending?: Pending;
 }
 
 export interface PointsRow {
@@ -215,9 +296,10 @@ export const pointsBoard = (results: ActivityResults, ranked: boolean): PointsRo
                 const best = scored.length > 0
                     ? Math.max(...scored.map(result => result.points ?? 0))
                     : undefined;
+                const pending = pendingOf(mine);
                 byProblem[problem.slug] = {
                     points: best,
-                    ...(mine.some(unresolved) ? { pending: true } : {}),
+                    ...(pending ? { pending } : {}),
                 };
                 roundTotal += best ?? 0;
                 if ((best ?? 0) >= problem.maxPoints) solved += 1;
@@ -236,6 +318,8 @@ export const pointsBoard = (results: ActivityResults, ranked: boolean): PointsRo
         };
     });
 
+    // Same total, same place — the board sorts by one number and has no second
+    // one to separate two people who tie on it.
     rows.sort((a, b) => b.total - a.total);
-    return place(rows, ranked);
+    return place(rows, ranked, (above, row) => above.total === row.total);
 };
