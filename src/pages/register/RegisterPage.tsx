@@ -3,10 +3,11 @@ import {
     PasswordInput, Stack, Text, TextInput, Title,
 } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { LegalDocumentKind } from "../../api/CoreApi";
+import { providerChallengeUrl } from "../../api/providerChallenge";
 import { pickDocumentRef, publishedLegalKinds } from "../../api/instanceDocuments";
 import DocumentModal from "../../components/content/DocumentModal";
 import RequiredAsterisk from "../../components/RequiredAsterisk";
@@ -32,7 +33,8 @@ export default function RegisterPage() {
 
     // Read from the shared answer: the shell and the front page need it too, and
     // whether this instance takes sign-ups is one fact, not one per screen.
-    const { instance } = useInstance();
+    const { instance, answered } = useInstance();
+    const [query] = useSearchParams();
     const [form, setForm] = useState({
         username: "", firstName: "", lastName: "", email: "", password: "", repeat: "",
     });
@@ -92,12 +94,39 @@ export default function RegisterPage() {
         }
     };
 
+    /*
+     * Where this screen sends somebody who never gets to see it.
+     *
+     * The sign-in screen carries the reasoning; the suppressions are the same
+     * two, and sharing one rule is cheaper than two that drift. **`?admin=true`
+     * here does not open registration** — `localRegistrationEnabled` still
+     * governs, and what it reveals is the honest refusal below.
+     *
+     * `returnUrl` is where this screen's own `<Navigate>` goes, because there is
+     * no guard that sent anybody here with somewhere in mind.
+     */
+    const suppressed = query.get('admin') === 'true' || query.get('error') !== null;
+    const redirectTo = answered && !suppressed && status === 'anonymous'
+        && instance.registerRedirectProvider
+        ? providerChallengeUrl(instance.registerRedirectProvider, '/activities')
+        : undefined;
+
+    useEffect(() => {
+        if (redirectTo) window.location.replace(redirectTo);
+    }, [redirectTo]);
+
     // The same three states the sign-in screen reads, and for the same reason:
     // a registration form shown to somebody already signed in, then replaced by
     // a redirect, is a flash of the wrong screen on every load.
-    if (status === "loading") return <Center my="xl"><Loader size="xl" /></Center>;
+    if (status === "loading" || !answered) return <Center my="xl"><Loader size="xl" /></Center>;
 
     if (status === "authenticated") return <Navigate to="/activities" replace />;
+
+    // **Before the panel below, and that is the whole point of the setting.** An
+    // installation whose accounts come from a directory should send somebody
+    // there rather than tell them there are no sign-ups.
+    if (redirectTo) return <Center my="xl"><Loader size="xl" /></Center>;
+
     if (!instance.localRegistrationEnabled) {
         return (
             <Container size={520} my={40}>

@@ -662,3 +662,30 @@ Three pieces that are easy to reach for the wrong one:
 When this repository is checked out inside the AlgoJudge workspace,
 `../PROJECT_CONTEXT.md` is the primary architecture context and takes precedence
 over this file.
+
+## Sending somebody to a provider instead of drawing the screen
+
+Two instance settings hold a provider's **slug** — `signInRedirectProvider` and
+`registerRedirectProvider` — and when one is set the screen leaves for that
+provider rather than drawing itself. Four things about it are easy to get wrong:
+
+- **It is a full page load, `window.location.replace`.** A router navigation
+  would match the address against the route table and never make a request; the
+  journey leaves this application. `assign` would leave the screen in the
+  history, so Back from the provider returns to it and redirects again.
+- **Four things suppress it**, and each is somebody otherwise stuck:
+  `?admin=true`, which already meant *show me the local form*; **`?error=`**, a
+  refused federated sign-in landing here to be explained — redirecting that back
+  to the provider that just refused it is an unbounded loop; an instance that has
+  not answered, which would fire on the defaults; and a session that already
+  exists.
+- **The address is built in one place**, `src/api/providerChallenge.ts`, by the
+  buttons and by the redirect alike — so a check of one is a check of the other.
+- **The stash comes first.** A self-enrolment link carries the activity password
+  in the fragment; the redirect leaves the same way the buttons do and has to
+  keep it, or the password is lost on exactly the installations that redirect.
+
+The Server filters the setting against the providers it offers, so a slug naming
+a disabled one is never advertised — and `src/api/fake/FakeInstance.ts` mirrors
+that filter, because two halves of the fake that disagreed would test the screens
+against a contract the Server does not offer.

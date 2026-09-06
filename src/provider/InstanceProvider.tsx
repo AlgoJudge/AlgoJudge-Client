@@ -108,7 +108,7 @@ export const InstanceProvider: FC<{ children: ReactNode }> = ({ children }) => {
         : undefined;
 
     return (
-        <InstanceContext.Provider value={{ instance, logoUrl }}>
+        <InstanceContext.Provider value={{ instance, logoUrl, answered }}>
             {children}
         </InstanceContext.Provider>
     );

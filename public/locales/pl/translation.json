@@ -1291,5 +1291,12 @@
     "{{count}} account(s) sign in through it": "Loguje się przez niego kont: {{count}}",
     "{{count}} number(s) read": "Odczytane numery: {{count}}",
     "{{create}} to create, {{reuse}} already here, {{beside}} beside what is here.": "{{create}} do utworzenia, {{reuse}} już tutaj jest, {{beside}} obok tego, co już jest.",
-    "{{test}} is not one of the {{count}} tests its group declares": "{{test}} nie jest jednym z {{count}} testów, które deklaruje jego grupa"
+    "{{test}} is not one of the {{count}} tests its group declares": "{{test}} nie jest jednym z {{count}} testów, które deklaruje jego grupa",
+    "Taking you to {{provider}}…": "Przenosimy Cię do {{provider}}…",
+    "Send the sign-in screen straight to a provider": "Przekieruj ekran logowania prosto do dostawcy",
+    "Nobody sees the sign-in screen: the browser goes to the provider and comes back signed in. ?admin=true still reaches the form, and a refused sign-in still lands here with its reason. Leave it at none and the screen draws itself.": "Nikt nie zobaczy ekranu logowania: przeglądarka idzie do dostawcy i wraca zalogowana. ?admin=true nadal prowadzi do formularza, a odmówione logowanie nadal ląduje tutaj z powodem odmowy. Zostaw „brak”, a ekran rysuje się sam.",
+    "Send the registration screen straight to a provider": "Przekieruj ekran rejestracji prosto do dostawcy",
+    "For an installation whose accounts come from a directory. It leads to the provider's own sign-in screen, where whoever offers registration offers it.": "Dla instalacji, w której konta pochodzą z katalogu. Prowadzi na ekran logowania dostawcy — tam, gdzie rejestrację oferuje ten, kto ją oferuje.",
+    "None": "Brak",
+    "Manage your account at {{provider}}": "Zarządzaj kontem w {{provider}}"
 }

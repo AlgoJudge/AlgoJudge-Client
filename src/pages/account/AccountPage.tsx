@@ -147,7 +147,31 @@ export default function AccountPage() {
 
             {!local && (
                 <Alert color="blue" icon={<IconInfoCircle size={18} />}>
-                    {t("This account is managed by the identity provider. Your name, login, address and password are changed there.")}
+                    <Stack gap="sm" align="flex-start">
+                        <Text size="sm">
+                            {t("This account is managed by the identity provider. Your name, login, address and password are changed there.")}
+                        </Text>
+                        {/* **The sentence above says "there"; this is the there.**
+                            The address is an operator's, configured on the
+                            provider registration and never guessed — the same
+                            rule the deletion link below states. Absent means
+                            this installation knows of no such page, and then the
+                            sentence stands on its own. */}
+                        {links.filter(link => link.accountUrl).map(link => (
+                            <Button
+                                key={link.providerSlug}
+                                component="a"
+                                href={link.accountUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                size="xs"
+                                variant="light"
+                                rightSection={<IconExternalLink size={14} />}
+                            >
+                                {t("Manage your account at {{provider}}", { provider: link.displayName })}
+                            </Button>
+                        ))}
+                    </Stack>
                 </Alert>
             )}
 

@@ -1,6 +1,6 @@
 import {
-    Alert, Button, Card, Center, FileButton, Group, Image, PasswordInput, Stack, Switch, Tabs,
-    Text, TextInput, Title, Tooltip,
+    Alert, Button, Card, Center, FileButton, Group, Image, PasswordInput, Select, Stack, Switch,
+    Tabs, Text, TextInput, Title, Tooltip,
 } from "@mantine/core";
 import { IconAlertTriangle, IconTrash, IconUpload } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
@@ -37,6 +37,8 @@ const settingsOf = (instance: {
     showLocalSignIn: boolean;
     accountDeletionEnabled: boolean;
     externalJudgingEnabled: boolean;
+    signInRedirectProvider?: string;
+    registerRedirectProvider?: string;
 }): InstanceSettingsInput => ({
     name: instance.name,
     localRegistrationEnabled: instance.localRegistrationEnabled,
@@ -46,6 +48,12 @@ const settingsOf = (instance: {
     showLocalSignIn: instance.showLocalSignIn,
     accountDeletionEnabled: instance.accountDeletionEnabled,
     externalJudgingEnabled: instance.externalJudgingEnabled,
+    // **Always sent, and blank rather than absent when there is none.** The
+    // Server reads an absent field as "leave it alone"; this form knows the
+    // whole answer, so it says so — otherwise clearing a redirect here would
+    // save nothing and the screen would show a value the Server still holds.
+    signInRedirectProvider: instance.signInRedirectProvider ?? "",
+    registerRedirectProvider: instance.registerRedirectProvider ?? "",
 });
 
 /** The file a language's text is stored under: `privacy.md`, `privacy-en.md`. */
@@ -65,6 +73,15 @@ export default function ManagerInstancePage() {
     // it — this screen included, through the event every write announces. The
     // draft follows it rather than drifting from it.
     useEffect(() => { setSettings(settingsOf(instance)); }, [instance]);
+
+    // **A list rather than a text field, and that is the validation.** The
+    // Server refuses a slug that names no enabled provider, because a redirect
+    // to one would put every visitor on a 404; a picker cannot produce one, so
+    // the refusal guards the API rather than this screen.
+    const redirectChoices = [
+        { value: "", label: t("None") },
+        ...instance.providers.map(p => ({ value: p.slug, label: p.displayName })),
+    ];
 
     const run = async (operation: () => Promise<unknown>) => {
         setError(undefined);
@@ -138,6 +155,22 @@ export default function ManagerInstancePage() {
                                 description={t("Off leaves only the provider buttons. It hides the form and nothing more: the password endpoint stays open, administrators and temporary accounts still need it, and ?admin=true brings the form back for them.")}
                                 checked={settings.showLocalSignIn}
                                 onChange={e => setSettings({ ...settings, showLocalSignIn: e.currentTarget.checked })}
+                            />
+                            <Select
+                                label={t("Send the sign-in screen straight to a provider")}
+                                description={t("Nobody sees the sign-in screen: the browser goes to the provider and comes back signed in. ?admin=true still reaches the form, and a refused sign-in still lands here with its reason. Leave it at none and the screen draws itself.")}
+                                data={redirectChoices}
+                                value={settings.signInRedirectProvider ?? ""}
+                                onChange={value => setSettings({ ...settings, signInRedirectProvider: value ?? "" })}
+                                allowDeselect={false}
+                            />
+                            <Select
+                                label={t("Send the registration screen straight to a provider")}
+                                description={t("For an installation whose accounts come from a directory. It leads to the provider's own sign-in screen, where whoever offers registration offers it.")}
+                                data={redirectChoices}
+                                value={settings.registerRedirectProvider ?? ""}
+                                onChange={value => setSettings({ ...settings, registerRedirectProvider: value ?? "" })}
+                                allowDeselect={false}
                             />
                             <Switch
                                 label={t("Let people remove their own account")}

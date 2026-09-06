@@ -1471,6 +1471,19 @@ export interface InstanceSettingsInput {
      * else. This screen always sends it.
      */
     externalJudgingEnabled: boolean;
+    /**
+     * The slug of the provider the sign-in screen sends people straight to.
+     * Blank clears it.
+     *
+     * **Three states on the wire, and only two of them are reachable from this
+     * screen.** Absent means *leave it alone* — the Server reads it that way so
+     * that a caller predating the field cannot switch the redirect off while
+     * saving something else. This form always sends the field, so from here it
+     * is blank or a slug.
+     */
+    signInRedirectProvider?: string;
+    /** The same, for the registration screen. */
+    registerRedirectProvider?: string;
 }
 
 /**
