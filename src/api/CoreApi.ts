@@ -240,7 +240,8 @@ export interface InstanceFont {
     family: string,
     weight: number,
     style: string,
-    url: string,
+    /** The reference. `fileApi.url(fileId)` is what an `@font-face` is given. */
+    fileId: string,
     sha256: string,
     sizeBytes: number,
 }
@@ -259,7 +260,8 @@ export interface PublicProvider {
  * exception for pictures.
  */
 export interface InstanceLogo {
-    url: string,
+    /** The reference. `fileApi.url(fileId)` is what an `<img>` is given. */
+    fileId: string,
     mimeType: string,
     sizeBytes: number,
     sha256: string,

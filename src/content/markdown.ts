@@ -2,7 +2,7 @@ import MarkdownIt from "markdown-it";
 import anchor from "markdown-it-anchor";
 import footnote from "markdown-it-footnote";
 import katex from "@vscode/markdown-it-katex";
-import { Attachment } from "../api/ParticipantApi";
+import { ReferencedFile } from "./reference";
 
 /**
  * `markdown-it` exports a constructor rather than the instance type, and its
@@ -80,7 +80,7 @@ const fenceLanguage = (token: Token): string => (token.info ?? "").trim().toLowe
  * lifted out instead, because it is drawn as a unit — two panes with a copy
  * button each — and a copy button is a component rather than markup.
  */
-export const toSegments = (md: Markdown, body: string, attachments: Attachment[]): ContentSegment[] => {
+export const toSegments = (md: Markdown, body: string, attachments: ReferencedFile[]): ContentSegment[] => {
     const env = { attachments };
     const tokens = md.parse(body, env);
     const segments: ContentSegment[] = [];

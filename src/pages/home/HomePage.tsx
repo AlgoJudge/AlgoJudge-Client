@@ -5,7 +5,8 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { activityEntryPath } from "../../api/activityDocuments";
 import { LOGO_ATTACHMENT, pickDocumentRef } from "../../api/instanceDocuments";
-import { Activity, Attachment } from "../../api/ParticipantApi";
+import { Activity } from "../../api/ParticipantApi";
+import { ReferencedFile } from "../../content/reference";
 import ActivityTime from "../../components/time/ActivityTime";
 import { MANAGER_PERMISSIONS } from "../manager/managerAreas";
 import { useApiEffect } from "../../provider/apiContext";
@@ -71,8 +72,11 @@ export default function HomePage() {
     // The mark, as the document's only attachment. Absent when the operator
     // turned it off — a reference then reports a missing attachment, which is
     // true, and is theirs to remove from their own text.
-    const attachments: Attachment[] = logoUrl
-        ? [{ name: LOGO_ATTACHMENT, mimeType: "image/svg+xml", sizeBytes: 0, url: logoUrl, sha256: "" }]
+    // **An address, not a reference.** The mark is either a file the operator
+    // stored or the one this application ships with, and only this side knows
+    // which — `logoUrl` has already answered that question.
+    const attachments: ReferencedFile[] = logoUrl
+        ? [{ name: LOGO_ATTACHMENT, mimeType: "image/svg+xml", address: logoUrl }]
         : [];
 
     const heroShown = !signedIn && status !== "loading" && instance.showHero;

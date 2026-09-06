@@ -34,6 +34,22 @@ export class FakeFiles {
         return stored;
     }
 
+    /**
+     * Seeds a fixture whose bytes are not text.
+     *
+     * The figure in a statement is what this exists for. An `<img>` pointed at a
+     * text blob is a broken picture, and the seed used to answer `"#"` for every
+     * attachment — so nothing in the browser suite had ever drawn one, and the
+     * defect that a figure's address was wrong could not be seen here at all.
+     */
+    seedBytes(name: string, mimeType: string, bytes: Uint8Array): UploadedFile {
+        const blob = new Blob([bytes as BlobPart], { type: mimeType });
+        const stored = this.store(
+            `file-${this.next++}`, name, mimeType, blob, fixtureChecksum(`${name}:${bytes.length}`));
+        this.unsettled.add(stored.id);
+        return stored;
+    }
+
     private readonly unsettled = new Set<string>();
     private readonly mirrors: { row: { sha256: string }; id: string }[] = [];
 

@@ -66,12 +66,21 @@ await evaluate(`
 await click(`[...document.querySelectorAll("tbody tr")]
     .find(r => r.innerText.includes("AMMPZ-2019"))
     ?.querySelector("[aria-label='Wyeksportuj do pliku']")`);
-await wait(4000);
 
-const exported = await evaluate(`
-    const blob = window.__exported;
-    return blob ? { size: blob.size, type: blob.type } : null;
-`);
+// **Waited for, not counted out.** This was four seconds, which was a raw
+// `fetch` of every file's address. The export reads them through `fileApi` now,
+// like everything else does — and the fake sleeps two hundred milliseconds on
+// each call by design, so fifteen files is three seconds of deliberate latency
+// and the fixed wait was landing just inside it.
+let exported = null;
+for (let i = 0; i < 40; i++) {
+    exported = await evaluate(`
+        const blob = window.__exported;
+        return blob ? { size: blob.size, type: blob.type } : null;
+    `);
+    if (exported !== null) break;
+    await wait(500);
+}
 check(exported !== null && exported.size > 0,
     `the export produced an archive (${exported ? `${exported.size} bytes` : "nothing"})`);
 await shot("exchange-exported");

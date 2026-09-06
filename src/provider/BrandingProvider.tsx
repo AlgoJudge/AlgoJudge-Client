@@ -1,6 +1,7 @@
 import { MantineProvider } from "@mantine/core";
 import { FC, ReactNode, useMemo } from "react";
 import { brandingVariables, buildTheme, fontFaces } from "../branding";
+import { useApi } from "./apiContext";
 import { useInstance } from "./instanceContext";
 
 /**
@@ -42,7 +43,11 @@ export const BrandingProvider: FC<{ children: ReactNode }> = ({ children }) => {
     // keystroke of every form.
     const theme = useMemo(() => buildTheme(branding), [branding]);
     const cssVariablesResolver = useMemo(() => brandingVariables(branding), [branding]);
-    const faces = useMemo(() => fontFaces(branding), [branding]);
+    // The address of a stored face is the file API's to build, and it is a
+    // context rather than an import — so it is read here and handed down.
+    const { fileApi } = useApi();
+    const faces = useMemo(
+        () => fontFaces(branding, id => fileApi.url(id)), [branding, fileApi]);
 
     return (
         <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver}>

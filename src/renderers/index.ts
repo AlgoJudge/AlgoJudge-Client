@@ -1,5 +1,5 @@
 import { ComponentType, lazy } from "react";
-import { Attachment } from "../api/ParticipantApi";
+import { ReferencedFile } from "../content/reference";
 import UnsupportedContent from "./UnsupportedContent";
 import StandardIoResult from "./results/StandardIoResult";
 import UnsupportedResult from "./results/UnsupportedResult";
@@ -52,7 +52,7 @@ export const activityRenderers = new TypeRegistry<ActivityRenderer>(genericActiv
  * Draws a problem statement, or an activity's rules, from its stored document.
  * A renderer may be lazy, so every call site renders it inside a `Suspense`.
  */
-export type StatementRenderer = ComponentType<{ content: unknown; attachments: Attachment[] }>;
+export type StatementRenderer = ComponentType<{ content: unknown; attachments: ReferencedFile[] }>;
 
 export const statementRenderers = new TypeRegistry<StatementRenderer>(UnsupportedContent)
     .register("standard-io@*", ContentView)

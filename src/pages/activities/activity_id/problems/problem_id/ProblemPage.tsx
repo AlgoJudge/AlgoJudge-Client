@@ -8,6 +8,7 @@ import { Activity, ProblemDetail, Series } from "../../../../../api/ParticipantA
 import { maySubmit, seriesState } from "../../../../../api/seriesState";
 import ProblemStatusBadge from "../../../../../components/problem/ProblemStatusBadge";
 import PdfStatement from "../../../../../content/PdfStatement";
+import { ReferencedFile } from "../../../../../content/reference";
 import { useApi, useApiEffect } from "../../../../../provider/apiContext";
 import LoadState from "../../../../../components/LoadState";
 import { problemShape, statementRenderers } from "../../../../../renderers";
@@ -119,6 +120,14 @@ export default function ProblemPage() {
     const shape = problemShape.resolve(problem.type).value;
     const base = baseLimits(problem.config);
     const downloads = problem.attachments.filter(a => !isStatementFile(a.name));
+    // The renderer is given addresses, not references: it draws a figure and
+    // cannot know whether the bytes behind one are a stored file, so building
+    // the address is this screen's job and not its.
+    const embeddable: ReferencedFile[] = problem.attachments.map(a => ({
+        name: a.name,
+        mimeType: a.mimeType,
+        address: api.fileApi.url(a.fileId),
+    }));
     const chosen = chooseStatement(problem.statements, chosenLanguage, i18n.language);
     const holding = series.find(s => s.id === problem.seriesId);
     const canSubmit = holding === undefined || maySubmit(holding);
@@ -216,7 +225,7 @@ export default function ProblemPage() {
                 <Center my="xl"><Loader /></Center>
             ) : (
                 <Suspense fallback={<Center my="xl"><Loader /></Center>}>
-                    <Statement content={statement} attachments={problem.attachments} />
+                    <Statement content={statement} attachments={embeddable} />
                 </Suspense>
             )}
 
@@ -240,7 +249,7 @@ export default function ProblemPage() {
                         {downloads.map(a => (
                             <Group key={a.name} gap="xs">
                                 <IconDownload size={16} />
-                                <Anchor href={a.url} download>{a.name}</Anchor>
+                                <Anchor href={api.fileApi.url(a.fileId)} download>{a.name}</Anchor>
                                 <Text size="xs" c="dimmed">{Math.ceil(a.sizeBytes / 1024)} kB</Text>
                             </Group>
                         ))}

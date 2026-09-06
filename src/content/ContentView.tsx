@@ -4,11 +4,10 @@ import "katex/dist/katex.min.css";
 import { MouseEvent, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { Attachment } from "../api/ParticipantApi";
 import { CopyButton } from "../components/buttons";
 import classes from "./ContentView.module.css";
 import { createMarkdown, ContentSegment, RenderOptions, Renderer, SampleSegment, toSegments, Token } from "./markdown";
-import { referenceName } from "./reference";
+import { ReferencedFile, referenceName } from "./reference";
 import { ContentError } from "./types";
 import { tryValidateContent } from "./validate";
 
@@ -79,7 +78,7 @@ const Failure = ({ error }: { error: ContentError }) => {
 export interface ContentViewProps {
     /** The raw Markdown, straight from the attachment. Validated here. */
     content: unknown;
-    attachments?: Attachment[];
+    attachments?: ReferencedFile[];
 }
 
 /** A name this document could supply: no path, no scheme. */
@@ -119,9 +118,9 @@ export default function ContentView({ content, attachments = [] }: ContentViewPr
                 return `<span class="${classes.missing}">${label}: ${md.utils.escapeHtml(name)}</span>`;
             }
             if (attachment.mimeType === "application/pdf") {
-                return `<object data="${md.utils.escapeHtml(attachment.url)}" type="application/pdf" width="100%" height="600"></object>`;
+                return `<object data="${md.utils.escapeHtml(attachment.address)}" type="application/pdf" width="100%" height="600"></object>`;
             }
-            return `<img src="${md.utils.escapeHtml(attachment.url)}" alt="${alt}" loading="lazy" />`;
+            return `<img src="${md.utils.escapeHtml(attachment.address)}" alt="${alt}" loading="lazy" />`;
         };
         // Links cannot nest in CommonMark, so one flag per open tag, popped by
         // its close, is enough to keep the two rules in step.
@@ -134,7 +133,7 @@ export default function ContentView({ content, attachments = [] }: ContentViewPr
             if (!permitted) {
                 return `<span class="${classes.censored}" title="${md.utils.escapeHtml(t("An external link was removed"))}">`;
             }
-            if (attachment) tokens[index].attrSet("href", attachment.url);
+            if (attachment) tokens[index].attrSet("href", attachment.address);
             tokens[index].attrSet("rel", "noopener");
             return self.renderToken(tokens, index, options);
         };

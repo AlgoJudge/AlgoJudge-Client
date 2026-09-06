@@ -4,6 +4,7 @@ import { ACTIVITY_DOCUMENT_KINDS } from "../api/activityDocuments";
 import { BundleContents } from "./bundle";
 import { Bundle, BUNDLE_TYPE, BundledDocument, BundledProblem } from "./types";
 import { projectActivity, projectProblem, projectSeries } from "./project";
+import { sha256 } from "../utils/sha256";
 
 /**
  * Reading an activity, a round or a problem out of this installation.
@@ -18,25 +19,31 @@ export interface Progress {
 }
 
 /**
- * The bytes behind a version file's address.
+ * The bytes behind a version file, and a check that they are its bytes.
  *
- * **A version's file list publishes an address and no id** — `ProblemFileDto`
- * has `Url` and nothing else to reach the bytes with — so this is the one read
- * in the export that cannot go through `fileApi`. It fetches the address the
- * API handed it, which is what an `<img src>` does with the same value.
+ * **This used to fetch an address the DTO published**, because a version's file
+ * list carried one and no id. That was a bare `fetch` outside the API client,
+ * and where the application was served from a different origin than the API it
+ * reached the application: the single-page shell came back as `200 text/html`,
+ * `response.ok` was true, and the export bundled the shell as the file's bytes.
+ * The archive then failed at somebody else's **import**, blamed for a checksum
+ * it never had a chance to match.
  *
- * Deriving an id from the address was tried and rejected: it holds for the
- * Server (`…/files/{id}`, `FILE_API.md`) and not for the fake, whose addresses
- * are object URLs — so the export would have worked in production and against
- * nothing the browser checks can drive. Fetching the address works for both.
- *
- * The alternative was a field on the Server's DTO, and §8 is deliberately a
- * Client-only change.
+ * A version's file list carries `fileId` now, so this is an ordinary read
+ * through `fileApi` like every other, and the checksum is compared **here** —
+ * where a wrong byte can still be named after the file it belongs to.
  */
-const bytesAt = async (url: string): Promise<Uint8Array> => {
-    const response = await fetch(url, { credentials: "include" });
-    if (!response.ok) throw new Error(`${url} answered ${response.status}`);
-    return new Uint8Array(await response.arrayBuffer());
+const bytesOf = async (
+    api: ScopedApi, file: { name: string; fileId: string; sha256: string },
+): Promise<Uint8Array> => {
+    const bytes = new Uint8Array(await (await api.fileApi.getBlob(file.fileId)).arrayBuffer());
+    const actual = await sha256(bytes);
+    if (actual !== file.sha256) {
+        throw new Error(
+            `${file.name} came back as ${actual.slice(0, 12)}… where the version says `
+            + `${file.sha256.slice(0, 12)}… — the bytes behind ${file.fileId} are not this file's`);
+    }
+    return bytes;
 };
 
 const newest = (versions: ManagedProblemVersion[]): ManagedProblemVersion | undefined =>
@@ -68,10 +75,10 @@ const collectProblem = async (
     for (const file of version.files) {
         // Content-addressed, so a figure two problems share is fetched once.
         if (files.has(file.sha256)) continue;
-        if (!file.url) throw new Error(`${problem.slug}: ${file.name} has not been stored`);
+        if (!file.fileId) throw new Error(`${problem.slug}: ${file.name} has not been stored`);
 
         report?.(files.size, 0, `${problem.slug} / ${file.name}`);
-        files.set(file.sha256, await bytesAt(file.url));
+        files.set(file.sha256, await bytesOf(api, { ...file, fileId: file.fileId }));
     }
 
     return bundled;

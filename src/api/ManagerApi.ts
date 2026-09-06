@@ -859,8 +859,11 @@ export interface ProblemFile {
     mimeType: string;
     sizeBytes: number;
     sha256: string;
-    /** Where to fetch it. Absent until the Server has stored it. */
-    url?: string;
+    /**
+     * The reference. Absent until the Server has stored the bytes, which is what
+     * a version being prepared looks like.
+     */
+    fileId?: string;
 }
 
 export type FileScope = "participant" | "manager" | "runner";

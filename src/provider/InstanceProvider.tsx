@@ -114,9 +114,14 @@ export const InstanceProvider: FC<{ children: ReactNode }> = ({ children }) => {
     // An institution whose wordmark differs between languages sets one per
     // language; everyone else sets one, and an instance that set none shows the
     // placeholder.
+    //
+    // **The address is built here, from the stored file's id.** The one this
+    // publishes is a plain address on purpose, because the placeholder is not a
+    // stored file at all and nothing downstream should have to tell them apart.
     const translated = pickTranslation(instance.logoTranslations, i18n.language)?.logo;
+    const mark = (translated ?? instance.logo)?.fileId;
     const logoUrl = instance.showLogo
-        ? (translated ?? instance.logo)?.url ?? placeholderLogo
+        ? (mark === undefined ? placeholderLogo : api.fileApi.url(mark))
         : undefined;
 
     return (

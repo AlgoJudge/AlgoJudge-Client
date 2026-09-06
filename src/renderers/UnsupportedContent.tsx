@@ -1,7 +1,7 @@
 import { Alert, Code, Stack } from "@mantine/core";
 import { IconHelpCircle } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
-import { Attachment } from "../api/ParticipantApi";
+import { ReferencedFile } from "../content/reference";
 
 /**
  * Fallback for a statement whose type this Client does not know.
@@ -11,7 +11,7 @@ import { Attachment } from "../api/ParticipantApi";
  * and an author should be able to see that the content reached the browser
  * intact. The document is printed as data — never interpreted, never executed.
  */
-export default function UnsupportedContent({ content, attachments }: { content: unknown; attachments: Attachment[] }) {
+export default function UnsupportedContent({ content, attachments }: { content: unknown; attachments: ReferencedFile[] }) {
     const { t } = useTranslation();
     return (
         <Stack gap="sm">

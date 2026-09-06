@@ -340,7 +340,13 @@ export interface Attachment {
     name: string,
     mimeType: string,
     sizeBytes: number,
-    url: string,
+    /**
+     * The reference, and the only one. An address is this side's to build —
+     * `fileApi.url(fileId)` — because only this side knows what origin it is
+     * being read from. A relative address the Server composed was correct for
+     * the Server and wrong in every `<img src>` that got it.
+     */
+    fileId: string,
     /** SHA-256 of the bytes. Names the file: equal checksums are the same file. */
     sha256: string,
 }

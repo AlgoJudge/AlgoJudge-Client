@@ -11,7 +11,7 @@ import {
 } from "../../../../api/ManagerApi";
 import { StatementRef } from "../../../../api/FileApi";
 import FilePreview, { PreviewableFile } from "../../../../components/files/FilePreview";
-import { Attachment } from "../../../../api/ParticipantApi";
+import { ReferencedFile } from "../../../../content/reference";
 import LanguageTabs, { DEFAULT_LANGUAGE } from "../../../../components/content/LanguageTabs";
 import ContentEditor from "../../../../components/content/ContentEditor";
 import PackageBuilder, { PackageDraft } from "../../../../components/package/PackageBuilder";
@@ -21,7 +21,7 @@ import { CopyButton } from "../../../../components/buttons";
 import ActivityTime from "../../../../components/time/ActivityTime";
 import { emptyDocument, isStatementFile, isStatementName, statementFileName } from "../../../../content/types";
 import { tryValidateContent } from "../../../../content/validate";
-import { useApiCall, useApiEffect } from "../../../../provider/apiContext";
+import { useApi, useApiCall, useApiEffect } from "../../../../provider/apiContext";
 import { sha256 } from "../../../../utils/sha256";
 import { problemShape, statementRenderers } from "../../../../renderers";
 import { canEmbed, embedReference, linkReference } from "../../../../content/reference";
@@ -30,6 +30,7 @@ export default function ManagerProblemPage() {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const call = useApiCall();
+    const api = useApi();
     const { problemId } = useParams();
     // Which version the other tabs show. In the URL, so "look at version 2 of
     // this problem" is a link, and so a reload does not jump back to the newest.
@@ -317,10 +318,17 @@ export default function ManagerProblemPage() {
     // What the next version would hold: what this one holds, less what the draft
     // removes, plus what it adds. Every screen below reads this rather than the
     // stored list, so the preview shows the statement as it will be published.
-    type DraftFile = ProblemFile & { state: "kept" | "removed" | "added" };
+    //
+    // **`address` is resolved here and nowhere below.** A stored file's is built
+    // from its id; a staged one has no id at all and is drawn from the bytes in
+    // hand. Every screen under this reads the one field and never has to know
+    // which of the two it is looking at — which is what the old `url ?? "#"` was
+    // hiding.
+    type DraftFile = ProblemFile & { state: "kept" | "removed" | "added"; address?: string };
     const files: DraftFile[] = [
         ...(selected?.files ?? []).map((f): DraftFile => ({
             ...f,
+            address: f.fileId === undefined ? undefined : api.fileApi.url(f.fileId),
             state: removed.includes(f.name) ? "removed" : "kept",
         })),
         ...staged.map((entry): DraftFile => ({
@@ -329,7 +337,7 @@ export default function ManagerProblemPage() {
             mimeType: entry.file.type || "application/octet-stream",
             sizeBytes: entry.file.size,
             sha256: "",
-            url: stagedUrls.get(entry.file.name),
+            address: stagedUrls.get(entry.file.name),
             state: "added",
         })),
     ];
@@ -354,18 +362,17 @@ export default function ManagerProblemPage() {
     // or links, which keeps one answer to "can this be looked at" rather than
     // two that drift.
     const canPreview = (file: DraftFile) =>
-        file.state !== "removed" && file.url !== undefined && canEmbed(file.mimeType);
+        file.state !== "removed" && file.address !== undefined && canEmbed(file.mimeType);
 
     // The preview gets the real files, so a figure appears in it exactly as it
     // will on the participant's screen — including the notice when the name
     // points at nothing.
-    const previewAttachments: Attachment[] = participantFiles.map(f => ({
-        name: f.name,
-        mimeType: f.mimeType,
-        sizeBytes: f.sizeBytes,
-        url: f.url ?? "#",
-        sha256: f.sha256,
-    }));
+    // A file with no address is one being published in this same round and not
+    // yet stored, which the renderer reports as a missing attachment — the true
+    // answer, and the one the participant would get.
+    const previewAttachments: ReferencedFile[] = participantFiles
+        .filter(f => f.address !== undefined)
+        .map(f => ({ name: f.name, mimeType: f.mimeType, address: f.address! }));
 
     const stageAttachment = (file: File) => {
         setError(undefined);
@@ -689,12 +696,12 @@ export default function ManagerProblemPage() {
                                                             </CopyButton>
                                                         </Tooltip>
                                                     )}
-                                                    {file.url && (
+                                                    {file.address && (
                                                         <Button
                                                             variant="subtle"
                                                             size="compact-sm"
                                                             component="a"
-                                                            href={file.url}
+                                                            href={file.address}
                                                             download={file.name}
                                                         >
                                                             <IconDownload size={14} />

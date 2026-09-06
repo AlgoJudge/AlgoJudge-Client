@@ -8,6 +8,23 @@
  * function allowed to build one so that every place agrees.
  */
 
+/**
+ * One of them, as the renderer needs it: what it is called, what it is, and
+ * where its bytes are.
+ *
+ * **Not `Attachment`**, which is the wire shape and carries a `fileId` — an
+ * address is the caller's to build, because only the caller knows whether these
+ * bytes are a stored file (`fileApi.url`), one staged in an editor and not
+ * uploaded yet, or the mark this application ships with. The renderer had a
+ * `url` handed to it and could not tell those apart; two of the three were being
+ * spelled `"#"` and a placeholder.
+ */
+export interface ReferencedFile {
+    name: string;
+    mimeType: string;
+    address: string;
+}
+
 const NEEDS_BRACKETS = /[\s()<>]/;
 
 /** The destination part: `name.png` or `<name with spaces.png>`. */

@@ -12,7 +12,7 @@ import {
 import { DOCUMENT_KINDS, LOGO_ATTACHMENT } from "../../../api/instanceDocuments";
 import SharedDocumentsPanel from "../../../components/content/DocumentsPanel";
 import AppearancePanel from "./AppearancePanel";
-import { useApiCall, useApiEffect } from "../../../provider/apiContext";
+import { useApi, useApiCall, useApiEffect } from "../../../provider/apiContext";
 import { useInstance } from "../../../provider/instanceContext";
 import { sha256 } from "../../../utils/sha256";
 
@@ -403,6 +403,7 @@ interface PanelProps {
 function MarkPanel({ busy, run, store }: PanelProps) {
     const { t } = useTranslation();
     const call = useApiCall();
+    const api = useApi();
     const { instance } = useInstance();
     const [language, setLanguage] = useState("");
 
@@ -435,7 +436,7 @@ function MarkPanel({ busy, run, store }: PanelProps) {
                         <Group gap="md">
                             <Card withBorder p="xs" radius="sm" bg="gray.0" w={180}>
                                 {mark.logo
-                                    ? <Image src={mark.logo.url} alt="" fit="contain" h={56} />
+                                    ? <Image src={api.fileApi.url(mark.logo.fileId)} alt="" fit="contain" h={56} />
                                     : <Center h={56}><Text size="xs" c="dimmed">{t("none")}</Text></Center>}
                             </Card>
                             <Stack gap={2}>
