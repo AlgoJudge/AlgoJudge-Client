@@ -346,6 +346,19 @@ appends the path. `/` means the origin the application itself came from, which i
 the case the rule exists for: one domain serving both. Do not make the path
 configurable again.
 
+**A different origin is allowed; a different *site* is not.** The session is a
+`SameSite=Lax` cookie, so the application and the API must share a registrable
+domain and a scheme — `algojudge.app` with `api.algojudge.app` is one site and
+works, any port. Across sites the browser **discards** the cookie the sign-in
+sets: `POST /identity/login` answers 200, nothing is stored, the next call is
+401, and the screen stays put with no error. Measured 2026-09-06, both ways.
+That is also why `.env.example` pairs an `http` API with the `http` dev server:
+`http://localhost` and `https://localhost` are two sites.
+
+**A file is reached by `fileApi.url(fileId)`**, never by an address the Server
+composed — see `docs/specs/FILE_API.md`. Nothing in a wire shape carries a
+`url`; a figure in a statement was blank for exactly that reason.
+
 **There is a Server now, and it does not agree with this repository everywhere.**
 `SERVER_CONTRACT.md` records the places where the two cannot both be right —
 three manager reads whose paths carry two different response shapes, a bug in
