@@ -11,9 +11,21 @@ import { DeletionRequest, IdentityProvider } from "../../ManagerApi";
  * No secret is stored here, because none is readable: the contract has no field
  * for one on the way out, and what the panel gets is whether one is set. The
  * fake would be lying about the shape of the answer if it kept one.
+ *
+ * **`?fakeProviders=off` empties this list, not only the one a visitor is
+ * offered.** The instance's list is projected from these registrations, so a
+ * flag that emptied one half would be undone by the first provider write — and
+ * an installation that federates nothing has registered nothing.
  */
 
-export const createProviders = (): IdentityProvider[] => [
+const federates = (): boolean =>
+    new URLSearchParams(window.location.search).get("fakeProviders") === null
+    || ["on", "true", "1"].includes(
+        new URLSearchParams(window.location.search).get("fakeProviders") ?? "");
+
+export const createProviders = (): IdentityProvider[] => federates() ? REGISTERED : [];
+
+const REGISTERED: IdentityProvider[] = [
     {
         id: "018f2c00-0000-7000-8000-0000000000d1",
         slug: "university",

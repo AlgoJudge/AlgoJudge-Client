@@ -1452,6 +1452,22 @@ export interface ExternalContent {
     hosts: string[];
 }
 
+/** Which of four states a stored redirect is in. */
+export type InstanceRedirectState = "none" | "inForce" | "disabled" | "unregistered";
+
+export interface InstanceRedirect {
+    /** What the column holds. Absent means no redirect is set. */
+    slug?: string;
+    /** The provider registered under it, enabled or not. Absent when none is. */
+    displayName?: string;
+    state: InstanceRedirectState;
+}
+
+export interface InstanceRedirects {
+    signIn: InstanceRedirect;
+    register: InstanceRedirect;
+}
+
 export interface InstanceSettingsInput {
     name?: string;
     localRegistrationEnabled: boolean;
@@ -1481,11 +1497,12 @@ export interface InstanceSettingsInput {
      * The slug of the provider the sign-in screen sends people straight to.
      * Blank clears it.
      *
-     * **Three states on the wire, and only two of them are reachable from this
-     * screen.** Absent means *leave it alone* — the Server reads it that way so
-     * that a caller predating the field cannot switch the redirect off while
-     * saving something else. This form always sends the field, so from here it
-     * is blank or a slug.
+     * **Three states on the wire, and the panel uses all three.** Absent means
+     * *leave it alone*, blank clears, a slug sets. The manager screen sends
+     * this field only when somebody changed it, because it cannot always see
+     * what the column holds: a redirect whose provider is switched off is
+     * filtered out of the public answer, and a form that restated what it
+     * could see would write a blank over a setting that was there.
      */
     signInRedirectProvider?: string;
     /** The same, for the registration screen. */
@@ -1769,6 +1786,17 @@ export interface ManagerApi {
      * destinations is operational detail and is read by a manager only.
      */
     getExternalContent(signal: AbortSignal): Promise<ExternalContent>;
+
+    /**
+     * The two redirect columns as they are, rather than as a visitor is told.
+     *
+     * **`getInstanceInfo` cannot answer this**, and that is deliberate on both
+     * sides: it names a redirect only while that provider is enabled, so a
+     * screen may build a challenge address out of it without asking. The form
+     * that writes the column needs the column, and reading it from the filtered
+     * answer is what made a save destroy a setting it could not see.
+     */
+    getInstanceRedirects(signal: AbortSignal): Promise<InstanceRedirects>;
 
     /** Which named secrets this installation holds. **Names only** — never values. */
     getAccessKeys(signal: AbortSignal): Promise<AccessKey[]>;
