@@ -6,8 +6,12 @@ import { useApi } from "./apiContext";
 import { InstanceContext } from "./instanceContext";
 // **Deliberately a drawing rather than a wordmark.** An operator who sees a
 // robot where their crest belongs knows something is unset, the way a legal
-// template says it is a template. Its ground is keyed transparent, so it sits
-// on a document's page colour in either scheme and not only in a light box.
+// template says it is a template.
+//
+// The file is `AlgoJudge-Assets/illustrations/instance-logo.png` unaltered, and
+// its ground is white: in the navigation that is invisible, because the mark is
+// drawn in a light box there, and inside a document in the dark scheme it reads
+// as a white card. A drawing made for paper, behaving like one.
 import placeholderLogo from "../assets/instance-logo.png";
 
 /**

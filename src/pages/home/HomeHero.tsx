@@ -57,7 +57,7 @@ export const HomeHero: FC = () => {
     const { instance } = useInstance();
 
     return (
-        <Stack gap={48} mb="xl" data-testid="home-hero">
+        <div className={classes.section} data-testid="home-hero">
             <div className={classes.hero}>
                 <Stack gap="lg" align="flex-start">
                     <Badge
@@ -130,7 +130,7 @@ export const HomeHero: FC = () => {
                     {t("Fast and reliable verification of solutions")}
                 </Feature>
             </SimpleGrid>
-        </Stack>
+        </div>
     );
 };
 

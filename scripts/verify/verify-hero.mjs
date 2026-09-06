@@ -189,15 +189,26 @@ for (const scheme of ["light", "dark"]) {
         await wait(900);
         const fit = await evaluate(`
             const root = document.documentElement;
+            const intro = document.querySelector("[data-testid=home-hero]");
             return {
                 scheme: root.getAttribute("data-mantine-color-scheme"),
                 overflow: root.scrollWidth - root.clientWidth,
-                hero: document.querySelector("[data-testid=home-hero]") !== null,
+                hero: intro !== null,
+                // How much of the window the introduction fills. Below 1 it is a
+                // strip above a document; the rule asks for the window less the
+                // shell's own chrome, so anything near 1 is the rule working.
+                filled: intro ? intro.getBoundingClientRect().height / window.innerHeight : 0,
             };
         `);
         check(fit.hero && fit.scheme === scheme && fit.overflow <= 1,
             `${scheme} at ${width}px: drawn, in the right scheme, and no sideways scroll `
             + `(${fit.scheme}, overflow ${fit.overflow}px)`);
+        // **Measured against the window, not against a number written here.** The
+        // rule is `100svh` less the bar and the container's margins, so the
+        // introduction should reach most of the way down whatever the window is.
+        check(fit.filled >= 0.8,
+            `${scheme} at ${width}px: and it fills the window rather than sitting above `
+            + `the document (${Math.round(fit.filled * 100)}%)`);
         await shot(`hero-${scheme}-${width}`);
     }
 }
