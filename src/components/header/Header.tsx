@@ -98,7 +98,7 @@ function Header() {
             <Container size="md">
                 <div className={classes.inner}>
                     <Group gap="sm" wrap="nowrap">
-                        <Link to="/"><Logo /></Link>
+                        <Link to="/"><Logo h="1.2em" /></Link>
                         {/* A visitor should be able to tell whose installation
                             they have landed on, not only whose software. */}
                         {instance.name && (

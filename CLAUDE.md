@@ -708,14 +708,48 @@ mergeThemeOverrides(testIds, typography, brandOverride(branding))
   unoverridable, which is the one way this can be wrong and still look right; a
   sabotage in `verify-hero.mjs` holds it.
 
-The four `.woff2` files live in `src/assets/fonts/` and are declared in
-`index.css`, so Vite fingerprints them. They are **byte for byte the files in
+The `.woff2` files live in `src/assets/fonts/` and are declared in `index.css`,
+so Vite fingerprints them. The four Lato files are **byte for byte the ones in
 `AlgoJudge-Identity-Keycloak`**, so the type does not change under somebody
 crossing from the sign-in screen into the application. Lato has no weight 500;
 body is 400 and headings are 700, and both are sent rather than named.
 
-**Naming a face is not sending it**, and only `document.fonts.check()` can tell
-those apart — a computed `font-family` says what was asked for.
+**Naming a face is not sending it**, and `document.fonts.check()` cannot tell
+those apart either — it answers `true` for a family nothing defines. Count the
+loaded faces in `document.fonts`, and count all of them: two weights across two
+subsets is four files, and a check on weights alone passes with the `latin` pair
+pointed at nothing.
+
+**Inter 600 is here for one thing: the wordmark.** It is `font-display: block`
+rather than `swap`, and that is not a preference — see the next section.
+
+**The licence texts are in `public/`**, not beside the fonts. OFL §2 wants them
+in every copy of the font software, and the copy that reaches anybody is the
+built one; a file that only sits in `src/` is never emitted. Two files, because
+Inter's copyright line is not Lato's.
+
+## The mark is inlined, and it has to be (2026-09-06)
+
+`Logo.tsx` injects `algojudge-text.svg` into the document rather than pointing
+an `<img>` at it. **An SVG referenced from `<img>` renders in a document of its
+own and cannot see this page's `@font-face`** — measured: through an `<img>` the
+wordmark came out in a system fallback, wider than its own viewBox, with the
+last letters clipped.
+
+That is also why `font-display: block`. A swap would show the fallback first,
+and the fallback is the one that overflows, so the mark would flash broken on
+every cold load.
+
+`dangerouslySetInnerHTML` is the cost, and it is safe for the reason the name
+warns about: the markup is a file in this repository, copied byte for byte from
+`AlgoJudge-Assets`. **Do not transcribe it into JSX** — a hand-written copy is a
+divergent variant that stops following its source.
+
+**Known, and not ours to fix here:** `algojudge-text.svg` leaves 201.16 user
+units where Inter 600 needs 215.52, so the wordmark overhangs its own drawing by
+7.1% whatever face arrives. `Logo.module.css` sets `overflow: visible` so
+nothing is clipped; the real fix is `width`/`viewBox` of 270.13 upstream in
+Assets, and that line goes when it lands.
 
 ## The introduction on the home page (2026-09-06)
 

@@ -433,7 +433,7 @@ export default function AppLayout() {
                         hiddenFrom="sm"
                         size="sm"
                     />
-                    <NavLink to="/"><Logo h="1em" mx="xl" /></NavLink>
+                    <NavLink to="/"><Logo h="1.2em" mx="xl" /></NavLink>
                     {/* Whose installation this is, beside whose software it is —
                         and nothing at all where nobody has said. Clamped and
                         hidden on a narrow screen: a long faculty name must not

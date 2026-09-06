@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="270.1"
+   height="38.477539"
+   viewBox="0 0 270.1 38.477539"
+   shape-rendering="geometricPrecision"
+   version="1.1"
+   id="svg3293"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs3290" />
+  <g
+     id="logo"
+     fill="#000000"
+     transform="translate(-25.385003,-23.670899)">
+    <g
+       id="gavel"
+       transform="rotate(30,15,23)">
+      <rect
+         id="rect3466"
+         width="17"
+         height="12"
+         x="30"
+         y="16" />
+      <rect
+         id="rect3831"
+         width="28"
+         height="4"
+         x="46"
+         y="20" />
+      <ellipse
+         id="path3833"
+         cx="38.5"
+         cy="28"
+         rx="8.5"
+         ry="2.5" />
+      <ellipse
+         id="ellipse3835"
+         cx="38.5"
+         cy="16"
+         rx="8.5"
+         ry="2.5" />
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:41px;font-family:Inter;-inkscape-font-specification:'Inter Semi-Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;letter-spacing:0px;fill-opacity:1;stroke-width:0.0859999"
+       x="80"
+       y="53.5"
+       id="text"><tspan
+         style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:41px;font-family:Inter;-inkscape-font-specification:'Inter Semi-Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
+         id="tspan395">AlgoJudge</tspan></text>
+  </g>
+</svg>

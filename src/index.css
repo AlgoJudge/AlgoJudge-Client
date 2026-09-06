@@ -9,13 +9,21 @@
  * in the middle of a word, which looks correct in an English test and wrong on
  * the first Polish surname.
  *
- * Under SIL Open Font License 1.1, and `fonts/OFL.txt` travels with them
- * because the licence requires it to. The same four files, byte for byte, are
- * in `AlgoJudge-Identity-Keycloak`, so a person crosses from the sign-in screen
- * to the application without the type changing under them.
+ * Under SIL Open Font License 1.1. The licence requires its text to travel
+ * with every copy of the font software, and **the copy that matters is the
+ * built one** — `public/OFL-Lato.txt` and `public/OFL-Inter.txt` are there
+ * rather than beside the `.woff2` files because Vite copies `public/`
+ * verbatim and never emitted a licence that only sat in `src/`. Two files and
+ * not one: Inter's copyright line is not Lato's, and Lato's carries a Reserved
+ * Font Name that Inter's does not.
  *
- * Which family is *used* is decided in `typography.ts`, not here, because an
- * installation may override it and a `@font-face` cannot be overridden.
+ * The four Lato files are byte for byte the ones in
+ * `AlgoJudge-Identity-Keycloak`, so a person crossing from the sign-in screen
+ * to the application does not watch the type change.
+ *
+ * Which family is *used* for the interface is decided in `typography.ts`, not
+ * here, because an installation may override it and a `@font-face` cannot be
+ * overridden.
  */
 
 @font-face {
@@ -80,6 +88,50 @@
  * imports Mantine's, before it imports this — so an equal-specificity rule here
  * wins on source order.
  */
+/*
+ * Inter, and it draws exactly one thing: the wordmark.
+ *
+ * `AlgoJudge-Assets/logo/algojudge-text.svg` carries "AlgoJudge" as a live
+ * `<text>` asking for Inter 600 rather than as outlines, which is why the face
+ * has to be here at all. `Logo.tsx` inlines that file into the document —
+ * **an `<img>` would not do**: an SVG referenced from `<img>` renders in a
+ * document of its own and cannot see this rule. Measured, not assumed: through
+ * an `<img>` the mark came out in a system fallback, wider than its own
+ * viewBox, with the last letters clipped off.
+ *
+ * `font-display: block` and not `swap`, for the same measurement. A swap shows
+ * the fallback first, and the fallback is what overflows and gets clipped — so
+ * the mark would flash broken on every cold load. `block` holds it invisible
+ * instead, which for a logo is the honest wait.
+ *
+ * `latin-ext` is here although the wordmark is eight ASCII letters. It costs a
+ * reader nothing — `unicode-range` means a subset is fetched only when a glyph
+ * needs it — and it is what stops the diacritics falling back mid-word on the
+ * day somebody uses Inter for interface text.
+ */
+
+@font-face {
+    font-family: Inter;
+    font-style: normal;
+    font-weight: 600;
+    font-display: block;
+    src: url("./assets/fonts/inter-latin-600.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+        U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+        U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: Inter;
+    font-style: normal;
+    font-weight: 600;
+    font-display: block;
+    src: url("./assets/fonts/inter-latin-ext-600.woff2") format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+        U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+        U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
 body {
     background-color: var(--aj-page-bg, var(--mantine-color-body));
 }
