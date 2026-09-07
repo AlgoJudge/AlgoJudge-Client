@@ -9,13 +9,13 @@
  * in the middle of a word, which looks correct in an English test and wrong on
  * the first Polish surname.
  *
- * Under SIL Open Font License 1.1. The licence requires its text to travel
- * with every copy of the font software, and **the copy that matters is the
- * built one** — `public/OFL-Lato.txt` and `public/OFL-Inter.txt` are there
- * rather than beside the `.woff2` files because Vite copies `public/`
- * verbatim and never emitted a licence that only sat in `src/`. Two files and
- * not one: Inter's copyright line is not Lato's, and Lato's carries a Reserved
- * Font Name that Inter's does not.
+ * Under SIL Open Font License 1.1, all three families. The licence requires its
+ * text to travel with every copy of the font software, and **the copy that
+ * matters is the built one** — `public/OFL-Lato.txt`, `public/OFL-Inter.txt` and
+ * `public/OFL-JetBrainsMono.txt` are there rather than beside the `.woff2` files
+ * because Vite copies `public/` verbatim and never emitted a licence that only
+ * sat in `src/`. Three files and not one: each carries its own copyright line,
+ * and Lato's a Reserved Font Name the other two do not.
  *
  * The four Lato files are byte for byte the ones in
  * `AlgoJudge-Identity-Keycloak`, so a person crossing from the sign-in screen
@@ -127,6 +127,51 @@
     font-weight: 600;
     font-display: block;
     src: url("./assets/fonts/inter-latin-ext-600.woff2") format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+        U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+        U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/*
+ * JetBrains Mono, and it draws everything set in a fixed pitch: the editors,
+ * `<Code>`, the source preview's gutter — anything reading
+ * `--mantine-font-family-monospace`, which `typography.ts` points at it.
+ *
+ * **Two files, because it is a variable face.** One per subset covers the whole
+ * weight range, so a bold token in a highlighted source comes out of the face
+ * rather than out of the browser's synthetic bolding, and it is two files where
+ * per-weight slices would be four. They are **byte for byte the ones in
+ * `AlgoJudge-Docs`**, for the reason Lato is byte for byte Keycloak's: one
+ * typeface across the product, not one per repository.
+ *
+ * `font-display: swap`, like Lato and unlike Inter. Inter blocks because it
+ * draws a mark whose fallback overflows its own drawing; there is nothing to
+ * overflow here, and holding a page of source invisible while a face arrives
+ * would be the worse trade.
+ *
+ * **Monaco measures a glyph once.** A face that arrives after the editor has
+ * mounted leaves its columns misaligned until something calls
+ * `monaco.editor.remeasureFonts()`; `components/editor/CodeEditor.tsx` is where
+ * that happens, and it is `swap` above that makes it necessary.
+ */
+
+@font-face {
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 100 800;
+    font-display: swap;
+    src: url("./assets/fonts/jetbrains-mono-latin.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+        U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+        U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 100 800;
+    font-display: swap;
+    src: url("./assets/fonts/jetbrains-mono-latin-ext.woff2") format("woff2");
     unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
         U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
         U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
