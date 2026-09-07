@@ -54,18 +54,36 @@ const token = await evaluate(`
 check(/^"?JetBrains Mono"?/.test(token), `and the theme's monospace token names it — ${token}`);
 
 // ── 3. It follows the application's colour scheme ───────────────────────────
+// The frame is on the wrapper, not on `.monaco-editor`, so it is read from the
+// wrapper. A border of zero width, or one painted in the colour behind it, says
+// nothing about where the editor is — both are what this rules out.
 const state = () => evaluate(`
     const el = ${editor};
+    const frame = document.querySelector("[data-testid=code-editor]");
+    const border = frame ? getComputedStyle(frame) : null;
     return {
+        frame: border ? {
+            width: parseFloat(border.borderTopWidth),
+            colour: border.borderTopColor,
+            radius: border.borderTopLeftRadius,
+            behind: getComputedStyle(frame.parentElement).backgroundColor,
+        } : null,
         scheme: document.documentElement.dataset.mantineColorScheme
             ?? document.documentElement.getAttribute("data-mantine-color-scheme"),
         monaco: el ? [...el.classList].find(c => c === "vs" || c === "vs-dark") ?? null : null,
     };
 `);
 
+const framed = (seen) => {
+    const f = seen.frame;
+    check(f !== null && f.width >= 1 && !/,\s*0\)$/.test(f.colour) && f.colour !== f.behind,
+        `${seen.scheme}: the working area is framed — ${f ? `${f.width}px ${f.colour}, radius ${f.radius}, on ${f.behind}` : "no frame"}`);
+};
+
 const before = await state();
 check(before.monaco === (before.scheme === "dark" ? "vs-dark" : "vs"),
     `the editor's theme matches the page — ${before.scheme} / ${before.monaco}`);
+framed(before);
 await shot("editor-before");
 
 // A real click on the header control, not a write to `localStorage`: what is
@@ -78,6 +96,7 @@ const after = await state();
 check(after.scheme !== before.scheme, `the toggle changes the page's scheme — ${before.scheme} → ${after.scheme}`);
 check(after.monaco === (after.scheme === "dark" ? "vs-dark" : "vs"),
     `and the editor changes with it — ${after.monaco}`);
+framed(after);
 // The editor is still the same one: a theme applied by remounting would have
 // thrown away the buffer, the undo stack and the scroll position mid-solution.
 check(await evaluate(`return ${editor} !== null;`), "without remounting it");

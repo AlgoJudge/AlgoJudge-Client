@@ -5,6 +5,7 @@ import editorWorker from "monaco-editor/editor/editor.worker.js?worker";
 import { useEffect } from "react";
 import { MONOSPACE_STACK } from "../../typography";
 import { monacoLanguage } from "./languages";
+import classes from "./CodeEditor.module.css";
 
 // Only the languages a submission may actually be written in. Importing the
 // package entry point instead registers every language Monaco ships and pulls in
@@ -84,37 +85,41 @@ export default function CodeEditor({ value, onChange, language, height = 420, re
     useEffect(remeasureWhenTheFaceArrives, []);
 
     return (
-        <Editor
-            height={height}
-            language={monacoLanguage(problemType, language)}
-            // **The editor follows the application.** `@monaco-editor/react`
-            // applies this through an effect keyed on the prop, so a reader
-            // using the toggle in the header sees the editor change with the
-            // page — no remount, which would throw away the undo stack and the
-            // scroll position in the middle of writing a solution.
-            //
-            // `setTheme` is global to the Monaco instance rather than per
-            // editor. Harmless here: every editor on a screen computes the same
-            // scheme.
-            theme={scheme === "dark" ? "vs-dark" : "vs"}
-            value={value}
-            onChange={v => onChange?.(v ?? "")}
-            loading={<Center h={height}><Loader /></Center>}
-            options={{
-                readOnly,
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                // The theme's own fixed-pitch stack, not a second one written
-                // here: the editor and the highlighted preview of the same file
-                // must not be able to disagree about the type. Monaco appends
-                // its platform default behind whatever it is given, so the
-                // fallbacks in the constant are belt to that brace.
-                fontFamily: MONOSPACE_STACK,
-                fontSize: 13,
-                tabSize: 4,
-                automaticLayout: true,
-                renderLineHighlight: readOnly ? "none" : "line",
-            }}
-        />
+        // The frame says where the editor is. `CodeEditor.module.css`
+        // explains why it is on this wrapper and not on `.monaco-editor`.
+        <div className={classes.frame} data-testid="code-editor">
+            <Editor
+                height={height}
+                language={monacoLanguage(problemType, language)}
+                // **The editor follows the application.** `@monaco-editor/react`
+                // applies this through an effect keyed on the prop, so a reader
+                // using the toggle in the header sees the editor change with the
+                // page — no remount, which would throw away the undo stack and the
+                // scroll position in the middle of writing a solution.
+                //
+                // `setTheme` is global to the Monaco instance rather than per
+                // editor. Harmless here: every editor on a screen computes the same
+                // scheme.
+                theme={scheme === "dark" ? "vs-dark" : "vs"}
+                value={value}
+                onChange={v => onChange?.(v ?? "")}
+                loading={<Center h={height}><Loader /></Center>}
+                options={{
+                    readOnly,
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    // The theme's own fixed-pitch stack, not a second one written
+                    // here: the editor and the highlighted preview of the same file
+                    // must not be able to disagree about the type. Monaco appends
+                    // its platform default behind whatever it is given, so the
+                    // fallbacks in the constant are belt to that brace.
+                    fontFamily: MONOSPACE_STACK,
+                    fontSize: 13,
+                    tabSize: 4,
+                    automaticLayout: true,
+                    renderLineHighlight: readOnly ? "none" : "line",
+                }}
+            />
+        </div>
     );
 }
