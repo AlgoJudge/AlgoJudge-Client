@@ -25,7 +25,9 @@ ENV VITE_APP_USE_FAKE_API=$VITE_APP_USE_FAKE_API
 
 RUN npm run build
 
-FROM nginx:1.27-alpine AS final
+# The stable line, even minor. This is the only stage with system packages in
+# it, so it is the only one that goes stale on its own.
+FROM nginx:1.30-alpine AS final
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /src/dist /usr/share/nginx/html
