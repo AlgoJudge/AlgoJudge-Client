@@ -42,7 +42,9 @@ Tabler Icons. Polish and English, with translations in `public/locales/`.
 
 ## Requirements
 
-Node.js 24 or later, and npm. Node 24 "Krypton" is the active LTS line.
+Node.js 24, and npm. Node 24 "Krypton" is the Active LTS line, which is the
+rule rather than this version's circumstance: a release ships on an Active LTS
+Node and never on one already in maintenance.
 
 The version lives in `.nvmrc`, which is what CI reads and what `nvm use` picks
 up. `package.json` states the same floor under `engines`, so `npm ci` says so
@@ -57,7 +59,7 @@ Tested on Node 24.20.0 with npm 11.19.0.
 |---|---|
 | `npm ci` | install dependencies |
 | `npm run dev` | development server on port 5173 |
-| `npm run lint` | ESLint 9, flat config in `eslint.config.mjs` |
+| `npm run lint` | ESLint 10, flat config in `eslint.config.mjs` |
 | `npm run lint:deps` | dependency lists at every `useApiEffect` call site |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run build` | type-check and build to `dist/` |
@@ -66,9 +68,10 @@ Tested on Node 24.20.0 with npm 11.19.0.
 On Windows PowerShell use `npm.cmd` if the execution policy blocks `npm.ps1`.
 
 Lint, `lint:deps`, typecheck and build are the gate, and so is every `check:`
-script CI runs: `check:content`, `check:package`, `check:exchange`,
-`check:zawodyweb`, `check:access`, `check:events`, `check:i18n` and `check:api`
-in the `build` job, and `check:ui`, a Playwright suite, in `browser-checks`.
+script CI runs: `check:content`, `check:package`, `check:languages`,
+`check:exchange`, `check:zawodyweb`, `check:access`, `check:events`,
+`check:i18n`, `check:ranking` and `check:api` in the `build` job, and
+`check:ui`, a Playwright suite, in `browser-checks`.
 
 `npm run check:e2e` is the other suite and runs nowhere automatically: it wants
 a full stack that is already up.
@@ -82,9 +85,13 @@ and adjust:
 cp .env.example .env
 ```
 
-It points at a Server on `https://localhost:7004`, which is where that project's
-own launch profile puts it. **Clear the value to work against the fake API** and
-need no Server at all — see *Running without a Server*.
+It points at a Server on `http://localhost:5171`, one of the two addresses that
+project's own launch profile serves; the other is `https://localhost:7004`.
+**Match the scheme to `VITE_DOTNET_CERT`** — the session cookie is `SameSite=Lax`
+and a browser counts the two as different sites, so a page served over HTTP
+against an API over HTTPS cannot sign in at all. **Clear the value to work
+against the fake API** and need no Server at all — see *Running without a
+Server*.
 
 Build-time variables, read by Vite:
 
