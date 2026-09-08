@@ -578,8 +578,14 @@ export interface SubmitPayload {
     /**
      * SHA-256 of what is being sent — the file's bytes, or the pasted source
      * encoded as UTF-8. The Server recomputes it and refuses a mismatch.
+     *
+     * **Required, because the Server requires it.** It reads the declared value
+     * before it reads the bytes and takes nothing that is not sixty-four
+     * hexadecimal characters, so a caller that omits one is refused whatever
+     * else it got right. Optional here until 2026-09-08, when the code page's
+     * resubmit button turned out to be the caller omitting it.
      */
-    sha256?: string,
+    sha256: string,
 }
 
 /* ── Results, from which every ranking is computed ─────────────────────────── */

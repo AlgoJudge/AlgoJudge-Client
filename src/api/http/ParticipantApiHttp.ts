@@ -104,7 +104,11 @@ export class ParticipantApiHttp implements ParticipantApi {
         // broken at the one place a participant uploads anything. The Server
         // recomputes it and answers 422 on a mismatch, so a truncated upload
         // fails as a corrupt file rather than being judged as a wrong answer.
-        if (payload.sha256) form.append("sha256", payload.sha256);
+        //
+        // Appended unconditionally: the field is required, and a guard would
+        // turn a caller that sent nothing into a request that says nothing —
+        // silently, which is how this went wrong both times.
+        form.append("sha256", payload.sha256);
 
         return this.http.request<SubmissionSummary>(
             `/activities/${encodeURIComponent(activityId)}/problems/${encodeURIComponent(problemSlug)}/submissions`,
