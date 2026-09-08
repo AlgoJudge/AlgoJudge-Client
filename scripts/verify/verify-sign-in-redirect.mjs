@@ -14,7 +14,7 @@
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { evaluate, wait, shot, go, visit, click, close } = await open();
+const { evaluate, until, wait, shot, go, visit, click, close } = await open();
 const { check, report } = results();
 
 /** Where the browser ended up, path and query, once everything settled. */
@@ -125,17 +125,18 @@ check(signedIn.startsWith("/activities"),
 
 await click(`document.querySelector("[data-testid=user-menu]")`);
 await click(`document.querySelector("[data-testid=logout]")`);
-await wait(1500);
 
-const out = await at();
-check(out === "/", `signing out lands on the front page (${out})`);
+// Signing out replaces the document, so this is asked through a navigation
+// rather than after a wait long enough to have covered it here.
+check(await until(`location.pathname === "/"`, 12),
+    "signing out lands on the front page");
 
-// **And stays there.** What went wrong was not where it landed but what that
-// screen then did, so a location read once proves nothing: the bounce is a
-// redirect fired by `/login` after it had drawn.
+// **And stays there.** What went wrong was never where it landed but what that
+// screen then did, so one reading proves nothing: the bounce is a redirect
+// `/login` fires after it has drawn.
 await wait(1500);
-const settled = await at();
-check(settled === "/", `and is still there once the screen has had its say (${settled})`);
+check(await until(`location.pathname === "/"`, 1),
+    "and is still there once the screen has had its say");
 await shot("sign-in-redirect-signed-out");
 
 // ── the registration screen, same rule ──────────────────────────────────────

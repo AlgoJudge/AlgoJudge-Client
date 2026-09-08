@@ -182,13 +182,37 @@ export async function open({ out = process.env.OUT ?? join(here, "out"), clock =
      * second, invisible timeout in front of a condition the caller has already
      * stated.
      */
+    /**
+     * Waits for a page expression to be true, **through a navigation**.
+     *
+     * A screen that redirects itself — a sign-in redirect, a sign-out — destroys
+     * the execution context, and an `evaluate` that lands in that window throws
+     * `Execution context was destroyed` rather than answering. The question is
+     * still open, so it is asked again on the next turn.
+     *
+     * Only that one error is swallowed, and only to retry it: anything else is
+     * a script asking something the page cannot answer, which has to be seen.
+     *
+     * Without this a check passes on a machine where the load lands inside the
+     * wait and fails on one where it lands inside the poll — which is what CI
+     * did on 2026-09-08 while the same suite was green locally.
+     */
+    const until = async (expression, tries = 40) => {
+        for (let i = 0; i < tries; i++) {
+            try {
+                if (await evaluate(`return ${expression};`)) return true;
+            } catch (error) {
+                if (!String(error).includes("Execution context was destroyed")) throw error;
+            }
+            await wait(500);
+        }
+        return false;
+    };
+
     const go = async (url, waitFor, tries = 40) => {
         await page.goto(url, { waitUntil: "commit" });
         await wait(2500);
-        for (let i = 0; i < tries; i++) {
-            if (await evaluate(`return ${waitFor};`)) return;
-            await wait(500);
-        }
+        if (await until(waitFor, tries)) return;
         throw new Error(`timed out on ${url} waiting for ${waitFor}`);
     };
 
@@ -200,10 +224,7 @@ export async function open({ out = process.env.OUT ?? join(here, "out"), clock =
             return true;
         `);
         await wait(1200);
-        for (let i = 0; i < tries; i++) {
-            if (await evaluate(`return ${waitFor};`)) return;
-            await wait(500);
-        }
+        if (await until(waitFor, tries)) return;
         throw new Error(`timed out visiting ${path} waiting for ${waitFor}`);
     };
 
@@ -307,7 +328,7 @@ export async function open({ out = process.env.OUT ?? join(here, "out"), clock =
     if (clock) await page.clock.install();
 
     return {
-        send, evaluate, wait, shot, go, visit, click, type, setTextarea, tab, pages, paintedWith,
+        send, evaluate, until, wait, shot, go, visit, click, type, setTextarea, tab, pages, paintedWith,
         clock: {
             fastForward: (ticks) => page.clock.fastForward(ticks),
             runFor: (ticks) => page.clock.runFor(ticks),

@@ -3,7 +3,7 @@
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { send, evaluate, wait, go, click } = await open();
+const { send, evaluate, until, wait, go, click } = await open();
 const { check, report } = results();
 
 const scheme = () => evaluate(`return document.documentElement.getAttribute("data-mantine-color-scheme");`);
@@ -47,11 +47,11 @@ check(await scheme() === "light", "the shell switches it back");
 
 await click(`document.querySelector("[data-testid=user-menu]")`);
 await click(`document.querySelector("[data-testid=logout]")`);
-await wait(2000);
 // The front page, since 2026-09-08, and it is not incidental to this check:
 // signing out is a document load now, so the scheme below is being read off a
-// page that was built from storage rather than left in memory.
-check(await evaluate(`return location.pathname;`) === "/", "signing out lands on the front page");
+// page built from storage rather than one left in memory. `until` because the
+// reading has to survive that load.
+check(await until(`location.pathname === "/"`, 12), "signing out leaves for the front page");
 check(await scheme() === "light", "which shows the scheme the shell was left in");
 
 report();
