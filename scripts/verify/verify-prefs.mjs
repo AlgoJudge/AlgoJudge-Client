@@ -52,6 +52,17 @@ await click(`document.querySelector("[data-testid=logout]")`);
 // page built from storage rather than one left in memory. `until` because the
 // reading has to survive that load.
 check(await until(`location.pathname === "/"`, 12), "signing out leaves for the front page");
+
+// **Wait for the page, not for the address.** The address is right the moment
+// the load commits, and the scheme is an attribute the new document has yet to
+// put on. CI read the gap between them on 2026-09-09 and failed on a preference
+// that was, measured in the same run, correctly stored and correctly restored.
+check(await until(`document.body.innerText.includes("AlgoJudge")`, 12),
+    "and the front page draws");
 check(await scheme() === "light", "which shows the scheme the shell was left in");
+
+// The assertion with teeth: light is also the default, so a page that had lost
+// the store would look identical. Polish is the default too, and this is English.
+check((await text()).includes("Privacy policy"), "and the language it was left in");
 
 report();
