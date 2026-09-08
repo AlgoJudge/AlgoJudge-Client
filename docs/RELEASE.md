@@ -3,9 +3,10 @@
 For whoever cuts the release. Somebody installing the product wants
 [AlgoJudge-Ops](https://github.com/AlgoJudge/AlgoJudge-Ops) instead.
 
-Every claim below was checked against the repository on 2026-09-07. Where
-something could not be checked, the last section says so rather than leaving it
-to be assumed.
+Every claim below was checked against the repository on 2026-09-07, and the
+readings that move on their own — dependencies, base images — were retaken on
+2026-09-08, the day 0.1.0 was cut. Where something could not be checked, the last
+section says so rather than leaving it to be assumed.
 
 ## Where the version lives
 
@@ -61,6 +62,12 @@ pulling it.
 - [ ] `package.json` and `package-lock.json` say the version being released.
 - [ ] `README.md` names it in the `docker pull` and `docker run` examples —
       lines 149 and 163, both `0.1.0`.
+- [ ] **The documentation describes the software as it is** — not merely the
+      version in it. `README.md`, `CLAUDE.md`, `SERVER_CONTRACT.md`,
+      `scripts/verify/README.md`, `AUTHORS.md` and `AUTHORS.txt`, this file, and
+      the comments in `.env.example`, the `Dockerfile`, `docker-entrypoint.sh`,
+      `example-full-stack-docker-compose.yaml` and the two workflows. See *What
+      goes stale in a README*.
 - [ ] The commit is on `main`, and **its** CI run is green. See *The tag has to
       sit on `main`*.
 - [ ] `npm ci`, then `npm run lint`, `lint:deps`, `typecheck`, `build`.
@@ -76,10 +83,42 @@ pulling it.
 - [ ] The runtime variables are not confused with the build-time ones.
 - [ ] `git ls-files` names `.env.example` and no other env file.
 - [ ] `npm outdated` and `npm audit` read, and each entry either taken or
-      recorded as deferred.
+      recorded as deferred. A refresh happens **before** the gate above, not
+      after it.
+- [ ] **Every image the repository pins is a tag upstream still builds**, judged
+      by the date it was last built. See *Every image this repository pins*.
+- [ ] **Node is an Active LTS**, the same major in `.nvmrc`, `engines` and the
+      `Dockerfile`. See *Node and the toolchain*.
 
 `npm run check:e2e` is the other Playwright suite and is **not** a release gate:
 it runs nowhere automatically and wants a full stack already up.
+
+### What goes stale in a README
+
+The bullet above it reads two lines and would pass a README that is wrong about
+everything else. Four kinds of claim go stale on their own, and on 2026-09-08
+three of the four had:
+
+**A dependency named in prose.** *ESLint 9* stood in the `Commands` table against
+10.10.0 installed, and `CLAUDE.md` carried the same sentence. Read every major
+the `Technology` and `Commands` tables name against `package.json` on the day.
+
+**A list that mirrors CI.** The README gave eight of the ten `check:` scripts the
+`build` job runs — `check:languages` and `check:ranking` were missing — so the
+gate a reader trusted was shorter than the one that blocks a merge. Count the
+`run: npm run check:` lines in `.github/workflows/ci.yml` and compare.
+
+**A value copied out of another file.** It said the example points at
+`https://localhost:7004`; `.env.example` has pointed at `http://localhost:5171`
+since `9d40088`, and the scheme is not cosmetic — `SameSite=Lax` makes an HTTP
+page against an HTTPS API unable to sign in at all. Every address, port and
+default stated in prose is a copy, and a copy does not move with its original.
+
+**A count.** *Sixteen screens* in the manager panel is the number of
+`managerRoute` calls in `src/App.tsx`, and it held. Recompute a count rather than
+re-reading it, and know which thing is being counted: `managerAreas.ts` has
+fourteen entries, two of them `soon: true`, and neither number is the one the
+README states.
 
 ### Why `check:ui` is the gate
 
@@ -141,9 +180,12 @@ working copy's own `.env` is neither committed nor built into the image. That
 file is a developer's and is never printed, quoted or carried into a release.
 
 **History still holds one**: `.env` was added in `76f259c` and untracked in
-`836c451`, so it is absent from every current tree and reachable from the log. By
-construction it can hold only `VITE_`-prefixed values, which are public — the
-release is the moment to have somebody confirm that rather than assume it.
+`836c451`, so it is absent from every current tree and reachable from the log.
+Read on 2026-09-08, it holds two keys — `VITE_APP_API_BASE_URL` and
+`VITE_APP_DEBUG_AUTHENTICATION` — and no third. By construction it could hold
+nothing worth hiding either: a `VITE_`-prefixed value is inlined into the bundle
+and is public the moment the image serves it. This paragraph is the record of
+somebody having looked rather than assumed.
 
 ## Node and the toolchain
 
@@ -152,32 +194,42 @@ CI reads through `node-version-file`), `package.json` `engines` (`>=24`), and th
 `Dockerfile` build stage (`node:24-alpine`, the one deliberate copy, because a
 `FROM` cannot read `.nvmrc`).
 
-Node 24 is **Active LTS** on the release date. It enters maintenance 2026-10-20,
-when Node 26 becomes Active LTS on 2026-10-28 — read from `nodejs/Release`
-`schedule.json` on 2026-09-07. The pin is right for 0.1.0, and raising it to 26
-is a decision for after the release, in those three files.
+**The rule: Node is an Active LTS on the day of the release**, and the three
+places move together. Not the newest line, which nothing here needs, and not one
+already in maintenance — a maintenance line takes security fixes and nothing
+else, so an image built on it ships something upstream has stopped improving, for
+as long as that image is deployed.
+
+Node 24 satisfies the rule today. It is **Active LTS** on the release date,
+enters maintenance 2026-10-20, and Node 26 becomes Active LTS on 2026-10-28 —
+read from `nodejs/Release` `schedule.json` on 2026-09-07. So the pin is right for
+0.1.0 and will not be right for a release cut after October; raising it is those
+three files at once, plus the whole gate.
 
 Checked locally on Node 24.20.0 with npm 11.19.0, which is what `README.md`
 records.
 
 ## Dependencies
 
-`npm outdated` and `npm audit`, both read-only. **Never `npm install`,
-`npm update` or `npm audit fix` while cutting a release** — the lockfile must not
-move under a version that has already been checked.
+`npm outdated` and `npm audit`, both read-only. If the lockfile is going to
+move, **it moves before the gate runs, never after**: a green gate is evidence
+about one tree, and an `npm install`, `npm update` or `npm audit fix` afterwards
+turns it into evidence about a tree nobody checked.
 
-Read on **2026-09-07**:
+Read on **2026-09-08**, after this release's own refresh:
 
-**At the latest published version**: Vite 8.2.2, React and React DOM 19.2.8,
-`@vitejs/plugin-react` 6.1.1, React Router 7.18.3, Monaco 0.56.0.
-
-**Behind, and every one inside its declared `^` range** — a lockfile refresh
-rather than a release decision: Mantine 9.5.2 → 9.6.0 across all five packages,
+**Nothing is behind inside its declared range.** `npm update` took sixteen
+packages on the day the release was cut — Mantine 9.5.2 → 9.6.0 across all five,
 `@playwright/test` 1.62.1 → 1.63.0, ESLint 10.9.1 → 10.10.0,
-`@typescript-eslint/*` 8.68.0 → 8.69.0, `@types/react-dom` 19.2.5 → 19.2.7,
+`@typescript-eslint/*` 8.68.0 → 8.70.0, `@types/react-dom` 19.2.5 → 19.2.7,
 i18next 26.4.0 → 26.4.2, `i18next-http-backend` 4.0.1 → 4.0.2, `react-i18next`
-17.0.12 → 17.0.13, katex 0.18.4 → 0.18.7, postcss 8.5.26 → 8.5.28,
-`eslint-plugin-react-refresh` 0.5.5 → 0.5.6.
+17.0.12 → 17.0.13, katex 0.18.4 → 0.18.7, postcss 8.5.26 → 8.5.28 and
+`eslint-plugin-react-refresh` 0.5.5 → 0.5.6. `package.json` did not move with
+them, which is the check that this was a refresh and not a decision: every one
+was already inside its `^`.
+
+**At the latest published version, and untouched**: Vite 8.2.2, React and React
+DOM 19.2.8, `@vitejs/plugin-react` 6.1.1, React Router 7.18.3, Monaco 0.56.0.
 
 **Two majors, which are release decisions rather than chores.** Each moves the
 range in `package.json` and needs the whole gate re-run:
@@ -192,28 +244,61 @@ break and no reason to take a major on release day.
 
 **Mantine is worth naming on its own.** The browser suite no longer matches its
 generated class names, so a Mantine minor does not redden `check:ui` for nothing.
-It is still a UI library upgrade: if it is taken, a full `check:ui` run is the
-evidence, not the file-reading gate.
+It is still a UI library upgrade, and nothing in the file-reading gate can see a
+view that renders differently: the full `check:ui` run against the refreshed tree
+is what makes it evidence.
 
-`npm audit`, 2026-09-07: **one moderate, zero high, zero critical**, over 317
-dependencies.
+`npm audit`, 2026-09-08: **zero at every severity**, across 325 packages — 134
+production, 191 development, 28 optional.
 
-| | |
-|---|---|
-| Advisory | GHSA-p498-v437-472g, `@humanfs/node` < 0.16.8 |
-| Present as | 0.16.6, `dev: true` in the lockfile |
-| Reached through | `eslint@10.9.1`, and nothing else |
-| In the published image | no — the final stage is `nginx:1.27-alpine` with `dist/` copied in, and there is no Node.js runtime in it |
+It read **one moderate** before the refresh, kept here because the next release
+will meet the same shape: GHSA-p498-v437-472g, `@humanfs/node` 0.16.6, reached
+through `eslint@10.9.1` and nothing else. It could not have shipped — the final
+stage is nginx with `dist/` copied in and carries no Node.js runtime at all — and
+ESLint 10.10.0, inside the existing range, closed it anyway.
 
-It is a development-tree advisory and does not ship. The ESLint 10.10.0 bump
-above is the ordinary way out of it, inside the existing range.
+## Every image this repository pins
+
+Three, and the first two are what the release publishes:
+
+| Image | Where | What it is |
+|---|---|---|
+| `node:24-alpine` | `Dockerfile`, build stage | builds the bundle; nothing of it reaches the published image |
+| `nginx:1.30-alpine` | `Dockerfile`, final stage | **the whole of the published image's userland** |
+| `postgres:18` | `example-full-stack-docker-compose.yaml` | development only, and pinned on purpose: an unpinned `postgres:latest` moved major once and took `PGDATA` with it |
+
+**Check each against the registry before the tag, by the date it was last
+built** — not by whether `docker pull` still works. A tag that resolves is not a
+tag anybody still maintains, which is exactly how `1.27-alpine` survived here
+seventeen months past its last build:
+
+```bash
+for i in node:24-alpine nginx:1.30-alpine postgres:18; do
+  curl -s "https://hub.docker.com/v2/repositories/library/${i%%:*}/tags/${i##*:}" |
+    python -c "import json,sys; d=json.load(sys.stdin); print(d['name'], d['last_updated'][:10])"
+done
+```
+
+Read on 2026-09-08: `node:24-alpine` built 2026-08-27, `nginx:1.30-alpine`
+2026-09-03, `postgres:18` 2026-08-26. Postgres 19 does not exist yet.
 
 ## The nginx base
 
-**`1.27-alpine` here**, and `AlgoJudge-Ops/compose.yaml` defaults its edge to the
-same (`nginx:${NGINX_TAG:-1.27-alpine}`). `AlgoJudge-Docs` runs `1.29-alpine`
-because it is a separate deployment that shares nothing with an installation. If
-you raise one, know which of the three you are raising.
+**`1.30-alpine` here**, the stable line, raised from `1.27-alpine` for this
+release. nginx numbers even minors stable and odd ones mainline, so the choice is
+between `1.30-alpine` and `1.31-alpine`, and this repository takes the stable
+one.
+
+It was not merely behind. `nginx:1.27-alpine` was last built **2025-04-16**, so
+it had stopped receiving nginx patches and Alpine package updates seventeen
+months before this release, while pulling cleanly the whole time. It is also the
+only stage with system packages in it — the second stage is `dist/` copied in —
+which makes it the only part of this image that goes stale on its own.
+
+**The other two are not this repository's to raise.** `AlgoJudge-Ops` defaults
+its edge to `nginx:${NGINX_TAG:-1.27-alpine}` and `AlgoJudge-Docs` runs
+`1.29-alpine`; read on 2026-09-08, both are stale the same way, and each is its
+own release's step. If you raise one, know which of the three you are raising.
 
 ## Release order across the repositories
 
