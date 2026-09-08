@@ -770,10 +770,25 @@ export class ParticipantApiFake implements ParticipantApi {
         // A fake that still refused would be the one place in the product where
         // the old rule survived, and screens would be written against it.
 
+        // The sender names pasted source now; the Server has no table to do it
+        // with. A fake that invented one would hide the field going missing.
+        const fileName = payload.file?.name ?? payload.fileName ?? "main.txt";
+
         // Same rule as every other upload: the Server recomputes and refuses a
         // mismatch rather than storing a claim about the bytes.
+        //
+        // **Absent is refused before mismatch, because the Server refuses it
+        // first.** It reads the declared checksum before it reads the bytes and
+        // takes nothing that is not sixty-four hexadecimal characters. A fake
+        // that accepted a caller sending none let the code page's resubmit
+        // button pass every check here and fail against a real Server.
+        const declared = (payload.sha256 ?? "").trim().toLowerCase();
+        if (!/^[0-9a-f]{64}$/.test(declared)) {
+            checksumMismatch(
+                `The file did not arrive with a usable checksum and was not stored: ${fileName}`);
+        }
         const bytes = payload.file ?? new TextEncoder().encode(payload.code ?? "");
-        if (payload.sha256 !== undefined && await sha256(bytes) !== payload.sha256) {
+        if (await sha256(bytes) !== declared) {
             checksumMismatch("The submission does not match its checksum and was not accepted");
         }
 
@@ -782,9 +797,6 @@ export class ParticipantApiFake implements ParticipantApi {
         // the submissions list and the board name the same submission.
         const language = languageOf(payload.props) ?? "";
         const id = this.state.countAttempt(activityId, problem.seriesId, problem.slug, language);
-        // The sender names pasted source now; the Server has no table to do it
-        // with. A fake that invented one would hide the field going missing.
-        const fileName = payload.file?.name ?? payload.fileName ?? "main.txt";
         const summary: SubmissionSummary = {
             id,
             problemId: problem.id,
