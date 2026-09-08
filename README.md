@@ -6,6 +6,18 @@ courses, with automatic evaluation of submitted solutions.
 This is its web frontend. One application serves participants, activity managers
 and administrators, with permission-aware views.
 
+## Documentation
+
+**[docs.algojudge.pl](https://docs.algojudge.pl/en/client/)** is written for
+somebody who does not have this source open — every screen, in both languages.
+This README is the other half: what the repository is, and how to build, run and
+change it.
+
+| | |
+|---|---|
+| [`/en/client/`](https://docs.algojudge.pl/en/client/) | every screen, the participant's and the manager's |
+| [`/pl/client/`](https://docs.algojudge.pl/pl/client/) | the same in Polish, using this interface's own words |
+
 ## What it does
 
 Every screen that has something to fetch reads the API. Which implementation
@@ -30,7 +42,9 @@ Tabler Icons. Polish and English, with translations in `public/locales/`.
 
 ## Requirements
 
-Node.js 24 or later, and npm. Node 24 "Krypton" is the active LTS line.
+Node.js 24, and npm. Node 24 "Krypton" is the Active LTS line, which is the
+rule rather than this version's circumstance: a release ships on an Active LTS
+Node and never on one already in maintenance.
 
 The version lives in `.nvmrc`, which is what CI reads and what `nvm use` picks
 up. `package.json` states the same floor under `engines`, so `npm ci` says so
@@ -45,7 +59,7 @@ Tested on Node 24.20.0 with npm 11.19.0.
 |---|---|
 | `npm ci` | install dependencies |
 | `npm run dev` | development server on port 5173 |
-| `npm run lint` | ESLint 9, flat config in `eslint.config.mjs` |
+| `npm run lint` | ESLint 10, flat config in `eslint.config.mjs` |
 | `npm run lint:deps` | dependency lists at every `useApiEffect` call site |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run build` | type-check and build to `dist/` |
@@ -54,9 +68,10 @@ Tested on Node 24.20.0 with npm 11.19.0.
 On Windows PowerShell use `npm.cmd` if the execution policy blocks `npm.ps1`.
 
 Lint, `lint:deps`, typecheck and build are the gate, and so is every `check:`
-script CI runs: `check:content`, `check:package`, `check:exchange`,
-`check:zawodyweb`, `check:access`, `check:events`, `check:i18n` and `check:api`
-in the `build` job, and `check:ui`, a Playwright suite, in `browser-checks`.
+script CI runs: `check:content`, `check:package`, `check:languages`,
+`check:exchange`, `check:zawodyweb`, `check:access`, `check:events`,
+`check:i18n`, `check:ranking` and `check:api` in the `build` job, and
+`check:ui`, a Playwright suite, in `browser-checks`.
 
 `npm run check:e2e` is the other suite and runs nowhere automatically: it wants
 a full stack that is already up.
@@ -70,9 +85,13 @@ and adjust:
 cp .env.example .env
 ```
 
-It points at a Server on `https://localhost:7004`, which is where that project's
-own launch profile puts it. **Clear the value to work against the fake API** and
-need no Server at all — see *Running without a Server*.
+It points at a Server on `http://localhost:5171`, one of the two addresses that
+project's own launch profile serves; the other is `https://localhost:7004`.
+**Match the scheme to `VITE_DOTNET_CERT`** — the session cookie is `SameSite=Lax`
+and a browser counts the two as different sites, so a page served over HTTP
+against an API over HTTPS cannot sign in at all. **Clear the value to work
+against the fake API** and need no Server at all — see *Running without a
+Server*.
 
 Build-time variables, read by Vite:
 
@@ -209,7 +228,7 @@ over WebSocket is also reproducible through REST.
 - [AlgoJudge-Runner](https://github.com/AlgoJudge/AlgoJudge-Runner) — isolated execution and evaluation
 - [AlgoJudge-External-Runner](https://github.com/AlgoJudge/AlgoJudge-External-Runner) — a second Runner, forwarding submissions to external judging systems
 - [AlgoJudge-Ops](https://github.com/AlgoJudge/AlgoJudge-Ops) — the production Compose stack, which is what ships this image to an installation
-- [AlgoJudge-Docs](https://github.com/AlgoJudge/AlgoJudge-Docs) — the public documentation site, whose `/client/` section describes every screen here
+- [AlgoJudge-Docs](https://github.com/AlgoJudge/AlgoJudge-Docs) — the source of the documentation site linked under *Documentation* above
 
 ## Contributing
 

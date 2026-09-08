@@ -88,7 +88,7 @@ from nineteen.
 |---|---|
 | `npm ci` | install dependencies |
 | `npm run dev` | development server |
-| `npm run lint` | ESLint 9, flat config in `eslint.config.mjs` |
+| `npm run lint` | ESLint 10, flat config in `eslint.config.mjs` |
 | `npm run lint:deps` | dependency lists at every `useApiEffect` call site |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run build` | `tsc && vite build` |
