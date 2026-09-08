@@ -24,7 +24,16 @@ await go(`${APP}/activities?fakeUser=amy`,
     `[...document.querySelectorAll("[data-testid=card]")].some(c => c.innerText.includes("PROG-1-LA"))`);
 await click(`[...document.querySelectorAll("[data-testid=card]")]
     .find(c => c.innerText.includes("PROG-1-LA"))`);
-await wait(1500);
+// **Polls for the document rather than waiting a fixed 1500 ms for it.**
+// `ActivityPage` reaches `ContentView` through `lazy(() => import(...))`, and
+// the dev server transforms that chunk the first time it is asked for — slower
+// than any fixed wait once the machine is busy. Failed once on 2026-09-08 in a
+// full run, four scripts at a time, and passed 5/5 alone. The assertion below
+// is unchanged, so a page that never draws the document still fails here.
+for (let i = 0; i < 20; i++) {
+    if (/Witamy na zaj/i.test(await body())) break;
+    await wait(500);
+}
 check(await evaluate(`return location.pathname === "/activities/PROG-1-LA";`),
     "an activity with a participant page opens on that page");
 check(/Witamy na zaj/i.test(await body()),
