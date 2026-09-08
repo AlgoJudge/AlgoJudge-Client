@@ -112,6 +112,32 @@ const signedIn = await at();
 check(signedIn.startsWith("/activities"),
     `somebody already signed in goes to their screen, not to a provider (${signedIn})`);
 
+// ── signing out is a way out, not a way round ───────────────────────────────
+//
+// **The fifth suppression, and the one that was missing.** Signing out sent
+// people to `/login`, which is the screen the first check above watches leave
+// for the provider — and the provider still holds a session, so it handed the
+// same person straight back. On an installation that redirects there was no way
+// to sign out at all. Reported from production on 2026-09-08.
+//
+// Continues from the tab the check above left signed in, which is the state
+// this needs.
+
+await click(`document.querySelector("[data-testid=user-menu]")`);
+await click(`document.querySelector("[data-testid=logout]")`);
+await wait(1500);
+
+const out = await at();
+check(out === "/", `signing out lands on the front page (${out})`);
+
+// **And stays there.** What went wrong was not where it landed but what that
+// screen then did, so a location read once proves nothing: the bounce is a
+// redirect fired by `/login` after it had drawn.
+await wait(1500);
+const settled = await at();
+check(settled === "/", `and is still there once the screen has had its say (${settled})`);
+await shot("sign-in-redirect-signed-out");
+
 // ── the registration screen, same rule ──────────────────────────────────────
 //
 // **The session the check above left behind has to go first.** `?fakeUser=`

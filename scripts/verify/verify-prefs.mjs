@@ -45,10 +45,13 @@ await evaluate(`document.querySelector("[aria-label='Toggle color scheme']").cli
 await wait(1200);
 check(await scheme() === "light", "the shell switches it back");
 
-await click(`[...document.querySelectorAll("button")].find(b => (b.innerText ?? "").includes("Horsefighter"))`);
-await click(`[...document.querySelectorAll("[role=menuitem]")].find(i => ["Sign out", "Wyloguj się"].includes(i.textContent.trim()))`);
+await click(`document.querySelector("[data-testid=user-menu]")`);
+await click(`document.querySelector("[data-testid=logout]")`);
 await wait(2000);
-check(await evaluate(`return location.pathname;`) === "/login", "signing out lands on the sign-in screen");
+// The front page, since 2026-09-08, and it is not incidental to this check:
+// signing out is a document load now, so the scheme below is being read off a
+// page that was built from storage rather than left in memory.
+check(await evaluate(`return location.pathname;`) === "/", "signing out lands on the front page");
 check(await scheme() === "light", "which shows the scheme the shell was left in");
 
 report();

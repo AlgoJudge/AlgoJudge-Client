@@ -55,15 +55,36 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
         return created;
     };
 
+    /**
+     * Ends the session, and leaves for the front page.
+     *
+     * **The leaving belongs here and not to the caller.** `RequireSession`
+     * renders a redirect to `/login` the instant the status turns anonymous, and
+     * an installation that sets `signInRedirectProvider` sends `/login` straight
+     * on to the provider — which still holds a session of its own and hands the
+     * same person back. A caller navigating after `signOut` resolves is racing
+     * that guard and loses, so on such an installation there was no way to sign
+     * out at all. Reported from production on 2026-09-08; three of the four
+     * callers had written that losing race.
+     *
+     * **A document load, not a router navigation, and `replace` not `assign`.**
+     * The one moment where dropping everything this person's session left in
+     * memory is the point is this one, and the room is often shared. `replace`
+     * because Back would otherwise return to a guarded screen, which is the trap
+     * again with one more step.
+     *
+     * The status is deliberately not cleared first: this document is going away
+     * and the next one starts anonymous, while clearing it would give the guard
+     * a frame in which to render the redirect this exists to avoid.
+     */
     const signOut = async (): Promise<void> => {
         const controller = new AbortController();
         try {
             await api.authApi.logout(controller.signal);
         } finally {
-            // Signed out locally whatever the Server answered: a failed logout
-            // that left the interface signed in would be the worse of the two.
-            setSessionState(undefined);
-            setStatus("anonymous");
+            // Left whatever the Server answered: a failed logout that stayed on
+            // a signed-in screen would be the worse of the two.
+            window.location.replace("/");
         }
     };
 

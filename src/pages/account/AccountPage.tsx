@@ -6,7 +6,7 @@ import {
 } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import LoadState from "../../components/LoadState";
 import { AccountLink } from "../../api/CoreApi";
 import { useApiCall, useApiEffect } from "../../provider/apiContext";
@@ -25,7 +25,6 @@ const MIN_PASSWORD = 12;
 export default function AccountPage() {
     const { t } = useTranslation();
     const call = useApiCall();
-    const navigate = useNavigate();
     const { session, setSession, signOut } = useAuth();
 
     const [query, setQuery] = useSearchParams();
@@ -121,15 +120,16 @@ export default function AccountPage() {
      */
     const unlink = () => run(async () => {
         await call(api => api.authApi.unlinkProvider(undefined));
+        // `signOut` leaves for the front page itself. It used to land on
+        // `/login`, which on an installation that redirects sent them back to
+        // the provider they had just de-registered from — and linked it again.
         await signOut();
-        navigate("/login", { replace: true });
     });
 
     const deleteAccount = () => run(async () => {
         await call(api => api.authApi.deleteAccount(confirmation.password));
-        // The session is gone with the account; the guard sends them onwards.
+        // The session is gone with the account, and `signOut` leaves with it.
         await signOut();
-        navigate("/login", { replace: true });
     });
 
     return (
