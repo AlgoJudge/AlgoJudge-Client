@@ -99,14 +99,16 @@ both worth knowing before changing any of it:
 
 ## What they cover
 
-**All 47 of them**, counted with `ls scripts/verify/verify-*.mjs | wc -l` on
-2026-08-30 and grouped by area, because a flat list of 47 is a list nobody reads
+**All 53 of them**, counted with `ls scripts/verify/verify-*.mjs | wc -l` on
+2026-09-09 and grouped by area, because a flat list of 53 is a list nobody reads
 to the end. `ui.spec.mjs` enumerates the directory, so this table is a
 description of the suite and never its definition — a script that is here runs
 whether or not it is named below.
 
 *This section listed fourteen rows and did not say it was a selection*, so a gap
-in the suite and a gap in the table looked the same. Completed 2026-08-30.
+in the suite and a gap in the table looked the same. Completed 2026-08-30, and
+**four rows were missing again by 2026-09-09** — a table completed once stays
+complete only if adding a script means adding a row.
 
 **Activities and rounds**
 
@@ -134,6 +136,7 @@ in the suite and a gap in the table looked the same. Completed 2026-08-30.
 | `verify-submit-modal` | sending from the submissions panel, and the bar's two controls |
 | `verify-attachments` | what a submission carries, and who may read each part of it |
 | `verify-submission-origin` | the address, browser and session on one submission's detail — and on no list |
+| `verify-resubmit` | a stored submission edited and sent again, checksum and all |
 
 **Results and boards**
 
@@ -158,6 +161,8 @@ in the suite and a gap in the table looked the same. Completed 2026-08-30.
 | `verify-name` | the instance names itself: beside the mark in both shells, and in the tab |
 | `verify-instance` | an operator writes what the instance says about itself, including saying nothing |
 | `verify-maintenance` | what a person sees while the Server is away, and that it covers the login form too |
+| `verify-hero` | the introduction above an installation's own front page: drawn or not, who sees it, and the way in it offers |
+| `verify-mobile` | the phone, and the one control that has to be reachable on it |
 
 **Accounts, sessions and links**
 
@@ -169,6 +174,7 @@ in the suite and a gap in the table looked the same. Completed 2026-08-30.
 | `verify-device-id` | the name this browser gives itself: minted, kept, and surviving refused storage |
 | `verify-share-field` | the link a manager copies, under each of the three policies |
 | `verify-share-link` | that link opened by somebody signed out, password intact through the sign-in screen, and a malformed escape in the fragment |
+| `verify-sign-in-redirect` | an installation that sends people straight to one provider, and every way out of it — an administrator, a refusal, a provider nobody offers, and signing out |
 
 **Runners, and work that leaves the building**
 
@@ -241,7 +247,7 @@ visible rather than forgotten:
   `verify-nav` reads it too. The censoring is still uncovered — `ContentView.tsx`
   replaces a link to an unpermitted host with a `<span>`, and no script here
   asserts it. But neither is blocked on a harness any more: `grep -L "harness.mjs"
-  scripts/verify/verify-*.mjs` returns nothing, so all 47 import the shared one.
+  scripts/verify/verify-*.mjs` returns nothing, so all 53 import the shared one.
 
 **None of them carries an inline harness any more**, and that is measured rather
 than remembered: `grep -L "harness.mjs" scripts/verify/verify-*.mjs` returned
