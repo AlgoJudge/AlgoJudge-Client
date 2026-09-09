@@ -270,17 +270,23 @@ const LangSelector = () => {
     );
 }
 
-const UserButton = (props: ComponentPropsWithoutRef<'button'>) => {
+const UserButton = ({ compact, ...props }: ComponentPropsWithoutRef<'button'> & { compact?: boolean }) => {
     const { session } = useAuth();
     return (
-        <UnstyledButton data-testid="user-menu" mx="xl" {...props} className={classes.user}>
+        // `mx` is a prop and not a rule because a Mantine style prop is an
+        // inline custom property: 32px each side is right in a 1500px bar and
+        // is a fifth of the drawer it also has to sit in.
+        <UnstyledButton data-testid="user-menu" mx={compact ? 0 : "xl"} {...props} className={classes.user}>
             <Group>
                 <div style={{ flex: 1 }}>
                     <Text size="sm" fw={500}>
                         {session ? displayName(session) : ""}
                     </Text>
 
-                    <Text c="dimmed" size="xs">
+                    {/* `c` and not a rule: `dimmed` is written as an inline
+                        custom property, so a stylesheet cannot repoint it — and
+                        on the drawer's blue it is grey on blue at 2:1. */}
+                    <Text c={compact ? "blue.1" : "dimmed"} size="xs">
                         {session?.username}
                     </Text>
                 </div>
@@ -291,14 +297,14 @@ const UserButton = (props: ComponentPropsWithoutRef<'button'>) => {
     );
 }
 
-const UserMenu = () => {
+const UserMenu = ({ compact }: { compact?: boolean }) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const { signOut } = useAuth();
     return (
         <Menu shadow="md" width={220}>
             <Menu.Target>
-                <UserButton />
+                <UserButton compact={compact} />
             </Menu.Target>
 
             <Menu.Dropdown>
@@ -364,7 +370,6 @@ export default function AppLayout() {
     const { t } = useTranslation();
     const { instance } = useInstance();
     const { hasAny } = usePermissions();
-    const { signOut } = useAuth();
     const [opened, { toggle, close }] = useDisclosure();
     const [railed, collapse] = useDisclosure();
     // The rail is a desktop idea, and the flag outlives the width that set it:
@@ -541,22 +546,14 @@ export default function AppLayout() {
                         nothing, because this drawer is only ever open on
                         purpose. Above `sm` the bar carries them and this is not
                         drawn at all. */}
-                    <Box hiddenFrom="sm" mb="md">
-                        <NavbarLink to="/account" label={t("My account")} icon={IconUser} collapsed={false} />
-                        <Group justify="space-between" px="sm" py={6}>
+                    <Box hiddenFrom="sm" mb="md" className={classes.drawerFoot}>
+                        <Group justify="space-between" px="sm" py={6} wrap="nowrap">
                             <LangSelector />
-                            {/* Not `logout`: the account menu in the bar already
-                                carries that name, and this one — hidden above
-                                `sm` — came first in the document, so the gate
-                                clicked a `display: none` button and waited for a
-                                sign-out that never happened. */}
-                            <UnstyledButton
-                                data-testid="nav-logout"
-                                className={classes.footLink}
-                                onClick={() => void signOut()}
-                            >
-                                {t("Logout")}
-                            </UnstyledButton>
+                            {/* The bar's own menu rather than a bare sign-out
+                                button: the account screen and the sign-out are
+                                one control everywhere else, and two here would
+                                be two places to keep in step. */}
+                            <UserMenu compact />
                         </Group>
                     </Box>
                     {/* A rail that narrows to icons is a desktop idea: below

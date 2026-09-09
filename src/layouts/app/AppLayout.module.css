@@ -285,6 +285,28 @@
     color: var(--aj-nav-text, var(--mantine-color-white));
 }
 
+/*
+ * The drawer's foot, where the bar's two controls end up below `sm`.
+ *
+ * Both are drawn for a white header: the language button inherits whatever it
+ * is given, and the account button pins its own `color` — so on the
+ * navigation's blue they arrived black on blue. The height and padding go too;
+ * they were sized for a 64px bar.
+ */
+.drawerFoot {
+    color: var(--aj-nav-text, var(--mantine-color-white));
+}
+
+.drawerFoot .user {
+    color: inherit;
+    height: auto;
+    padding: rem(4px) 0;
+}
+
+.drawerFoot .user:hover {
+    background-color: var(--aj-nav-hover, rgba(255, 255, 255, 0.12));
+}
+
 /* The scrollbar of the middle section, on the navigation's own blue: the default
    grey is drawn for a light surface and all but disappears here. */
 .navbar :global(.mantine-ScrollArea-thumb) {
