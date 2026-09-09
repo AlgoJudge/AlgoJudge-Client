@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AlgoJudge</title>
+<!--
+  The last resort, and only that.
+
+  A device with no network normally still gets the application: the service
+  worker keeps a copy of the shell and the app draws its own page, in the
+  installation's language and colours. This file is what answers when even that
+  copy is gone — a first visit made offline, or a cache the browser evicted.
+
+  So it is deliberately poor: no API, no fonts, no bundle, both languages at
+  once because nothing here knows which one was chosen. It must work when
+  nothing else does.
+
+  It is not the operator's outage page. That one lives in AlgoJudge-Ops
+  (`@offline` in nginx) and answers when the Client container is gone, which is
+  a different failure with a different remedy.
+-->
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    box-sizing: border-box;
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: #ffffff;
+    color: #1a1b1e;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: #1a1b1e; color: #e9ecef; }
+    .rule { border-color: #373a40 !important; }
+  }
+  main { max-width: 26rem; text-align: center; }
+  img { width: 72px; height: 72px; border-radius: 12px; }
+  h1 { font-size: 1.25rem; margin: 1.25rem 0 0.5rem; }
+  p { margin: 0.25rem 0; }
+  .rule { margin: 1.25rem 0; border: 0; border-top: 1px solid #dee2e6; }
+  .quiet { opacity: 0.7; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<main>
+  <img src="/icon-192.png" alt="AlgoJudge" />
+  <h1>Brak połączenia</h1>
+  <p>To urządzenie nie ma teraz dostępu do sieci.</p>
+  <p class="quiet">Strona wróci sama, gdy połączenie wróci.</p>
+  <hr class="rule" />
+  <h1>No connection</h1>
+  <p>This device has no network access right now.</p>
+  <p class="quiet">The page comes back on its own once the connection does.</p>
+</main>
+</body>
+</html>
