@@ -1,5 +1,5 @@
-import { AppShell, Burger, Center, Group, Image, Loader, UnstyledButton, Text, Divider, Tooltip, Menu, ScrollArea, useMantineColorScheme, useComputedColorScheme, Badge } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
+import { AppShell, Badge, Box, Burger, Center, Divider, em, Group, Image, Loader, Menu, ScrollArea, Text, Tooltip, UnstyledButton, useComputedColorScheme, useMantineColorScheme } from "@mantine/core";
+import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { NavLink, Outlet, useMatch, useNavigate } from "react-router-dom";
 import Logo from "../../components/logo/Logo";
 import { displayName } from "../../api/displayName";
@@ -200,6 +200,12 @@ const ActivityNavbar = (props: {
  */
 const ActivityClock = ({ activity, series }: { activity: Activity | undefined, series: Series[] }) => {
     const { t } = useTranslation();
+    // The one thing in this file that a media query cannot do: `size` is a prop,
+    // and Mantine writes a badge's font and padding as inline custom properties
+    // that a stylesheet cannot outrank. At `lg` on a 360px bar the badge was
+    // shrunk by its own row until the countdown read "2 DNI 2…".
+    const narrow = useMediaQuery(`(max-width: ${em(768)})`);
+    const size = narrow ? "sm" : "lg";
     if (!activity) return null;
 
     const now = Date.now();
@@ -217,7 +223,7 @@ const ActivityClock = ({ activity, series }: { activity: Activity | undefined, s
     const paused = series.find(s => s.pausedAt !== undefined);
     if (paused) {
         return (
-            <Badge size="lg" variant="light" color="orange" leftSection={<IconClock size={14} />}>
+            <Badge size={size} variant="light" color="orange" leftSection={narrow ? undefined : <IconClock size={14} />}>
                 {t("Paused")}
             </Badge>
         );
@@ -226,7 +232,7 @@ const ActivityClock = ({ activity, series }: { activity: Activity | undefined, s
 
     return (
         <Tooltip label={`${running.name} — ${t("Time left")}`}>
-            <Badge size="lg" variant="light" color="blue" leftSection={<IconClock size={14} />}>
+            <Badge size={size} variant="light" color="blue" leftSection={narrow ? undefined : <IconClock size={14} />}>
                 <Countdown target={running.endDate} />
             </Badge>
         </Tooltip>
@@ -250,7 +256,7 @@ const ColorSchemeSwitch = () => {
 const LangSelector = () => {
     const { t, i18n } = useTranslation();
     return (
-        <Menu trigger="hover" transitionProps={{ exitDuration: 0 }} withinPortal>
+        <Menu trigger="click-hover" transitionProps={{ exitDuration: 0 }} withinPortal>
             <Menu.Target>
                 <UnstyledButton>
                     {t("Lang")} <IconChevronDown size="0.9rem" stroke={1.5} />
@@ -337,11 +343,14 @@ const InstanceMark = ({ collapsed }: { collapsed: boolean }) => {
                 {/* Scaled, not a fixed pixel height: Mantine's own sizes all
                     carry `--mantine-scale`, and a mark that ignored it was the
                     one thing in the panel that did not grow with the rest. */}
+                {/* Half height on a phone: the drawer is the whole screen
+                    there, and six rem of operator logo left the list of
+                    sections under it about a hundred pixels to scroll in. */}
                 <Image
                     src={logoUrl}
                     alt=""
                     fit="contain"
-                    h={collapsed ? 36 : "calc(6rem * var(--mantine-scale))"}
+                    h={collapsed ? 36 : { base: "calc(3rem * var(--mantine-scale))", sm: "calc(6rem * var(--mantine-scale))" }}
                     w="80%"
                     mx="auto"
                 />
@@ -355,7 +364,8 @@ export default function AppLayout() {
     const { t } = useTranslation();
     const { instance } = useInstance();
     const { hasAny } = usePermissions();
-    const [opened, { toggle }] = useDisclosure();
+    const { signOut } = useAuth();
+    const [opened, { toggle, close }] = useDisclosure();
     const [collapsed, collapse] = useDisclosure();
     // Matched on the participant route rather than read from any parameter named
     // `activityId`: the manager screens use that name too, and the participant
@@ -431,14 +441,14 @@ export default function AppLayout() {
             padding="md"
         >
             <AppShell.Header className={classes.header}>
-                <Group wrap="nowrap">
+                <Group wrap="nowrap" gap="xs">
                     <Burger
                         opened={opened}
                         onClick={toggle}
                         hiddenFrom="sm"
                         size="sm"
                     />
-                    <NavLink to="/"><Logo h="1.2em" mx="xl" /></NavLink>
+                    <NavLink to="/" className={classes.wordmark}><Logo h="1.2em" /></NavLink>
                     {/* Whose installation this is, beside whose software it is —
                         and nothing at all where nobody has said. Clamped and
                         hidden on a narrow screen: a long faculty name must not
@@ -449,11 +459,24 @@ export default function AppLayout() {
                         </Text>
                     )}
                 </Group>
-                <Group>
+                {/* **`nowrap`, because wrapping is what broke it.** A `Group`
+                    wraps by default and nothing in here could shrink, so on a
+                    phone the account button dropped to a second row inside a
+                    header one row tall and ran past the right edge — measured at
+                    449px on a 360px screen, 2026-09-09.
+
+                    The language and the account are the two widest, and below
+                    `sm` they are in the navigation drawer instead. What stays is
+                    what a thumb needs without opening anything: the clock,
+                    because it is the one thing in here that changes, and the
+                    scheme switch. */}
+                <Group wrap="nowrap" gap={6}>
                     <ActivityClock activity={activity} series={series} />
                     <ColorSchemeSwitch />
-                    <LangSelector />
-                    <UserMenu />
+                    <Group wrap="nowrap" gap="xs" visibleFrom="sm">
+                        <LangSelector />
+                        <UserMenu />
+                    </Group>
                 </Group>
             </AppShell.Header>
 
@@ -462,7 +485,22 @@ export default function AppLayout() {
                 an activity its own list on top of them, and on a short window
                 they simply ran off the bottom with no way to reach them. The
                 mark and the foot links stay put; what is between them scrolls. */}
-            <AppShell.Navbar p="md" className={classes.navbar}>
+            {/* **Closing is the drawer's own business.** Every entry in here is
+                a `NavLink` that navigates and nothing else, so on a phone the
+                route changed underneath a drawer that stayed open over it —
+                Mantine draws no scrim to tap away, either. Caught here rather
+                than added to each link: one handler covers the activity list,
+                the manager list, the foot links and whatever is added next.
+                The collapse control is an anchor too and would close the drawer
+                on its way to doing nothing useful in one — so below `sm` it is
+                not drawn at all. */}
+            <AppShell.Navbar
+                p="md"
+                className={classes.navbar}
+                onClick={event => {
+                    if ((event.target as HTMLElement).closest("a")) close();
+                }}
+            >
                 <AppShell.Section>
                     <InstanceMark collapsed={collapsed} />
                 </AppShell.Section>
@@ -482,7 +520,35 @@ export default function AppLayout() {
 
                 <AppShell.Section>
                     <Divider my="md" className={classes.divider} />
-                    {CollapseButton}
+                    {/* **What the header gives up below `sm`.** The account and
+                        the language are the two widest controls in the bar and
+                        they are what pushed it past the edge; here they cost
+                        nothing, because this drawer is only ever open on
+                        purpose. Above `sm` the bar carries them and this is not
+                        drawn at all. */}
+                    <Box hiddenFrom="sm" mb="md">
+                        <NavbarLink to="/account" label={t("My account")} icon={IconUser} collapsed={false} />
+                        <Group justify="space-between" px="sm" py={6}>
+                            <LangSelector />
+                            {/* Not `logout`: the account menu in the bar already
+                                carries that name, and this one — hidden above
+                                `sm` — came first in the document, so the gate
+                                clicked a `display: none` button and waited for a
+                                sign-out that never happened. */}
+                            <UnstyledButton
+                                data-testid="nav-logout"
+                                className={classes.footLink}
+                                onClick={() => void signOut()}
+                            >
+                                {t("Logout")}
+                            </UnstyledButton>
+                        </Group>
+                    </Box>
+                    {/* A rail that narrows to icons is a desktop idea: below
+                        `sm` the navigation is a drawer that is either open or
+                        gone, and the row cost a line of a list that had none
+                        to spare. */}
+                    <Box visibleFrom="sm">{CollapseButton}</Box>
                     <FootLinks collapsed={collapsed} />
                 </AppShell.Section>
             </AppShell.Navbar>

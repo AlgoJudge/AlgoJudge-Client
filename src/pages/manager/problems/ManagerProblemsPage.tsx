@@ -18,6 +18,7 @@ import { UvaBrowseButton } from "../external/UvaBrowseButton";
 import { refusal } from "../external/access";
 import { ImportOutcome, importOne } from "../external/uvaImport";
 import { problemTypes } from "../../../renderers";
+import DataTable from "../../../components/table/DataTable";
 
 const PAGE_SIZE = 20;
 
@@ -205,112 +206,110 @@ export default function ManagerProblemsPage() {
                 <Switch label={t("Include archived")} checked={includeArchived} onChange={e => { setIncludeArchived(e.currentTarget.checked); setPage(1); }} />
             </Group>
 
-            <Table.ScrollContainer minWidth={900}>
-                <Table striped highlightOnHover>
-                    <Table.Thead>
-                        <Table.Tr>
-                            <Table.Th>{t("Name")}</Table.Th>
-                            <Table.Th>{t("Type")}</Table.Th>
-                            <Table.Th>{t("Owner")}</Table.Th>
-                            <Table.Th>{t("Visibility")}</Table.Th>
-                            <Table.Th>{t("Version")}</Table.Th>
-                            <Table.Th>{t("Attached")}</Table.Th>
-                            <Table.Th>{t("Date")}</Table.Th>
-                            <Table.Th />
-                        </Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                        {items.map(problem => (
-                            <Table.Tr key={problem.id} opacity={problem.archivedAt ? 0.55 : 1}>
-                                <Table.Td>
-                                    <Group gap="xs" wrap="nowrap">
-                                        <Text
-                                            fw={500}
-                                            style={{ cursor: "pointer" }}
-                                            onClick={() => navigate(`/manager/problems/${problem.id}`)}
-                                        >
-                                            {problem.name}
-                                        </Text>
-                                        {problem.archivedAt && <Badge size="sm" color="gray">{t("Archived")}</Badge>}
-                                    </Group>
-                                    <Text size="xs" c="dimmed" ff="monospace">{problem.slug}</Text>
-                                </Table.Td>
-                                <Table.Td><Text size="sm" ff="monospace">{problem.type}</Text></Table.Td>
-                                <Table.Td><Text size="sm">{problem.ownerName}</Text></Table.Td>
-                                <Table.Td><VisibilityBadge problem={problem} /></Table.Td>
-                                <Table.Td>
-                                    <Text size="sm">
-                                        {problem.currentVersion === 0 ? "—" : `v${problem.currentVersion}`}
-                                        {problem.versionCount > 1 && (
-                                            <Text component="span" size="xs" c="dimmed"> / {problem.versionCount}</Text>
-                                        )}
+            <DataTable minWidth={900} striped highlightOnHover>
+                <Table.Thead>
+                    <Table.Tr>
+                        <Table.Th>{t("Name")}</Table.Th>
+                        <Table.Th>{t("Type")}</Table.Th>
+                        <Table.Th>{t("Owner")}</Table.Th>
+                        <Table.Th>{t("Visibility")}</Table.Th>
+                        <Table.Th>{t("Version")}</Table.Th>
+                        <Table.Th>{t("Attached")}</Table.Th>
+                        <Table.Th>{t("Date")}</Table.Th>
+                        <Table.Th />
+                    </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                    {items.map(problem => (
+                        <Table.Tr key={problem.id} opacity={problem.archivedAt ? 0.55 : 1}>
+                            <Table.Td>
+                                <Group gap="xs" wrap="nowrap">
+                                    <Text
+                                        fw={500}
+                                        style={{ cursor: "pointer" }}
+                                        onClick={() => navigate(`/manager/problems/${problem.id}`)}
+                                    >
+                                        {problem.name}
                                     </Text>
-                                </Table.Td>
-                                <Table.Td>
-                                    {problem.attachedCount > 0
-                                        ? <Badge variant="outline" size="sm">{problem.attachedCount}</Badge>
-                                        : <Text size="sm" c="dimmed">—</Text>}
-                                </Table.Td>
-                                <Table.Td>
-                                    <ActivityTime value={problem.createdAt} timeZone="Europe/Warsaw" format="date" hideZone />
-                                </Table.Td>
-                                <Table.Td>
-                                    <Group gap="xs" justify="flex-end" wrap="nowrap">
-                                        <Button variant="light" size="compact-sm" onClick={() => navigate(`/manager/problems/${problem.id}`)}>
-                                            {t("Open")}
+                                    {problem.archivedAt && <Badge size="sm" color="gray">{t("Archived")}</Badge>}
+                                </Group>
+                                <Text size="xs" c="dimmed" ff="monospace">{problem.slug}</Text>
+                            </Table.Td>
+                            <Table.Td><Text size="sm" ff="monospace">{problem.type}</Text></Table.Td>
+                            <Table.Td><Text size="sm">{problem.ownerName}</Text></Table.Td>
+                            <Table.Td><VisibilityBadge problem={problem} /></Table.Td>
+                            <Table.Td>
+                                <Text size="sm">
+                                    {problem.currentVersion === 0 ? "—" : `v${problem.currentVersion}`}
+                                    {problem.versionCount > 1 && (
+                                        <Text component="span" size="xs" c="dimmed"> / {problem.versionCount}</Text>
+                                    )}
+                                </Text>
+                            </Table.Td>
+                            <Table.Td>
+                                {problem.attachedCount > 0
+                                    ? <Badge variant="outline" size="sm">{problem.attachedCount}</Badge>
+                                    : <Text size="sm" c="dimmed">—</Text>}
+                            </Table.Td>
+                            <Table.Td>
+                                <ActivityTime value={problem.createdAt} timeZone="Europe/Warsaw" format="date" hideZone />
+                            </Table.Td>
+                            <Table.Td>
+                                <Group gap="xs" justify="flex-end" wrap="nowrap">
+                                    <Button variant="light" size="compact-sm" onClick={() => navigate(`/manager/problems/${problem.id}`)}>
+                                        {t("Open")}
+                                    </Button>
+                                    <Tooltip label={t("Duplicate")}>
+                                        <Button
+                                            variant="subtle"
+                                            size="compact-sm"
+                                            aria-label={t("Duplicate")}
+                                            loading={busy}
+                                            onClick={() => setCopying(problem)}
+                                        >
+                                            <IconCopy size={14} />
                                         </Button>
-                                        <Tooltip label={t("Duplicate")}>
-                                            <Button
-                                                variant="subtle"
-                                                size="compact-sm"
-                                                aria-label={t("Duplicate")}
-                                                loading={busy}
-                                                onClick={() => setCopying(problem)}
-                                            >
-                                                <IconCopy size={14} />
-                                            </Button>
-                                        </Tooltip>
-                                        <ExportButton
-                                            compact
-                                            label={t("Export to a file")}
-                                            filename={`algojudge-${problem.slug}`}
-                                            collect={api => collectProblemOnly(api, problem.id)}
-                                            onError={message => setError(message || undefined)}
-                                        />
-                                        <Tooltip label={problem.archivedAt ? t("Restore") : t("Archive")}>
-                                            <Button
-                                                variant="subtle"
-                                                size="compact-sm"
-                                                loading={busy}
-                                                onClick={() => run(() => call(api => api.managerApi.setProblemArchived(problem.id, !problem.archivedAt)))}
-                                            >
-                                                {problem.archivedAt ? <IconArchiveOff size={14} /> : <IconArchive size={14} />}
-                                            </Button>
-                                        </Tooltip>
-                                        {/* Deleting is refused while the problem is
-                                            attached anywhere, so the button says so
-                                            instead of failing on click. */}
-                                        <Tooltip label={problem.attachedCount > 0
-                                            ? t("Attached to an activity — archive it instead")
-                                            : t("Delete")}>
-                                            <Button
-                                                variant="subtle"
-                                                color="red"
-                                                size="compact-sm"
-                                                disabled={problem.attachedCount > 0}
-                                                loading={busy}
-                                                onClick={() => run(() => call(api => api.managerApi.deleteProblem(problem.id)))}
-                                            >
-                                                <IconTrash size={14} />
-                                            </Button>
-                                        </Tooltip>
-                                    </Group>
-                                </Table.Td>
-                            </Table.Tr>
-                        ))}
-                    </Table.Tbody>
-                </Table>
-            </Table.ScrollContainer>
+                                    </Tooltip>
+                                    <ExportButton
+                                        compact
+                                        label={t("Export to a file")}
+                                        filename={`algojudge-${problem.slug}`}
+                                        collect={api => collectProblemOnly(api, problem.id)}
+                                        onError={message => setError(message || undefined)}
+                                    />
+                                    <Tooltip label={problem.archivedAt ? t("Restore") : t("Archive")}>
+                                        <Button
+                                            variant="subtle"
+                                            size="compact-sm"
+                                            loading={busy}
+                                            onClick={() => run(() => call(api => api.managerApi.setProblemArchived(problem.id, !problem.archivedAt)))}
+                                        >
+                                            {problem.archivedAt ? <IconArchiveOff size={14} /> : <IconArchive size={14} />}
+                                        </Button>
+                                    </Tooltip>
+                                    {/* Deleting is refused while the problem is
+                                        attached anywhere, so the button says so
+                                        instead of failing on click. */}
+                                    <Tooltip label={problem.attachedCount > 0
+                                        ? t("Attached to an activity — archive it instead")
+                                        : t("Delete")}>
+                                        <Button
+                                            variant="subtle"
+                                            color="red"
+                                            size="compact-sm"
+                                            disabled={problem.attachedCount > 0}
+                                            loading={busy}
+                                            onClick={() => run(() => call(api => api.managerApi.deleteProblem(problem.id)))}
+                                        >
+                                            <IconTrash size={14} />
+                                        </Button>
+                                    </Tooltip>
+                                </Group>
+                            </Table.Td>
+                        </Table.Tr>
+                    ))}
+                </Table.Tbody>
+            </DataTable>
 
             {items.length === 0 && <Text c="dimmed">{t("Nothing matches the filters")}</Text>}
 

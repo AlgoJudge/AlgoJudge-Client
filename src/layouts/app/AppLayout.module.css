@@ -2,6 +2,47 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    /* **Padding and a gap, which it had neither of.** `AppShell.Header` brings
+       none of its own, so at a narrow width the two groups met in the middle and
+       the right one ran off the edge with nothing to stop it. */
+    padding-inline: var(--mantine-spacing-xs);
+    gap: 6px;
+}
+
+@media (min-width: $mantine-breakpoint-sm) {
+    .header {
+        gap: var(--mantine-spacing-xs);
+    }
+}
+
+/*
+ * The mark's margin, which used to be `mx="xl"` on the mark itself.
+ *
+ * 32px each side is nothing in a 1500px bar and a fifth of a 360px one — and a
+ * phone's bar has to hold the running series' countdown as well. Moving it onto
+ * the link is what lets a media query reach it: a Mantine style prop is an
+ * inline style, and a stylesheet does not outrank one.
+ */
+/* `wordmark` and not `mark`: this file already had a `.mark`, and it is the
+   operator's logo in the navigation drawer. Two rules under one name meant this
+   one's `margin-inline` reached that one and pushed it off centre. */
+.wordmark {
+    display: inline-flex;
+    align-items: center;
+    margin-inline: var(--mantine-spacing-xs);
+    /* The mark is sized in `em`, so its own font size is the scale. Narrowing
+       the margins alone left the running series' countdown 16px over the edge;
+       this is the rest of it. Measured: the countdown wants 119px for
+       "2 DNI 23 GODZ." and the bar had 81 to give it. */
+    font-size: 0.75em;
+}
+
+@media (min-width: $mantine-breakpoint-sm) {
+    .wordmark {
+        margin-inline: var(--mantine-spacing-xl);
+        /* Full size from here up: the desktop bar is unchanged. */
+        font-size: 1em;
+    }
 }
 
 .user {

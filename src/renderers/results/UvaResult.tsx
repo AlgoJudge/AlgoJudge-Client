@@ -1,6 +1,7 @@
 import { Alert, Badge, Group, Stack, Table, Text } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
+import DataTable from "../../components/table/DataTable";
 
 /**
  * What came back from an archive this installation does not run.
@@ -111,7 +112,7 @@ export default function UvaResult({ detail }: { detail: unknown }) {
                 })}
             </Text>
 
-            <Table withTableBorder withColumnBorders>
+            <DataTable withTableBorder withColumnBorders>
                 <Table.Tbody>
                     <Table.Tr>
                         <Table.Th>{t("Run time")}</Table.Th>
@@ -136,7 +137,7 @@ export default function UvaResult({ detail }: { detail: unknown }) {
                         <Table.Td>{moment(external.judgedAtUnix, i18n.language)}</Table.Td>
                     </Table.Tr>
                 </Table.Tbody>
-            </Table>
+            </DataTable>
 
             {document.compilation?.status === "ERROR" && (
                 <Alert color="red" icon={<IconInfoCircle size={18} />}>

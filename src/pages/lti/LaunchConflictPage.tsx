@@ -24,7 +24,7 @@ export default function LaunchConflictPage() {
     const asserted = parameters.get("asserted") ?? "";
 
     return (
-        <Stack gap="md" maw={620} mx="auto" my="xl">
+        <Stack gap="md" maw={620} mx="auto" my="xl" px="md">
             <Title order={3}>{t("This account does not match your course account")}</Title>
 
             <Alert

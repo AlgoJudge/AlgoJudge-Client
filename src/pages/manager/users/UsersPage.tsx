@@ -13,6 +13,7 @@ import TemporaryAccountsModal from "../../../components/users/TemporaryAccountsM
 import MergeAccountModal from "../../../components/users/MergeAccountModal";
 import { optional, useApiCall, useApiEffect } from "../../../provider/apiContext";
 import { useInstance } from "../../../provider/instanceContext";
+import DataTable from "../../../components/table/DataTable";
 
 const PAGE_SIZE = 20;
 
@@ -195,123 +196,121 @@ export default function UsersPage() {
                 />
             </Group>
 
-            <Table.ScrollContainer minWidth={900}>
-                <Table striped highlightOnHover>
-                    <Table.Thead>
-                        <Table.Tr>
-                            <Table.Th>{t("User")}</Table.Th>
-                            <Table.Th>{t("Email")}</Table.Th>
-                            <Table.Th>{t("Tags")}</Table.Th>
-                            <Table.Th>{t("State")}</Table.Th>
-                            <Table.Th>{t("Grants")}</Table.Th>
-                            <Table.Th>{t("Last seen")}</Table.Th>
-                            <Table.Th />
-                        </Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                        {items.map(user => (
-                            <Table.Tr key={user.id} opacity={stateOf(user) === "active" ? 1 : 0.6}>
-                                <Table.Td>
-                                    <Stack gap={0}>
-                                        <Group gap="xs">
-                                            {/* The name opens the account, as the
-                                                name does on the problem, activity
-                                                and Runner lists. The button stays:
-                                                it is what says the row can be
-                                                opened at all. */}
-                                            <Text
-                                                fw={500}
-                                                style={{ cursor: "pointer" }}
-                                                onClick={() => void open(user)}
-                                            >
-                                                {displayName(user)}
-                                            </Text>
-                                            {user.isTemporary && (
-                                                <Badge size="sm" variant="outline" color="gray">{t("temporary")}</Badge>
-                                            )}
-                                        </Group>
-                                        <Text size="xs" c="dimmed" ff="monospace">{user.username}</Text>
-                                    </Stack>
-                                </Table.Td>
-                                <Table.Td>
-                                    <Group gap={4} wrap="nowrap">
-                                        <Text size="sm">{user.email ?? "—"}</Text>
-                                        {/* An unconfirmed address is one nobody
-                                            has proved reaches this person. */}
-                                        {user.email && !user.emailConfirmed && (
-                                            <Tooltip label={t("Address not confirmed")}>
-                                                <Badge size="xs" variant="light" color="orange">?</Badge>
-                                            </Tooltip>
+            <DataTable minWidth={900} striped highlightOnHover>
+                <Table.Thead>
+                    <Table.Tr>
+                        <Table.Th>{t("User")}</Table.Th>
+                        <Table.Th>{t("Email")}</Table.Th>
+                        <Table.Th>{t("Tags")}</Table.Th>
+                        <Table.Th>{t("State")}</Table.Th>
+                        <Table.Th>{t("Grants")}</Table.Th>
+                        <Table.Th>{t("Last seen")}</Table.Th>
+                        <Table.Th />
+                    </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                    {items.map(user => (
+                        <Table.Tr key={user.id} opacity={stateOf(user) === "active" ? 1 : 0.6}>
+                            <Table.Td>
+                                <Stack gap={0}>
+                                    <Group gap="xs">
+                                        {/* The name opens the account, as the
+                                            name does on the problem, activity
+                                            and Runner lists. The button stays:
+                                            it is what says the row can be
+                                            opened at all. */}
+                                        <Text
+                                            fw={500}
+                                            style={{ cursor: "pointer" }}
+                                            onClick={() => void open(user)}
+                                        >
+                                            {displayName(user)}
+                                        </Text>
+                                        {user.isTemporary && (
+                                            <Badge size="sm" variant="outline" color="gray">{t("temporary")}</Badge>
                                         )}
                                     </Group>
-                                </Table.Td>
-                                <Table.Td>
-                                    <Group gap={4}>
-                                        {user.tags.map(tag => (
-                                            <Badge key={tag} size="sm" variant="light">{tag}</Badge>
-                                        ))}
-                                    </Group>
-                                </Table.Td>
-                                <Table.Td>
-                                    <Tooltip label={user.blockedReason ?? ""} disabled={!user.blockedReason}>
-                                        <Badge variant="light" color={STATE_COLOUR[stateOf(user)]}>
-                                            {t(`userState.${stateOf(user)}`)}
-                                        </Badge>
-                                    </Tooltip>
-                                </Table.Td>
-                                <Table.Td><Text size="sm">{user.grantCount}</Text></Table.Td>
-                                <Table.Td>
-                                    {user.lastSeenAt
-                                        ? <ActivityTime value={user.lastSeenAt} timeZone="Europe/Warsaw" format="date" hideZone />
-                                        : <Text size="sm" c="dimmed">{t("never")}</Text>}
-                                </Table.Td>
-                                <Table.Td>
-                                    <Group gap="xs" justify="flex-end" wrap="nowrap">
-                                        {stateOf(user) === "pending" && (
-                                            <Button
-                                                variant="light"
-                                                size="compact-sm"
-                                                loading={busy}
-                                                onClick={() => run(() => call(api => api.managerApi.approveUser(user.id)))}
-                                            >
-                                                {t("Approve")}
-                                            </Button>
-                                        )}
-                                        <Button variant="light" size="compact-sm" onClick={() => open(user)}>
-                                            {t("Open")}
+                                    <Text size="xs" c="dimmed" ff="monospace">{user.username}</Text>
+                                </Stack>
+                            </Table.Td>
+                            <Table.Td>
+                                <Group gap={4} wrap="nowrap">
+                                    <Text size="sm">{user.email ?? "—"}</Text>
+                                    {/* An unconfirmed address is one nobody
+                                        has proved reaches this person. */}
+                                    {user.email && !user.emailConfirmed && (
+                                        <Tooltip label={t("Address not confirmed")}>
+                                            <Badge size="xs" variant="light" color="orange">?</Badge>
+                                        </Tooltip>
+                                    )}
+                                </Group>
+                            </Table.Td>
+                            <Table.Td>
+                                <Group gap={4}>
+                                    {user.tags.map(tag => (
+                                        <Badge key={tag} size="sm" variant="light">{tag}</Badge>
+                                    ))}
+                                </Group>
+                            </Table.Td>
+                            <Table.Td>
+                                <Tooltip label={user.blockedReason ?? ""} disabled={!user.blockedReason}>
+                                    <Badge variant="light" color={STATE_COLOUR[stateOf(user)]}>
+                                        {t(`userState.${stateOf(user)}`)}
+                                    </Badge>
+                                </Tooltip>
+                            </Table.Td>
+                            <Table.Td><Text size="sm">{user.grantCount}</Text></Table.Td>
+                            <Table.Td>
+                                {user.lastSeenAt
+                                    ? <ActivityTime value={user.lastSeenAt} timeZone="Europe/Warsaw" format="date" hideZone />
+                                    : <Text size="sm" c="dimmed">{t("never")}</Text>}
+                            </Table.Td>
+                            <Table.Td>
+                                <Group gap="xs" justify="flex-end" wrap="nowrap">
+                                    {stateOf(user) === "pending" && (
+                                        <Button
+                                            variant="light"
+                                            size="compact-sm"
+                                            loading={busy}
+                                            onClick={() => run(() => call(api => api.managerApi.approveUser(user.id)))}
+                                        >
+                                            {t("Approve")}
                                         </Button>
-                                        {/* Offered on a blocked account too: an
-                                            account merged away is blocked, and
-                                            the manager may be here to merge a
-                                            second one onto the same target. */}
-                                        <Tooltip label={t("Move this account's work to another")}>
-                                            <Button
-                                                variant="subtle"
-                                                size="compact-sm"
-                                                onClick={() => setMerging(user)}
-                                            >
-                                                <IconArrowMerge size={14} />
-                                            </Button>
-                                        </Tooltip>
-                                        <Tooltip label={user.blockedAt ? t("Unblock") : t("Block")}>
-                                            <Button
-                                                variant="subtle"
-                                                size="compact-sm"
-                                                color={user.blockedAt ? "teal" : "red"}
-                                                loading={busy}
-                                                onClick={() => run(() => call(api =>
-                                                    api.managerApi.setUserBlocked(user.id, !user.blockedAt, undefined)))}
-                                            >
-                                                {user.blockedAt ? <IconLockOpen size={14} /> : <IconLock size={14} />}
-                                            </Button>
-                                        </Tooltip>
-                                    </Group>
-                                </Table.Td>
-                            </Table.Tr>
-                        ))}
-                    </Table.Tbody>
-                </Table>
-            </Table.ScrollContainer>
+                                    )}
+                                    <Button variant="light" size="compact-sm" onClick={() => open(user)}>
+                                        {t("Open")}
+                                    </Button>
+                                    {/* Offered on a blocked account too: an
+                                        account merged away is blocked, and
+                                        the manager may be here to merge a
+                                        second one onto the same target. */}
+                                    <Tooltip label={t("Move this account's work to another")}>
+                                        <Button
+                                            variant="subtle"
+                                            size="compact-sm"
+                                            onClick={() => setMerging(user)}
+                                        >
+                                            <IconArrowMerge size={14} />
+                                        </Button>
+                                    </Tooltip>
+                                    <Tooltip label={user.blockedAt ? t("Unblock") : t("Block")}>
+                                        <Button
+                                            variant="subtle"
+                                            size="compact-sm"
+                                            color={user.blockedAt ? "teal" : "red"}
+                                            loading={busy}
+                                            onClick={() => run(() => call(api =>
+                                                api.managerApi.setUserBlocked(user.id, !user.blockedAt, undefined)))}
+                                        >
+                                            {user.blockedAt ? <IconLockOpen size={14} /> : <IconLock size={14} />}
+                                        </Button>
+                                    </Tooltip>
+                                </Group>
+                            </Table.Td>
+                        </Table.Tr>
+                    ))}
+                </Table.Tbody>
+            </DataTable>
 
             {items.length === 0 && <Text c="dimmed">{t("Nothing matches the filters")}</Text>}
 
