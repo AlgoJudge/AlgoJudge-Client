@@ -58,7 +58,8 @@
 
 .text {
     color: white;
-    min-height: 5em;
+    /* Was 5em, which is two blank lines under most activity names. */
+    min-height: 2.5em;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -231,11 +232,14 @@
 /* The project and the operator's documents, at the foot of the navigation. They
    sit in the navbar's own bottom section, so they stay where a footer would sit
    however long the list above them grows. */
+/* One line rather than one line each: four legal documents stacked took as
+   much of the drawer as the list of sections above them. */
 .foot {
     padding-top: var(--mantine-spacing-xs);
-    display: flex;
-    flex-direction: column;
-    gap: rem(2px);
+    /* Ordinary inline flow, not a flex row: a flex container blockifies its
+       children, so the `display: inline` below would have been ignored and each
+       document would have kept its own line. */
+    line-height: 1.6;
 }
 
 /* Quieter than `.link` on purpose: no icon, ordinary weight, one size down and
@@ -243,17 +247,38 @@
    the whole of its state, with no background and no shadow, because a document
    somebody reads once should not look like a tool they work in. */
 .footLink {
-    display: block;
+    display: inline;
+    /* A label breaks as a unit or not at all: inline, "Polityka prywatności"
+       was splitting across the two lines and reading as two documents. The
+       horizontal padding goes with it — the dot is the separator now. */
+    white-space: nowrap;
     text-decoration: none;
     font-size: var(--mantine-font-size-xs);
     font-weight: 400;
     line-height: 1.5;
-    padding: rem(3px) var(--mantine-spacing-sm);
+    padding: rem(3px) 0;
     color: var(--aj-nav-muted, var(--mantine-color-blue-1));
 
     @mixin hover {
         color: var(--aj-nav-text, var(--mantine-color-white));
     }
+}
+
+/* The separator between them. Drawn by the link rather than by an element of
+   its own so the list stays a list of links, and given its own colour so it
+   does not brighten with the one it happens to follow. */
+.footLink:not(:last-child)::after {
+    /* The spaces are load-bearing. JSX leaves no text node between the links,
+       and a label that may not break internally then had nowhere at all to
+       break: all five ran off the side of a 300px drawer in one line. A space
+       in generated content is a wrap opportunity. */
+    content: " · ";
+    /* The pseudo-element inherits the link's `nowrap`, which is what made the
+       spaces above useless — measured: all five links on one line, 152px past
+       the side of the drawer. `pre-wrap` keeps the spaces and lets the line
+       break in them. */
+    white-space: pre-wrap;
+    color: var(--aj-nav-muted, var(--mantine-color-blue-1));
 }
 
 .footLink[aria-current="page"] {

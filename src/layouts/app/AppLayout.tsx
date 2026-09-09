@@ -366,7 +366,13 @@ export default function AppLayout() {
     const { hasAny } = usePermissions();
     const { signOut } = useAuth();
     const [opened, { toggle, close }] = useDisclosure();
-    const [collapsed, collapse] = useDisclosure();
+    const [railed, collapse] = useDisclosure();
+    // The rail is a desktop idea, and the flag outlives the width that set it:
+    // somebody who collapsed the navigation on a desktop and then opened the
+    // same session on a phone got a 100px drawer of unlabelled icons. Below
+    // `sm` the drawer is always the full one.
+    const narrow = useMediaQuery(`(max-width: ${em(768)})`);
+    const collapsed = railed && !narrow;
     // Matched on the participant route rather than read from any parameter named
     // `activityId`: the manager screens use that name too, and the participant
     // shell must not appear over them.
@@ -501,8 +507,17 @@ export default function AppLayout() {
                     if ((event.target as HTMLElement).closest("a")) close();
                 }}
             >
+                {/* Desktop only: on a phone the drawer is the whole screen and
+                    the operator's mark was the largest thing in it, above a list
+                    of sections with a hundred pixels to scroll in. */}
                 <AppShell.Section>
-                    <InstanceMark collapsed={collapsed} />
+                    {/* The `visibleFrom` goes on a `Box` and not on the section:
+                        on an `AppShell.Section` it emitted no class at all and
+                        the mark stayed — the same trap `ActivitySubmissions`
+                        records for `Paper`. */}
+                    <Box visibleFrom="sm">
+                        <InstanceMark collapsed={collapsed} />
+                    </Box>
                 </AppShell.Section>
 
                 <AppShell.Section grow component={ScrollArea} type="auto" scrollbarSize={6}>
@@ -548,8 +563,14 @@ export default function AppLayout() {
                         `sm` the navigation is a drawer that is either open or
                         gone, and the row cost a line of a list that had none
                         to spare. */}
-                    <Box visibleFrom="sm">{CollapseButton}</Box>
-                    <FootLinks collapsed={collapsed} />
+                    {/* Both desktop chrome: there is nothing to collapse into
+                        on a phone, and the legal documents are a footer's job
+                        rather than a line each in a drawer somebody opened to
+                        get somewhere. */}
+                    <Box visibleFrom="sm">
+                        {CollapseButton}
+                        <FootLinks collapsed={collapsed} />
+                    </Box>
                 </AppShell.Section>
             </AppShell.Navbar>
 
