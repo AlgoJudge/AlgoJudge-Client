@@ -10,6 +10,7 @@ import { emptyActivity } from "../../../components/activity/activityInput";
 import CleanCopyModal from "../../../components/copy/CleanCopyModal";
 import ExportButton from "../../../components/exchange/ExportButton";
 import ImportBundleModal from "../../../components/exchange/ImportBundleModal";
+import { usePermissions } from "../../../provider/permissionsContext";
 import { collectActivity } from "../../../exchange/collect";
 import { activityTypes } from "../../../renderers";
 
@@ -34,6 +35,8 @@ const STATE_COLOUR = { upcoming: "blue", ongoing: "teal", finished: "gray", unti
 
 export default function ManagerActivitiesPage() {
     const { t } = useTranslation();
+    const { hasAny } = usePermissions();
+    const mayCreate = hasAny(["activity:create"]);
     const navigate = useNavigate();
     const [copying, setCopying] = useState<ManagedActivity | undefined>(undefined);
     const [importing, setImporting] = useState(false);
@@ -105,14 +108,25 @@ export default function ManagerActivitiesPage() {
                         {t("A contest, a course, a practice set — one place where problems are given to people.")}
                     </Text>
                 </Stack>
-                <Group gap="sm">
-                    <Button data-testid="import-file" variant="default" leftSection={<IconUpload size={16} />} onClick={() => setImporting(true)}>
-                        {t("Import from a file")}
-                    </Button>
-                    <Button leftSection={<IconPlus size={16} />} onClick={() => setCreating(true)}>
-                        {t("New activity")}
-                    </Button>
-                </Group>
+                {/* **Offered only to somebody who may use them.** Both of these
+                    end in `activity:create`, which is a system-scope right the
+                    manager template does not carry: whoever creates an activity
+                    is granted the template *on it*, so creating belongs to the
+                    installation rather than to any activity. Drawn regardless
+                    until 2026-09-09, which put a manager one click from a
+                    refusal — the thing `managerAreas.ts` says a card must never
+                    do. The list itself stays, because it is narrowed to what
+                    this person manages and that is the screen's whole point. */}
+                {mayCreate && (
+                    <Group gap="sm">
+                        <Button data-testid="import-file" variant="default" leftSection={<IconUpload size={16} />} onClick={() => setImporting(true)}>
+                            {t("Import from a file")}
+                        </Button>
+                        <Button leftSection={<IconPlus size={16} />} onClick={() => setCreating(true)}>
+                            {t("New activity")}
+                        </Button>
+                    </Group>
+                )}
             </Group>
 
             {error && <Alert color="red" withCloseButton onClose={() => setError(undefined)}>{error}</Alert>}
