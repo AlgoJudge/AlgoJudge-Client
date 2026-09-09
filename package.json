@@ -26,6 +26,7 @@
     "check:ui": "node scripts/verify/run.mjs",
     "check:browsers": "node scripts/verify/check-browsers.mjs",
     "check:e2e": "playwright test",
+    "check:pwa": "playwright test -c playwright.pwa.config.mjs",
     "browsers": "node scripts/verify/browsers.mjs"
   },
   "dependencies": {
