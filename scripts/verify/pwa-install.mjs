@@ -135,6 +135,36 @@ const asked = await evaluate(`
 `);
 check(asked === "rejected", "and a call to the API still fails rather than being answered (" + asked + ")");
 
+// ── The last resort ─────────────────────────────────────────────────────────
+//
+// **Reached by taking the shell away, which is the only way to reach it.**
+// Navigating to /offline.html while offline does not get there: the worker
+// answers every navigation, and it prefers the cached shell — correctly, since
+// the application is better than a static apology. So the shell is dropped
+// first, which is the state this page exists for: a first visit made offline,
+// or a cache the browser evicted.
+await evaluate(`
+    for (const name of await caches.keys()) {
+        const cache = await caches.open(name);
+        await cache.delete("/");
+    }
+    return true;
+`);
+await go(HOME, "document.body.innerText.length > 20");
+const last = JSON.parse(await evaluate(`
+    return JSON.stringify({
+        text: document.body.innerText,
+        // Its own icon is the only thing it asks for, and it is cached.
+        broken: [...document.images].filter(i => !i.complete || i.naturalWidth === 0).length,
+        scripts: document.scripts.length,
+    });
+`));
+check(last.text.indexOf("Brak połączenia") >= 0 && last.text.indexOf("No connection") >= 0,
+    "the last-resort page says so in both languages");
+check(last.broken === 0, "and draws offline with nothing missing (" + last.broken + " broken)");
+check(last.scripts === 0, "and runs no script at all (" + last.scripts + ")");
+await shot("pwa-offline-last-resort");
+
 await offline(false);
 report();
 await close();
