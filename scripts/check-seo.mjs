@@ -92,6 +92,23 @@ check(meta("application-name") === "AlgoJudge", "the application names itself");
 check(/<link[^>]*rel="icon"[^>]*href="\/favicon\.ico"/.test(html),
     "the icon is at the name every reader guesses");
 check(existsSync("public/favicon.ico"), "and the file is there under it");
+
+// A browser picks the nearest size in the container and scales what it finds,
+// so one large image is a soft 16 px tab. `scripts/make-favicon.mjs` writes
+// four; this holds the container to more than one and to entries that describe
+// the images they point at.
+const icon = readFileSync("public/favicon.ico");
+const drawings = icon.readUInt16LE(4);
+const described = Array.from({ length: drawings }, (unused, index) => {
+    const entry = 6 + index * 16;
+    const at = icon.readUInt32LE(entry + 12);
+    const png = icon.toString("latin1", at + 1, at + 4) === "PNG";
+    return png && icon.readUInt32BE(at + 16) === icon[entry]
+        && icon.readUInt32BE(at + 20) === icon[entry + 1];
+});
+check(drawings > 1, `the icon carries more than one size (${drawings})`);
+check(described.every(Boolean),
+    "and every entry describes the drawing it points at");
 check(meta("robots") === "index, follow", "and asks to be indexed");
 // **No `color-scheme` here, and that is a measurement.** Mantine declares one on
 // the root element once it has mounted, matching the scheme the reader chose —
