@@ -1,0 +1,26 @@
+# What a crawler may read, on an installation this file cannot name.
+#
+# The prefixes below answer with the sign-in screen — the guard in
+# `src/routers/Authentication.tsx` sends an anonymous visitor to /login — so
+# there is nothing under them to index. What stays open is what an anonymous
+# reader actually gets: the home page, the two account forms and the four legal
+# documents. AlgoJudge-Docs makes the opposite call for its own duplicates and
+# holds them out with `noindex` instead; that argument is about pages worth
+# reading, and these have nothing on them.
+#
+# **No `Sitemap:` line.** The directive takes an absolute URL, and one image
+# serves every installation under a host it does not know.
+
+User-agent: *
+Allow: /
+Disallow: /account
+Disallow: /activities
+Disallow: /manager
+Disallow: /lti/
+
+# **The Server's, not the router's.** In a one-origin installation the API is
+# under this same host, and the sign-in screen renders a real link into it for
+# every provider — so a crawler that follows links walks into an authorisation
+# redirect. Where the two are split across hosts that origin serves its own
+# robots.txt and this line reaches nothing.
+Disallow: /api/

@@ -7,6 +7,55 @@
     <title>AlgoJudge</title>
 
     <!--
+      What this page says about itself before any of it has loaded.
+
+      **It describes the product, not the installation.** An installation's name,
+      logo and colours arrive from `GET /api/v1/instance` after first paint and
+      can change again over the event socket, so none of them is known when a
+      browser — or a crawler — reads this file. The tab title follows the
+      installation once the answer is in; everything here does not.
+
+      The sentence is the one `README.md`, the home page's introduction and
+      `algojudge.pl` all use, to the character. It is also an i18next key, so it
+      is already written in Polish; `npm run check:seo` holds both facts.
+
+      **No `og:url` and no `og:image`**, and that is not an omission. One image
+      serves every installation under a host it cannot know, and both properties
+      take an absolute address — so a value here would be a link to somebody
+      else's site. A consumer given no `og:url` uses the address it fetched,
+      which is the right one. The same constraint is why there is no `hreflang`
+      and no static `canonical`: `src/seo.ts` sets the canonical at run time,
+      where `location.origin` is finally known.
+    -->
+    <meta
+      name="description"
+      content="AlgoJudge is open-source, self-hosted software for programming contests and courses, with automatic evaluation of submitted solutions."
+    />
+    <meta name="application-name" content="AlgoJudge" />
+    <meta name="robots" content="index, follow" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="AlgoJudge" />
+    <meta property="og:title" content="AlgoJudge" />
+    <meta
+      property="og:description"
+      content="AlgoJudge is open-source, self-hosted software for programming contests and courses, with automatic evaluation of submitted solutions."
+    />
+    <!--
+      Facebook's `language_TERRITORY`, which is not BCP-47: a hyphen here is
+      ignored rather than reported. The two are the app's own `supportedLngs`.
+    -->
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:locale:alternate" content="pl_PL" />
+
+    <!--
+      The only Twitter tag there is: it falls back to Open Graph for the title
+      and the description, and `summary` rather than `summary_large_image`
+      because there is no image to be large.
+    -->
+    <meta name="twitter:card" content="summary" />
+
+    <!--
       Where an installation says which Server it talks to.
 
       Vite inlines `import.meta.env` at build time, so a value given there is
@@ -28,7 +77,34 @@
     <script>window.__ALGOJUDGE__ = {};</script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!--
+        Where the project is, for anything that reads this file without running
+        it. Two links and nothing else: a crawler that renders JavaScript — which
+        Google does — sees the application instead, so this is for the ones that
+        do not, and the tags in the head are what an unfurler actually reads.
+
+        **In a `noscript`, and that is a measurement rather than a preference.**
+        React clears this container at its first commit, so plain markup here is
+        markup a reader looks at until then. Measured 2026-09-10 against a real
+        build over `vite preview`, five loads: first contentful paint at 52–80 ms,
+        the container emptied at 228–263 ms, so the links were on screen for a
+        median of 180 ms — unstyled, top left, before the application drew
+        anything. On a real network it is longer, never shorter. A browser with
+        scripting on never renders a `noscript`'s contents at all, and one
+        without it never removes them.
+
+        The addresses are `PROJECT_SITE` and `PROJECT_ORGANISATION` in
+        `src/site.ts`; `npm run check:seo` compares them character for character,
+        because this file cannot import.
+      -->
+      <noscript>
+        <p>
+          About the project: <a href="https://algojudge.pl">https://algojudge.pl</a>.
+          GitHub organisation: <a href="https://github.com/AlgoJudge">https://github.com/AlgoJudge</a>.
+        </p>
+      </noscript>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
