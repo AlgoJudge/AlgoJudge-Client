@@ -13,6 +13,21 @@
 
 User-agent: *
 Allow: /
+
+# **Named although `Allow: /` already covers them.** A crawler that renders the
+# page fetches all four, and a page whose icon, illustration and interface text
+# it could not read is a page it judges on less than a reader sees. Written out
+# so a later `Disallow` cannot take one of them by accident.
+Allow: /favicon.ico
+Allow: /assets/
+Allow: /locales/
+# The operator's own logo and documents are stored files, so they arrive through
+# the API rather than from this container — which the line below would otherwise
+# withhold. **Safe to open**: the endpoint authorises every id against the
+# references to it and answers 404 to a caller who may not read one, so what a
+# crawler can fetch here is exactly what an anonymous reader can.
+Allow: /api/v1/files/
+
 Disallow: /account
 Disallow: /activities
 Disallow: /manager

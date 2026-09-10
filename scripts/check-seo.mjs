@@ -181,8 +181,9 @@ const directive = (name) => lines
     .filter(Boolean);
 
 const disallow = directive("disallow");
+const allow = directive("allow");
 check(lines.some((l) => /^user-agent:\s*\*$/i.test(l)), "robots.txt speaks to every crawler");
-check(directive("allow").includes("/"), "and opens the site");
+check(allow.includes("/"), "and opens the site");
 check(directive("sitemap").length === 0,
     "with no Sitemap line, which would have to name a host this image does not know");
 
@@ -198,6 +199,30 @@ const routes = [...app.matchAll(/(?:path:\s*|managerRoute\(\s*)"([^"]+)"/g)]
 const PUBLIC = ["/", "/login", "/register", "/terms", "/privacy", "/cookies", "/accessibility"];
 
 const withheld = (path) => disallow.some((prefix) => path === prefix || path.startsWith(prefix));
+
+// The longest matching rule wins, which is what lets one `Allow` carve a path
+// out of a wider `Disallow` — and the only reason the stored files a page shows
+// are fetchable while the rest of the API is not.
+const longest = (rules, path) =>
+    rules.filter((prefix) => path.startsWith(prefix))
+        .reduce((best, prefix) => Math.max(best, prefix.length), -1);
+const mayFetch = (path) => longest(allow, path) >= longest(disallow, path);
+
+// What a crawler has to fetch to judge the page on what a reader sees: the
+// icon, the hashed bundle and its illustration, the interface text, and the
+// operator's own logo and documents, which are stored files behind the API.
+const FETCHED = [
+    "/favicon.ico",
+    "/assets/hero-CxKq1.png",
+    "/locales/pl/translation.json",
+    "/api/v1/files/2f1c9e6a-0000-0000-0000-000000000000",
+];
+const unreachable = FETCHED.filter((path) => !mayFetch(path));
+check(unreachable.length === 0,
+    `everything a page is drawn from may be fetched${unreachable.length ? `: ${unreachable.join(", ")} may not` : ""}`);
+
+// And the carve-out is a carve-out rather than an opening.
+check(!mayFetch("/api/v1/submissions"), "while the rest of the API stays closed");
 
 const stranded = routes.filter((path) => !PUBLIC.includes(path) && !withheld(path));
 check(stranded.length === 0,
