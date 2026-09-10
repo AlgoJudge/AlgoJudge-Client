@@ -86,8 +86,14 @@ await wait(2500);
 await click(`[...document.querySelectorAll("[data-testid=app-main] input")]
     .find(i => /python|c\\+\\+/i.test(i.value))`);
 await wait(900);
+// **Only the list that is open.** Mantine keeps a closed dropdown's options in
+// the document and hides them, so a screen carrying two selects — since
+// 2026-09-10 the submit screen carries a problem picker above the language —
+// answers with both sets at once, and an assertion about what one of them offers
+// reads as a mixture of the two.
 const offered = await evaluate(`
     return [...document.querySelectorAll("[data-testid=combobox-option], [role=option]")]
+        .filter(o => o.offsetParent !== null)
         .map(o => o.textContent.trim());
 `);
 check(offered.length === 1 && offered[0] === "Python 3 (CPython)",
@@ -103,6 +109,7 @@ await click(`[...document.querySelectorAll("[data-testid=app-main] input")]
 await wait(900);
 const contest = await evaluate(`
     return [...document.querySelectorAll("[data-testid=combobox-option], [role=option]")]
+        .filter(o => o.offsetParent !== null)
         .map(o => o.textContent.trim());
 `);
 check(contest.includes("C++20 (GCC)") && contest.includes("C++17 (GCC)")

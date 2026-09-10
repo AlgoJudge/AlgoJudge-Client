@@ -86,7 +86,7 @@ check(form !== null && /Język programowania|Programming language/i.test(form.te
 check(form !== null && form.hasSend, "with a send button of its own");
 await shot("mod-form");
 
-// ── 5. Sending closes it and leaves the route alone ─────────────────────────
+// ── 5. Sending keeps the window and leaves the route alone ──────────────────
 const before = await evaluate(`return location.pathname;`);
 const countBefore = await evaluate(`
     const m = (${bar})?.innerText.match(/Moje zgłoszenia\\s+(\\d+)/);
@@ -107,7 +107,12 @@ check(/int\s+main/.test(typed), `the editor takes what is typed into it (${typed
 await click(`[...(${modal})?.querySelectorAll("button") ?? []].find(b => /Wyślij|Send/.test(b.textContent))`);
 await wait(3500);
 
-check(await evaluate(`return ${modal} === null;`), "sending closes the modal");
+// **The window stays**, showing what was just sent. It used to close, which
+// sent the reader back to the page — correct as far as it went, and it meant
+// the queued state was somewhere else to go and look for.
+check(await evaluate(`return ${modal} !== null;`), "sending keeps the window open");
+check(await evaluate(`return (${modal})?.querySelector("[data-testid=submission-view]") !== null;`),
+    "and shows the submission it created");
 check(await evaluate(`return location.pathname;`) === before,
     `and leaves the screen exactly where it was (${before})`);
 const countAfter = await evaluate(`
@@ -119,32 +124,35 @@ check(countBefore !== null && countAfter === countBefore + 1,
 await shot("mod-sent");
 
 // ── 5b. Nothing has judged it yet, so it carries no result document ─────────
-// Checked **here**, seconds after sending, because that is the only moment one
-// is unjudged: the fake finishes a submission about seven seconds in, and the
-// seeded queued and running ones are done within fifteen.
+// Read **here**, seconds after sending, because that is the only moment one is
+// unjudged: the fake moves a submission to `running` at about two and a half
+// seconds and finishes it at about seven, and the seeded queued and running ones
+// are done within fifteen.
 //
 // It used to carry an empty standard-io document, which asserts "a result with
-// no tests" where the truth is "nothing has looked at this". The screen never
-// wanted one: waiting is a state of its own there, drawn instead of the result,
-// so the absent document is never even handed to a renderer.
-await click(`(${bar})?.querySelector("[data-testid=submission-row]")`);
-await wait(1200);
+// no tests" where the truth is "nothing has looked at this". Waiting is a state
+// of its own, drawn instead of the result, so the absent document is never even
+// handed to a renderer.
 const unjudged = await evaluate(`
-    const main = document.querySelector("[data-testid=app-main]");
+    const m = ${modal};
     return {
         path: location.pathname,
-        waiting: /sprawdza to zgłoszenie|Runner|czeka/i.test(main?.innerText ?? ""),
-        table: main?.querySelectorAll("tbody tr").length ?? 0,
+        waiting: /sprawdza to zgłoszenie|Runner|czeka/i.test(m?.innerText ?? ""),
+        table: m?.querySelectorAll("tbody tr").length ?? 0,
     };
 `);
-check(/\/submissions\//.test(unjudged.path),
-    `the newest submission opens from the panel (${unjudged.path})`);
+check(unjudged.path === before,
+    `reading it changed no address (${unjudged.path})`);
 check(unjudged.waiting && unjudged.table === 0,
     `and an unjudged one draws the waiting state rather than an empty result table`
     + ` (${unjudged.table} rows)`);
 await shot("mod-unjudged");
 
 // ── 6. Opening from a problem's page starts on that problem ─────────────────
+// Closed first: the overlay covers the panel, so the send button underneath is
+// not something a reader — or a click — can reach while it is up.
+await click(`(${modal})?.querySelector("[data-testid=close-button]")`);
+await wait(800);
 await visit("/activities/AMMPZ-2019/problems/C", `/Sortowanie|topologiczne/i.test(document.body.innerText)`);
 await wait(2000);
 await click(sendButton);

@@ -73,9 +73,17 @@ check(/compilation failed|error/i.test(asManager.text),
 await shot("att-manager");
 
 // ── 4. The source is a stored file, fetched by id ───────────────────────────
-await visit(`/activities/AMMPZ-2019/submissions/${PASSED}/code`, `document.body.innerText.length > 100`);
+// **Opened from the submission, because the source has no address of its own.**
+// It was a screen until 2026-09-10 and is a modal now, wherever it is reached
+// from — so it is read out of the window rather than out of the page.
+await visit(`/activities/AMMPZ-2019/submissions/${PASSED}`, `document.body.innerText.length > 100`);
+await wait(2000);
+await click(`document.querySelector("[data-testid=show-code]")`);
 await wait(2500);
-const code = await main();
+const code = await evaluate(`
+    const m = document.querySelector("[data-testid=modal]");
+    return { text: (m?.innerText ?? "").replace(/\\s+/g, " ").trim() };
+`);
 check(/solution\.cpp/.test(code.text), `the source opens under its uploaded name (${code.text.slice(0, 60)})`);
 check(/include|main/.test(code.text), "and its bytes are there");
 await shot("att-source");

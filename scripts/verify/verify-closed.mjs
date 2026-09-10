@@ -75,6 +75,24 @@ check(await evaluate(`
 `), "and refuses to send");
 await shot("closed-ended-submit");
 
+// **The screen's own picker, which is the way in the sidebar offers.** It drew a
+// button per problem of every round it thought open until 2026-09-10, and is the
+// same control the panel's window uses now — so what may be sent is stated once,
+// the Server's way, rather than twice.
+await visit("/activities/AMMPZ-2019/submit", `document.body.innerText.length > 0`);
+await wait(2000);
+await click(`document.querySelector("[data-testid=app-main] [data-testid=problem-choice]")`);
+await wait(900);
+const offered = await evaluate(`
+    return [...document.querySelectorAll("[data-testid=combobox-option], [role=option]")]
+        .map(o => o.textContent.trim());
+`);
+check(offered.some(o => /\[A\]/.test(o)),
+    `the picker offers a running round's problems (${offered.join(" | ")})`);
+check(!offered.some(o => /\[R\]|\[S\]/.test(o)),
+    "and none from the round that has ended");
+await shot("closed-picker");
+
 // ── A round paused with the statements taken away ───────────────────────────
 await go(`${APP}/manager/activities?fakeUser=john`, MANAGER_LIST);
 await click(`[...document.querySelectorAll("tbody tr")]
