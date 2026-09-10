@@ -1,44 +1,24 @@
-import { Button, Card, Group, Stack, Text, Title } from "@mantine/core";
+import { Button, Group, Stack, Text, Title } from "@mantine/core";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Activity, ProblemDetail, Series } from "../../../../api/ParticipantApi";
 import { useApiEffect } from "../../../../provider/apiContext";
 import LoadState from "../../../../components/LoadState";
+import ProblemChoice from "../../../../components/submission/ProblemChoice";
 import SubmissionForm from "../../../../components/submission/SubmissionForm";
-
-/** Shown when the route carries no problem, so submitting still has a way in. */
-const ProblemPicker = ({ series, onPick }: { series: Series[]; onPick: (slug: string) => void }) => {
-    const { t } = useTranslation();
-    const open = series.filter(s => s.isOpen);
-    if (open.length === 0) {
-        return <Text c="dimmed">{t("No problems are open for submission right now")}</Text>;
-    }
-    return (
-        <Stack gap="md">
-            <Text>{t("Choose a problem to submit")}</Text>
-            {open.map(s => (
-                <Card key={s.id} withBorder radius="sm">
-                    <Title order={4} mb="xs">{s.name}</Title>
-                    <Group gap="xs">
-                        {(s.problems ?? []).map(p => (
-                            <Button key={p.id} variant="light" onClick={() => onPick(p.slug)}>
-                                [{p.slug}] {p.name}
-                            </Button>
-                        ))}
-                    </Group>
-                </Card>
-            ))}
-        </Stack>
-    );
-};
 
 /**
  * The submit screen.
  *
- * Owns the route, the loading and the picker; the form itself is
- * `components/submission/SubmissionForm`, shared with the modal the submissions
- * panel opens — the rules about what may be sent are worth having once.
+ * Owns the route and the loading; the choice of problem and the form itself are
+ * `components/submission/ProblemChoice` and `SubmissionForm`, shared with the
+ * modal the submissions panel opens — the rules about what may be sent are worth
+ * having once.
+ *
+ * **Choosing a problem is still a navigation**, unlike in the modal, where it
+ * happens in place. On a screen the address says which problem this is, so a
+ * link to it can be sent and a reload comes back to the same form.
  */
 export default function SubmitPage() {
     const { t } = useTranslation();
@@ -90,30 +70,31 @@ export default function SubmitPage() {
         );
     }
 
-    if (!problem) {
-        return (
-            <Stack gap="md">
-                <Title>{t("Submit")}</Title>
-                <ProblemPicker series={series} onPick={slug => navigate(`/activities/${activity.slug}/submit/${slug}`)} />
-            </Stack>
-        );
-    }
-
     return (
         <Stack gap="md">
             <Stack gap={2}>
                 <Text size="sm" c="dimmed">{activity.name}</Text>
-                <Title>[{problem.slug}] {problem.name}</Title>
+                <Title>{problem ? `[${problem.slug}] ${problem.name}` : t("Submit")}</Title>
             </Stack>
 
-            <SubmissionForm
+            {/* Above the form and always drawn, as the modal has it, so the
+                problem can be changed without going back for a list. */}
+            <ProblemChoice
+                series={series}
+                value={problemId ?? null}
+                onChange={slug => navigate(slug
+                    ? `/activities/${activity.slug}/submit/${slug}`
+                    : `/activities/${activity.slug}/submit`)}
+            />
+
+            {problem && <SubmissionForm
                 activity={activity}
                 problem={problem}
                 series={series}
                 // Straight to the detail view, so the queued state is visible
                 // rather than something the participant has to go looking for.
                 onSent={submission => navigate(`/activities/${activity.slug}/submissions/${submission.id}`)}
-            />
+            />}
         </Stack>
     );
 }
