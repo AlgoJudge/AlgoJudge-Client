@@ -10,7 +10,7 @@
 // Pure text: no build, no browser, no TypeScript. The two source files it reads
 // are read for one constant each, and it fails rather than passes when it cannot
 // find them.
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 const fail = (message) => { console.error("FAIL:", message); process.exitCode = 1; };
 const check = (condition, message) =>
@@ -85,6 +85,13 @@ check(description !== undefined && pl[description] !== undefined && pl[descripti
     "and it is written in Polish too");
 
 check(meta("application-name") === "AlgoJudge", "the application names itself");
+
+// The one asset whose *name* is its interface: everything that wants an icon
+// without reading this document asks for exactly this path, and `try_files`
+// answers a missing one with `index.html` at 200 rather than a 404.
+check(/<link[^>]*rel="icon"[^>]*href="\/favicon\.ico"/.test(html),
+    "the icon is at the name every reader guesses");
+check(existsSync("public/favicon.ico"), "and the file is there under it");
 check(meta("robots") === "index, follow", "and asks to be indexed");
 // **No `color-scheme` here, and that is a measurement.** Mantine declares one on
 // the root element once it has mounted, matching the scheme the reader chose —

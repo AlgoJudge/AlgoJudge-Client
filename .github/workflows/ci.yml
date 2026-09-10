@@ -207,9 +207,9 @@ jobs:
           curl -fsS http://localhost:8080/ >/dev/null
           # A deep link is not a file on disk; without the nginx fallback this 404s.
           curl -fsS http://localhost:8080/activities/PCN1/problems >/dev/null
-          # Two files nothing served before: robots.txt is new, and /favicon.ico
-          # is the conventional path that fell through to the SPA fallback and
-          # answered with the whole document at 200.
+          # Two files nothing served before. Both are only ever asked for by
+          # name, and `try_files` answers a name it does not have with
+          # `index.html` at 200 — so a missing one reads as a served one.
           curl -fsS http://localhost:8080/robots.txt | grep -q "^User-agent:"
           curl -fsS -o /dev/null -w "%{content_type}\n" http://localhost:8080/favicon.ico | grep -q "^image/"
           docker stop ci-check
