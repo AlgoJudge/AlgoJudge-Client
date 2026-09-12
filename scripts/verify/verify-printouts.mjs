@@ -176,83 +176,83 @@ check(typeof expected === "string", `the row carries its id (${expected})`);
 // **The waiting row, named** — not the first one. The queue is oldest first, and
 // the oldest here is already printed: its source is gone, which is a different
 // page and is asserted below on purpose.
-const before = pages().length;
+// **The tab is not observable, and that is the feature working.** The sheet
+// prints itself and closes on `afterprint`; a headless browser answers `print()`
+// at once, so the tab is gone before `pages()` is asked. What the click is held
+// to is its other half: the row becomes somebody's, and the confirm opens here.
 await click(`[...document.querySelectorAll("[data-testid=printout-queue] tr")]
     .find(r => r.innerText.includes("A.cpp"))
     ?.querySelector("[data-testid=printout-print]")`);
 await wait(2500);
-const opened = pages();
-check(opened.length > before, "Print opens a tab of its own rather than printing the panel");
 
-const sheet = opened.find(p => p.url.includes("/print/printouts/"));
-if (!sheet) throw new Error("the printable sheet did not open in a tab of its own");
-const read = sheet.evaluate;
-
-const paper = await read(`return document.body.innerText;`);
-check(/Jan Kowalski/.test(paper) || /Amy/.test(paper), "the sheet says who asked");
-check(/Akademickie Mistrzostwa/.test(paper), "and in which activity");
-
-const chrome = await read(`return document.querySelector("nav") === null;`);
-check(chrome === true, "and carries none of the application's navigation");
-
-const mono = await read(`
-    const listing = document.querySelector("[data-testid=sheet-source] pre");
-    return listing ? getComputedStyle(listing).fontFamily : "";
-`);
-check(/mono/i.test(mono), `the listing is monospace (${mono.slice(0, 40)})`);
-
-const printed = await read(`
-    return document.querySelector("[data-testid=sheet-digest]")?.textContent?.trim() ?? "";
-`);
-check(/^[0-9a-f]{64}$/.test(printed),
-    `the footer carries a digest (${printed.slice(0, 16)}…)`);
-
-// **And the sheet of a request already resolved.** It answers rather than 404s,
-// because the printout still exists and its record is the audit trail — it just
-// has no source to show.
-const disposed = pages().find(p => p.url.includes("/print/printouts/po-0001-3"));
-if (!disposed) {
-    const gone = await evaluate(`
-        const row = [...document.querySelectorAll("[data-testid=printout-queue] tr")]
-            .find(r => r.innerText.includes("B.cpp"));
-        row?.querySelector("[data-testid=printout-print]")?.click();
-        return true;
-    `);
-    check(gone === true, "the printed row can be reopened");
-    await wait(2500);
-}
-const older = pages().find(p => /po-0001-3/.test(p.url));
-if (older) {
-    const text = await older.evaluate(`return document.body.innerText;`);
-    check(/usuni/i.test(text), "a resolved request's sheet says its source has gone");
-    check(/^[0-9a-f]{64}$/m.test(text.split("\n").at(-1)?.trim() ?? ""),
-        "and still carries the digest, so paper on a desk matches a row");
-}
-
-// **Taking it marks it**, so the other person working this queue can see the row
-// is somebody's rather than opening the same sheet.
-await wait(2000);
-const held = await evaluate(`
-    const row = [...document.querySelectorAll("[data-testid=printout-queue] tr")]
-        .find(r => r.innerText.includes("A.cpp"));
-    return row?.innerText ?? "";
-`);
-check(/drukarce/i.test(held), `the row says it is at a printer (${held.replace(/\s+/g, " ").slice(0, 50)})`);
-
-// ── 6. The confirm is in the first tab, and disposal is visible ─────────────
-
+// The confirm is in the panel's own tab, not on the paper.
 const dialog = await evaluate(`
     return document.querySelector("[data-testid=modal]")?.innerText ?? "";
 `);
 check(/cofn/i.test(dialog),
     "the confirm is in the panel's own tab and says it cannot be undone");
 
-await click(`document.querySelector("[data-testid=printout-printed]")`);
-await wait(1500);
+// **Taking it marks it**, so the other person working this queue sees the row is
+// somebody's rather than opening the same sheet.
+const held = await evaluate(`
+    const row = [...document.querySelectorAll("[data-testid=printout-queue] tr")]
+        .find(r => r.innerText.includes("A.cpp"));
+    return row?.innerText ?? "";
+`);
+check(/drukarce/i.test(held), "the row says it is at a printer");
 
-const after = await body();
-check(/Wydrukowany/.test(after), "confirming marks the row printed");
+// The sheet's own address, because the tab closed itself. A page somebody
+// navigated to stays: the close is guarded on having an opener.
+const sheetUrl = await evaluate(`
+    const row = [...document.querySelectorAll("[data-testid=printout-queue] tr")]
+        .find(r => r.innerText.includes("A.cpp"));
+    return row ? "/print/printouts/" + row.getAttribute("data-printout") : null;
+`);
+check(typeof sheetUrl === "string", "the queue names the sheet: " + sheetUrl);
+
+await visit(sheetUrl, `document.querySelector("[data-testid=printout-sheet]") !== null`);
+
+const paper = await evaluate(`return document.body.innerText;`);
+check(/Jan Kowalski/.test(paper), "the sheet says who asked");
+check(/Akademickie Mistrzostwa/.test(paper), "and in which activity");
+check(await evaluate(`return document.querySelector("nav") === null;`),
+    "and carries none of the application's navigation");
+
+const mono = await evaluate(`
+    const listing = document.querySelector("[data-testid=sheet-source] pre");
+    return listing ? getComputedStyle(listing).fontFamily : "";
+`);
+check(/mono/i.test(mono), "the listing is monospace: " + mono.slice(0, 30));
+
+const digest = await evaluate(`
+    return document.querySelector("[data-testid=sheet-digest]")?.textContent?.trim() ?? "";
+`);
+check(/^[0-9a-f]{64}$/.test(digest), "the footer carries a digest: " + digest.slice(0, 16));
+
+// **A resolved request's sheet answers rather than 404s.** The printout still
+// exists and its record is the audit trail; it just has no source to show.
+await visit("/print/printouts/po-0001-3",
+    `document.querySelector("[data-testid=printout-sheet]") !== null`);
+check(/usuni/i.test(await evaluate(`return document.body.innerText;`)),
+    "a resolved request's sheet says its source has gone");
+check(/^[0-9a-f]{64}$/.test(await evaluate(
+    `return document.querySelector("[data-testid=sheet-digest]")?.textContent?.trim() ?? "";`)),
+    "and still carries the digest, so paper on a desk matches a row");
+
+// ── 6. Confirming, back in the panel ────────────────────────────────────────
+
+await visit("/manager/printouts", `document.querySelector("[data-testid=printout-queue]") !== null`);
+await wait(1200);
+await click(`[...document.querySelectorAll("[data-testid=printout-queue] tr")]
+    .find(r => r.innerText.includes("A.cpp"))
+    ?.querySelector("[data-testid=printout-print]")`);
+await wait(2000);
+await click(`document.querySelector("[data-testid=printout-printed]")`);
+await wait(1800);
+
+check(/Wydrukowany/.test(await body()), "confirming marks the row printed");
 await shot("printouts-queue");
+
 
 report();
 close();

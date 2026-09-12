@@ -37,10 +37,24 @@ export default function PrintoutSheetPage() {
     // **After the paint, not on the state change.** `print()` blocks the thread
     // until the dialog closes, so calling it before the browser has laid the
     // page out prints the empty frame that was on screen when it was called.
+    //
+    // **And the tab closes itself when the dialog does.** On `afterprint`
+    // rather than on the line after `print()`: the two look the same in a
+    // browser that blocks, and differ in one that does not — and a tab that
+    // vanished before the dialog appeared would be a page nobody could print.
+    // Guarded on having an opener, because a tab somebody typed the address
+    // into cannot be closed by script and the attempt only logs an error.
     useEffect(() => {
         if (!sheet) return;
+
+        const done = () => { if (window.opener) window.close(); };
+        window.addEventListener("afterprint", done);
         const at = requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
-        return () => cancelAnimationFrame(at);
+
+        return () => {
+            window.removeEventListener("afterprint", done);
+            cancelAnimationFrame(at);
+        };
     }, [sheet]);
 
     if (!sheet) return <LoadState error={error} loading={!error} />;
