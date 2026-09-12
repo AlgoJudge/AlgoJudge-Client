@@ -3,7 +3,7 @@
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { evaluate, wait, shot, go, visit, click, tab, close } = await open();
+const { evaluate, wait, shot, go, visit, click, managerRow, tab, close } = await open();
 const { check, report } = results();
 
 const body = () => evaluate(`return document.body.innerText;`);
@@ -95,8 +95,7 @@ await shot("closed-picker");
 
 // ── A round paused with the statements taken away ───────────────────────────
 await go(`${APP}/manager/activities?fakeUser=john`, MANAGER_LIST);
-await click(`[...document.querySelectorAll("tbody tr")]
-    .find(r => r.innerText.includes("AMMPZ-2019"))?.querySelector("td")`);
+await click(managerRow("AMMPZ-2019"));
 await wait(2500);
 // By name: the manager's series list is its own, and an index into it is not
 // the round this scenario means.
@@ -150,8 +149,7 @@ check(await evaluate(`
 
 // Put it back, so the next run starts where this one did.
 await visit("/manager/activities", MANAGER_LIST);
-await click(`[...document.querySelectorAll("tbody tr")]
-    .find(r => r.innerText.includes("AMMPZ-2019"))?.querySelector("td")`);
+await click(managerRow("AMMPZ-2019"));
 await wait(2500);
 await click(`[...document.querySelectorAll("button")].find(b => b.textContent.trim() === "Wznów")`);
 await wait(1500);

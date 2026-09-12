@@ -16,7 +16,7 @@
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { evaluate, wait, shot, go, visit, click, close } = await open();
+const { evaluate, wait, shot, go, visit, click, managerRow, close } = await open();
 const { check, report } = results();
 
 const body = () => evaluate(`return document.body.innerText;`);
@@ -178,9 +178,7 @@ await wait(8000);
 // with `nothing to click`, one run in three, on the click below. The assertion
 // still reads the text — that is what it is about — but the wait now ends on the
 // element.
-const openable = `[...document.querySelectorAll("tbody tr")]
-    .find(r => r.innerText.includes("AMMPZ-2027"))
-    ?.querySelector("td [style*='cursor']") != null`;
+const openable = `${managerRow("AMMPZ-2027")} != null`;
 //
 // **Thirty seconds, not twelve, and CI is what set the number.** The loop ends
 // the moment the element is ready, so the budget costs nothing on a fast
@@ -198,14 +196,9 @@ check(/AMMPZ-2027/.test(listed), "the imported activity is in the list");
 await shot("exchange-imported");
 
 // It arrived with its rounds, which is the half a row in a list does not prove.
-//
-// **The name, not the cell.** A manager row opens from a `<Text onClick>`, so a
-// click at the centre of the first `td` lands beside the handler as often as on
-// it — this passed by luck once and failed the next run. The pointer style is
-// what the handler is on.
-await click(`[...document.querySelectorAll("tbody tr")]
-    .find(r => r.innerText.includes("AMMPZ-2027"))
-    ?.querySelector("td [style*='cursor']")`);
+// `managerRow` is what the wait above ends on, and clicking anything else in the
+// cell is what its comment in the harness is about.
+await click(managerRow("AMMPZ-2027"));
 await wait(3000);
 
 // Polled, like the list above: the panel fetches its rounds after the page

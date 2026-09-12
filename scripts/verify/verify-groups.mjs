@@ -15,7 +15,7 @@
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { evaluate, wait, go, click, tab, close } = await open();
+const { evaluate, wait, go, click, managerRow, tab, close } = await open();
 const { check, report } = results();
 
 const ACTIVITY = "PROG-1-LA";
@@ -71,9 +71,7 @@ const until = async (expression, tries = 30) => {
 // rather than from a link anybody can address.
 await go(`${APP}/manager/activities?fakeUser=john`,
     `document.body.innerText.includes(${JSON.stringify(ACTIVITY)})`);
-await click(`[...document.querySelectorAll("tbody tr")]
-    .find(r => r.innerText.includes(${JSON.stringify(ACTIVITY)}))
-    ?.querySelector("td")`);
+await click(managerRow(ACTIVITY));
 await wait(2500);
 
 await click(tab("Uczestnicy"));

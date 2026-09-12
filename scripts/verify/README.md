@@ -262,6 +262,18 @@ for one to be written in.
 Each of these cost an hour to find. They are the reason the scripts are worth
 keeping rather than rewriting.
 
+- **A manager row opens from the name, not from the cell.** The handler is on a
+  `<Text onClick>` inside the first `td`, so a click at the cell's centre lands
+  beside it as often as on it. Use `managerRow(name)` from the harness, which
+  targets the inline pointer style the handler is on. **The failure does not read
+  as a missed click**: the page never opens, so every assertion after it fails at
+  once and the screen looks broken. Fifteen call sites had the cell version until
+  2026-09-12, when `DataTable` changed that cell's geometry and `verify-groups`
+  reddened `main`.
+- **A poll's budget is set by the slowest machine that runs it, not this one.**
+  `verify-exchange` waited twelve seconds for an imported row: green here every
+  time, red on CI. A loop that ends on the element costs nothing when the element
+  is already there, so be generous — thirty seconds there now.
 - **Mantine keeps every tab panel mounted and laid out.** `offsetParent` does not
   tell the visible panel from the hidden ones. Scope by something in the panel's
   own content.

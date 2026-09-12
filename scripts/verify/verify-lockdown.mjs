@@ -31,7 +31,7 @@
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { evaluate, wait, shot, go, visit, click, close } = await open();
+const { evaluate, wait, shot, go, visit, click, managerRow, close } = await open();
 const { check, report } = results();
 
 const INSIDE = "10.0.5.17";
@@ -148,8 +148,7 @@ check(!/Zablokowane przez/i.test(hidden),
 const MANAGER_LIST = `[...document.querySelectorAll("tbody tr")]
     .some(r => r.innerText.includes("KOLOKWIUM-2"))`;
 await go(`${APP}/manager/activities?fakeUser=john`, MANAGER_LIST);
-await click(`[...document.querySelectorAll("tbody tr")]
-    .find(r => r.innerText.includes("KOLOKWIUM-2"))?.querySelector("td")`);
+await click(managerRow("KOLOKWIUM-2"));
 await wait(2500);
 
 /** The examination's own block: the course holds two rounds with the same controls. */

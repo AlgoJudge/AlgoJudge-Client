@@ -3,7 +3,7 @@
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { evaluate, wait, shot, go, visit, click, type, setTextarea, tab, close } =
+const { evaluate, wait, shot, go, visit, click, managerRow, type, setTextarea, tab, close } =
     await open();
 const { check, report } = results();
 
@@ -15,9 +15,7 @@ const EN = "---\nversion: 1\n---\n\n# Rules for group LA\n\nDue on Sunday.\n";
 
 // 1 — the manager screen lists the three kinds and what is published.
 await go(`${APP}/manager/activities?fakeUser=john`, `document.body.innerText.includes("PROG-1-LA")`);
-await click(`[...document.querySelectorAll("tbody tr")]
-    .find(r => r.innerText.includes("PROG-1-LA"))
-    ?.querySelector("td")`);
+await click(managerRow("PROG-1-LA"));
 await wait(2500);
 await click(tab("Dokumenty"));
 const rows = await evaluate(`
@@ -54,9 +52,7 @@ check(/Zasady grupy LA/.test(await body()),
 
 // 4 — the share link carries the password in its fragment.
 await visit("/manager/activities", MANAGER_LIST);
-await click(`[...document.querySelectorAll("tbody tr")]
-    .find(r => r.innerText.includes("PROG-1-LA"))
-    ?.querySelector("td")`);
+await click(managerRow("PROG-1-LA"));
 await wait(2500);
 await click(tab("Ustawienia"));
 await wait(800);
@@ -99,9 +95,7 @@ await click(`[...(([...document.querySelectorAll("[role=tabpanel]")]
 await wait(3000);
 
 await visit("/manager/activities", MANAGER_LIST);
-await click(`[...document.querySelectorAll("tbody tr")]
-    .find(r => r.innerText.includes("PROG-1-LA"))
-    ?.querySelector("td")`);
+await click(managerRow("PROG-1-LA"));
 await wait(2500);
 await click(tab("Ustawienia"));
 await wait(800);
@@ -130,9 +124,7 @@ check(await evaluate(`return location.pathname === "/activities/PROG-1-LA/proble
 
 // 6 — accounts for a class, made and enrolled from inside the activity.
 await visit("/manager/activities", MANAGER_LIST);
-await click(`[...document.querySelectorAll("tbody tr")]
-    .find(r => r.innerText.includes("PROG-1-LA"))
-    ?.querySelector("td")`);
+await click(managerRow("PROG-1-LA"));
 await wait(2500);
 await click(tab("Uczestnicy"));
 await wait(800);

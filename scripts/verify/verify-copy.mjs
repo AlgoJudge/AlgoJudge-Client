@@ -18,7 +18,7 @@
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { evaluate, wait, shot, go, click, tab, close } = await open();
+const { evaluate, wait, shot, go, click, managerRow, tab, close } = await open();
 const { check, report } = results();
 
 const body = () => evaluate(`return document.body.innerText;`);
@@ -87,8 +87,7 @@ await wait(800);
 
 await go(`${APP}/manager/activities?fakeUser=john`,
     `[...document.querySelectorAll("tbody tr")].some(r => r.innerText.includes("AMMPZ-2019"))`);
-await click(`[...document.querySelectorAll("tbody tr")]
-    .find(r => r.innerText.includes("AMMPZ-2019"))?.querySelector("td")`);
+await click(managerRow("AMMPZ-2019"));
 await wait(2500);
 
 await click(tab("Serie"));

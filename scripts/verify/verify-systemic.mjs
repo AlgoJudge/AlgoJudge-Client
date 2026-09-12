@@ -2,14 +2,13 @@
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { send, evaluate, wait, shot, go, visit, click, tab, pages, close } =
+const { send, evaluate, wait, shot, go, visit, click, managerRow, tab, pages, close } =
     await open();
 const { check, report } = results();
 
 const MANAGER_LIST = `[...document.querySelectorAll("tbody tr")].some(r => r.innerText.includes("PROG-1-LA"))`;
 const openActivity = async () => {
-    await click(`[...document.querySelectorAll("tbody tr")]
-        .find(r => r.innerText.includes("PROG-1-LA"))?.querySelector("td")`);
+    await click(managerRow("PROG-1-LA"));
     await wait(2500);
 };
 

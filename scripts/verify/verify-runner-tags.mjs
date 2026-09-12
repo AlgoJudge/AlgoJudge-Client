@@ -24,7 +24,7 @@
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { send, evaluate, wait, shot, go, visit, click, close } = await open();
+const { send, evaluate, wait, shot, go, visit, click, managerRow, close } = await open();
 const { check, report } = results();
 
 // **Every selector here is scoped, and that is not tidiness.** Mantine keeps
@@ -103,8 +103,7 @@ await shot("runner-tags-panel");
 const MANAGER_LIST = `[...document.querySelectorAll("tbody tr")]
     .some(r => r.innerText.includes("KOLOKWIUM-2"))`;
 await go(`${APP}/manager/activities?fakeUser=john`, MANAGER_LIST);
-await click(`[...document.querySelectorAll("tbody tr")]
-    .find(r => r.innerText.includes("KOLOKWIUM-2"))?.querySelector("td")`);
+await click(managerRow("KOLOKWIUM-2"));
 await wait(2500);
 
 /** Each round's own block: the course holds two, with the same controls. */
