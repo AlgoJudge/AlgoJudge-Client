@@ -9,6 +9,7 @@ import { useApiCall, useApiEffect } from "../../../../../../provider/apiContext"
 import LoadState from "../../../../../../components/LoadState";
 import { languageOf } from "../../../../../../components/submission/offered";
 import { pastedFileName } from "../../../../../../components/editor/languages";
+import { sha256 } from "../../../../../../utils/sha256";
 
 const CodeEditor = lazy(() => import("../../../../../../components/editor/CodeEditor"));
 
@@ -75,6 +76,11 @@ export default function CodePage() {
         setSending(true);
         setError(undefined);
         try {
+            // Over exactly the bytes being sent, as the submit form does. The
+            // Server reads the declared checksum before the bytes and refuses a
+            // submission that arrives without one — which is what this button
+            // did until 2026-09-08.
+            const checksum = await sha256(new TextEncoder().encode(draft));
             const created = await call(api => api.participantApi.submit(activity.id, submission.problemSlug, {
                 // The same declaration the original carried, so a
                 // resubmission is judged as what it is rather than as whatever
@@ -82,6 +88,7 @@ export default function CodePage() {
                 props: (submission.props ?? { type: submission.problemType }) as Record<string, unknown>,
                 code: draft,
                 fileName: pastedFileName(submission.problemType, language),
+                sha256: checksum,
             }));
             navigate(`/activities/${activity.slug}/submissions/${created.id}`);
         } catch (e) {
@@ -120,12 +127,12 @@ export default function CodePage() {
                     </DownloadButton>
                     {editing
                         ? (
-                            <Button loading={sending} onClick={resubmit} leftSection={<IconSend size={16} />}>
+                            <Button data-testid="resubmit" loading={sending} onClick={resubmit} leftSection={<IconSend size={16} />}>
                                 {t("Send as a new submission")}
                             </Button>
                         )
                         : (
-                            <Button variant="light" onClick={startEditing} leftSection={<IconEdit size={16} />}>
+                            <Button data-testid="edit" variant="light" onClick={startEditing} leftSection={<IconEdit size={16} />}>
                                 {t("Edit and resubmit")}
                             </Button>
                         )}

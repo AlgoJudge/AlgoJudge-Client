@@ -267,7 +267,7 @@ const LangSelector = () => {
 const UserButton = (props: ComponentPropsWithoutRef<'button'>) => {
     const { session } = useAuth();
     return (
-        <UnstyledButton mx="xl" {...props} className={classes.user}>
+        <UnstyledButton data-testid="user-menu" mx="xl" {...props} className={classes.user}>
             <Group>
                 <div style={{ flex: 1 }}>
                     <Text size="sm" fw={500}>
@@ -300,10 +300,15 @@ const UserMenu = () => {
                     {t("My account")}
                 </Menu.Item>
                 {/* Ends the session on the Server, not only in this tab: the
-                    entry used to have no handler at all. */}
+                    entry used to have no handler at all. Where it lands is
+                    `signOut`'s own business — see `AuthProvider`.
+
+                    The provider's session is untouched either way: ending that
+                    one is `end_session_endpoint`, and a decision of its own. */}
                 <Menu.Item
+                    data-testid="logout"
                     leftSection={<IconLogout size={14} />}
-                    onClick={() => void signOut().then(() => navigate("/login", { replace: true }))}
+                    onClick={() => void signOut()}
                 >
                     {t("Logout")}
                 </Menu.Item>

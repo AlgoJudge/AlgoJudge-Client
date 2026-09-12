@@ -14,7 +14,7 @@
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { evaluate, wait, shot, go, visit, click, close } = await open();
+const { evaluate, until, wait, shot, go, visit, click, close } = await open();
 const { check, report } = results();
 
 /** Where the browser ended up, path and query, once everything settled. */
@@ -111,6 +111,33 @@ await wait(1200);
 const signedIn = await at();
 check(signedIn.startsWith("/activities"),
     `somebody already signed in goes to their screen, not to a provider (${signedIn})`);
+
+// ── signing out is a way out, not a way round ───────────────────────────────
+//
+// **The fifth suppression, and the one that was missing.** Signing out sent
+// people to `/login`, which is the screen the first check above watches leave
+// for the provider — and the provider still holds a session, so it handed the
+// same person straight back. On an installation that redirects there was no way
+// to sign out at all. Reported from production on 2026-09-08.
+//
+// Continues from the tab the check above left signed in, which is the state
+// this needs.
+
+await click(`document.querySelector("[data-testid=user-menu]")`);
+await click(`document.querySelector("[data-testid=logout]")`);
+
+// Signing out replaces the document, so this is asked through a navigation
+// rather than after a wait long enough to have covered it here.
+check(await until(`location.pathname === "/"`, 12),
+    "signing out lands on the front page");
+
+// **And stays there.** What went wrong was never where it landed but what that
+// screen then did, so one reading proves nothing: the bounce is a redirect
+// `/login` fires after it has drawn.
+await wait(1500);
+check(await until(`location.pathname === "/"`, 1),
+    "and is still there once the screen has had its say");
+await shot("sign-in-redirect-signed-out");
 
 // ── the registration screen, same rule ──────────────────────────────────────
 //

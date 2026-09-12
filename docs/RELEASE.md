@@ -3,17 +3,18 @@
 For whoever cuts the release. Somebody installing the product wants
 [AlgoJudge-Ops](https://github.com/AlgoJudge/AlgoJudge-Ops) instead.
 
-Every claim below was checked against the repository on 2026-09-07, and the
-readings that move on their own — dependencies, base images — were retaken on
-2026-09-08, the day 0.1.0 was cut. Where something could not be checked, the last
-section says so rather than leaving it to be assumed.
+Every claim below was checked against the repository on 2026-09-07 and retaken
+on 2026-09-09, the day 0.1.1 was cut: the readings that move on their own —
+dependencies, base images — and also the counts and line numbers this file quotes
+out of other files, two of which had gone stale in a day. Where something could
+not be checked, the last section says so rather than leaving it to be assumed.
 
 ## Where the version lives
 
 **`package.json`, `version`**, with `package-lock.json` following it — change it
 with `npm pkg set version=…` and `npm install --package-lock-only`, never by
 hand, because the lock carries it in two places (`package-lock.json` lines 3 and
-9). All three read `0.1.0`.
+9). All three read `0.1.1`.
 
 The package is `private` and is never published to a registry; the field exists
 so the repository can say which release a commit belongs to.
@@ -26,42 +27,43 @@ environment when it starts.
 ## The tag has to sit on `main`
 
 `.github/workflows/release.yml` refuses a tag whose commit is not an ancestor of
-`main`, and that is the first thing to settle, because it does not hold for this
-branch:
-
-**`release/0.1.0` is not an ancestor of `main`.** `main` is at `7da88ab`, and
-this branch carries commits on top of it. A tag pushed from here fails at *The
-tag must be on main*. The check is
-`git merge-base --is-ancestor HEAD main`.
-
+`main` — the check is `git merge-base --is-ancestor HEAD main` — and
 `.github/workflows/ci.yml` triggers on `push` and `pull_request` against `main`
-alone, so **no CI run exists for `release/0.1.0`**. The branch carries no
-evidence of its own.
+alone.
 
-Both are the same fix: land the branch on `main` through a pull request, let
-that run go green, and tag the merge commit.
+**A release branch satisfies neither until it is merged.** It is not an ancestor
+of `main`, so a tag pushed from it fails at *The tag must be on main*; and no CI
+run exists for it, so it carries no evidence of its own either. Those are one
+fix rather than two: land the branch on `main` through a pull request, let that
+run go green, and tag the merge commit.
+
+Both releases so far were cut that way, and 0.1.0 found the rule by meeting it.
 
 ## What a tag does
 
 `release.yml` runs on a pushed tag matching `v*`, checks the ancestry above,
 refuses a name that is not `v<major>.<minor>.<patch>[-prerelease]`, and publishes
-`ghcr.io/algojudge/algojudge-client` under `0.1.0`, `0.1`, `0` and `latest`. A
+`ghcr.io/algojudge/algojudge-client` under `0.1.1`, `0.1`, `0` and `latest`. A
 prerelease publishes its own tag alone, so nothing moving follows it.
 
 It builds the image, starts it, and checks it serves the front page and a deep
 link before pushing. **It runs none of the checks below** — a tag points at a
 commit, and that commit's own CI run is the evidence.
 
-`ghcr.io/algojudge` is empty and no repository carries a `v*` tag, so this tag
-creates the package. A package a workflow creates starts private;
-`AlgoJudge-Ops/docs/INSTALL.md` covers what that means for an installation
-pulling it.
+**The package exists and is public.** 0.1.0's tag created it on 2026-09-08, and
+read anonymously on 2026-09-09 all four of `0.1.0`, `0.1`, `0` and `latest`
+answer — so a tag now moves the three floating ones onto new bytes rather than
+creating anything, and that move is what an installation following the major
+picks up on its next `docker compose pull`. A package a workflow creates starts
+private, which this one no longer is; `AlgoJudge-Ops/docs/INSTALL.md` covers what
+private would mean for an installation pulling it.
 
 ## Before the tag
 
 - [ ] `package.json` and `package-lock.json` say the version being released.
 - [ ] `README.md` names it in the `docker pull` and `docker run` examples —
-      lines 149 and 163, both `0.1.0`.
+      lines 156 and 170, both `0.1.1`. **Recount them**: they were 149 and 163
+      when 0.1.0 was cut, one day earlier.
 - [ ] **The documentation describes the software as it is** — not merely the
       version in it. `README.md`, `CLAUDE.md`, `SERVER_CONTRACT.md`,
       `scripts/verify/README.md`, `AUTHORS.md` and `AUTHORS.txt`, this file, and
@@ -203,7 +205,7 @@ as long as that image is deployed.
 Node 24 satisfies the rule today. It is **Active LTS** on the release date,
 enters maintenance 2026-10-20, and Node 26 becomes Active LTS on 2026-10-28 —
 read from `nodejs/Release` `schedule.json` on 2026-09-07. So the pin is right for
-0.1.0 and will not be right for a release cut after October; raising it is those
+0.1.1 and will not be right for a release cut after October; raising it is those
 three files at once, plus the whole gate.
 
 Checked locally on Node 24.20.0 with npm 11.19.0, which is what `README.md`
@@ -216,7 +218,9 @@ move, **it moves before the gate runs, never after**: a green gate is evidence
 about one tree, and an `npm install`, `npm update` or `npm audit fix` afterwards
 turns it into evidence about a tree nobody checked.
 
-Read on **2026-09-08**, after this release's own refresh:
+Read on **2026-09-09**. Nothing was taken this time, because nothing was
+behind: `npm outdated` names the same two majors and no third row, and the
+lockfile did not move — which is the shape a patch release should have.
 
 **Nothing is behind inside its declared range.** `npm update` took sixteen
 packages on the day the release was cut — Mantine 9.5.2 → 9.6.0 across all five,
@@ -239,8 +243,9 @@ range in `package.json` and needs the whole gate re-run:
 - **`markdown-it-anchor` 9.2.1 → 10.0.0.** It anchors statement headings, which
   `check:content` covers.
 
-Neither belongs in 0.1.0. Nothing is published, so there is no installation to
-break and no reason to take a major on release day.
+Neither belongs in 0.1.1, and less so than in 0.1.0: something **is** published
+now, so a major taken on release day is a major taken against installations that
+will pull it, for a release whose whole content is two fixes.
 
 **Mantine is worth naming on its own.** The browser suite no longer matches its
 generated class names, so a Mantine minor does not redden `check:ui` for nothing.
@@ -248,8 +253,7 @@ It is still a UI library upgrade, and nothing in the file-reading gate can see a
 view that renders differently: the full `check:ui` run against the refreshed tree
 is what makes it evidence.
 
-`npm audit`, 2026-09-08: **zero at every severity**, across 325 packages — 134
-production, 191 development, 28 optional.
+`npm audit`, 2026-09-09: **zero at every severity**, unchanged.
 
 It read **one moderate** before the refresh, kept here because the next release
 will meet the same shape: GHSA-p498-v437-472g, `@humanfs/node` 0.16.6, reached
@@ -279,13 +283,14 @@ for i in node:24-alpine nginx:1.30-alpine postgres:18; do
 done
 ```
 
-Read on 2026-09-08: `node:24-alpine` built 2026-08-27, `nginx:1.30-alpine`
-2026-09-03, `postgres:18` 2026-08-26. Postgres 19 does not exist yet.
+Read on 2026-09-09: `node:24-alpine` built 2026-08-27, `nginx:1.30-alpine`
+2026-09-03, `postgres:18` 2026-08-26 — the same three builds as the day before,
+none of them stale. Postgres 19 does not exist yet.
 
 ## The nginx base
 
-**`1.30-alpine` here**, the stable line, raised from `1.27-alpine` for this
-release. nginx numbers even minors stable and odd ones mainline, so the choice is
+**`1.30-alpine` here**, the stable line, raised from `1.27-alpine` for 0.1.0
+and unchanged since. nginx numbers even minors stable and odd ones mainline, so the choice is
 between `1.30-alpine` and `1.31-alpine`, and this repository takes the stable
 one.
 
@@ -322,25 +327,25 @@ Their order is the order the release follows, not a constraint.
 
 ## After the tag
 
-- [ ] The package exists at `ghcr.io/algojudge/algojudge-client` and carries
-      `0.1.0`, `0.1`, `0` and `latest`.
-- [ ] `docker pull ghcr.io/algojudge/algojudge-client:0.1.0` succeeds from
+- [ ] The package carries `0.1.1`, and `0.1`, `0` and `latest` have moved onto
+      it.
+- [ ] `docker pull ghcr.io/algojudge/algojudge-client:0.1.1` succeeds from
       outside the organisation, or the package's visibility is deliberately
       private.
 - [ ] Ops has been stood up against the published tags rather than local builds.
 
 The documentation site cuts its `/client/` snapshot on release day. That is
-`AlgoJudge-Docs`' step rather than this repository's, and it is not done:
-`content/docs/en/client/` holds no version directory, and `docs.algojudge.pl` has
-no DNS record.
+`AlgoJudge-Docs`' step rather than this repository's, and for 0.1.0 it was taken:
+`content/docs/en/client/v0.1` exists, and `docs.algojudge.pl` answers — read on
+2026-09-09, it redirects to `/en/` and serves it. **A patch release is not a new
+snapshot**: `/client/v0.1` is the 0.1 line, and 0.1.1 is in it.
 
 ## Not verified here
 
-- **`npm run check:ui` was not run** while this file was written. It is minutes
-  long and it is a gate rather than a document check — run it against the commit
-  being tagged.
-- **`npm run check:e2e`** likewise, and it needs a full stack.
-- **No CI run exists for `release/0.1.0`** to read, for the reason in *The tag
-  has to sit on `main`*.
+- **`npm run check:e2e`** was not run: it runs nowhere automatically and needs a
+  full stack already up.
 - **The image was not built or pulled** from this branch; the `docker` job in
   `ci.yml` and the release workflow's own serve check are what cover it.
+
+`npm run check:ui` **was** run in full for 0.1.1, against the tree being tagged,
+which is the one line of this section that 0.1.0 could not write.
