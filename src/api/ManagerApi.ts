@@ -4,7 +4,7 @@ import { StatementRef, UploadedFile } from "./FileApi";
 import { SeriesImportanceScope } from "./seriesImportance";
 import {
     ActivityDocumentKind, ActivityDocumentRef, DisplayName, JobState, JoinPolicy, Page,
-    QuestionAnswer, QuestionKind, ScoreVisibility, SubmissionFile,
+    PrintoutState, QuestionAnswer, QuestionKind, ScoreVisibility, SubmissionFile,
 } from "./ParticipantApi";
 
 /**
@@ -1106,6 +1106,62 @@ export interface ManagedSubmissionFilter {
  * nobody asked, published from the start. Splitting them would double every
  * filter and every screen for a difference of two fields.
  */
+/**
+ * One row of the queue somebody at a printer works from.
+ *
+ * Metadata only. The source travels on {@link PrintoutSheet}, which is one
+ * request per sheet and answered with `no-store`.
+ */
+export interface ManagedPrintout {
+    id: string;
+    activityId: string;
+    activityName: string;
+    requestedByName: string;
+    /** As it was when the request was made, not as it is now. */
+    groupName?: string;
+    title?: string;
+    fileName: string;
+    sizeBytes: number;
+    /** Printed in the sheet's footer, so paper can be matched to a row. */
+    sha256: string;
+    state: PrintoutState;
+    requestedAt: string;
+    resolvedAt?: string;
+    resolvedByName?: string;
+    /** Set once the source has gone. The row outlives the bytes. */
+    sourceDisposedAt?: string;
+}
+
+/**
+ * Everything one sheet of paper carries.
+ *
+ * `source` is **absent** once the request is resolved and the endpoint still
+ * answers 200 — the printout exists and its record is the audit trail, so a 404
+ * would be a different and false sentence. `sourceDisposedAt` is what says so.
+ */
+export interface PrintoutSheet {
+    printout: ManagedPrintout;
+    /** The activity's own zone, so a date on paper reads as the room did. */
+    timeZone: string;
+    problemSlug?: string;
+    problemName?: string;
+    source?: string;
+}
+
+export interface ManagedPrintoutFilter {
+    page?: number;
+    pageSize?: number;
+    activityId?: string;
+    state?: PrintoutState;
+}
+
+/** One activity the caller may work the queue of. */
+export interface PrintoutActivity {
+    id: string;
+    name: string;
+    slug: string;
+}
+
 export interface ManagedQuestion {
     id: string;
     activityId: string;
@@ -1567,7 +1623,7 @@ export interface InstanceFontInput {
 
 export type ManagerEventType = "permissionTemplateChanged" | "grantChanged" | "problemChanged"
     | "activityChanged" | "managerSeriesChanged" | "submissionChanged" | "questionChanged" | "userChanged"
-    | "runnerChanged" | "instanceChanged";
+    | "runnerChanged" | "instanceChanged" | "printoutChanged";
 export type ManagerEvent<T extends ManagerEventType, V> = Event<T, V>;
 
 export type PermissionTemplateChangedEvent = ManagerEvent<"permissionTemplateChanged", {
@@ -1615,6 +1671,16 @@ export type QuestionChangedEvent = ManagerEvent<"questionChanged", {
     deletedId?: string;
 }>;
 
+/**
+ * A print request appeared or was resolved.
+ *
+ * **Manager only.** Two people at one printer, each looking at a list that has
+ * not moved, is how the same page gets printed twice.
+ */
+export type PrintoutChangedEvent = ManagerEvent<"printoutChanged", {
+    printoutId: string;
+}>;
+
 export type UserChangedEvent = ManagerEvent<"userChanged", {
     user: ManagedUser;
 }>;
@@ -1642,6 +1708,7 @@ export interface ManagerEventDispatcher {
     addEventListener(type: "managerSeriesChanged", listener: (evt: SeriesChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "submissionChanged", listener: (evt: SubmissionChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "questionChanged", listener: (evt: QuestionChangedEvent) => void, signal: AbortSignal): void;
+    addEventListener(type: "printoutChanged", listener: (evt: PrintoutChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "userChanged", listener: (evt: UserChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "runnerChanged", listener: (evt: RunnerChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "instanceChanged", listener: (evt: InstanceChangedEvent) => void, signal: AbortSignal): void;
@@ -1993,6 +2060,20 @@ export interface ManagerApi {
     /** Refused once anything has been submitted against the assignment. */
     detachProblem(seriesProblemId: string, signal: AbortSignal): Promise<ManagedSeries>;
     reorderSeriesProblems(seriesId: string, orderedIds: string[], signal: AbortSignal): Promise<ManagedSeries>;
+
+    /** Oldest first: a queue is worked from the front. */
+    getPrintouts(filter: ManagedPrintoutFilter, signal: AbortSignal): Promise<Page<ManagedPrintout>>;
+    /**
+     * What the activity filter offers.
+     *
+     * Its own call rather than the panel's activity summary, which narrows on
+     * `activity:update` — an operator holding only `printout:manage` would be
+     * handed an empty filter with no error to notice.
+     */
+    getPrintoutActivities(signal: AbortSignal): Promise<PrintoutActivity[]>;
+    getPrintoutSheet(id: string, signal: AbortSignal): Promise<PrintoutSheet>;
+    /** It printed, or it did not. Either way the source goes. */
+    resolvePrintout(id: string, outcome: "printed" | "discarded", signal: AbortSignal): Promise<ManagedPrintout>;
 
     getQuestions(filter: ManagedQuestionFilter, signal: AbortSignal): Promise<Page<ManagedQuestion>>;
     /** Answering leaves it unpublished unless the input says otherwise. */

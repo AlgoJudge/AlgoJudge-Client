@@ -61,6 +61,10 @@ import {
     UserUpdateInput,
     NewTrial,
     Trial,
+    ManagedPrintout,
+    ManagedPrintoutFilter,
+    PrintoutActivity,
+    PrintoutSheet,
 } from "../ManagerApi";
 import { Page } from "../ParticipantApi";
 import { displayName } from "../displayName";
@@ -76,6 +80,7 @@ import { FakeActivities } from "./FakeActivities";
 import { FakeAccess } from "./FakeAccess";
 import { FakeExclusions } from "./FakeExclusions";
 import { FakeLockdown } from "./FakeLockdown";
+import { FakePrintouts, StoredPrintout } from "./FakePrintouts";
 import { DEFAULT_IMPORTANCE_SCOPE, NORMAL_IMPORTANCE } from "../seriesImportance";
 import { normaliseRunnerTags, runnerReaches, tagsInForce } from "../runnerTags";
 import { systemicByDefault } from "../permissions";
@@ -197,6 +202,8 @@ export class ManagerApiFake implements ManagerApi {
         private readonly exclusions: FakeExclusions,
         /** And one for what a running round puts out of reach. */
         private readonly lockdown: FakeLockdown,
+        /** And one for the print queue, which one side writes and the other works. */
+        private readonly printouts: FakePrintouts,
         private sleepMs: number = 300,
     ) {
         this.library = createProblemLibrary(files);
@@ -1527,6 +1534,107 @@ export class ManagerApiFake implements ManagerApi {
         // here exactly as it will be on the Server, rather than an empty list.
         const user = this.findUser(userId);
         return copy(createSessions(user, userId === signedInUserId()));
+    }
+
+    async getPrintouts(filter: ManagedPrintoutFilter, signal: AbortSignal): Promise<Page<ManagedPrintout>> {
+        await this.settle(signal);
+        // **`listScope`, exactly as the questions list does it.** Narrowing here
+        // is the whole delegation: the operator's grant is on an activity by
+        // construction, so a fake that required the key at no scope would refuse
+        // the very person this screen is for — and a fake that skipped the
+        // narrowing would show them another room's work, which the Server does
+        // not.
+        const allowed = this.listScope("printout:manage", filter.activityId);
+        const matched = this.printouts.all()
+            .filter(p => allowed === null || allowed.includes(p.activityId))
+            .filter(p => !filter.activityId || p.activityId === filter.activityId)
+            .filter(p => !filter.state || p.state === filter.state)
+            // Oldest first: a queue is worked from the front.
+            .sort((a, b) => Date.parse(a.requestedAt) - Date.parse(b.requestedAt));
+
+        const page = filter.page ?? 1;
+        const pageSize = filter.pageSize ?? 20;
+        return {
+            items: matched.slice((page - 1) * pageSize, page * pageSize)
+                .map(row => copy(this.projectPrintout(row))),
+            total: matched.length,
+            page,
+            pageSize,
+        };
+    }
+
+    async getPrintoutActivities(signal: AbortSignal): Promise<PrintoutActivity[]> {
+        await this.settle(signal);
+        const allowed = this.listScope("printout:manage", undefined);
+        return this.activities
+            .map(r => r.activity)
+            .filter(a => allowed === null || allowed.includes(a.id))
+            .map(a => ({ id: a.id, name: a.name, slug: a.slug }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    async getPrintoutSheet(id: string, signal: AbortSignal): Promise<PrintoutSheet> {
+        await this.settle(signal);
+        const row = this.printoutRow(id);
+        const activity = this.activityOf(row.activityId);
+        return {
+            printout: copy(this.projectPrintout(row)),
+            timeZone: activity?.timeZone ?? "Europe/Warsaw",
+            problemSlug: row.problemSlug,
+            problemName: row.problemName,
+            source: row.source,
+        };
+    }
+
+    async resolvePrintout(
+        id: string, outcome: "printed" | "discarded", signal: AbortSignal,
+    ): Promise<ManagedPrintout> {
+        await this.settle(signal);
+        const row = this.printoutRow(id);
+        if (row.state !== "requested") conflict("This request is already resolved", "printout.resolved");
+
+        row.state = outcome;
+        row.resolvedAt = new Date().toISOString();
+        row.resolvedByName = "Ty";
+        row.sourceDisposedAt = row.resolvedAt;
+        // The source goes with the confirm. The row stays, because it is the
+        // audit trail.
+        row.source = undefined;
+        return copy(this.projectPrintout(row));
+    }
+
+    /** The stored row, so a write reaches the queue rather than a copy of it. */
+    private printoutRow(id: string): StoredPrintout {
+        const row = this.printouts.find(id);
+        if (!row) notFound("Printout");
+        // The permission, at the printout's **own** activity — the rule the
+        // Server applies before it projects anything.
+        this.listScope("printout:manage", row.activityId);
+        return row;
+    }
+
+    private activityOf(activityId: string) {
+        return this.activities.find(r => r.activity.id === activityId)?.activity;
+    }
+
+    private projectPrintout(row: StoredPrintout): ManagedPrintout {
+        const activity = this.activityOf(row.activityId);
+        return {
+            id: row.id,
+            activityId: row.activityId,
+            activityName: activity?.name ?? "",
+            requestedByName: row.requestedByName,
+            groupName: row.groupName,
+            title: row.title,
+            fileName: row.fileName,
+            sizeBytes: row.sizeBytes,
+            sha256: row.sha256,
+            state: row.state,
+            requestedAt: row.requestedAt,
+            resolvedAt: row.resolvedAt,
+            resolvedByName: row.resolvedByName,
+            sourceDisposedAt: row.sourceDisposedAt,
+        };
     }
 
     async getQuestions(filter: ManagedQuestionFilter, signal: AbortSignal): Promise<Page<ManagedQuestion>> {

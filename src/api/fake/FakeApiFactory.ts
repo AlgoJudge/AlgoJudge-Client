@@ -5,6 +5,7 @@ import { CoreApiFake } from "./CoreApiFake";
 import { FakeActivities } from "./FakeActivities";
 import { FakeAccess } from "./FakeAccess";
 import { FakeExclusions } from "./FakeExclusions";
+import { FakePrintouts } from "./FakePrintouts";
 import { FakeLockdown } from "./FakeLockdown";
 import { WORLD } from "./fixtures/world";
 import { FakeInstance } from "./FakeInstance";
@@ -39,10 +40,13 @@ export class FakeApiFactory {
         // panel writes a round's rank and ranges; the participant's screens read
         // what they do.
         const lockdown = new FakeLockdown();
+        // And one owner for the print queue. A participant asks and the operator
+        // prints; two copies would let somebody send a page that never arrived.
+        const printouts = new FakePrintouts(WORLD);
         return {
             authApi: new CoreApiFake(instance),
-            participantApi: new ParticipantApiFake(files, activities, access, exclusions, lockdown),
-            managerApi: new ManagerApiFake(files, instance, activities, access, exclusions, lockdown),
+            participantApi: new ParticipantApiFake(files, activities, access, exclusions, lockdown, printouts),
+            managerApi: new ManagerApiFake(files, instance, activities, access, exclusions, lockdown, printouts),
             fileApi: new FileApiFake(files),
             ltiApi: new LtiApiFake(),
             // The fake dispatches its own events as it changes things, so there

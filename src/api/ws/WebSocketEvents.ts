@@ -45,6 +45,7 @@ export const MANAGER: Record<ManagerEventType, true> = {
     activityChanged: true,
     managerSeriesChanged: true,
     submissionChanged: true,
+    printoutChanged: true,
     questionChanged: true,
     userChanged: true,
     runnerChanged: true,

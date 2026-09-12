@@ -16,7 +16,6 @@ import { openByClock, seriesState } from "../../seriesState";
 // handed the store rather than reaching for one of their own.
 import type { FakeFiles } from "../FileApiFake";
 import { attemptFiles, sourceFiles } from "./attachments";
-import { FakePrintout, printoutsFor } from "./printouts";
 import {
     SeedActivity, SeedAssignment, SeedAttempt, SeedSeries, WORLD,
     attemptId, attemptTime, displayName, fractionOf, maxPointsOf, meOf, pointsOf,
@@ -55,14 +54,6 @@ export interface Dataset {
     submissionFiles: Map<string, Map<string, string>>;
     /** Keyed by activity id, newest first. */
     questions: Map<string, Question[]>;
-    /**
-     * Print requests, keyed by activity id, oldest first — the order a queue is
-     * worked in, so the operator's screen needs no sort.
-     *
-     * The requester is on the row because the fake has no user table to join to,
-     * and the operator's screen names whoever asked.
-     */
-    printouts: Map<string, FakePrintout[]>;
     /** Problems whose series has not opened yet, held back until it does. */
     withheld: Map<string, ProblemSummary[]>;
     /**
@@ -148,7 +139,6 @@ export const createDataset = (files: FakeFiles): Dataset => {
     const submissionDetails = new Map<string, SubmissionDetail>();
     const submissionFiles = new Map<string, Map<string, string>>();
     const questions = new Map<string, Question[]>();
-    const printouts = new Map<string, FakePrintout[]>();
     const withheld = new Map<string, ProblemSummary[]>();
     const seeds = new Map<string, SeedActivity>();
 
@@ -419,12 +409,11 @@ export const createDataset = (files: FakeFiles): Dataset => {
         submissions.set(activity.id, mine);
 
         questions.set(activity.id, questionsFor(activity));
-        printouts.set(activity.id, printoutsFor(activity.id, activity.modules.printouts));
     }
 
     return {
         activities, series, problems, submissions, submissionDetails,
-        submissionFiles, questions, printouts, withheld, seeds,
+        submissionFiles, questions, withheld, seeds,
     };
 };
 
