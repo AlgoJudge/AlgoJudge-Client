@@ -98,11 +98,15 @@ export default function PrintoutsPage() {
         setBusy(true);
         setFailed(undefined);
         try {
-            const text = file ? await file.text() : code;
-            const digest = await sha256(new TextEncoder().encode(text));
+            // **The file's own bytes**, not its text decoded and encoded again:
+            // a BOM or a byte sequence UTF-8 cannot represent would survive one
+            // and not the other, and the checksum is over what is sent.
+            const bytes = file ? await file.arrayBuffer() : new TextEncoder().encode(code);
+            const digest = await sha256(bytes);
             await call(api => api.participantApi.requestPrintout(activity.id, {
-                code: text,
-                fileName: name,
+                file: file ?? undefined,
+                code: file ? undefined : code,
+                fileName: file ? undefined : name,
                 sha256: digest,
             }));
             setCode("");

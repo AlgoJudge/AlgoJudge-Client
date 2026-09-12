@@ -119,6 +119,41 @@ const mine = await body();
 check(/main\.py/.test(mine), "and only then does it appear in the asker's own list");
 await shot("printouts-participant");
 
+// **And a file picked from disk, which is a different path through the form.**
+// Its bytes must arrive as they are: a browser rewrites every newline in a
+// multipart *text* field to CRLF, so source hashed as it sits on disk and sent
+// as text never matches — a 422 on a file nothing is wrong with. The name has a
+// space and brackets for the same reason a real one does.
+await visit(`/activities/${ON}/printouts`,
+    `document.querySelector("input[type=file]") !== null`);
+
+const attached = await evaluate(`
+    const input = document.querySelector("input[type=file]");
+    if (!input) throw new Error("no file input on the form");
+    // **Unix endings on purpose.** Measured against a live Server: the same
+    // bytes as a text field answer 422 and as a file part 201, because the
+    // browser rewrites LF to CRLF on its way into a field and leaves a file
+    // alone. A CRLF fixture would pass either way and prove nothing.
+    const bytes = "int main() {\\n    return 0;\\n}\\n";
+    const file = new File([bytes], "program (1).cpp", { type: "text/plain" });
+    const data = new DataTransfer();
+    data.items.add(file);
+    input.files = data.files;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    return true;
+`);
+check(attached === true, "a file can be picked");
+await wait(900);
+
+await click(`document.querySelector("[data-testid=printout-send]")`);
+await wait(700);
+await click(`document.querySelector("[data-testid=printout-confirm]")`);
+await wait(2000);
+
+const withFile = await body();
+check(/program \(1\)\.cpp/.test(withFile),
+    "and arrives under its own name, checksum and all");
+
 // ── 5. It reaches the queue, and the sheet is a tab of its own ──────────────
 
 // **Back as the operator, and on a seeded row rather than the one just sent.**

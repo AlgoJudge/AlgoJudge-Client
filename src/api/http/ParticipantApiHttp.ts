@@ -141,8 +141,11 @@ export class ParticipantApiHttp implements ParticipantApi {
         // Multipart and not JSON, so the bytes are staged and checksummed by the
         // same path every other upload takes.
         const form = new FormData();
-        form.append("code", input.code);
-        form.append("fileName", input.fileName);
+        // A picked file goes as a file part: its bytes travel untouched, where a
+        // text field's newlines would be rewritten to CRLF on the way out.
+        if (input.file) form.append("file", input.file, input.file.name);
+        if (input.code !== undefined) form.append("code", input.code);
+        if (input.fileName) form.append("fileName", input.fileName);
         // Unconditional, for the reason `submit` gives above: a guard here turns
         // a caller that sent nothing into a request that says nothing.
         form.append("sha256", input.sha256);

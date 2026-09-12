@@ -785,8 +785,21 @@ export interface Printout {
  * refuses an id that is not the caller's own.
  */
 export interface PrintoutRequest {
-    code: string,
-    fileName: string,
+    /**
+     * A file, when one was picked.
+     *
+     * **Sent as a file part rather than as text, and that is the whole of why
+     * this field exists.** A browser normalises every newline in a multipart
+     * *text* field to CRLF before it leaves, so bytes read off disk and hashed
+     * as they are never match what arrives — the Server answers 422 on a file
+     * nothing is wrong with. Hashing the CRLF version instead would store
+     * something other than what was picked, which is what the checksum is for.
+     */
+    file?: File,
+    /** Typed source, when there is no file. */
+    code?: string,
+    /** Absent when a file carries its own. */
+    fileName?: string,
     /** Over the bytes being sent. The Server recomputes it and answers 422. */
     sha256: string,
     title?: string,

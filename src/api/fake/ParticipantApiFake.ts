@@ -987,12 +987,17 @@ export class ParticipantApiFake implements ParticipantApi {
             conflict("You already have print requests waiting", "printout.tooMany");
         }
 
+        // The fake stores text, so a picked file is read here — the Server keeps
+        // the bytes and this keeps what a screen will draw.
+        const text = input.file ? await input.file.text() : input.code ?? "";
+        const fileName = input.file?.name ?? input.fileName ?? "main.txt";
+
         const me = meOf(seed);
         const made: FakePrintout = {
             id: `po-${Math.random().toString(36).slice(2, 10)}`,
             title: input.title,
-            fileName: input.fileName,
-            sizeBytes: new TextEncoder().encode(input.code).length,
+            fileName,
+            sizeBytes: new TextEncoder().encode(text).length,
             state: "requested",
             requestedAt: new Date().toISOString(),
             requestedByName: me?.name ?? "Ty",
@@ -1001,7 +1006,7 @@ export class ParticipantApiFake implements ParticipantApi {
             // from the grant rather than guessed. The fixture rows carry one so
             // the operator's screen has the case to draw.
             sha256: input.sha256,
-            source: input.code,
+            source: text,
         };
         this.printouts.add(activityId, made);
         return ParticipantApiFake.mine(made);
