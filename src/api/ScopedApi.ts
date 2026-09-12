@@ -128,6 +128,9 @@ import {
     SubmissionStateChangedEvent,
     SubmissionSummary,
     SubmitPayload,
+    PagedFilter,
+    Printout,
+    PrintoutRequest,
 } from "./ParticipantApi";
 
 /**
@@ -371,6 +374,12 @@ export class ScopedParticipantApi {
     }
     markQuestionRead(activityId: string, questionId: string): Promise<void> {
         return this.participantApi.markQuestionRead(activityId, questionId, this.signal);
+    }
+    getPrintouts(activityId: string, filter: PagedFilter): Promise<Page<Printout>> {
+        return this.participantApi.getPrintouts(activityId, filter, this.signal);
+    }
+    requestPrintout(activityId: string, input: PrintoutRequest): Promise<Printout> {
+        return this.participantApi.requestPrintout(activityId, input, this.signal);
     }
 }
 

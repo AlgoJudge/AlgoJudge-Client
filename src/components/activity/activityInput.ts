@@ -13,7 +13,7 @@ export const emptyActivity = (): ActivityInput => ({
     type: "contest@1",
     rankingType: "points",
     timeZone: "Europe/Warsaw",
-    modules: { questions: true },
+    modules: { questions: true, printouts: false },
     scoreVisibility: "everyone",
     // The three a Runner attaches by convention. The source and the per-test
     // table are the participant's own work and its verdict; the log is where a

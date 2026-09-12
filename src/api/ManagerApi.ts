@@ -399,7 +399,7 @@ export interface ManagedActivity {
     /** Absent when the activity spans its series instead of stating its own bounds. */
     startDate?: string;
     endDate?: string;
-    modules: { questions: boolean };
+    modules: { questions: boolean; printouts: boolean };
     /**
      * A reference to every document this activity publishes. What exists is what
      * has one; there is no flag beside them saying so.
@@ -515,7 +515,7 @@ export interface ActivityInput {
     timeZone: string;
     startDate?: string;
     endDate?: string;
-    modules: { questions: boolean };
+    modules: { questions: boolean; printouts: boolean };
     scoreVisibility: ScoreVisibility;
     attachmentVisibility: AttachmentRule[];
     /** Display metadata. Opaque; absent means none. */

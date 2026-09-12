@@ -535,7 +535,7 @@ export const convertArchive = async (entries: Entries): Promise<Conversion> => {
         timeZone: DEFAULT_ZONE,
         startDate: instant((parsed.contest as Record<string, unknown> | undefined)?.startdate),
         endDate: undefined,
-        modules: { questions: true },
+        modules: { questions: true, printouts: false },
         scoreVisibility: "everyone",
         attachmentVisibility: [{ name: "source", visibility: "participant" }],
         props: undefined,

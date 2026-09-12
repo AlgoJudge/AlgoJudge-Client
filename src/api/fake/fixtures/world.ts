@@ -274,7 +274,7 @@ export interface SeedActivity {
     timeZone: string;
     startDate?: string;
     endDate?: string;
-    modules: { questions: boolean };
+    modules: { questions: boolean; printouts: boolean };
     scoreVisibility: ScoreVisibility;
     attachmentVisibility: AttachmentRule[];
     joinPolicy: "closed" | "password" | "open";
@@ -603,7 +603,7 @@ export const WORLD: SeedActivity[] = [
         // Wide enough to hold every round, including the one that ran yesterday.
         startDate: at(-days(1) - hours(1)),
         endDate: at(days(3)),
-        modules: { questions: true },
+        modules: { questions: true, printouts: true },
         scoreVisibility: "everyone",
         attachmentVisibility: CONTEST_ATTACHMENTS,
         // Nobody joins a national final from a link: the teams are entered.
@@ -630,7 +630,7 @@ export const WORLD: SeedActivity[] = [
         timeZone: "Europe/Warsaw",
         startDate: at(-days(30)),
         endDate: at(days(60)),
-        modules: { questions: true },
+        modules: { questions: true, printouts: true },
         // A course where somebody sees their own standing and nobody else's: the
         // ranking is one row, without a place.
         scoreVisibility: "participantOnly",
@@ -731,7 +731,7 @@ export const WORLD: SeedActivity[] = [
         type: "contest@1",
         rankingType: "points",
         timeZone: "Europe/Warsaw",
-        modules: { questions: false },
+        modules: { questions: false, printouts: false },
         scoreVisibility: "everyone",
         attachmentVisibility: COURSE_ATTACHMENTS,
         // Anybody may join, and there is no password to type.
@@ -767,7 +767,7 @@ export const WORLD: SeedActivity[] = [
         timeZone: "Europe/Warsaw",
         startDate: at(-hours(1)),
         endDate: at(hours(4)),
-        modules: { questions: true },
+        modules: { questions: true, printouts: false },
         scoreVisibility: "everyone",
         attachmentVisibility: CONTEST_ATTACHMENTS,
         joinPolicy: "closed",
@@ -820,7 +820,7 @@ export const WORLD: SeedActivity[] = [
         timeZone: "Europe/Warsaw",
         startDate: at(-days(400)),
         endDate: at(-days(399)),
-        modules: { questions: false },
+        modules: { questions: false, printouts: false },
         scoreVisibility: "managersOnly",
         attachmentVisibility: CONTEST_ATTACHMENTS,
         joinPolicy: "closed",
@@ -847,7 +847,7 @@ export const WORLD: SeedActivity[] = [
         timeZone: "Europe/Warsaw",
         startDate: at(-days(400)),
         endDate: at(-days(400) + hours(5)),
-        modules: { questions: false },
+        modules: { questions: false, printouts: false },
         scoreVisibility: "everyone",
         attachmentVisibility: CONTEST_ATTACHMENTS,
         joinPolicy: "closed",
@@ -896,7 +896,7 @@ export const WORLD: SeedActivity[] = [
         timeZone: "Europe/Warsaw",
         startDate: at(-days(20)),
         endDate: at(days(70)),
-        modules: { questions: true },
+        modules: { questions: true, printouts: false },
         // Nobody but a manager: no ranking entry at all.
         scoreVisibility: "managersOnly",
         attachmentVisibility: COURSE_ATTACHMENTS,
@@ -940,7 +940,7 @@ export const WORLD: SeedActivity[] = [
         timeZone: "Europe/Warsaw",
         startDate: at(-hours(1)),
         endDate: at(hours(2)),
-        modules: { questions: true },
+        modules: { questions: true, printouts: false },
         scoreVisibility: "participantOnly",
         attachmentVisibility: COURSE_ATTACHMENTS,
         joinPolicy: "closed",
@@ -998,7 +998,7 @@ export const WORLD: SeedActivity[] = [
         timeZone: "Europe/Warsaw",
         startDate: at(-days(1000 + i * 365)),
         endDate: at(-days(1000 + i * 365) + hours(5)),
-        modules: { questions: false },
+        modules: { questions: false, printouts: false },
         scoreVisibility: "everyone",
         attachmentVisibility: CONTEST_ATTACHMENTS,
         joinPolicy: "closed",

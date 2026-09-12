@@ -107,7 +107,7 @@ export interface BundledActivity {
     timeZone: string;
     startDate?: string;
     endDate?: string;
-    modules: { questions: boolean };
+    modules: { questions: boolean; printouts: boolean };
     scoreVisibility: ScoreVisibility;
     attachmentVisibility: AttachmentRule[];
     props?: unknown;

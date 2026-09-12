@@ -19,6 +19,9 @@ import {
     SubmissionSummary,
     SubmitPayload,
     SUBMISSION_SOURCE,
+    PagedFilter,
+    Printout,
+    PrintoutRequest,
 } from "../ParticipantApi";
 import { FakeActivities, SeriesRelay } from "./FakeActivities";
 import { FakeAccess } from "./FakeAccess";
@@ -32,6 +35,7 @@ import { createDataset, Dataset, OPENING_SERIES_DELAY } from "./fixtures";
 import { activityResults, resultOf } from "./fixtures/results";
 import { attemptFiles, readableBy } from "./fixtures/attachments";
 import { attemptId, meOf, SeedAttempt, SeedSeries } from "./fixtures/world";
+import { FakePrintout } from "./fixtures/printouts";
 import { rankingWindow } from "../rankingWindow";
 import { ForbiddenError } from "../ApiError";
 import { Utils } from "./Utils";
@@ -949,6 +953,64 @@ export class ParticipantApiFake implements ParticipantApi {
         await this.settle(signal);
         const question = this.state.dataset().questions.get(activityId)?.find(q => q.id === questionId);
         if (question) question.isRead = true;
+    }
+
+    async getPrintouts(activityId: string, filter: PagedFilter, signal: AbortSignal): Promise<Page<Printout>> {
+        await this.settle(signal);
+        const data = this.state.dataset();
+        // **Own, and only own** — the rule the Server enforces. Every enrolled
+        // participant holds the key, so a fake that listed the activity's would
+        // let a screen through that the Server refuses.
+        const mine = (data.printouts.get(activityId) ?? []).filter(p => p.requestedByUserId === (meOf(this.state.dataset().seeds.get(activityId)!)?.userId ?? ""));
+        const page = filter.page ?? 1;
+        const pageSize = filter.pageSize ?? 20;
+
+        return {
+            items: mine.slice((page - 1) * pageSize, page * pageSize).map(ParticipantApiFake.mine),
+            total: mine.length,
+            page,
+            pageSize,
+        };
+    }
+
+    async requestPrintout(activityId: string, input: PrintoutRequest, signal: AbortSignal): Promise<Printout> {
+        await this.settle(signal);
+        const data = this.state.dataset();
+        const seed = data.seeds.get(activityId);
+        if (!seed?.modules.printouts) throw new ForbiddenError("This activity does not take print requests");
+
+        const made: FakePrintout = {
+            id: `po-${Math.random().toString(36).slice(2, 10)}`,
+            title: input.title,
+            fileName: input.fileName,
+            sizeBytes: new TextEncoder().encode(input.code).length,
+            state: "requested",
+            requestedAt: new Date().toISOString(),
+            requestedByName: meOf(seed)?.name ?? "Ty",
+            requestedByUserId: meOf(seed)?.userId ?? "user-me",
+            sha256: input.sha256,
+            source: input.code,
+        };
+        data.printouts.set(activityId, [...(data.printouts.get(activityId) ?? []), made]);
+        return ParticipantApiFake.mine(made);
+    }
+
+    /**
+     * A row as its requester sees it — which is not as the operator does.
+     *
+     * The source, the digest, the group and who resolved it are the operator's
+     * business, and the Server sends none of them on this wire.
+     */
+    private static mine(row: FakePrintout): Printout {
+        return {
+            id: row.id,
+            title: row.title,
+            fileName: row.fileName,
+            sizeBytes: row.sizeBytes,
+            state: row.state,
+            requestedAt: row.requestedAt,
+            resolvedAt: row.resolvedAt,
+        };
     }
 
     /** Latency, then the abort check — so a cancelled view never sees a result. */

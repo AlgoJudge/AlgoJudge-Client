@@ -198,6 +198,7 @@ export interface Activity {
      */
     modules: {
         questions: boolean,
+        printouts: boolean,
     },
     /** Present once the activity has finished. */
     finalScore?: number,
@@ -756,6 +757,47 @@ export interface Question {
  */
 export type QuestionSort = "createdAt" | "series" | "problem";
 
+/** `requested` until somebody at the printer says otherwise. */
+export type PrintoutState = "requested" | "printed" | "discarded";
+
+/**
+ * A print request, as the person who made it sees it.
+ *
+ * **No source.** They sent it and they have it; a second copy on this wire would
+ * be a second place it has to be disposed of.
+ */
+export interface Printout {
+    id: string,
+    title?: string,
+    fileName: string,
+    sizeBytes: number,
+    state: PrintoutState,
+    requestedAt: string,
+    resolvedAt?: string,
+}
+
+/**
+ * What to print.
+ *
+ * `submissionId` is provenance and nothing else — the bytes are always what the
+ * reader is looking at. The source view is tabbed and a submission may be an
+ * archive, so "print the submission" does not name one page of text. The Server
+ * refuses an id that is not the caller's own.
+ */
+export interface PrintoutRequest {
+    code: string,
+    fileName: string,
+    /** Over the bytes being sent. The Server recomputes it and answers 422. */
+    sha256: string,
+    title?: string,
+    submissionId?: string,
+}
+
+export interface PagedFilter {
+    page?: number,
+    pageSize?: number,
+}
+
 export interface QuestionFilter {
     page?: number,
     pageSize?: number,
@@ -981,4 +1023,7 @@ export interface ParticipantApi {
     getQuestions(activityId: string, filter: QuestionFilter, signal: AbortSignal): Promise<Page<Question>>;
     askQuestion(activityId: string, input: AskQuestionInput, signal: AbortSignal): Promise<Question>;
     markQuestionRead(activityId: string, questionId: string, signal: AbortSignal): Promise<void>;
+
+    getPrintouts(activityId: string, filter: PagedFilter, signal: AbortSignal): Promise<Page<Printout>>;
+    requestPrintout(activityId: string, input: PrintoutRequest, signal: AbortSignal): Promise<Printout>;
 }
