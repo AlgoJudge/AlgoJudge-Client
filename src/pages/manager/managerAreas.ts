@@ -123,7 +123,18 @@ export const MANAGER_AREAS: ManagerArea[] = [
         permissions: ["instance:update"],
     },
     { to: "/manager/workstations", label: "Workstations", description: "", icon: IconDevicesPc, permissions: [], soon: true },
-    { to: "/manager/printers", label: "Printers", description: "", icon: IconPrinter, permissions: [], soon: true },
+    {
+        to: "/manager/printouts",
+        label: "Printouts",
+        description: "The queue of source somebody asked to have on paper.",
+        icon: IconPrinter,
+        // **The one area a person can be given on its own.** A grant carrying
+        // this key and no other opens this and refuses the rest of the panel,
+        // which is what the key exists for — `MANAGER_PERMISSIONS` derives from
+        // this array, so holding it is also what admits them to `/manager` at
+        // all.
+        permissions: ["printout:manage"],
+    },
 ];
 
 /** The areas that exist, with what each of them requires. */

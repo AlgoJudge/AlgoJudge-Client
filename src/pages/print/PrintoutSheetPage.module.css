@@ -1,0 +1,113 @@
+/*
+ * A page of somebody's code, for a mono laser and a stapler.
+ *
+ * **Explicit black on white, and no theme.** This is the one surface whose
+ * colours are not the installation's: an operator's dark mode would print a
+ * black rectangle, and a university's brand blue is grey on the paper this ends
+ * up on.
+ */
+.sheet {
+    background: #ffffff;
+    color: #000000;
+    max-width: 210mm;
+    margin: 0 auto;
+    padding: 12mm;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Readable in the tab before anybody presses Ctrl+P, which is the state the
+   operator actually looks at first. */
+@media screen {
+    .sheet {
+        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+        margin-block: 16px;
+    }
+}
+
+.header {
+    border-bottom: 1px solid #000000;
+    padding-bottom: 6mm;
+    margin-bottom: 6mm;
+    /* A header alone at the foot of a page is a page wasted. */
+    page-break-after: avoid;
+    break-after: avoid;
+}
+
+.who {
+    font-size: 13pt;
+    font-weight: 700;
+    margin: 0;
+}
+
+.meta {
+    font-size: 9.5pt;
+    margin: 1mm 0 0;
+}
+
+.dim {
+    color: #444444;
+}
+
+.listing {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 4mm;
+    font-family: ui-monospace, "Cascadia Mono", "Consolas", "DejaVu Sans Mono", monospace;
+    font-size: 9.5pt;
+    line-height: 1.35;
+    margin: 0;
+}
+
+/* Not selected when the operator copies the listing, and not printed as data
+   either — it is a reading aid, not part of the source. */
+.gutter {
+    user-select: none;
+    text-align: right;
+    color: #666666;
+    white-space: pre;
+}
+
+.code {
+    /* A long line wraps rather than falling off the paper, and wraps anywhere
+       because source has no spaces where it would be convenient. */
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    margin: 0;
+}
+
+.footer {
+    border-top: 1px solid #cccccc;
+    margin-top: 6mm;
+    padding-top: 3mm;
+    font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+    font-size: 8pt;
+    color: #444444;
+    word-break: break-all;
+}
+
+.gone {
+    border: 1px solid #000000;
+    padding: 6mm;
+    font-size: 11pt;
+}
+
+@page {
+    size: A4;
+    margin: 12mm;
+}
+
+@media print {
+    .sheet {
+        max-width: none;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+    }
+
+    /* One or two lines stranded across a page break is how a listing becomes
+       hard to read on paper. */
+    .listing {
+        orphans: 2;
+        widows: 2;
+    }
+}

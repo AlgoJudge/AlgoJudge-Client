@@ -1,5 +1,5 @@
 import { Alert, Button, Center, Group, Loader, Stack, Tabs, Text } from "@mantine/core";
-import { IconCopy, IconDownload, IconEdit, IconSend } from "@tabler/icons-react";
+import { IconCopy, IconDownload, IconEdit, IconPrinter, IconSend } from "@tabler/icons-react";
 import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Activity, SubmissionDetail, SubmissionSummary } from "../../api/ParticipantApi";
@@ -44,6 +44,8 @@ export default function SourceView({ activity, submission, onResubmitted }: Sour
     const [draft, setDraft] = useState("");
     const [error, setError] = useState<string | undefined>(undefined);
     const [sending, setSending] = useState(false);
+    const [printing, setPrinting] = useState(false);
+    const [printed, setPrinted] = useState(false);
 
     const loadError = useApiEffect(async (api) => {
         // Read from the file store by id, as every other stored document is.
@@ -81,6 +83,25 @@ export default function SourceView({ activity, submission, onResubmitted }: Sour
     const startEditing = () => {
         setDraft(current);
         setEditing(true);
+    };
+
+    const print = async () => {
+        setPrinting(true);
+        setError(undefined);
+        try {
+            const checksum = await sha256(new TextEncoder().encode(shown));
+            await call(api => api.participantApi.requestPrintout(activity.id, {
+                code: shown,
+                fileName: active,
+                sha256: checksum,
+                submissionId: submission.id,
+            }));
+            setPrinted(true);
+        } catch (e) {
+            setError(e instanceof Error ? e.message : String(e));
+        } finally {
+            setPrinting(false);
+        }
     };
 
     const resubmit = async () => {
@@ -134,6 +155,23 @@ export default function SourceView({ activity, submission, onResubmitted }: Sour
                             </Group>
                         )}
                     </DownloadButton>
+                    {/* **What is shown, not "the submission".** This view is
+                        tabbed and a submission may be an archive, so a request
+                        naming the submission would print something other than
+                        the page being read — and while editing, the draft is
+                        exactly what somebody wants on paper. The id travels for
+                        provenance and the Server checks it is the caller's own. */}
+                    {activity.modules.printouts && (
+                        <Button
+                            data-testid="print"
+                            variant="light"
+                            loading={printing}
+                            onClick={print}
+                            leftSection={<IconPrinter size={16} />}
+                        >
+                            {t("Print")}
+                        </Button>
+                    )}
                     {editing
                         ? (
                             <Button data-testid="resubmit" loading={sending} onClick={resubmit} leftSection={<IconSend size={16} />}>
@@ -156,6 +194,14 @@ export default function SourceView({ activity, submission, onResubmitted }: Sour
                 </Alert>
             )}
             {error && <Alert color="red">{error}</Alert>}
+            {/* Said here rather than by a notification: the paper arrives later
+                and from somebody else, so the one thing to confirm is that the
+                asking worked. */}
+            {printed && (
+                <Alert color="green" data-testid="printed" withCloseButton onClose={() => setPrinted(false)}>
+                    {t("Sent to print. Somebody at a printer will bring it.")}
+                </Alert>
+            )}
 
             {submission.files.length > 1 ? (
                 <Tabs value={active} onChange={value => { setActive(value); setEditing(false); }}>

@@ -8,7 +8,7 @@ import { useInstance } from "../../provider/instanceContext";
 import { usePermissions } from "../../provider/permissionsContext";
 import { MANAGER_AREAS, MANAGER_PERMISSIONS } from "../../pages/manager/managerAreas";
 import classes from "./AppLayout.module.css";
-import { IconBox, IconChartBarPopular, IconChevronDown, IconChevronsLeft, IconChevronsRight, IconClock, IconHome, IconListDetails, IconLogout, IconMessageQuestion, IconMoon, IconNotes, IconPackageExport, IconSectionSign, IconSettings, IconSun, IconUser, TablerIcon } from "@tabler/icons-react";
+import { IconBox, IconChartBarPopular, IconChevronDown, IconChevronsLeft, IconChevronsRight, IconClock, IconHome, IconListDetails, IconLogout, IconMessageQuestion, IconMoon, IconNotes, IconPackageExport, IconPrinter, IconSectionSign, IconSettings, IconSun, IconUser, TablerIcon } from "@tabler/icons-react";
 import { ComponentPropsWithoutRef, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useApiEffect } from "../../provider/apiContext";
@@ -170,6 +170,7 @@ const ActivityNavbar = (props: {
         enrolled && activity.scoreVisibility !== "managersOnly"
             && { to: `${base}/ranking`, label: t("Ranking"), icon: IconChartBarPopular },
         enrolled && activity.modules.questions && { to: `${base}/questions`, label: t("Questions and announcements"), icon: IconMessageQuestion },
+        enrolled && activity.modules.printouts && { to: `${base}/printouts`, label: t("Printouts"), icon: IconPrinter },
         // From the reference rather than a module flag: whether there are rules
         // is whether somebody published any, and a flag beside them could be on
         // over nothing.
