@@ -181,8 +181,15 @@ await wait(8000);
 const openable = `[...document.querySelectorAll("tbody tr")]
     .find(r => r.innerText.includes("AMMPZ-2027"))
     ?.querySelector("td [style*='cursor']") != null`;
+//
+// **Thirty seconds, not twelve, and CI is what set the number.** The loop ends
+// the moment the element is ready, so the budget costs nothing on a fast
+// machine — and a GitHub `ubuntu-latest` has four cores and is serving the dev
+// server as well, so an import plus a refetch there is not what it is here.
+// Measured 2026-09-12: green locally in every run and red on CI at twelve, on
+// this same click.
 let listed = "";
-for (let attempt = 0; attempt < 12; attempt++) {
+for (let attempt = 0; attempt < 30; attempt++) {
     listed = await body();
     if (await evaluate(`return ${openable};`)) break;
     await wait(1000);
