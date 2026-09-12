@@ -2,6 +2,7 @@ import { Alert, Table, Text } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import classes from "./StandardIoResult.module.css";
+import DataTable from "../../components/table/DataTable";
 
 /**
  * The per-test table for `standard-io` problems.
@@ -139,7 +140,7 @@ export default function StandardIoResult({ detail }: { detail: unknown }) {
         bytes === undefined ? "—" : Math.round(bytes / (1024 * 1024)).toString();
 
     return (
-        <Table withTableBorder withColumnBorders striped>
+        <DataTable withTableBorder withColumnBorders striped>
             <Table.Thead>
                 <Table.Tr>
                     <Table.Th>{t("Test")}</Table.Th>
@@ -183,6 +184,6 @@ export default function StandardIoResult({ detail }: { detail: unknown }) {
                     </Table.Tr>
                 ))}
             </Table.Tbody>
-        </Table>
+        </DataTable>
     );
 }

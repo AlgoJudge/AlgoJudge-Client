@@ -9,6 +9,7 @@ import LoadState from "../../../components/LoadState";
 import ActivityTime from "../../../components/time/ActivityTime";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
 import { languageText } from "../../../components/submission/offered";
+import DataTable from "../../../components/table/DataTable";
 
 const PAGE_SIZE = 20;
 
@@ -162,99 +163,97 @@ export default function ManagerSubmissionsPage() {
                 />
             </Group>
 
-            <Table.ScrollContainer minWidth={980}>
-                <Table striped highlightOnHover>
-                    <Table.Thead>
-                        <Table.Tr>
-                            <Table.Th>{t("Date")}</Table.Th>
-                            <Table.Th>{t("User")}</Table.Th>
-                            <Table.Th>{t("Problem")}</Table.Th>
-                            <Table.Th>{t("Language")}</Table.Th>
-                            <Table.Th>{t("State")}</Table.Th>
-                            <Table.Th>{t("Verdict")}</Table.Th>
-                            <Table.Th>{t("Score")}</Table.Th>
-                            <Table.Th />
-                        </Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                        {items.map(submission => (
-                            <Table.Tr key={submission.id}>
-                                <Table.Td>
-                                    {/* The date opens the submission: it is what
-                                        names a submission, the way a title names
-                                        a problem. The button stays. */}
-                                    <span
-                                        style={{ cursor: "pointer" }}
+            <DataTable minWidth={980} striped highlightOnHover>
+                <Table.Thead>
+                    <Table.Tr>
+                        <Table.Th>{t("Date")}</Table.Th>
+                        <Table.Th>{t("User")}</Table.Th>
+                        <Table.Th>{t("Problem")}</Table.Th>
+                        <Table.Th>{t("Language")}</Table.Th>
+                        <Table.Th>{t("State")}</Table.Th>
+                        <Table.Th>{t("Verdict")}</Table.Th>
+                        <Table.Th>{t("Score")}</Table.Th>
+                        <Table.Th />
+                    </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                    {items.map(submission => (
+                        <Table.Tr key={submission.id}>
+                            <Table.Td>
+                                {/* The date opens the submission: it is what
+                                    names a submission, the way a title names
+                                    a problem. The button stays. */}
+                                <span
+                                    style={{ cursor: "pointer" }}
+                                    onClick={() => navigate(`/manager/submissions/${submission.id}`)}
+                                >
+                                    <ActivityTime value={submission.submittedAt} timeZone="Europe/Warsaw" hideZone />
+                                </span>
+                            </Table.Td>
+                            <Table.Td><Text size="sm">{submission.userName}</Text></Table.Td>
+                            <Table.Td>
+                                <Stack gap={0}>
+                                    <Text size="sm">[{submission.problemSlug}] {submission.problemName}</Text>
+                                    <Text size="xs" c="dimmed">{submission.activitySlug} · {submission.seriesName}</Text>
+                                </Stack>
+                            </Table.Td>
+                            <Table.Td><Text size="sm">{languageText(submission.props)}</Text></Table.Td>
+                            <Table.Td>
+                                <Group gap={4} wrap="nowrap">
+                                    <Badge variant="light" color={STATE_COLOUR[submission.state]}>
+                                        {t(`jobState.${submission.state}`)}
+                                    </Badge>
+                                    {submission.attempts > 1 && (
+                                        <Tooltip label={t("Attempts")}>
+                                            <Badge variant="outline" color="gray" size="sm">×{submission.attempts}</Badge>
+                                        </Tooltip>
+                                    )}
+                                    {/* On the list because a judge scanning
+                                        two hundred rows should see which
+                                        were ruled out without opening each. */}
+                                    {submission.excluded && (
+                                        <Tooltip label={t("Not counted in the ranking")}>
+                                            <Badge variant="light" color="orange" size="sm">
+                                                {t("Not counted")}
+                                            </Badge>
+                                        </Tooltip>
+                                    )}
+                                </Group>
+                            </Table.Td>
+                            <Table.Td><Text size="sm">{submission.verdict ?? "—"}</Text></Table.Td>
+                            <Table.Td>
+                                <Text size="sm">
+                                    {submission.score === undefined
+                                        ? "—"
+                                        : `${submission.score} / ${submission.maxScore ?? 100}`}
+                                </Text>
+                            </Table.Td>
+                            <Table.Td>
+                                <Group gap="xs" justify="flex-end" wrap="nowrap">
+                                    <Button
+                                        variant="light"
+                                        size="compact-sm"
                                         onClick={() => navigate(`/manager/submissions/${submission.id}`)}
                                     >
-                                        <ActivityTime value={submission.submittedAt} timeZone="Europe/Warsaw" hideZone />
-                                    </span>
-                                </Table.Td>
-                                <Table.Td><Text size="sm">{submission.userName}</Text></Table.Td>
-                                <Table.Td>
-                                    <Stack gap={0}>
-                                        <Text size="sm">[{submission.problemSlug}] {submission.problemName}</Text>
-                                        <Text size="xs" c="dimmed">{submission.activitySlug} · {submission.seriesName}</Text>
-                                    </Stack>
-                                </Table.Td>
-                                <Table.Td><Text size="sm">{languageText(submission.props)}</Text></Table.Td>
-                                <Table.Td>
-                                    <Group gap={4} wrap="nowrap">
-                                        <Badge variant="light" color={STATE_COLOUR[submission.state]}>
-                                            {t(`jobState.${submission.state}`)}
-                                        </Badge>
-                                        {submission.attempts > 1 && (
-                                            <Tooltip label={t("Attempts")}>
-                                                <Badge variant="outline" color="gray" size="sm">×{submission.attempts}</Badge>
-                                            </Tooltip>
-                                        )}
-                                        {/* On the list because a judge scanning
-                                            two hundred rows should see which
-                                            were ruled out without opening each. */}
-                                        {submission.excluded && (
-                                            <Tooltip label={t("Not counted in the ranking")}>
-                                                <Badge variant="light" color="orange" size="sm">
-                                                    {t("Not counted")}
-                                                </Badge>
-                                            </Tooltip>
-                                        )}
-                                    </Group>
-                                </Table.Td>
-                                <Table.Td><Text size="sm">{submission.verdict ?? "—"}</Text></Table.Td>
-                                <Table.Td>
-                                    <Text size="sm">
-                                        {submission.score === undefined
-                                            ? "—"
-                                            : `${submission.score} / ${submission.maxScore ?? 100}`}
-                                    </Text>
-                                </Table.Td>
-                                <Table.Td>
-                                    <Group gap="xs" justify="flex-end" wrap="nowrap">
+                                        {t("Open")}
+                                    </Button>
+                                    <Tooltip label={t("Rejudge")}>
                                         <Button
-                                            variant="light"
+                                            variant="subtle"
                                             size="compact-sm"
-                                            onClick={() => navigate(`/manager/submissions/${submission.id}`)}
+                                            loading={busy}
+                                            onClick={() => rejudge(() =>
+                                                call(api => api.managerApi.rejudgeSubmission(submission.id)))}
                                         >
-                                            {t("Open")}
+                                            <IconRefresh size={14} />
                                         </Button>
-                                        <Tooltip label={t("Rejudge")}>
-                                            <Button
-                                                variant="subtle"
-                                                size="compact-sm"
-                                                loading={busy}
-                                                onClick={() => rejudge(() =>
-                                                    call(api => api.managerApi.rejudgeSubmission(submission.id)))}
-                                            >
-                                                <IconRefresh size={14} />
-                                            </Button>
-                                        </Tooltip>
-                                    </Group>
-                                </Table.Td>
-                            </Table.Tr>
-                        ))}
-                    </Table.Tbody>
-                </Table>
-            </Table.ScrollContainer>
+                                    </Tooltip>
+                                </Group>
+                            </Table.Td>
+                        </Table.Tr>
+                    ))}
+                </Table.Tbody>
+            </DataTable>
 
             {items.length === 0 && <Text c="dimmed">{t("Nothing matches the filters")}</Text>}
 

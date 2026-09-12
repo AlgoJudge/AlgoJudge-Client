@@ -106,14 +106,16 @@ from nineteen.
 | `npm run check:api` | lists every endpoint the HTTP layer calls; checks it against an OpenAPI document when given one |
 | `npm run check:ui` | drives a real browser over the screens, against the fake API |
 | `npm run check:e2e` | one test against a full stack that is already up |
+| `npm run check:mobile` | every screen at a phone width: overflow, covered controls, clipped labels, controls under 32px |
+| `npm run check:pwa` | the manifest, the worker and the offline page, against a real build |
 | `npm run check:browsers` | that closing our browsers does not close anybody else's |
 | `npm run browsers` | `-- list`, `-- stop <pid>`, `-- stop --all` |
 
-**The table above is the whole of `package.json`'s `scripts`** — twenty-one since
-`check:seo` was added on 2026-09-10, and checked against the file each time.
-**The number was one short until that day**, and the table was not: every script
-had its row, and the count beside it had been carried forward rather than
-recounted. Count the rows.
+**The table above is the whole of `package.json`'s `scripts`** — twenty-three
+since `check:seo`, `check:mobile` and `check:pwa` were added, the last two on
+2026-09-12, and checked against the file each time. **The number was one short
+before them**, and the table was not: every script had its row, and the count
+beside it had been carried forward rather than recounted. Count the rows.
 It listed thirteen of the eighteen until 2026-08-30: `preview`,
 `check:exchange`, `check:zawodyweb`, `check:access` and `check:e2e` were missing.
 

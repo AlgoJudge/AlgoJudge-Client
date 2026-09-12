@@ -11,6 +11,7 @@ import { MAX_RUNNER_TAGS } from "../../../api/runnerTags";
 import LoadState from "../../../components/LoadState";
 import ActivityTime from "../../../components/time/ActivityTime";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
+import DataTable from "../../../components/table/DataTable";
 
 const PAGE_SIZE = 20;
 
@@ -174,133 +175,131 @@ export default function RunnersPage() {
                 />
             </Group>
 
-            <Table.ScrollContainer minWidth={1000}>
-                <Table striped highlightOnHover>
-                    <Table.Thead>
-                        <Table.Tr>
-                            <Table.Th>{t("Runner")}</Table.Th>
-                            <Table.Th>{t("Version")}</Table.Th>
-                            <Table.Th>{t("Problem types")}</Table.Th>
-                            <Table.Th>{t("Machine")}</Table.Th>
-                            <Table.Th>{t("State")}</Table.Th>
-                            <Table.Th>{t("Last seen")}</Table.Th>
-                            <Table.Th />
-                        </Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                        {items.map(runner => (
-                            <Table.Tr key={runner.id} opacity={runner.state === "revoked" ? 0.55 : 1}>
-                                <Table.Td>
-                                    <Stack gap={0}>
-                                        <Group gap="xs">
-                                            <Text
-                                                fw={500}
-                                                style={{ cursor: "pointer" }}
-                                                onClick={() => {
-                                                    setSelected(runner);
-                                                    setTags(runner.tags);
-                                                    setFiles({});
-                                                    setQuery({ runner: runner.id }, { replace: true });
-                                                }}
-                                            >
-                                                {runner.name}
-                                            </Text>
-                                            {/* Connection and approval are different
-                                                facts and are shown as different things. */}
-                                            <Badge
-                                                size="sm"
-                                                variant="dot"
-                                                color={runner.isConnected ? "teal" : "gray"}
-                                            >
-                                                {t(runner.isConnected ? "online" : "offline")}
-                                            </Badge>
-                                        </Group>
-                                        <Text size="xs" c="dimmed" ff="monospace">{runner.address}</Text>
-                                    </Stack>
-                                </Table.Td>
-                                <Table.Td>
-                                    <Stack gap={0}>
-                                        <Text size="sm">{runner.version}</Text>
-                                        <Text size="xs" c="dimmed">{runner.product}</Text>
-                                    </Stack>
-                                </Table.Td>
-                                <Table.Td>
-                                    <Group gap={4}>
-                                        {runner.problemTypes.map(type => (
-                                            <Badge key={type} size="sm" variant="light" ff="monospace">{type}</Badge>
-                                        ))}
-                                    </Group>
-                                </Table.Td>
-                                <Table.Td>
-                                    {runner.machine
-                                        ? (
-                                            <Text size="xs" c="dimmed">
-                                                {runner.machine.cores} × {runner.machine.cpu}
-                                                <br />
-                                                {Math.round((runner.machine.memoryBytes ?? 0) / (1024 * 1024 * 1024))} GiB · {runner.machine.os}
-                                            </Text>
-                                        )
-                                        : <Text size="xs" c="dimmed">{t("never connected")}</Text>}
-                                </Table.Td>
-                                <Table.Td>
-                                    <Tooltip label={runner.revokedReason ?? ""} disabled={!runner.revokedReason}>
-                                        <Badge variant="light" color={STATE_COLOUR[runner.state]}>
-                                            {t(`runnerState.${runner.state}`)}
+            <DataTable minWidth={1000} striped highlightOnHover>
+                <Table.Thead>
+                    <Table.Tr>
+                        <Table.Th>{t("Runner")}</Table.Th>
+                        <Table.Th>{t("Version")}</Table.Th>
+                        <Table.Th>{t("Problem types")}</Table.Th>
+                        <Table.Th>{t("Machine")}</Table.Th>
+                        <Table.Th>{t("State")}</Table.Th>
+                        <Table.Th>{t("Last seen")}</Table.Th>
+                        <Table.Th />
+                    </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                    {items.map(runner => (
+                        <Table.Tr key={runner.id} opacity={runner.state === "revoked" ? 0.55 : 1}>
+                            <Table.Td>
+                                <Stack gap={0}>
+                                    <Group gap="xs">
+                                        <Text
+                                            fw={500}
+                                            style={{ cursor: "pointer" }}
+                                            onClick={() => {
+                                                setSelected(runner);
+                                                setTags(runner.tags);
+                                                setFiles({});
+                                                setQuery({ runner: runner.id }, { replace: true });
+                                            }}
+                                        >
+                                            {runner.name}
+                                        </Text>
+                                        {/* Connection and approval are different
+                                            facts and are shown as different things. */}
+                                        <Badge
+                                            size="sm"
+                                            variant="dot"
+                                            color={runner.isConnected ? "teal" : "gray"}
+                                        >
+                                            {t(runner.isConnected ? "online" : "offline")}
                                         </Badge>
-                                    </Tooltip>
-                                </Table.Td>
-                                <Table.Td>
-                                    {runner.lastSeenAt
-                                        ? <ActivityTime value={runner.lastSeenAt} timeZone="Europe/Warsaw" hideZone />
-                                        : <Text size="sm" c="dimmed">—</Text>}
-                                </Table.Td>
-                                <Table.Td>
-                                    <Group gap="xs" justify="flex-end" wrap="nowrap">
-                                        {runner.state === "pendingApproval" && (
-                                            <Button
-                                                variant="light"
-                                                size="compact-sm"
-                                                leftSection={<IconCheck size={14} />}
-                                                loading={busy}
-                                                onClick={() => run(() => call(api => api.managerApi.approveRunner(runner.id)))}
-                                            >
-                                                {t("Approve")}
-                                            </Button>
-                                        )}
-                                        {runner.state === "approved" && (
-                                            <Tooltip label={t("Revoke the key — the Runner must register again")}>
-                                                <Button
-                                                    variant="subtle"
-                                                    color="red"
-                                                    size="compact-sm"
-                                                    loading={busy}
-                                                    onClick={() => run(() => call(api =>
-                                                        api.managerApi.revokeRunner(runner.id, undefined)))}
-                                                >
-                                                    <IconX size={14} />
-                                                </Button>
-                                            </Tooltip>
-                                        )}
-                                        {runner.state === "revoked" && (
-                                            <Tooltip label={t("Forget it")}>
-                                                <Button
-                                                    variant="subtle"
-                                                    color="red"
-                                                    size="compact-sm"
-                                                    loading={busy}
-                                                    onClick={() => run(() => call(api => api.managerApi.forgetRunner(runner.id)))}
-                                                >
-                                                    <IconTrash size={14} />
-                                                </Button>
-                                            </Tooltip>
-                                        )}
                                     </Group>
-                                </Table.Td>
-                            </Table.Tr>
-                        ))}
-                    </Table.Tbody>
-                </Table>
-            </Table.ScrollContainer>
+                                    <Text size="xs" c="dimmed" ff="monospace">{runner.address}</Text>
+                                </Stack>
+                            </Table.Td>
+                            <Table.Td>
+                                <Stack gap={0}>
+                                    <Text size="sm">{runner.version}</Text>
+                                    <Text size="xs" c="dimmed">{runner.product}</Text>
+                                </Stack>
+                            </Table.Td>
+                            <Table.Td>
+                                <Group gap={4}>
+                                    {runner.problemTypes.map(type => (
+                                        <Badge key={type} size="sm" variant="light" ff="monospace">{type}</Badge>
+                                    ))}
+                                </Group>
+                            </Table.Td>
+                            <Table.Td>
+                                {runner.machine
+                                    ? (
+                                        <Text size="xs" c="dimmed">
+                                            {runner.machine.cores} × {runner.machine.cpu}
+                                            <br />
+                                            {Math.round((runner.machine.memoryBytes ?? 0) / (1024 * 1024 * 1024))} GiB · {runner.machine.os}
+                                        </Text>
+                                    )
+                                    : <Text size="xs" c="dimmed">{t("never connected")}</Text>}
+                            </Table.Td>
+                            <Table.Td>
+                                <Tooltip label={runner.revokedReason ?? ""} disabled={!runner.revokedReason}>
+                                    <Badge variant="light" color={STATE_COLOUR[runner.state]}>
+                                        {t(`runnerState.${runner.state}`)}
+                                    </Badge>
+                                </Tooltip>
+                            </Table.Td>
+                            <Table.Td>
+                                {runner.lastSeenAt
+                                    ? <ActivityTime value={runner.lastSeenAt} timeZone="Europe/Warsaw" hideZone />
+                                    : <Text size="sm" c="dimmed">—</Text>}
+                            </Table.Td>
+                            <Table.Td>
+                                <Group gap="xs" justify="flex-end" wrap="nowrap">
+                                    {runner.state === "pendingApproval" && (
+                                        <Button
+                                            variant="light"
+                                            size="compact-sm"
+                                            leftSection={<IconCheck size={14} />}
+                                            loading={busy}
+                                            onClick={() => run(() => call(api => api.managerApi.approveRunner(runner.id)))}
+                                        >
+                                            {t("Approve")}
+                                        </Button>
+                                    )}
+                                    {runner.state === "approved" && (
+                                        <Tooltip label={t("Revoke the key — the Runner must register again")}>
+                                            <Button
+                                                variant="subtle"
+                                                color="red"
+                                                size="compact-sm"
+                                                loading={busy}
+                                                onClick={() => run(() => call(api =>
+                                                    api.managerApi.revokeRunner(runner.id, undefined)))}
+                                            >
+                                                <IconX size={14} />
+                                            </Button>
+                                        </Tooltip>
+                                    )}
+                                    {runner.state === "revoked" && (
+                                        <Tooltip label={t("Forget it")}>
+                                            <Button
+                                                variant="subtle"
+                                                color="red"
+                                                size="compact-sm"
+                                                loading={busy}
+                                                onClick={() => run(() => call(api => api.managerApi.forgetRunner(runner.id)))}
+                                            >
+                                                <IconTrash size={14} />
+                                            </Button>
+                                        </Tooltip>
+                                    )}
+                                </Group>
+                            </Table.Td>
+                        </Table.Tr>
+                    ))}
+                </Table.Tbody>
+            </DataTable>
 
             {items.length === 0 && <Text c="dimmed">{t("Nothing matches the filters")}</Text>}
 

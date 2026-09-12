@@ -23,7 +23,7 @@ export default function LaunchRefusedPage() {
     const explanation = explain(reason, t);
 
     return (
-        <Stack gap="md" maw={620} mx="auto" my="xl">
+        <Stack gap="md" maw={620} mx="auto" my="xl" px="md">
             <Title order={3}>{t("This activity could not open")}</Title>
 
             <Alert

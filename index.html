@@ -14,6 +14,28 @@
     <title>AlgoJudge</title>
 
     <!--
+      What makes this installable.
+
+      **The manifest is static, and says AlgoJudge rather than the operator's
+      name.** Everything an installation calls itself — its name, its logo, its
+      colours — arrives from the API after first paint and can change again over
+      the event socket, so none of it is known when a browser reads this file.
+      The tab title still follows the installation; the installed name does not.
+
+      **`scope` is `/`, and it matters.** A federated sign-in leaves the
+      application with a full-page navigation to
+      `/api/v1/identity/providers/<slug>/challenge`, so a narrower scope would
+      put the first hop of every sign-in outside the installed window.
+    -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#228be6" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- The first is the standard one; the second is what iOS still reads. -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="AlgoJudge" />
+
+    <!--
       What this page says about itself before any of it has loaded.
 
       **It describes the product, not the installation.** An installation's name,

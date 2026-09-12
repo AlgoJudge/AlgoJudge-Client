@@ -5,6 +5,7 @@ import ActivityTime from "../time/ActivityTime";
 import { tryValidateContent } from "../../content/validate";
 import ContentEditor from "./ContentEditor";
 import LanguageTabs, { DEFAULT_LANGUAGE } from "./LanguageTabs";
+import DataTable from "../../components/table/DataTable";
 
 /**
  * The documents one owner publishes, each publishable or absent.
@@ -120,7 +121,7 @@ export default function DocumentsPanel<K extends string, R extends PublishedRef<
     return (
         <Stack gap="md">
             <Card withBorder radius="sm" p={0}>
-                <Table striped highlightOnHover>
+                <DataTable striped highlightOnHover>
                     <Table.Thead>
                         <Table.Tr>
                             <Table.Th>{t("Document")}</Table.Th>
@@ -166,7 +167,7 @@ export default function DocumentsPanel<K extends string, R extends PublishedRef<
                             );
                         })}
                     </Table.Tbody>
-                </Table>
+                </DataTable>
             </Card>
 
             {kind && (

@@ -13,6 +13,8 @@ import {
 import LoadState from "../../../components/LoadState";
 import { CopyButton } from "../../../components/buttons";
 import { optional, useApiCall, useApiEffect } from "../../../provider/apiContext";
+import DataTable from "../../../components/table/DataTable";
+import classes from "./ProvidersPage.module.css";
 
 /**
  * Registering the identity providers this installation trusts, and the queue of
@@ -178,7 +180,10 @@ export default function ProvidersPage() {
 
                     {providers?.map(provider => (
                         <Card key={provider.id} withBorder padding="md">
-                            <Group justify="space-between" align="flex-start" wrap="nowrap">
+                            {/* The wrapping is in the stylesheet: a Mantine
+                                style prop is an inline custom property, and a
+                                media query cannot outrank one. */}
+                            <Group justify="space-between" align="flex-start" className={classes.row}>
                                 <Stack gap={4}>
                                     <Group gap="xs">
                                         <Text fw={600}>{provider.displayName}</Text>
@@ -190,10 +195,10 @@ export default function ProvidersPage() {
                                             <Badge color="grape" variant="light">{t("Reports deletions")}</Badge>
                                         )}
                                     </Group>
-                                    <Text size="sm" c="dimmed" ff="monospace">{provider.issuer}</Text>
+                                    <Text size="sm" c="dimmed" ff="monospace" className={classes.identifier}>{provider.issuer}</Text>
                                     <Group gap="xs">
                                         <Text size="sm" c="dimmed">
-                                            {t("Claim")}: <Text span ff="monospace">{provider.claimPath}</Text>
+                                            {t("Claim")}: <Text span ff="monospace" className={classes.identifier}>{provider.claimPath}</Text>
                                         </Text>
                                         <Text size="sm" c="dimmed">
                                             {t("{{count}} account(s) sign in through it", { count: provider.linkedAccounts })}
@@ -240,7 +245,7 @@ export default function ProvidersPage() {
 
                             <Group gap="xs" mt="sm" align="center">
                                 <Text size="xs" c="dimmed">{t("Redirect URI to register at the provider")}:</Text>
-                                <Text size="xs" ff="monospace">{provider.callbackPath}</Text>
+                                <Text size="xs" ff="monospace" className={classes.identifier}>{provider.callbackPath}</Text>
                                 <CopyButton value={provider.callbackPath} size="compact-xs" variant="subtle">
                                     {() => (
                                         <Group gap={4} wrap="nowrap">
@@ -467,7 +472,7 @@ function DeletionQueue({ requests, busy, onHalt }: {
         <Card withBorder padding="md">
             <Stack gap="xs">
                 <Title order={4}>{t("Account removals")}</Title>
-                <Table>
+                <DataTable>
                     <Table.Thead>
                         <Table.Tr>
                             <Table.Th>{t("Account")}</Table.Th>
@@ -517,7 +522,7 @@ function DeletionQueue({ requests, busy, onHalt }: {
                             </Table.Tr>
                         ))}
                     </Table.Tbody>
-                </Table>
+                </DataTable>
             </Stack>
         </Card>
     );
