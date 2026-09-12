@@ -15,7 +15,7 @@ import { CONTEST_ID, COURSE_ID, WORKSHOP_ID, WORLD } from "./world";
  * them, and it is a check somebody runs — run it when a permission is added.
  */
 
-/** The seven an ordinary participant holds, and what the template starts with. */
+/** The eight an ordinary participant holds, and what the template starts with. */
 const PARTICIPANT = [
     "activity:read",
     "submission:read:own",
@@ -24,6 +24,7 @@ const PARTICIPANT = [
     "question:read:own",
     "question:create",
     "ranking:read",
+    "printout:request",
 ];
 
 /**
@@ -84,6 +85,9 @@ export const PERMISSION_CATALOGUE: PermissionDefinition[] = [
     definition("question:publish", "question", "activity"),
     definition("announcement:create", "question", "activity"),
 
+    definition("printout:request", "printout", "activity"),
+    definition("printout:manage", "printout", "both"),
+
     definition("ranking:read", "ranking", "activity"),
     definition("ranking:read:unfrozen", "ranking", "both"),
     definition("ranking:unfreeze", "ranking", "both"),
@@ -130,6 +134,7 @@ const MANAGER = [
     "submission:rejudge", "submission:cancel", "submission:exclude",
     "result:read:all", "result:log:read:all",
     "question:read:all", "question:answer", "question:publish",
+    "printout:manage",
     "announcement:create",
     "ranking:read:unfrozen", "ranking:unfreeze",
     "user:create:temporary",
@@ -244,6 +249,19 @@ export const createGrants = (): Grant[] => [
         createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
     }),
     named({
+        // **One key, and the panel it opens.** The person at the printer is not a
+        // manager of anything: this grant is what makes the delegation the whole
+        // feature exists for drivable, and `verify-printouts` signs in as them to
+        // assert that `/manager` offers Printouts and nothing else.
+        id: "018f2c00-0000-7000-8000-0000000000b6",
+        userId: "user-drukarz",
+        activityId: CONTEST_ID,
+        activityName: nameOf(CONTEST_ID),
+        permissions: ["printout:manage"],
+        state: "active",
+        createdAt: new Date(Date.now() - 86400000).toISOString(),
+    }),
+    named({
         id: "018f2c00-0000-7000-8000-0000000000b4",
         userId: "user-me",
         activityId: CONTEST_ID,
@@ -298,6 +316,7 @@ export const MY_SYSTEM_PERMISSIONS = [
     "submission:read:all", "submission:source:read:all", "submission:rejudge", "submission:cancel",
     "result:read:all", "result:log:read:all",
     "ranking:read:unfrozen", "ranking:unfreeze",
+    "printout:manage",
     "runner:read", "runner:approve", "runner:revoke", "runner:update",
 ];
 
@@ -308,6 +327,7 @@ export const MANAGED_USERS: ManagedUserSummary[] = [
     { id: "user-nowak", username: "anowak", name: "Anna Nowak", email: "a.nowak@example.edu.pl" },
     { id: "user-me", username: "amy", name: "Amy Horsefighter", email: "amy@example.edu.pl" },
     { id: "user-lis", username: "alis", name: "Agnieszka Lis", email: "a.lis@example.edu.pl" },
+    { id: "user-drukarz", username: "pdrukarz", name: "Piotr Drukarz", email: "p.drukarz@example.edu.pl" },
 ];
 
 export const MANAGED_ACTIVITIES: ManagedActivitySummary[] = [
