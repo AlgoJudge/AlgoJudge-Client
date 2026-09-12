@@ -1128,6 +1128,11 @@ export interface ManagedPrintout {
     sha256: string;
     state: PrintoutState;
     requestedAt: string;
+    /** Who has it open at a printer, while somebody does. */
+    claimedByName?: string;
+    claimedAt?: string;
+    /** Whether the reader is the one holding it, rather than somebody else. */
+    claimedByMe: boolean;
     resolvedAt?: string;
     resolvedByName?: string;
     /** Set once the source has gone. The row outlives the bytes. */
@@ -2074,6 +2079,16 @@ export interface ManagerApi {
      */
     getPrintoutActivities(signal: AbortSignal): Promise<PrintoutActivity[]>;
     getPrintoutSheet(id: string, signal: AbortSignal): Promise<PrintoutSheet>;
+    /**
+     * Take it to a printer, so nobody else prints the same page.
+     *
+     * Taking over a row somebody else holds is allowed: two people at one printer
+     * can see each other, and refusing would strand the page behind whoever
+     * walked away.
+     */
+    claimPrintout(id: string, signal: AbortSignal): Promise<ManagedPrintout>;
+    /** Hand it back to the queue without printing it. */
+    releasePrintout(id: string, signal: AbortSignal): Promise<ManagedPrintout>;
     /** It printed, or it did not. Either way the source goes. */
     resolvePrintout(id: string, outcome: "printed" | "discarded", signal: AbortSignal): Promise<ManagedPrintout>;
 

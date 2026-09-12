@@ -16,6 +16,7 @@ const PAGE_SIZE = 20;
 
 const STATE_COLOUR: Record<PrintoutState, string> = {
     requested: "blue",
+    printing: "orange",
     printed: "green",
     discarded: "gray",
 };
@@ -87,6 +88,10 @@ export default function ManagerPrintoutsPage() {
      * a confirm dialog and nothing to confirm.
      */
     const open = (printout: ManagedPrintout) => {
+        // **The tab is opened from the click, before anything is awaited.** A
+        // popup blocker refuses a window opened after a promise resolves, and
+        // the operator would be left with a dialog and nothing to confirm.
+        //
         // **No `noopener`, deliberately.** It severs the new tab from the
         // opener, and with it the copy of `sessionStorage` a same-origin tab
         // inherits — which is where a session lives when the Client is driven
@@ -95,6 +100,25 @@ export default function ManagerPrintoutsPage() {
         // `window.opener` reaching back is only a hazard for a page that is not.
         window.open(printoutSheetUrl(printout.id), "_blank");
         setConfirming(printout);
+
+        // Then say so, so the other person working this queue can see the row is
+        // somebody's. A failure here is not worth stopping the printing over —
+        // the sheet is already open — so it only reloads the list.
+        void call(api => api.managerApi.claimPrintout(printout.id))
+            .then(() => setReload(n => n + 1))
+            .catch(() => setReload(n => n + 1));
+    };
+
+    const release = async (printout: ManagedPrintout) => {
+        setBusy(true);
+        try {
+            await call(api => api.managerApi.releasePrintout(printout.id));
+            setReload(n => n + 1);
+        } catch (e) {
+            setFailed(e instanceof Error ? e.message : String(e));
+        } finally {
+            setBusy(false);
+        }
     };
 
     const resolve = async (outcome: "printed" | "discarded") => {
@@ -145,6 +169,7 @@ export default function ManagerPrintoutsPage() {
                     onChange={value => set({ state: value ?? undefined })}
                     data={[
                         { value: "requested", label: t("Waiting") },
+                        { value: "printing", label: t("At a printer") },
                         { value: "printed", label: t("Printed") },
                         { value: "discarded", label: t("Discarded") },
                     ]}
@@ -196,20 +221,46 @@ export default function ManagerPrintoutsPage() {
                                     <Badge color={STATE_COLOUR[printout.state]} variant="light">
                                         {printout.state === "printed" ? t("Printed")
                                             : printout.state === "discarded" ? t("Discarded")
-                                                : t("Waiting")}
+                                                : printout.state === "printing" ? t("At a printer")
+                                                    : t("Waiting")}
                                     </Badge>
                                 </Table.Td>
                                 <Table.Td>
                                     <Group gap="xs" justify="flex-end" wrap="nowrap">
-                                        <Button
-                                            size="compact-sm"
-                                            variant="light"
-                                            data-testid="printout-print"
-                                            leftSection={<IconPrinter size={14} />}
-                                            onClick={() => open(printout)}
-                                        >
-                                            {t("Print")}
-                                        </Button>
+                                        {/* **Said before it is clicked.** Two
+                                            people at one printer each opening a
+                                            sheet is how one page is printed
+                                            twice; the label is what stops it. */}
+                                        {printout.state === "printing" && !printout.claimedByMe && (
+                                            <Text size="xs" c="dimmed" data-testid="printout-held-by">
+                                                {t("With {{name}}", { name: printout.claimedByName ?? "" })}
+                                            </Text>
+                                        )}
+                                        {printout.state === "printing" && printout.claimedByMe && (
+                                            <Button
+                                                size="compact-sm"
+                                                variant="subtle"
+                                                color="gray"
+                                                data-testid="printout-release"
+                                                onClick={() => release(printout)}
+                                                disabled={busy}
+                                            >
+                                                {t("Hand back")}
+                                            </Button>
+                                        )}
+                                        {printout.state !== "printed" && printout.state !== "discarded" && (
+                                            <Button
+                                                size="compact-sm"
+                                                variant="light"
+                                                data-testid="printout-print"
+                                                leftSection={<IconPrinter size={14} />}
+                                                onClick={() => open(printout)}
+                                            >
+                                                {printout.state === "printing" && !printout.claimedByMe
+                                                    ? t("Take over")
+                                                    : t("Print")}
+                                            </Button>
+                                        )}
                                     </Group>
                                 </Table.Td>
                             </Table.Tr>

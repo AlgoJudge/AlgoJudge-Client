@@ -11,6 +11,9 @@ import { Printout, PrintoutState } from "../../ParticipantApi";
  */
 export interface FakePrintout extends Printout {
     requestedByName: string;
+    claimedByName?: string;
+    claimedByUserId?: string;
+    claimedAt?: string;
     requestedByUserId: string;
     groupName?: string;
     sha256: string;

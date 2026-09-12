@@ -20,6 +20,7 @@ const PAGE_SIZE = 10;
 
 const STATE_COLOUR: Record<PrintoutState, string> = {
     requested: "blue",
+    printing: "orange",
     printed: "green",
     discarded: "gray",
 };
@@ -209,7 +210,8 @@ export default function PrintoutsPage() {
                                     <Badge color={STATE_COLOUR[printout.state]} variant="light">
                                         {printout.state === "printed" ? t("Printed")
                                             : printout.state === "discarded" ? t("Discarded")
-                                                : t("Waiting")}
+                                                : printout.state === "printing" ? t("At a printer")
+                                                    : t("Waiting")}
                                     </Badge>
                                 </Table.Td>
                             </Table.Tr>

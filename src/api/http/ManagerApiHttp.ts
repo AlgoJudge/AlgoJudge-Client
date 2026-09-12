@@ -528,6 +528,16 @@ export class ManagerApiHttp implements ManagerApi {
         return this.http.request<PrintoutSheet>(`/printouts/${encodeURIComponent(id)}`, "GET", { signal });
     }
 
+    claimPrintout(id: string, signal: AbortSignal): Promise<ManagedPrintout> {
+        return this.http.request<ManagedPrintout>(
+            `/printouts/${encodeURIComponent(id)}/claim`, "POST", { signal, body: {} });
+    }
+
+    releasePrintout(id: string, signal: AbortSignal): Promise<ManagedPrintout> {
+        return this.http.request<ManagedPrintout>(
+            `/printouts/${encodeURIComponent(id)}/release`, "POST", { signal, body: {} });
+    }
+
     resolvePrintout(
         id: string, outcome: "printed" | "discarded", signal: AbortSignal,
     ): Promise<ManagedPrintout> {

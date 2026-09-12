@@ -1586,6 +1586,32 @@ export class ManagerApiFake implements ManagerApi {
         };
     }
 
+    async claimPrintout(id: string, signal: AbortSignal): Promise<ManagedPrintout> {
+        await this.settle(signal);
+        const row = this.printoutRow(id);
+        if (row.state === "printed" || row.state === "discarded") {
+            conflict("This request is already resolved", "printout.resolved");
+        }
+        // Taking over is allowed: two people at one printer see each other, and
+        // refusing would strand the page behind whoever walked away.
+        row.state = "printing";
+        row.claimedByUserId = signedInUserId() ?? ME;
+        row.claimedByName = "Ty";
+        row.claimedAt = new Date().toISOString();
+        return copy(this.projectPrintout(row));
+    }
+
+    async releasePrintout(id: string, signal: AbortSignal): Promise<ManagedPrintout> {
+        await this.settle(signal);
+        const row = this.printoutRow(id);
+        if (row.state !== "printing") conflict("Nobody is printing this", "printout.notClaimed");
+        row.state = "requested";
+        row.claimedByUserId = undefined;
+        row.claimedByName = undefined;
+        row.claimedAt = undefined;
+        return copy(this.projectPrintout(row));
+    }
+
     async resolvePrintout(
         id: string, outcome: "printed" | "discarded", signal: AbortSignal,
     ): Promise<ManagedPrintout> {
@@ -1594,6 +1620,9 @@ export class ManagerApiFake implements ManagerApi {
         if (row.state !== "requested") conflict("This request is already resolved", "printout.resolved");
 
         row.state = outcome;
+        row.claimedByUserId = undefined;
+        row.claimedByName = undefined;
+        row.claimedAt = undefined;
         row.resolvedAt = new Date().toISOString();
         row.resolvedByName = "Ty";
         row.sourceDisposedAt = row.resolvedAt;
@@ -1632,6 +1661,10 @@ export class ManagerApiFake implements ManagerApi {
             sha256: row.sha256,
             state: row.state,
             requestedAt: row.requestedAt,
+            claimedByName: row.claimedByName,
+            claimedAt: row.claimedAt,
+            claimedByMe: row.claimedByUserId !== undefined
+                && row.claimedByUserId === (signedInUserId() ?? ME),
             resolvedAt: row.resolvedAt,
             resolvedByName: row.resolvedByName,
             sourceDisposedAt: row.sourceDisposedAt,

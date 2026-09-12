@@ -194,6 +194,16 @@ if (older) {
         "and still carries the digest, so paper on a desk matches a row");
 }
 
+// **Taking it marks it**, so the other person working this queue can see the row
+// is somebody's rather than opening the same sheet.
+await wait(2000);
+const held = await evaluate(`
+    const row = [...document.querySelectorAll("[data-testid=printout-queue] tr")]
+        .find(r => r.innerText.includes("A.cpp"));
+    return row?.innerText ?? "";
+`);
+check(/drukarce/i.test(held), `the row says it is at a printer (${held.replace(/\s+/g, " ").slice(0, 50)})`);
+
 // ── 6. The confirm is in the first tab, and disposal is visible ─────────────
 
 const dialog = await evaluate(`

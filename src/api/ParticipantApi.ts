@@ -757,8 +757,8 @@ export interface Question {
  */
 export type QuestionSort = "createdAt" | "series" | "problem";
 
-/** `requested` until somebody at the printer says otherwise. */
-export type PrintoutState = "requested" | "printed" | "discarded";
+/** `requested` until somebody takes it to a printer, then says what happened. */
+export type PrintoutState = "requested" | "printing" | "printed" | "discarded";
 
 /**
  * A print request, as the person who made it sees it.

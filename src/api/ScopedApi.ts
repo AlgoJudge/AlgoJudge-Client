@@ -688,6 +688,12 @@ export class ScopedManagerApi {
     getPrintoutSheet(id: string): Promise<PrintoutSheet> {
         return this.managerApi.getPrintoutSheet(id, this.signal);
     }
+    claimPrintout(id: string): Promise<ManagedPrintout> {
+        return this.managerApi.claimPrintout(id, this.signal);
+    }
+    releasePrintout(id: string): Promise<ManagedPrintout> {
+        return this.managerApi.releasePrintout(id, this.signal);
+    }
     resolvePrintout(id: string, outcome: "printed" | "discarded"): Promise<ManagedPrintout> {
         return this.managerApi.resolvePrintout(id, outcome, this.signal);
     }
