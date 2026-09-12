@@ -288,6 +288,32 @@ export async function open({ out = process.env.OUT ?? join(here, "out"), clock =
         `[...document.querySelectorAll("[role=tab]")].find(t => t.textContent.trim().startsWith(${JSON.stringify(label)}))`;
 
     /**
+     * The row in a manager list that names something, ready to be clicked.
+     *
+     * **The name, not the cell.** A manager row opens from a `<Text onClick>`
+     * inside its first cell — deliberately, and it stays that way — so a click
+     * at the centre of the `td` lands beside the handler as often as on it. It
+     * passes by luck and fails the next run, and the failure reads as the screen
+     * being wrong rather than the click missing: every assertion after it fails
+     * at once, because the page never opened.
+     *
+     * The inline pointer style is what the handler is on, and nothing else in a
+     * row carries one — the action buttons take their cursor from Mantine's
+     * stylesheet. Written once here because fifteen call sites had copied the
+     * cell version, and `verify-groups` reddened `main` on 2026-09-12 when
+     * `DataTable` changed that cell's geometry.
+     *
+     * **It is tied to the style being inline.** Move `cursor: pointer` into a
+     * CSS module and every caller breaks at once with `nothing to click` —
+     * proved by taking the property off and watching `verify-groups` go red.
+     * Whatever replaces it has to be findable from the row.
+     */
+    const managerRow = (name) =>
+        `[...document.querySelectorAll("tbody tr")]
+            .find(r => r.innerText.includes(${JSON.stringify(name)}))
+            ?.querySelector("td [style*='cursor']")`;
+
+    /**
      * Every tab this script has open, including ones the application opened.
      *
      * One screen needs it: the printable sheet of temporary accounts opens in a
@@ -336,7 +362,7 @@ export async function open({ out = process.env.OUT ?? join(here, "out"), clock =
     if (clock) await page.clock.install();
 
     return {
-        send, evaluate, until, wait, shot, go, visit, click, type, setTextarea, tab, pages, paintedWith, offline,
+        send, evaluate, until, wait, shot, go, visit, click, type, setTextarea, tab, managerRow, pages, paintedWith, offline,
         clock: {
             fastForward: (ticks) => page.clock.fastForward(ticks),
             runFor: (ticks) => page.clock.runFor(ticks),
