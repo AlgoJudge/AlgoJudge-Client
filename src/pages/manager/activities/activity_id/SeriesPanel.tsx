@@ -25,6 +25,7 @@ import { useApiCall } from "../../../../provider/apiContext";
 import PauseSeriesModal, { PauseIntent } from "./PauseSeriesModal";
 import ShiftSeries from "./ShiftSeries";
 import OpaqueDocumentField from "../../../../components/manager/OpaqueDocumentField";
+import DataTable from "../../../../components/table/DataTable";
 
 /**
  * Series and what is attached to them.
@@ -540,121 +541,119 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                                     </Button>
                                 </Group>
 
-                                <Table.ScrollContainer minWidth={760}>
-                                    <Table striped>
-                                        <Table.Thead>
-                                            <Table.Tr>
-                                                <Table.Th w={60}>#</Table.Th>
-                                                <Table.Th>{t("Slug")}</Table.Th>
-                                                <Table.Th>{t("Problem")}</Table.Th>
-                                                <Table.Th>{t("Version")}</Table.Th>
-                                                <Table.Th>{t("Limits")}</Table.Th>
-                                                <Table.Th>{t("Submissions")}</Table.Th>
-                                                <Table.Th />
-                                            </Table.Tr>
-                                        </Table.Thead>
-                                        <Table.Tbody>
-                                            {s.problems.map((assignment, position) => (
-                                                <Table.Tr key={assignment.id}>
-                                                    <Table.Td>
-                                                        <Group gap={2} wrap="nowrap">
-                                                            <Button variant="subtle" size="compact-xs" disabled={locked || position === 0} onClick={() => moveProblem(s, position, -1)}>
-                                                                <IconArrowUp size={12} />
-                                                            </Button>
-                                                            <Button variant="subtle" size="compact-xs" disabled={locked || position === s.problems.length - 1} onClick={() => moveProblem(s, position, 1)}>
-                                                                <IconArrowDown size={12} />
-                                                            </Button>
-                                                        </Group>
-                                                    </Table.Td>
-                                                    <Table.Td><Text fw={500} ff="monospace">{assignment.slug}</Text></Table.Td>
-                                                    <Table.Td>
-                                                        <Stack gap={0}>
-                                                            <Text size="sm">{assignment.name ?? assignment.problemName}</Text>
-                                                            <Text size="xs" c="dimmed" ff="monospace">{assignment.problemSlug}</Text>
-                                                        </Stack>
-                                                    </Table.Td>
-                                                    <Table.Td>
-                                                        <Group gap={4} wrap="nowrap">
-                                                            {/* Attaching pins the version that was current at
-                                                                the time (2026-08-08), so a pin is the ordinary
-                                                                case and "follows the current one" is the rare
-                                                                one. What matters is when the two have parted:
-                                                                the library moved on and this round did not,
-                                                                which is the whole reason to pin — and a badge
-                                                                saying only "v2" leaves a manager unable to
-                                                                tell that from "v2 is the newest". */}
-                                                            {assignment.pinnedVersion
-                                                                ? <Tooltip
-                                                                    label={assignment.pinnedVersion === assignment.currentVersion
-                                                                        ? t("Judged against the newest version")
-                                                                        : t("Judged against v{{pinned}}; the problem is now at v{{current}}",
-                                                                            { pinned: assignment.pinnedVersion, current: assignment.currentVersion })}>
-                                                                    <Badge
-                                                                        variant="light"
-                                                                        size="sm"
-                                                                        color={assignment.pinnedVersion === assignment.currentVersion ? undefined : "orange"}>
-                                                                        v{assignment.pinnedVersion}
-                                                                        {assignment.pinnedVersion !== assignment.currentVersion
-                                                                            && ` / v${assignment.currentVersion}`}
-                                                                    </Badge>
-                                                                </Tooltip>
-                                                                : <Badge variant="outline" color="gray" size="sm">
-                                                                    {t("current")} (v{assignment.currentVersion})
-                                                                </Badge>}
-                                                            {/* Nothing judges without a package, and the
-                                                                time to learn that is before the round
-                                                                opens — **unless the type has none to
-                                                                begin with**. A `uva@1` problem is judged
-                                                                by the archive, and wore this warning on
-                                                                every round it was ever attached to. */}
-                                                            {!assignment.hasPackage
-                                                                && problemShape.resolve(
-                                                                    problems.find(one => one.id === assignment.problemId)?.type,
-                                                                ).value.package && (
-                                                                <Tooltip label={t("No package: nothing can be judged")}>
-                                                                    <Badge variant="light" color="red" size="sm" leftSection={<IconAlertTriangle size={11} />}>
-                                                                        {t("Missing")}
-                                                                    </Badge>
-                                                                </Tooltip>
-                                                            )}
-                                                        </Group>
-                                                    </Table.Td>
-                                                    <Table.Td>
-                                                        <Text size="xs" c="dimmed">
-                                                            {assignment.maxUploadBytes
-                                                                ? `${Math.round(assignment.maxUploadBytes / MB)} MB`
-                                                                : t("inherited")}
-                                                            {assignment.maxSubmissions !== undefined && ` · ${assignment.maxSubmissions}×`}
-                                                            {assignment.maxPoints !== undefined && ` · ${assignment.maxPoints} ${t("pts")}`}
-                                                        </Text>
-                                                    </Table.Td>
-                                                    <Table.Td><Text size="sm">{assignment.submissionCount}</Text></Table.Td>
-                                                    <Table.Td>
-                                                        <Group gap="xs" justify="flex-end" wrap="nowrap">
-                                                            <Button variant="light" size="compact-sm" disabled={locked} onClick={() => openAttach(s, assignment)}>
-                                                                {t("Edit")}
-                                                            </Button>
-                                                            <Tooltip label={assignment.submissionCount > 0
-                                                                ? t("Something has been submitted here — it cannot be removed")
-                                                                : t("Detach")}>
-                                                                <Button
-                                                                    variant="subtle"
-                                                                    color="red"
-                                                                    size="compact-sm"
-                                                                    disabled={locked || assignment.submissionCount > 0}
-                                                                    loading={busy}
-                                                                    onClick={() => run(() => call(api => api.managerApi.detachProblem(assignment.id)))}
-                                                                >
-                                                                    <IconTrash size={14} />
-                                                                </Button>
+                                <DataTable minWidth={760} striped>
+                                    <Table.Thead>
+                                        <Table.Tr>
+                                            <Table.Th w={60}>#</Table.Th>
+                                            <Table.Th>{t("Slug")}</Table.Th>
+                                            <Table.Th>{t("Problem")}</Table.Th>
+                                            <Table.Th>{t("Version")}</Table.Th>
+                                            <Table.Th>{t("Limits")}</Table.Th>
+                                            <Table.Th>{t("Submissions")}</Table.Th>
+                                            <Table.Th />
+                                        </Table.Tr>
+                                    </Table.Thead>
+                                    <Table.Tbody>
+                                        {s.problems.map((assignment, position) => (
+                                            <Table.Tr key={assignment.id}>
+                                                <Table.Td>
+                                                    <Group gap={2} wrap="nowrap">
+                                                        <Button variant="subtle" size="compact-xs" disabled={locked || position === 0} onClick={() => moveProblem(s, position, -1)}>
+                                                            <IconArrowUp size={12} />
+                                                        </Button>
+                                                        <Button variant="subtle" size="compact-xs" disabled={locked || position === s.problems.length - 1} onClick={() => moveProblem(s, position, 1)}>
+                                                            <IconArrowDown size={12} />
+                                                        </Button>
+                                                    </Group>
+                                                </Table.Td>
+                                                <Table.Td><Text fw={500} ff="monospace">{assignment.slug}</Text></Table.Td>
+                                                <Table.Td>
+                                                    <Stack gap={0}>
+                                                        <Text size="sm">{assignment.name ?? assignment.problemName}</Text>
+                                                        <Text size="xs" c="dimmed" ff="monospace">{assignment.problemSlug}</Text>
+                                                    </Stack>
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <Group gap={4} wrap="nowrap">
+                                                        {/* Attaching pins the version that was current at
+                                                            the time (2026-08-08), so a pin is the ordinary
+                                                            case and "follows the current one" is the rare
+                                                            one. What matters is when the two have parted:
+                                                            the library moved on and this round did not,
+                                                            which is the whole reason to pin — and a badge
+                                                            saying only "v2" leaves a manager unable to
+                                                            tell that from "v2 is the newest". */}
+                                                        {assignment.pinnedVersion
+                                                            ? <Tooltip
+                                                                label={assignment.pinnedVersion === assignment.currentVersion
+                                                                    ? t("Judged against the newest version")
+                                                                    : t("Judged against v{{pinned}}; the problem is now at v{{current}}",
+                                                                        { pinned: assignment.pinnedVersion, current: assignment.currentVersion })}>
+                                                                <Badge
+                                                                    variant="light"
+                                                                    size="sm"
+                                                                    color={assignment.pinnedVersion === assignment.currentVersion ? undefined : "orange"}>
+                                                                    v{assignment.pinnedVersion}
+                                                                    {assignment.pinnedVersion !== assignment.currentVersion
+                                                                        && ` / v${assignment.currentVersion}`}
+                                                                </Badge>
                                                             </Tooltip>
-                                                        </Group>
-                                                    </Table.Td>
-                                                </Table.Tr>
-                                            ))}
-                                        </Table.Tbody>
-                                    </Table>
-                                </Table.ScrollContainer>
+                                                            : <Badge variant="outline" color="gray" size="sm">
+                                                                {t("current")} (v{assignment.currentVersion})
+                                                            </Badge>}
+                                                        {/* Nothing judges without a package, and the
+                                                            time to learn that is before the round
+                                                            opens — **unless the type has none to
+                                                            begin with**. A `uva@1` problem is judged
+                                                            by the archive, and wore this warning on
+                                                            every round it was ever attached to. */}
+                                                        {!assignment.hasPackage
+                                                            && problemShape.resolve(
+                                                                problems.find(one => one.id === assignment.problemId)?.type,
+                                                            ).value.package && (
+                                                            <Tooltip label={t("No package: nothing can be judged")}>
+                                                                <Badge variant="light" color="red" size="sm" leftSection={<IconAlertTriangle size={11} />}>
+                                                                    {t("Missing")}
+                                                                </Badge>
+                                                            </Tooltip>
+                                                        )}
+                                                    </Group>
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <Text size="xs" c="dimmed">
+                                                        {assignment.maxUploadBytes
+                                                            ? `${Math.round(assignment.maxUploadBytes / MB)} MB`
+                                                            : t("inherited")}
+                                                        {assignment.maxSubmissions !== undefined && ` · ${assignment.maxSubmissions}×`}
+                                                        {assignment.maxPoints !== undefined && ` · ${assignment.maxPoints} ${t("pts")}`}
+                                                    </Text>
+                                                </Table.Td>
+                                                <Table.Td><Text size="sm">{assignment.submissionCount}</Text></Table.Td>
+                                                <Table.Td>
+                                                    <Group gap="xs" justify="flex-end" wrap="nowrap">
+                                                        <Button variant="light" size="compact-sm" disabled={locked} onClick={() => openAttach(s, assignment)}>
+                                                            {t("Edit")}
+                                                        </Button>
+                                                        <Tooltip label={assignment.submissionCount > 0
+                                                            ? t("Something has been submitted here — it cannot be removed")
+                                                            : t("Detach")}>
+                                                            <Button
+                                                                variant="subtle"
+                                                                color="red"
+                                                                size="compact-sm"
+                                                                disabled={locked || assignment.submissionCount > 0}
+                                                                loading={busy}
+                                                                onClick={() => run(() => call(api => api.managerApi.detachProblem(assignment.id)))}
+                                                            >
+                                                                <IconTrash size={14} />
+                                                            </Button>
+                                                        </Tooltip>
+                                                    </Group>
+                                                </Table.Td>
+                                            </Table.Tr>
+                                        ))}
+                                    </Table.Tbody>
+                                </DataTable>
 
                                 {s.problems.length === 0 && (
                                     <Text size="sm" c="dimmed">{t("Nothing attached yet")}</Text>

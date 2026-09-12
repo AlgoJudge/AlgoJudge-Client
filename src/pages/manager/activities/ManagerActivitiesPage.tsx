@@ -17,6 +17,7 @@ import { activityTypes } from "../../../renderers";
 /** The first type this Client can present, so the form opens on a working one. */
 const DEFAULT_TYPE = activityTypes()[0]?.id ?? "contest@1";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
+import DataTable from "../../../components/table/DataTable";
 
 const PAGE_SIZE = 20;
 
@@ -146,159 +147,157 @@ export default function ManagerActivitiesPage() {
                 />
             </Group>
 
-            <Table.ScrollContainer minWidth={900}>
-                <Table striped highlightOnHover>
-                    <Table.Thead>
-                        <Table.Tr>
-                            <Table.Th>{t("Name")}</Table.Th>
-                            <Table.Th>{t("Type")}</Table.Th>
-                            <Table.Th>{t("State")}</Table.Th>
-                            <Table.Th>{t("Starts")}</Table.Th>
-                            <Table.Th>{t("Series")}</Table.Th>
-                            <Table.Th>{t("Problems")}</Table.Th>
-                            <Table.Th>{t("Participants")}</Table.Th>
-                            <Table.Th />
-                        </Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                        {items.map(activity => (
-                            <Table.Tr key={activity.id} opacity={activity.archivedAt ? 0.55 : 1}>
-                                <Table.Td>
-                                    <Group gap="xs" wrap="nowrap">
-                                        <Text
-                                            fw={500}
-                                            style={{ cursor: "pointer" }}
-                                            onClick={() => navigate(`/manager/activities/${activity.slug}`)}
-                                        >
-                                            {activity.name}
-                                        </Text>
-                                        {activity.archivedAt && <Badge size="sm" color="gray">{t("Archived")}</Badge>}
-                                    </Group>
-                                    <Text size="xs" c="dimmed" ff="monospace">{activity.slug}</Text>
-                                </Table.Td>
-                                <Table.Td>
-                                    <Stack gap={2}>
-                                        <Text size="sm" ff="monospace">{activity.type}</Text>
-                                        <Text size="xs" c="dimmed">{t("ranking")}: {activity.rankingType}</Text>
-                                    </Stack>
-                                </Table.Td>
+            <DataTable minWidth={900} striped highlightOnHover>
+                <Table.Thead>
+                    <Table.Tr>
+                        <Table.Th>{t("Name")}</Table.Th>
+                        <Table.Th>{t("Type")}</Table.Th>
+                        <Table.Th>{t("State")}</Table.Th>
+                        <Table.Th>{t("Starts")}</Table.Th>
+                        <Table.Th>{t("Series")}</Table.Th>
+                        <Table.Th>{t("Problems")}</Table.Th>
+                        <Table.Th>{t("Participants")}</Table.Th>
+                        <Table.Th />
+                    </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                    {items.map(activity => (
+                        <Table.Tr key={activity.id} opacity={activity.archivedAt ? 0.55 : 1}>
+                            <Table.Td>
+                                <Group gap="xs" wrap="nowrap">
+                                    <Text
+                                        fw={500}
+                                        style={{ cursor: "pointer" }}
+                                        onClick={() => navigate(`/manager/activities/${activity.slug}`)}
+                                    >
+                                        {activity.name}
+                                    </Text>
+                                    {activity.archivedAt && <Badge size="sm" color="gray">{t("Archived")}</Badge>}
+                                </Group>
+                                <Text size="xs" c="dimmed" ff="monospace">{activity.slug}</Text>
+                            </Table.Td>
+                            <Table.Td>
+                                <Stack gap={2}>
+                                    <Text size="sm" ff="monospace">{activity.type}</Text>
+                                    <Text size="xs" c="dimmed">{t("ranking")}: {activity.rankingType}</Text>
+                                </Stack>
+                            </Table.Td>
+                            {/*
+                              * `nowrap`, because this column was squeezed
+                              * narrow enough to cut its own badges: the states
+                              * read "TR…" and "BE…", which name nothing. Found
+                              * by looking at the screen rather than at the
+                              * assertions, which passed either way.
+                              */}
+                            <Table.Td style={{ whiteSpace: "nowrap" }}>
                                 {/*
-                                  * `nowrap`, because this column was squeezed
-                                  * narrow enough to cut its own badges: the states
-                                  * read "TR…" and "BE…", which name nothing. Found
-                                  * by looking at the screen rather than at the
-                                  * assertions, which passed either way.
+                                  * **Being prepared outranks the schedule.** An
+                                  * activity nobody can reach has no state worth
+                                  * reading off its dates, and showing one would
+                                  * say it was open when nobody could open it.
                                   */}
-                                <Table.Td style={{ whiteSpace: "nowrap" }}>
-                                    {/*
-                                      * **Being prepared outranks the schedule.** An
-                                      * activity nobody can reach has no state worth
-                                      * reading off its dates, and showing one would
-                                      * say it was open when nobody could open it.
-                                      */}
-                                    {/*
-                                      * `label: overflow visible`, because the badge
-                                      * truncates its own text: the states were
-                                      * reading "TR…" and "BE…", which name nothing.
-                                      * The cell is wide enough; the component was
-                                      * cutting inside it.
-                                      */}
-                                    {activity.publishedAt ? (
-                                        <Badge
-                                            variant="light"
-                                            color={STATE_COLOUR[state(activity)]}
-                                            styles={{ label: { overflow: "visible" } }}
-                                        >
-                                            {t(`activityState.${state(activity)}`)}
-                                        </Badge>
-                                    ) : (
-                                        <Badge
-                                            variant="light"
-                                            color="orange"
-                                            styles={{ label: { overflow: "visible" } }}
-                                        >
-                                            {t("Being prepared")}
-                                        </Badge>
-                                    )}
-                                </Table.Td>
-                                <Table.Td>
-                                    {activity.startDate
-                                        ? <ActivityTime value={activity.startDate} timeZone={activity.timeZone} format="datetime" />
-                                        : <Text size="sm" c="dimmed">—</Text>}
-                                </Table.Td>
-                                <Table.Td><Text size="sm">{activity.seriesCount}</Text></Table.Td>
-                                <Table.Td><Text size="sm">{activity.problemCount}</Text></Table.Td>
-                                <Table.Td><Text size="sm">{activity.participantCount}</Text></Table.Td>
-                                <Table.Td>
-                                    <Group gap="xs" justify="flex-end" wrap="nowrap">
+                                {/*
+                                  * `label: overflow visible`, because the badge
+                                  * truncates its own text: the states were
+                                  * reading "TR…" and "BE…", which name nothing.
+                                  * The cell is wide enough; the component was
+                                  * cutting inside it.
+                                  */}
+                                {activity.publishedAt ? (
+                                    <Badge
+                                        variant="light"
+                                        color={STATE_COLOUR[state(activity)]}
+                                        styles={{ label: { overflow: "visible" } }}
+                                    >
+                                        {t(`activityState.${state(activity)}`)}
+                                    </Badge>
+                                ) : (
+                                    <Badge
+                                        variant="light"
+                                        color="orange"
+                                        styles={{ label: { overflow: "visible" } }}
+                                    >
+                                        {t("Being prepared")}
+                                    </Badge>
+                                )}
+                            </Table.Td>
+                            <Table.Td>
+                                {activity.startDate
+                                    ? <ActivityTime value={activity.startDate} timeZone={activity.timeZone} format="datetime" />
+                                    : <Text size="sm" c="dimmed">—</Text>}
+                            </Table.Td>
+                            <Table.Td><Text size="sm">{activity.seriesCount}</Text></Table.Td>
+                            <Table.Td><Text size="sm">{activity.problemCount}</Text></Table.Td>
+                            <Table.Td><Text size="sm">{activity.participantCount}</Text></Table.Td>
+                            <Table.Td>
+                                <Group gap="xs" justify="flex-end" wrap="nowrap">
+                                    <Button
+                                        variant="light"
+                                        size="compact-sm"
+                                        onClick={() => navigate(`/manager/activities/${activity.slug}`)}
+                                    >
+                                        {t("Open")}
+                                    </Button>
+                                    <Button data-testid="publish"
+                                        variant="subtle"
+                                        size="compact-sm"
+                                        loading={busy}
+                                        onClick={() => run(() => call(api =>
+                                            api.managerApi.setActivityPublished(
+                                                activity.id, !activity.publishedAt)))}
+                                    >
+                                        {activity.publishedAt ? t("Withdraw") : t("Publish")}
+                                    </Button>
+                                    <Button
+                                        variant="subtle"
+                                        size="compact-sm"
+                                        loading={busy}
+                                        onClick={() => setCopying(activity)}
+                                    >
+                                        {t("Copy for a new run")}
+                                    </Button>
+                                    <ExportButton
+                                        compact
+                                        label={t("Export to a file")}
+                                        filename={`algojudge-${activity.slug}`}
+                                        collect={api => collectActivity(api, activity.id)}
+                                        onError={message => setError(message || undefined)}
+                                    />
+                                    <Tooltip label={activity.archivedAt ? t("Restore") : t("Archive")}>
                                         <Button
-                                            variant="light"
-                                            size="compact-sm"
-                                            onClick={() => navigate(`/manager/activities/${activity.slug}`)}
-                                        >
-                                            {t("Open")}
-                                        </Button>
-                                        <Button data-testid="publish"
                                             variant="subtle"
                                             size="compact-sm"
                                             loading={busy}
                                             onClick={() => run(() => call(api =>
-                                                api.managerApi.setActivityPublished(
-                                                    activity.id, !activity.publishedAt)))}
+                                                api.managerApi.setActivityArchived(activity.id, !activity.archivedAt)))}
                                         >
-                                            {activity.publishedAt ? t("Withdraw") : t("Publish")}
+                                            {activity.archivedAt ? <IconArchiveOff size={14} /> : <IconArchive size={14} />}
                                         </Button>
+                                    </Tooltip>
+                                    {/* Deletion destroys submissions people may
+                                        still come back for, so it is refused for
+                                        anything that ran — said here rather than
+                                        after the click. */}
+                                    <Tooltip label={activity.participantCount > 0
+                                        ? t("This activity has participants — archive it instead")
+                                        : t("Delete")}>
                                         <Button
                                             variant="subtle"
+                                            color="red"
                                             size="compact-sm"
+                                            disabled={activity.participantCount > 0}
                                             loading={busy}
-                                            onClick={() => setCopying(activity)}
+                                            onClick={() => run(() => call(api => api.managerApi.deleteActivity(activity.id)))}
                                         >
-                                            {t("Copy for a new run")}
+                                            <IconTrash size={14} />
                                         </Button>
-                                        <ExportButton
-                                            compact
-                                            label={t("Export to a file")}
-                                            filename={`algojudge-${activity.slug}`}
-                                            collect={api => collectActivity(api, activity.id)}
-                                            onError={message => setError(message || undefined)}
-                                        />
-                                        <Tooltip label={activity.archivedAt ? t("Restore") : t("Archive")}>
-                                            <Button
-                                                variant="subtle"
-                                                size="compact-sm"
-                                                loading={busy}
-                                                onClick={() => run(() => call(api =>
-                                                    api.managerApi.setActivityArchived(activity.id, !activity.archivedAt)))}
-                                            >
-                                                {activity.archivedAt ? <IconArchiveOff size={14} /> : <IconArchive size={14} />}
-                                            </Button>
-                                        </Tooltip>
-                                        {/* Deletion destroys submissions people may
-                                            still come back for, so it is refused for
-                                            anything that ran — said here rather than
-                                            after the click. */}
-                                        <Tooltip label={activity.participantCount > 0
-                                            ? t("This activity has participants — archive it instead")
-                                            : t("Delete")}>
-                                            <Button
-                                                variant="subtle"
-                                                color="red"
-                                                size="compact-sm"
-                                                disabled={activity.participantCount > 0}
-                                                loading={busy}
-                                                onClick={() => run(() => call(api => api.managerApi.deleteActivity(activity.id)))}
-                                            >
-                                                <IconTrash size={14} />
-                                            </Button>
-                                        </Tooltip>
-                                    </Group>
-                                </Table.Td>
-                            </Table.Tr>
-                        ))}
-                    </Table.Tbody>
-                </Table>
-            </Table.ScrollContainer>
+                                    </Tooltip>
+                                </Group>
+                            </Table.Td>
+                        </Table.Tr>
+                    ))}
+                </Table.Tbody>
+            </DataTable>
 
             {items.length === 0 && <Text c="dimmed">{t("Nothing matches the filters")}</Text>}
 

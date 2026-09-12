@@ -1,0 +1,93 @@
+/* The desktop half: what `Table.ScrollContainer` was doing. */
+.frame {
+    overflow-x: auto;
+}
+
+.table {
+    min-width: var(--dt-min-width, 0);
+}
+
+/*
+ * Below `sm` a row is a card.
+ *
+ * Everything here is `display` and spacing — no element is removed, nothing is
+ * reordered, and the desktop rules above are simply not in force. The header
+ * row goes away because each cell carries its own label instead; `DataTable`
+ * copies those off that same header row.
+ */
+@media (max-width: $mantine-breakpoint-sm) {
+    .frame {
+        overflow-x: visible;
+    }
+
+    /*
+     * `display: block` on the table and not only on its rows.
+     *
+     * Measured: with the rows blocks and the `<table>` still a table, the
+     * manager's activity list was 535px wide on a 360px screen and the page
+     * dragged sideways by 175. A table box sizes itself to its widest row
+     * whatever its `min-width` says, and a cell told `white-space: nowrap`
+     * — the activity state column is, deliberately — sets that width.
+     */
+    .table {
+        display: block;
+        min-width: 0;
+        width: 100%;
+    }
+
+    .table thead {
+        display: none;
+    }
+
+    .table tbody,
+    .table tbody tr,
+    .table tbody td {
+        display: block;
+    }
+
+    .table tbody tr {
+        border: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+        border-radius: var(--mantine-radius-md);
+        padding: var(--mantine-spacing-xs);
+        margin-bottom: var(--mantine-spacing-xs);
+    }
+
+    /*
+     * The row's own rule would draw a line under the last cell of every card,
+     * and `withColumnBorders` — which both scoreboards set — would box each one.
+     * Its selector carries the attribute as well as the class, so a plain
+     * `.table tbody td` loses to it; this matches the same way and wins on being
+     * later. `position: static` unsticks the frozen leading columns, which have
+     * nothing to freeze against once the row is a card.
+     */
+    .table tbody td,
+    .table[data-with-column-borders] tbody td {
+        border: none;
+        padding: 4px 0;
+        position: static;
+    }
+
+    /* A cell with no content of its own would otherwise still print its label. */
+    .table tbody td:empty {
+        display: none;
+    }
+
+    .table tbody td[data-label]::before {
+        content: attr(data-label);
+        display: block;
+        font-size: var(--mantine-font-size-xs);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: var(--mantine-color-dimmed);
+        margin-bottom: 2px;
+    }
+
+    /*
+     * The cell contents were laid out for a column and now have a card's width:
+     * anything told not to wrap has to be allowed to.
+     */
+    .table tbody td > * {
+        max-width: 100%;
+    }
+}

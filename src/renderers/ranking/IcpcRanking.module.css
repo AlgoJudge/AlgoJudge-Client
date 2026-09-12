@@ -62,3 +62,25 @@
     background: var(--mantine-color-body);
     white-space: nowrap;
 }
+
+@media (max-width: $mantine-breakpoint-sm) {
+    /* The row is a card there, and every cell in it is a block — an outline on
+       each drew a blue box round every single field. The card is the row, so
+       the row is what gets outlined. */
+    .me td {
+        outline: none;
+    }
+
+    .me {
+        outline: 2px solid var(--mantine-color-blue-5);
+        outline-offset: -2px;
+    }
+
+    /* Nothing slides under them once the row is a card, and the opaque
+       background they needed for that then read as a white patch on a grey
+       one. */
+    .stickyPlace,
+    .stickyName {
+        background: transparent;
+    }
+}
