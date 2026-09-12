@@ -813,6 +813,8 @@
     "That login method is switched off here.": "That sign-in method is switched off here.",
     "That provider does not grant you access to this installation. Ask whoever runs it.": "That provider does not grant you access to this installation. Ask whoever runs it.",
     "The Server is not answering": "The Server is not answering",
+    "This device is offline": "This device is offline",
+    "This device has no network access. Nothing you sent has been lost, and this page returns on its own once the connection does.": "This device has no network access. Nothing you sent has been lost, and this page returns on its own once the connection does.",
     "The Server is under maintenance": "The Server is under maintenance",
     "The account that keeps everything.": "The account that keeps everything.",
     "The account was created": "The account was created",
