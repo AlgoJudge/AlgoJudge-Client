@@ -3,12 +3,12 @@ import {
     Stack, Table, Text, Title,
 } from "@mantine/core";
 import { IconPrinter, IconX } from "@tabler/icons-react";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { Activity, Printout, PrintoutState } from "../../../../api/ParticipantApi";
 import LoadState from "../../../../components/LoadState";
-import { knownLanguages, languageLabel, pastedFileName } from "../../../../components/editor/languages";
+import type { EditorLanguage } from "../../../../components/editor/editorLanguages";
 import DataTable from "../../../../components/table/DataTable";
 import ActivityTime from "../../../../components/time/ActivityTime";
 import { useApiCall, useApiEffect } from "../../../../provider/apiContext";
@@ -51,9 +51,20 @@ export default function PrintoutsPage() {
     const [file, setFile] = useState<File | null>(null);
     const [code, setCode] = useState("");
     const [language, setLanguage] = useState<string | null>(null);
+    const [languages, setLanguages] = useState<EditorLanguage[]>([]);
     const [confirming, setConfirming] = useState(false);
     const [busy, setBusy] = useState(false);
     const [failed, setFailed] = useState<string | undefined>(undefined);
+
+    // **Asked of Monaco, and imported the way the editor is.** A static import
+    // would pull the editor into this page's first bundle, which is the cost
+    // `CodeEditor` is lazy to avoid.
+    useEffect(() => {
+        let live = true;
+        void import("../../../../components/editor/editorLanguages")
+            .then(module => { if (live) setLanguages(module.editorLanguages()); });
+        return () => { live = false; };
+    }, []);
 
     const error = useApiEffect(async (api) => {
         if (!activityId) return;
@@ -77,7 +88,10 @@ export default function PrintoutsPage() {
     // for it: a picked file has a name already, and a typed fragment gets the
     // extension of the language it says it is — the rule `pastedFileName`
     // records, and the reason the language select is here at all.
-    const name = file ? file.name : pastedFileName(undefined, language ?? undefined);
+    // A picked file has a name; a typed fragment takes the extension of the
+    // language it says it is, and `.txt` when it says nothing.
+    const extension = languages.find(l => l.id === language)?.extension ?? ".txt";
+    const name = file ? file.name : `main${extension}`;
 
     const send = async () => {
         setBusy(true);
@@ -119,8 +133,7 @@ export default function PrintoutsPage() {
                             label={t("Programming language")}
                             description={t("Decides the name the page is printed under.")}
                             data-testid="printout-language"
-                            data={knownLanguages(undefined)
-                                .map(id => ({ value: id, label: languageLabel(undefined, id) }))}
+                            data={languages.map(l => ({ value: l.id, label: l.label }))}
                             value={language}
                             onChange={setLanguage}
                             disabled={codeLocked}
