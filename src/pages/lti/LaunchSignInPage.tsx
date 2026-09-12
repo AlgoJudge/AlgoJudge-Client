@@ -27,7 +27,7 @@ export default function LaunchSignInPage() {
     const destination = returnTo.startsWith("/") ? returnTo : "/";
 
     return (
-        <Stack gap="md" maw={560} mx="auto" my="xl">
+        <Stack gap="md" maw={560} mx="auto" my="xl" px="md">
             <Title order={3}>{t("One sign-in and you are in")}</Title>
 
             <Alert variant="light" icon={<IconInfoCircle size={18} />}>

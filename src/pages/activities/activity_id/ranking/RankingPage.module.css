@@ -1,0 +1,14 @@
+/*
+ * The round selector, on a screen narrower than the rounds.
+ *
+ * A `SegmentedControl` has one row and no wrapping of its own, so with four
+ * rounds it simply ran off the edge and took the page with it. Scrolling the
+ * control rather than the page is the same treatment the framed LTI bar gets,
+ * and for the same reason: the thing that is too wide is what should move.
+ */
+@media (max-width: $mantine-breakpoint-sm) {
+    .rounds {
+        overflow-x: auto;
+        scrollbar-width: thin;
+    }
+}

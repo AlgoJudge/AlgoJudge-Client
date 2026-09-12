@@ -13,6 +13,7 @@ import TemporaryAccountsModal from "../../../../components/users/TemporaryAccoun
 import ActivityTime from "../../../../components/time/ActivityTime";
 import { optional, useApiCall, useApiEffect } from "../../../../provider/apiContext";
 import { usePermissions } from "../../../../provider/permissionsContext";
+import DataTable from "../../../../components/table/DataTable";
 
 /**
  * Who is in the activity.
@@ -225,102 +226,100 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                 </Group>
             </Group>
 
-            <Table.ScrollContainer minWidth={720}>
-                <Table striped highlightOnHover>
-                    <Table.Thead>
-                        <Table.Tr>
-                            <Table.Th>{t("User")}</Table.Th>
-                            <Table.Th>{t("Started from")}</Table.Th>
-                            <Table.Th>{t("Group")}</Table.Th>
-                            <Table.Th>{t("Permissions")}</Table.Th>
-                            <Table.Th>{t("State")}</Table.Th>
-                            <Table.Th>{t("Date")}</Table.Th>
-                            <Table.Th />
+            <DataTable minWidth={720} striped highlightOnHover>
+                <Table.Thead>
+                    <Table.Tr>
+                        <Table.Th>{t("User")}</Table.Th>
+                        <Table.Th>{t("Started from")}</Table.Th>
+                        <Table.Th>{t("Group")}</Table.Th>
+                        <Table.Th>{t("Permissions")}</Table.Th>
+                        <Table.Th>{t("State")}</Table.Th>
+                        <Table.Th>{t("Date")}</Table.Th>
+                        <Table.Th />
+                    </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                    {grants.map(grant => (
+                        <Table.Tr key={grant.id}>
+                            <Table.Td>
+                                <Group gap="xs" wrap="nowrap">
+                                    <Text fw={500}>{grant.userName}</Text>
+                                    {/* Said in the row, because the count
+                                        above it is a count of everybody
+                                        else and the difference has to be
+                                        visible somewhere. */}
+                                    {grant.isSystem && (
+                                        <Badge size="sm" variant="outline" color="gray">
+                                            {t("systemic")}
+                                        </Badge>
+                                    )}
+                                </Group>
+                            </Table.Td>
+                            <Table.Td>
+                                <Text size="sm" c="dimmed">{grant.createdFromTemplate ?? "—"}</Text>
+                            </Table.Td>
+                            <Table.Td>
+                                {/* **Compulsory once set, so this is where it
+                                    is chosen and nowhere else.** Moving
+                                    somebody is allowed at any time and moves
+                                    nothing already sent: each submission
+                                    stamped its group when it was made. */}
+                                <Select
+                                    size="xs"
+                                    w={160}
+                                    data={[
+                                        { value: "", label: t("On their own") },
+                                        ...groups.map(g => ({ value: g.id, label: g.name })),
+                                    ]}
+                                    value={grant.groupId ?? ""}
+                                    // Staff do not compete, so they are not
+                                    // grouped either — the same reason the
+                                    // ranking leaves them out.
+                                    disabled={busy || isStaffGrant(grant.permissions, catalogue)}
+                                    onChange={value => void run(() => call(api =>
+                                        api.managerApi.setParticipantGroup(
+                                            activity.id, grant.userId, value || undefined)))}
+                                />
+                            </Table.Td>
+                            <Table.Td><Badge variant="light">{grant.permissions.length}</Badge></Table.Td>
+                            <Table.Td>
+                                <Badge variant="light" color={grant.state === "active" ? "teal" : "blue"}>
+                                    {t(`grantState.${grant.state}`)}
+                                </Badge>
+                            </Table.Td>
+                            <Table.Td>
+                                <ActivityTime value={grant.createdAt} timeZone={activity.timeZone} format="date" hideZone />
+                            </Table.Td>
+                            <Table.Td>
+                                <Group gap="xs" justify="flex-end" wrap="nowrap">
+                                    <Button
+                                        variant="light"
+                                        size="compact-sm"
+                                        onClick={() => setDraft({
+                                            userId: grant.userId,
+                                            permissions: [...grant.permissions],
+                                            createdFromTemplate: grant.createdFromTemplate,
+                                            isSystem: grant.isSystem,
+                                            existing: true,
+                                        })}
+                                    >
+                                        {t("Edit")}
+                                    </Button>
+                                    <Button
+                                        variant="subtle"
+                                        color="red"
+                                        size="compact-sm"
+                                        loading={busy}
+                                        onClick={() => run(() => call(api => api.managerApi.revokeGrant(grant.id)))}
+                                    >
+                                        <IconTrash size={14} />
+                                    </Button>
+                                </Group>
+                            </Table.Td>
                         </Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                        {grants.map(grant => (
-                            <Table.Tr key={grant.id}>
-                                <Table.Td>
-                                    <Group gap="xs" wrap="nowrap">
-                                        <Text fw={500}>{grant.userName}</Text>
-                                        {/* Said in the row, because the count
-                                            above it is a count of everybody
-                                            else and the difference has to be
-                                            visible somewhere. */}
-                                        {grant.isSystem && (
-                                            <Badge size="sm" variant="outline" color="gray">
-                                                {t("systemic")}
-                                            </Badge>
-                                        )}
-                                    </Group>
-                                </Table.Td>
-                                <Table.Td>
-                                    <Text size="sm" c="dimmed">{grant.createdFromTemplate ?? "—"}</Text>
-                                </Table.Td>
-                                <Table.Td>
-                                    {/* **Compulsory once set, so this is where it
-                                        is chosen and nowhere else.** Moving
-                                        somebody is allowed at any time and moves
-                                        nothing already sent: each submission
-                                        stamped its group when it was made. */}
-                                    <Select
-                                        size="xs"
-                                        w={160}
-                                        data={[
-                                            { value: "", label: t("On their own") },
-                                            ...groups.map(g => ({ value: g.id, label: g.name })),
-                                        ]}
-                                        value={grant.groupId ?? ""}
-                                        // Staff do not compete, so they are not
-                                        // grouped either — the same reason the
-                                        // ranking leaves them out.
-                                        disabled={busy || isStaffGrant(grant.permissions, catalogue)}
-                                        onChange={value => void run(() => call(api =>
-                                            api.managerApi.setParticipantGroup(
-                                                activity.id, grant.userId, value || undefined)))}
-                                    />
-                                </Table.Td>
-                                <Table.Td><Badge variant="light">{grant.permissions.length}</Badge></Table.Td>
-                                <Table.Td>
-                                    <Badge variant="light" color={grant.state === "active" ? "teal" : "blue"}>
-                                        {t(`grantState.${grant.state}`)}
-                                    </Badge>
-                                </Table.Td>
-                                <Table.Td>
-                                    <ActivityTime value={grant.createdAt} timeZone={activity.timeZone} format="date" hideZone />
-                                </Table.Td>
-                                <Table.Td>
-                                    <Group gap="xs" justify="flex-end" wrap="nowrap">
-                                        <Button
-                                            variant="light"
-                                            size="compact-sm"
-                                            onClick={() => setDraft({
-                                                userId: grant.userId,
-                                                permissions: [...grant.permissions],
-                                                createdFromTemplate: grant.createdFromTemplate,
-                                                isSystem: grant.isSystem,
-                                                existing: true,
-                                            })}
-                                        >
-                                            {t("Edit")}
-                                        </Button>
-                                        <Button
-                                            variant="subtle"
-                                            color="red"
-                                            size="compact-sm"
-                                            loading={busy}
-                                            onClick={() => run(() => call(api => api.managerApi.revokeGrant(grant.id)))}
-                                        >
-                                            <IconTrash size={14} />
-                                        </Button>
-                                    </Group>
-                                </Table.Td>
-                            </Table.Tr>
-                        ))}
-                    </Table.Tbody>
-                </Table>
-            </Table.ScrollContainer>
+                    ))}
+                </Table.Tbody>
+            </DataTable>
 
             {grants.length === 0 && <Text c="dimmed">{t("Nobody is enrolled yet")}</Text>}
 

@@ -10,6 +10,7 @@ import { Loss } from "../../exchange/zawodyweb/convert";
 import { applyBundle, ImportOutcome } from "../../exchange/apply";
 import { ImportPlan, LibraryProblem, planImport, Resolution, summarise } from "../../exchange/plan";
 import { useApiCall } from "../../provider/apiContext";
+import DataTable from "../../components/table/DataTable";
 
 /**
  * Bringing a bundle into this installation, in two steps.
@@ -155,26 +156,24 @@ export default function ImportBundleModal({ opened, onClose, onImported }: Impor
                     unknown checker in silence; every one of these exists so this
                     one does not. */}
                 {lost.length > 0 && (
-                    <Table.ScrollContainer minWidth={500}>
-                        <Table striped>
-                            <Table.Tbody>
-                                {lost.map((loss, index) => (
-                                    <Table.Tr key={index}>
-                                        <Table.Td w={90}>
-                                            <Badge size="sm" variant="light"
-                                                color={loss.level === "warning" ? "yellow" : "gray"}>
-                                                {loss.level === "warning" ? t("check it") : t("note")}
-                                            </Badge>
-                                        </Table.Td>
-                                        <Table.Td>
-                                            <Text size="sm">{t(loss.message, loss.values)}</Text>
-                                            {loss.where && <Text size="xs" c="dimmed">{loss.where}</Text>}
-                                        </Table.Td>
-                                    </Table.Tr>
-                                ))}
-                            </Table.Tbody>
-                        </Table>
-                    </Table.ScrollContainer>
+                    <DataTable minWidth={500} striped>
+                        <Table.Tbody>
+                            {lost.map((loss, index) => (
+                                <Table.Tr key={index}>
+                                    <Table.Td w={90}>
+                                        <Badge size="sm" variant="light"
+                                            color={loss.level === "warning" ? "yellow" : "gray"}>
+                                            {loss.level === "warning" ? t("check it") : t("note")}
+                                        </Badge>
+                                    </Table.Td>
+                                    <Table.Td>
+                                        <Text size="sm">{t(loss.message, loss.values)}</Text>
+                                        {loss.where && <Text size="xs" c="dimmed">{loss.where}</Text>}
+                                    </Table.Td>
+                                </Table.Tr>
+                            ))}
+                        </Table.Tbody>
+                    </DataTable>
                 )}
 
                 {plan && counts && (
@@ -189,51 +188,49 @@ export default function ImportBundleModal({ opened, onClose, onImported }: Impor
                             </Alert>
                         )}
 
-                        <Table.ScrollContainer minWidth={500}>
-                            <Table>
-                                <Table.Thead>
-                                    <Table.Tr>
-                                        <Table.Th>{t("Problem")}</Table.Th>
-                                        <Table.Th>{t("What happens")}</Table.Th>
+                        <DataTable minWidth={500}>
+                            <Table.Thead>
+                                <Table.Tr>
+                                    <Table.Th>{t("Problem")}</Table.Th>
+                                    <Table.Th>{t("What happens")}</Table.Th>
+                                </Table.Tr>
+                            </Table.Thead>
+                            <Table.Tbody>
+                                {plan.problems.map(problem => (
+                                    <Table.Tr key={problem.slug}>
+                                        <Table.Td>
+                                            <Text size="sm">{problem.name}</Text>
+                                            <Text size="xs" c="dimmed" ff="monospace">{problem.slug}</Text>
+                                        </Table.Td>
+                                        <Table.Td>
+                                            {!problem.asks && (
+                                                <Badge variant="light" color={problem.action === "reuse" ? "gray" : "teal"}>
+                                                    {problem.action === "reuse" ? t("already here") : t("created")}
+                                                </Badge>
+                                            )}
+                                            {problem.asks && (
+                                                <Group gap="xs">
+                                                    <Button
+                                                        size="compact-xs"
+                                                        variant={problem.action === "beside" ? "filled" : "default"}
+                                                        onClick={() => decide(problem.slug, "beside")}
+                                                    >
+                                                        {t("import as {{slug}}", { slug: problem.besideSlug })}
+                                                    </Button>
+                                                    <Button
+                                                        size="compact-xs"
+                                                        variant={problem.action === "reuse" ? "filled" : "default"}
+                                                        onClick={() => decide(problem.slug, "reuse")}
+                                                    >
+                                                        {t("use the one already here")}
+                                                    </Button>
+                                                </Group>
+                                            )}
+                                        </Table.Td>
                                     </Table.Tr>
-                                </Table.Thead>
-                                <Table.Tbody>
-                                    {plan.problems.map(problem => (
-                                        <Table.Tr key={problem.slug}>
-                                            <Table.Td>
-                                                <Text size="sm">{problem.name}</Text>
-                                                <Text size="xs" c="dimmed" ff="monospace">{problem.slug}</Text>
-                                            </Table.Td>
-                                            <Table.Td>
-                                                {!problem.asks && (
-                                                    <Badge variant="light" color={problem.action === "reuse" ? "gray" : "teal"}>
-                                                        {problem.action === "reuse" ? t("already here") : t("created")}
-                                                    </Badge>
-                                                )}
-                                                {problem.asks && (
-                                                    <Group gap="xs">
-                                                        <Button
-                                                            size="compact-xs"
-                                                            variant={problem.action === "beside" ? "filled" : "default"}
-                                                            onClick={() => decide(problem.slug, "beside")}
-                                                        >
-                                                            {t("import as {{slug}}", { slug: problem.besideSlug })}
-                                                        </Button>
-                                                        <Button
-                                                            size="compact-xs"
-                                                            variant={problem.action === "reuse" ? "filled" : "default"}
-                                                            onClick={() => decide(problem.slug, "reuse")}
-                                                        >
-                                                            {t("use the one already here")}
-                                                        </Button>
-                                                    </Group>
-                                                )}
-                                            </Table.Td>
-                                        </Table.Tr>
-                                    ))}
-                                </Table.Tbody>
-                            </Table>
-                        </Table.ScrollContainer>
+                                ))}
+                            </Table.Tbody>
+                        </DataTable>
 
                         {plan.dangling.length > 0 && (
                             <Alert color="orange">

@@ -102,24 +102,30 @@ from nineteen.
 | `npm run check:events` | drives the event socket against a stub `WebSocket` |
 | `npm run check:i18n` | every `t("…")` a screen asks for, against every language file |
 | `npm run check:ranking` | the ICPC and points arithmetic: what a penalty charges for, and what a tie is |
+| `npm run check:seo` | the head a crawler reads, and robots.txt against the route table |
 | `npm run check:api` | lists every endpoint the HTTP layer calls; checks it against an OpenAPI document when given one |
 | `npm run check:ui` | drives a real browser over the screens, against the fake API |
 | `npm run check:e2e` | one test against a full stack that is already up |
+| `npm run check:mobile` | every screen at a phone width: overflow, covered controls, clipped labels, controls under 32px |
+| `npm run check:pwa` | the manifest, the worker and the offline page, against a real build |
 | `npm run check:browsers` | that closing our browsers does not close anybody else's |
 | `npm run browsers` | `-- list`, `-- stop <pid>`, `-- stop --all` |
 
-**The table above is the whole of `package.json`'s `scripts`** — nineteen since
-`check:ranking` was added on 2026-09-06, and checked against the file each time.
+**The table above is the whole of `package.json`'s `scripts`** — twenty-three
+since `check:seo`, `check:mobile` and `check:pwa` were added, the last two on
+2026-09-12, and checked against the file each time. **The number was one short
+before them**, and the table was not: every script had its row, and the count
+beside it had been carried forward rather than recounted. Count the rows.
 It listed thirteen of the eighteen until 2026-08-30: `preview`,
 `check:exchange`, `check:zawodyweb`, `check:access` and `check:e2e` were missing.
 
-**Fifteen npm steps gate, counted from `.github/workflows/ci.yml` on
-2026-09-06.** Lint, `lint:deps`, typecheck and build, then ten `check:` steps
+**Sixteen npm steps gate, counted from `.github/workflows/ci.yml` on
+2026-09-10.** Lint, `lint:deps`, typecheck and build, then eleven `check:` steps
 in the `build` job — `check:content`, `check:package`, `check:languages`,
 `check:exchange`, `check:zawodyweb`, `check:access`, `check:events`,
-`check:i18n`, `check:ranking`, `check:api` — and `check:ui` in `browser-checks`,
-which is eleven `check:` steps in all. It was fourteen and nine until
-`check:ranking` joined them. No job carries `continue-on-error`, so every one of
+`check:i18n`, `check:ranking`, `check:seo`, `check:api` — and `check:ui` in
+`browser-checks`, which is twelve `check:` steps in all. It was fifteen and ten
+until `check:seo` joined them. No job carries `continue-on-error`, so every one of
 them must exit 0 before anything is merged; the `docker` job, which builds the image and checks the nginx fallback,
 blocks on the same terms. `check:api` is the only step that cannot go red as it
 is invoked — see below.

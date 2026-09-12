@@ -22,7 +22,10 @@ const ProblemRow = ({ problem, activitySlug, canSubmit }: {
     const { t } = useTranslation();
     return (
         <Card className={classes.problem} component={Link} to={`/activities/${activitySlug}/problems/${problem.slug}`}>
-            <Group justify="space-between" wrap="nowrap">
+            {/* The wrapping is in the stylesheet rather than in a `wrap` prop:
+                a Mantine style prop is an inline custom property, and a media
+                query in a module cannot outrank one. */}
+            <Group justify="space-between" className={classes.problemRow}>
                 <Text size="md" style={{ minWidth: 0 }}>[{problem.slug}] {problem.name}</Text>
                 <Group gap="md" wrap="nowrap">
                     <ProblemStatusBadge status={problem.status} bestScore={problem.bestScore} maxScore={problem.maxScore} attempts={problem.attempts} />

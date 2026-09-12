@@ -8,6 +8,7 @@ import { useApiEffect } from "../../../../provider/apiContext";
 import LoadState from "../../../../components/LoadState";
 import StateBadge from "../../../../components/submission/StateBadge";
 import { languageText } from "../../../../components/submission/offered";
+import DataTable from "../../../../components/table/DataTable";
 
 const PAGE_SIZE = 10;
 
@@ -74,7 +75,7 @@ export default function SubmissionsPage() {
                     value={problemId}
                     onChange={onFilter(setProblemId)}
                     clearable
-                    w={260}
+                    w={{ base: "100%", sm: 260 }}
                 />
                 <Select
                     placeholder={t("All series")}
@@ -82,7 +83,7 @@ export default function SubmissionsPage() {
                     value={seriesId}
                     onChange={onFilter(setSeriesId)}
                     clearable
-                    w={200}
+                    w={{ base: "100%", sm: 200 }}
                 />
                 <Select
                     placeholder={t("Any status")}
@@ -90,7 +91,7 @@ export default function SubmissionsPage() {
                     value={state}
                     onChange={onFilter(setState)}
                     clearable
-                    w={180}
+                    w={{ base: "100%", sm: 180 }}
                 />
             </Group>
 
@@ -99,38 +100,36 @@ export default function SubmissionsPage() {
             {items?.length === 0 && <Text c="dimmed">{t("No submissions match the filters")}</Text>}
 
             {items && items.length > 0 && (
-                <Table.ScrollContainer minWidth={720}>
-                    <Table striped highlightOnHover>
-                        <Table.Thead>
-                            <Table.Tr>
-                                <Table.Th>{t("Submission date")}</Table.Th>
-                                <Table.Th>{t("Problem")}</Table.Th>
-                                <Table.Th>{t("Language")}</Table.Th>
-                                <Table.Th>{t("Status")}</Table.Th>
-                                <Table.Th>{t("Result")}</Table.Th>
+                <DataTable minWidth={720} striped highlightOnHover>
+                    <Table.Thead>
+                        <Table.Tr>
+                            <Table.Th>{t("Submission date")}</Table.Th>
+                            <Table.Th>{t("Problem")}</Table.Th>
+                            <Table.Th>{t("Language")}</Table.Th>
+                            <Table.Th>{t("Status")}</Table.Th>
+                            <Table.Th>{t("Result")}</Table.Th>
+                        </Table.Tr>
+                    </Table.Thead>
+                    <Table.Tbody>
+                        {items.map(s => (
+                            <Table.Tr
+                                key={s.id}
+                                style={{ cursor: "pointer" }}
+                                onClick={() => navigate(`/activities/${activity.slug}/submissions/${s.id}`)}
+                            >
+                                <Table.Td>
+                                    <ActivityTime value={s.submittedAt} timeZone={activity.timeZone} />
+                                </Table.Td>
+                                <Table.Td>[{s.problemSlug}] {s.problemName}</Table.Td>
+                                <Table.Td>{languageText(s.props)}</Table.Td>
+                                <Table.Td><StateBadge state={s.state} verdict={s.verdict} score={s.score} maxScore={s.maxScore} /></Table.Td>
+                                <Table.Td>
+                                    {s.score === undefined ? "—" : `${s.score} / ${s.maxScore ?? "?"}`}
+                                </Table.Td>
                             </Table.Tr>
-                        </Table.Thead>
-                        <Table.Tbody>
-                            {items.map(s => (
-                                <Table.Tr
-                                    key={s.id}
-                                    style={{ cursor: "pointer" }}
-                                    onClick={() => navigate(`/activities/${activity.slug}/submissions/${s.id}`)}
-                                >
-                                    <Table.Td>
-                                        <ActivityTime value={s.submittedAt} timeZone={activity.timeZone} />
-                                    </Table.Td>
-                                    <Table.Td>[{s.problemSlug}] {s.problemName}</Table.Td>
-                                    <Table.Td>{languageText(s.props)}</Table.Td>
-                                    <Table.Td><StateBadge state={s.state} verdict={s.verdict} score={s.score} maxScore={s.maxScore} /></Table.Td>
-                                    <Table.Td>
-                                        {s.score === undefined ? "—" : `${s.score} / ${s.maxScore ?? "?"}`}
-                                    </Table.Td>
-                                </Table.Tr>
-                            ))}
-                        </Table.Tbody>
-                    </Table>
-                </Table.ScrollContainer>
+                        ))}
+                    </Table.Tbody>
+                </DataTable>
             )}
 
             <Group justify="center">

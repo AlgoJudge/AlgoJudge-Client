@@ -1,4 +1,4 @@
-import { Burger, Center, Container, Group, Menu, Text } from '@mantine/core';
+import { Box, Burger, Center, Collapse, Container, Group, Menu, Stack, Text, UnstyledButton } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconChevronDown } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
@@ -13,7 +13,7 @@ import { useInstance } from '../../provider/instanceContext';
 import { registrationOffered } from '../../api/registration';
 
 function Header() {
-    const [opened, { toggle }] = useDisclosure(false);
+    const [opened, { toggle, close }] = useDisclosure(false);
     const navigate = useNavigate();
 
     useApiEffect(async (api) => {
@@ -53,6 +53,12 @@ function Header() {
         { link: '/login', label: t('Login') },
     ];
 
+    // The same entries the desktop bar shows, flattened: below `sm` the account
+    // menu has nowhere to hang a dropdown, and its two entries are simply two
+    // more rows.
+    const drawer: { link: string; label: string; func?: () => void | Promise<void> }[] =
+        links.flatMap((link) => link.links ?? [{ link: link.link, label: link.label }]);
+
     const items = links.map((link) => {
         const menuItems = link.links?.map((item) => (
             <Menu.Item key={item.link} onClick={(event) => { event.preventDefault(); if (item.func) item.func(); }}>{item.label}</Menu.Item>
@@ -60,7 +66,11 @@ function Header() {
 
         if (menuItems) {
             return (
-                <Menu key={link.label} trigger="hover" transitionProps={{ exitDuration: 0 }} withinPortal>
+                // `click-hover` rather than `hover`: with `hover` alone Mantine
+                // makes the target's own click a no-op, so on a touch screen the
+                // menu opens on a tap and will not close on the next one. The
+                // pointer behaviour is unchanged.
+                <Menu key={link.label} trigger="click-hover" transitionProps={{ exitDuration: 0 }} withinPortal>
                     <Menu.Target>
                         <a
                             href={link.link}
@@ -110,8 +120,34 @@ function Header() {
                     <Group gap={5} visibleFrom="sm">
                         {items}
                     </Group>
-                    <Burger opened={opened} onClick={toggle} size="sm" hiddenFrom="sm" />
+                    <Burger opened={opened} onClick={toggle} size="sm" hiddenFrom="sm" aria-label={t('Menu')} />
                 </div>
+
+                {/* **The burger opened nothing.** `opened` was set by the button
+                    and read by no one, and the bar above is `visibleFrom="sm"`,
+                    so on a phone the public shell offered no way to sign in,
+                    register, or reach anything at all. */}
+                <Box hiddenFrom="sm">
+                    <Collapse expanded={opened}>
+                        <Stack gap={0} pb="xs" onClick={close}>
+                            {drawer.map((entry) => entry.func
+                                ? (
+                                    <UnstyledButton
+                                        key={entry.link}
+                                        className={classes.link}
+                                        onClick={(event) => { event.preventDefault(); entry.func?.(); }}
+                                    >
+                                        {entry.label}
+                                    </UnstyledButton>
+                                )
+                                : (
+                                    <NavLink key={entry.link} to={entry.link} className={classes.link} end>
+                                        {entry.label}
+                                    </NavLink>
+                                ))}
+                        </Stack>
+                    </Collapse>
+                </Box>
             </Container>
         </header>
     );

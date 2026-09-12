@@ -12,6 +12,7 @@ import {
 import LoadState from "../../../components/LoadState";
 import { CopyButton } from "../../../components/buttons";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
+import DataTable from "../../../components/table/DataTable";
 
 /**
  * The platforms this installation accepts launches from.
@@ -141,7 +142,7 @@ export default function LtiPlatformsPage() {
                 {platforms?.length === 0
                     ? <Text c="dimmed">{t("No platform is registered. Nothing can launch into this installation yet.")}</Text>
                     : (
-                        <Table highlightOnHover>
+                        <DataTable highlightOnHover>
                             <Table.Thead>
                                 <Table.Tr>
                                     <Table.Th>{t("Platform")}</Table.Th>
@@ -210,7 +211,7 @@ export default function LtiPlatformsPage() {
                                     </Table.Tr>
                                 ))}
                             </Table.Tbody>
-                        </Table>
+                        </DataTable>
                     )}
             </LoadState>
 
@@ -224,7 +225,7 @@ export default function LtiPlatformsPage() {
                     <TextInput
                         style={{ flex: 1 }}
                         label={t("What to call it while waiting")}
-                        placeholder={t("WMiI Moodle")}
+                        placeholder={t("Institution's Moodle")}
                         value={note}
                         onChange={event => setNote(event.currentTarget.value)}
                     />
@@ -308,7 +309,7 @@ export default function LtiPlatformsPage() {
                     {placements?.length === 0
                         ? <Text c="dimmed">{t("Nothing has been launched yet, so there is no placement to show.")}</Text>
                         : (
-                            <Table highlightOnHover>
+                            <DataTable highlightOnHover>
                                 <Table.Thead>
                                     <Table.Tr>
                                         <Table.Th>{t("Course")}</Table.Th>
@@ -394,7 +395,7 @@ export default function LtiPlatformsPage() {
                                         </Table.Tr>
                                     ))}
                                 </Table.Tbody>
-                            </Table>
+                            </DataTable>
                         )}
                 </LoadState>
             </div>
@@ -522,7 +523,7 @@ export default function LtiPlatformsPage() {
                                     </Alert>
                                 )}
 
-                                <Table highlightOnHover>
+                                <DataTable highlightOnHover>
                                     <Table.Thead>
                                         <Table.Tr>
                                             <Table.Th>{t("Person")}</Table.Th>
@@ -566,7 +567,7 @@ export default function LtiPlatformsPage() {
                                             </Table.Tr>
                                         ))}
                                     </Table.Tbody>
-                                </Table>
+                                </DataTable>
                             </>
                         )}
                     </LoadState>

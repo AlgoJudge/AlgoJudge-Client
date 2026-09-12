@@ -166,6 +166,14 @@ export async function open({ out = process.env.OUT ?? join(here, "out"), clock =
         }
     };
 
+    /**
+     * The device's network, as the browser context sees it.
+     *
+     * Only the PWA checks use it: nothing else in here has any reason to pull
+     * the plug, and the fake API never touches the network anyway.
+     */
+    const offline = (on) => page.context().setOffline(on);
+
     const shot = async (name) => {
         // Created here rather than assumed: a missing directory failed the
         // script at its first screenshot, which reads as the screen being wrong.
@@ -328,7 +336,7 @@ export async function open({ out = process.env.OUT ?? join(here, "out"), clock =
     if (clock) await page.clock.install();
 
     return {
-        send, evaluate, until, wait, shot, go, visit, click, type, setTextarea, tab, pages, paintedWith,
+        send, evaluate, until, wait, shot, go, visit, click, type, setTextarea, tab, pages, paintedWith, offline,
         clock: {
             fastForward: (ticks) => page.clock.fastForward(ticks),
             runFor: (ticks) => page.clock.runFor(ticks),

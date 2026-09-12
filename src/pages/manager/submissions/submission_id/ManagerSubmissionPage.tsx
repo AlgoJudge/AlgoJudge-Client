@@ -13,6 +13,7 @@ import { ManagedAttempt } from "../../../../api/ManagerApi";
 import { SUBMISSION_DETAILS, SUBMISSION_LOG } from "../../../../api/ParticipantApi";
 import { useAttachment, useResultDocument } from "../../../../components/submission/useAttachment";
 import { languageOf, typeOf } from "../../../../components/submission/offered";
+import DataTable from "../../../../components/table/DataTable";
 
 const CodeEditor = lazy(() => import("../../../../components/editor/CodeEditor"));
 
@@ -303,64 +304,62 @@ export default function ManagerSubmissionPage() {
 
             <Card withBorder radius="sm">
                 <Title order={5} mb="sm">{t("Attempts")}</Title>
-                <Table.ScrollContainer minWidth={700}>
-                    <Table striped>
-                        <Table.Thead>
-                            <Table.Tr>
-                                <Table.Th w={60}>#</Table.Th>
-                                <Table.Th>{t("State")}</Table.Th>
-                                <Table.Th>{t("Runner")}</Table.Th>
-                                <Table.Th>{t("Started")}</Table.Th>
-                                <Table.Th>{t("Finished")}</Table.Th>
-                                <Table.Th />
-                            </Table.Tr>
-                        </Table.Thead>
-                        <Table.Tbody>
-                            {submission.attemptList.map(attempt => (
-                                <Table.Tr key={attempt.id}>
-                                    <Table.Td><Text fw={500}>{attempt.attempt}</Text></Table.Td>
-                                    <Table.Td>
-                                        <Badge variant="light" color={STATE_COLOUR[attempt.state]}>
-                                            {t(`jobState.${attempt.state}`)}
-                                        </Badge>
-                                    </Table.Td>
-                                    <Table.Td><Text size="sm">{attempt.runnerName ?? "—"}</Text></Table.Td>
-                                    <Table.Td>
-                                        <ActivityTime value={attempt.startedAt} timeZone="Europe/Warsaw" hideZone />
-                                    </Table.Td>
-                                    <Table.Td>
-                                        {attempt.finishedAt
-                                            ? <ActivityTime value={attempt.finishedAt} timeZone="Europe/Warsaw" hideZone />
-                                            : <Text size="sm" c="dimmed">—</Text>}
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Group justify="flex-end">
-                                            {/* A finished job is history: cancelling one
-                                                would rewrite a result someone has seen. */}
-                                            <Tooltip
-                                                label={isFinished(attempt.state)
-                                                    ? t("This attempt has already finished")
-                                                    : t("Cancel this attempt")}
+                <DataTable minWidth={700} striped>
+                    <Table.Thead>
+                        <Table.Tr>
+                            <Table.Th w={60}>#</Table.Th>
+                            <Table.Th>{t("State")}</Table.Th>
+                            <Table.Th>{t("Runner")}</Table.Th>
+                            <Table.Th>{t("Started")}</Table.Th>
+                            <Table.Th>{t("Finished")}</Table.Th>
+                            <Table.Th />
+                        </Table.Tr>
+                    </Table.Thead>
+                    <Table.Tbody>
+                        {submission.attemptList.map(attempt => (
+                            <Table.Tr key={attempt.id}>
+                                <Table.Td><Text fw={500}>{attempt.attempt}</Text></Table.Td>
+                                <Table.Td>
+                                    <Badge variant="light" color={STATE_COLOUR[attempt.state]}>
+                                        {t(`jobState.${attempt.state}`)}
+                                    </Badge>
+                                </Table.Td>
+                                <Table.Td><Text size="sm">{attempt.runnerName ?? "—"}</Text></Table.Td>
+                                <Table.Td>
+                                    <ActivityTime value={attempt.startedAt} timeZone="Europe/Warsaw" hideZone />
+                                </Table.Td>
+                                <Table.Td>
+                                    {attempt.finishedAt
+                                        ? <ActivityTime value={attempt.finishedAt} timeZone="Europe/Warsaw" hideZone />
+                                        : <Text size="sm" c="dimmed">—</Text>}
+                                </Table.Td>
+                                <Table.Td>
+                                    <Group justify="flex-end">
+                                        {/* A finished job is history: cancelling one
+                                            would rewrite a result someone has seen. */}
+                                        <Tooltip
+                                            label={isFinished(attempt.state)
+                                                ? t("This attempt has already finished")
+                                                : t("Cancel this attempt")}
+                                        >
+                                            <Button
+                                                variant="subtle"
+                                                color="red"
+                                                size="compact-sm"
+                                                disabled={isFinished(attempt.state)}
+                                                loading={busy}
+                                                onClick={() => run(() => call(api =>
+                                                    api.managerApi.cancelAttempt(submission.id, attempt.id)))}
                                             >
-                                                <Button
-                                                    variant="subtle"
-                                                    color="red"
-                                                    size="compact-sm"
-                                                    disabled={isFinished(attempt.state)}
-                                                    loading={busy}
-                                                    onClick={() => run(() => call(api =>
-                                                        api.managerApi.cancelAttempt(submission.id, attempt.id)))}
-                                                >
-                                                    <IconPlayerStop size={14} />
-                                                </Button>
-                                            </Tooltip>
-                                        </Group>
-                                    </Table.Td>
-                                </Table.Tr>
-                            ))}
-                        </Table.Tbody>
-                    </Table>
-                </Table.ScrollContainer>
+                                                <IconPlayerStop size={14} />
+                                            </Button>
+                                        </Tooltip>
+                                    </Group>
+                                </Table.Td>
+                            </Table.Tr>
+                        ))}
+                    </Table.Tbody>
+                </DataTable>
             </Card>
 
             {/* One card per attempt, each fetching its own attachments. A

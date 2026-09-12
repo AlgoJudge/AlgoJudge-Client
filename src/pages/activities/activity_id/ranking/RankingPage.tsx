@@ -1,4 +1,4 @@
-import { Group, Paper, SegmentedControl, Stack, Text, Title } from "@mantine/core";
+import { Box, Group, Paper, SegmentedControl, Stack, Text, Title } from "@mantine/core";
 import { IconClock } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -11,6 +11,7 @@ import ActivityTime from "../../../../components/time/ActivityTime";
 import LoadState from "../../../../components/LoadState";
 import { rankingRenderers } from "../../../../renderers";
 import { narrow } from "../../../../renderers/ranking/scoreboard";
+import classes from "./RankingPage.module.css";
 
 /** The value standing for the combined board, which has no series of its own. */
 const COMBINED = "*";
@@ -117,6 +118,7 @@ export default function RankingPage() {
                 is not what is being withheld, and a control that appears out of
                 nowhere at six o'clock is worse than one that waits. */}
             {started.length > 0 && (
+                <Box className={classes.rounds}>
                 <SegmentedControl
                     value={chosen}
                     onChange={setChosen}
@@ -125,6 +127,7 @@ export default function RankingPage() {
                         ...started.map(s => ({ value: s.id, label: s.name })),
                     ]}
                 />
+                </Box>
             )}
 
             {withheld ? (

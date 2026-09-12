@@ -7,6 +7,7 @@ import { useApiCall, useApiEffect } from "../../../provider/apiContext";
 import { refusal } from "./access";
 import { UvaBrowseButton } from "./UvaBrowseButton";
 import { ImportOutcome, UvaProblem, importOne, lookUp, numbersIn } from "./uvaImport";
+import DataTable from "../../../components/table/DataTable";
 
 /**
  * Where this installation may fetch documents from.
@@ -271,7 +272,7 @@ function ImportCard({ enabled }: { enabled: boolean | undefined }) {
 
 
                 {outcomes.length > 0 && (
-                    <Table withTableBorder>
+                    <DataTable withTableBorder>
                         <Table.Tbody>
                             {outcomes.map(outcome => (
                                 <Table.Tr key={outcome.number}>
@@ -284,7 +285,7 @@ function ImportCard({ enabled }: { enabled: boolean | undefined }) {
                                 </Table.Tr>
                             ))}
                         </Table.Tbody>
-                    </Table>
+                    </DataTable>
                 )}
             </Stack>
         </Card>
