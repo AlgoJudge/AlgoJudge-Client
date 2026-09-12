@@ -1,4 +1,4 @@
-import { Alert, Button, Center, Group, Loader, Stack, Tabs, Text } from "@mantine/core";
+import { Alert, Button, Center, Group, Loader, Modal, Stack, Tabs, Text, Title } from "@mantine/core";
 import { IconCopy, IconDownload, IconEdit, IconPrinter, IconSend } from "@tabler/icons-react";
 import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -46,6 +46,7 @@ export default function SourceView({ activity, submission, onResubmitted }: Sour
     const [sending, setSending] = useState(false);
     const [printing, setPrinting] = useState(false);
     const [printed, setPrinted] = useState(false);
+    const [asking, setAsking] = useState(false);
 
     const loadError = useApiEffect(async (api) => {
         // Read from the file store by id, as every other stored document is.
@@ -97,6 +98,7 @@ export default function SourceView({ activity, submission, onResubmitted }: Sour
                 submissionId: submission.id,
             }));
             setPrinted(true);
+            setAsking(false);
         } catch (e) {
             setError(e instanceof Error ? e.message : String(e));
         } finally {
@@ -166,7 +168,7 @@ export default function SourceView({ activity, submission, onResubmitted }: Sour
                             data-testid="print"
                             variant="light"
                             loading={printing}
-                            onClick={print}
+                            onClick={() => setAsking(true)}
                             leftSection={<IconPrinter size={16} />}
                         >
                             {t("Print")}
@@ -202,6 +204,35 @@ export default function SourceView({ activity, submission, onResubmitted }: Sour
                     {t("Sent to print. Somebody at a printer will bring it.")}
                 </Alert>
             )}
+
+            {/* Asked before it is sent. Paper is somebody else's time and a
+                printer somebody else's queue. */}
+            <Modal
+                opened={asking}
+                onClose={() => setAsking(false)}
+                title={<Title order={4}>{t("Send this to print?")}</Title>}
+                centered
+            >
+                <Stack gap="md">
+                    <Text size="sm">
+                        {t("Somebody at a printer will print it and bring you the paper.")}
+                    </Text>
+                    <Text size="sm" c="dimmed" ff="monospace">{active}</Text>
+                    <Group justify="flex-end">
+                        <Button variant="default" onClick={() => setAsking(false)} disabled={printing}>
+                            {t("Not yet")}
+                        </Button>
+                        <Button
+                            data-testid="print-confirm"
+                            loading={printing}
+                            onClick={print}
+                            leftSection={<IconPrinter size={16} />}
+                        >
+                            {t("Send to print")}
+                        </Button>
+                    </Group>
+                </Stack>
+            </Modal>
 
             {submission.files.length > 1 ? (
                 <Tabs value={active} onChange={value => { setActive(value); setEditing(false); }}>

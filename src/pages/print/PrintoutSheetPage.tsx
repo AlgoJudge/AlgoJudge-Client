@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { PrintoutSheet } from "../../api/ManagerApi";
@@ -18,8 +18,11 @@ import classes from "./PrintoutSheetPage.module.css";
  * **Outside every shell.** Under the application's layout the navigation prints
  * down the side of the page.
  *
- * **No `window.print()`.** The operator presses Ctrl+P when the page looks
- * right, which is also when they have chosen the tray.
+ * **It prints itself.** The tab exists to produce paper and nothing else, so
+ * the dialog opens as soon as there is something to print — the operator chose
+ * the tray on the last one and would otherwise press Ctrl+P on every page. The
+ * tab stays open behind the dialog, so a jam is a reload rather than a lost
+ * request.
  */
 export default function PrintoutSheetPage() {
     const { t } = useTranslation();
@@ -30,6 +33,15 @@ export default function PrintoutSheetPage() {
         if (!printoutId) return;
         setSheet(await api.managerApi.getPrintoutSheet(printoutId));
     }, [printoutId]);
+
+    // **After the paint, not on the state change.** `print()` blocks the thread
+    // until the dialog closes, so calling it before the browser has laid the
+    // page out prints the empty frame that was on screen when it was called.
+    useEffect(() => {
+        if (!sheet) return;
+        const at = requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
+        return () => cancelAnimationFrame(at);
+    }, [sheet]);
 
     if (!sheet) return <LoadState error={error} loading={!error} />;
 

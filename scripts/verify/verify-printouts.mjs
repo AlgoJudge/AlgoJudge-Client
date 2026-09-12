@@ -11,7 +11,7 @@
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { evaluate, wait, shot, go, visit, click, type, setTextarea, pages, close } = await open();
+const { send, evaluate, wait, shot, go, visit, click, pages, close } = await open();
 const { check, report } = results();
 
 // **Two activities this reader is actually enrolled in**, one with the module on
@@ -88,16 +88,35 @@ check(!withoutModule.some(href => href?.endsWith(`/activities/${OFF}/printouts`)
 // ── 4. Asking for a page ────────────────────────────────────────────────────
 
 await visit(`/activities/${ON}/printouts`,
-    `document.querySelector("[data-testid=printout-source]") !== null`);
+    `document.querySelector("[data-testid=app-main] .monaco-editor") !== null`);
 
-await type("input[data-testid=printout-file-name]", "kartka.py");
-await setTextarea("print('na papierze')\n");
-await wait(400);
+// **Through the editor, as the submit form is driven.** Monaco owns its buffer
+// and ignores a value written to its hidden textarea, so this goes in as real
+// input — the idiom `verify-editor` records.
+await click(`document.querySelector("[data-testid=app-main] .monaco-editor .view-lines")`);
+await wait(500);
+await send("Input.insertText", { text: "print('na papierze')" });
+await wait(800);
+
+// The name comes from the language, because a typed fragment has none of its
+// own — there is no field for it, exactly as the submit form has it.
+await click(`document.querySelector("input[data-testid=printout-language]")`);
+await wait(600);
+await click(`[...document.querySelectorAll("[role=option]")].find(o => /Python/i.test(o.textContent))`);
+await wait(500);
+
+// **Asked before it is sent.** Paper is somebody else's time and a printer
+// somebody else's queue, so a mis-click costs more than a keystroke.
 await click(`document.querySelector("[data-testid=printout-send]")`);
-await wait(1500);
+await wait(700);
+const asked = await evaluate(`return document.querySelector("[data-testid=modal]")?.innerText ?? "";`);
+check(/\.py/.test(asked), `the confirmation names the file it will print`);
+
+await click(`document.querySelector("[data-testid=printout-confirm]")`);
+await wait(1800);
 
 const mine = await body();
-check(/kartka\.py/.test(mine), "the request appears in the asker's own list");
+check(/main\.py/.test(mine), "and only then does it appear in the asker's own list");
 await shot("printouts-participant");
 
 // ── 5. It reaches the queue, and the sheet is a tab of its own ──────────────
