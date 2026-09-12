@@ -27,23 +27,30 @@ const { check, report } = results();
 // runs from seven days ago to three days from now.
 const OWN = "sub-series-w2-student-me-rekurencja-8640";
 
-const main = () => evaluate(`
-    const area = document.querySelector("[data-testid=app-main]");
-    return (area?.innerText ?? "").replace(/\\s+/g, " ").trim();
+/** What the source window says, which is where all of this now happens. */
+const shown = () => evaluate(`
+    const m = document.querySelector("[data-testid=modal]");
+    return (m?.innerText ?? "").replace(/\\s+/g, " ").trim();
 `);
 
 /** Controls by test id, as the browser checks address every control. */
 const button = id => `document.querySelector("[data-testid=${id}]")`;
 
-await go(`${APP}/activities/PROG-1-LA/submissions/${OWN}/code?fakeUser=amy`,
+// **Through the submission, because the source has no address of its own.**
+// `/submissions/:id/code` was a screen until 2026-09-10 and is a modal now, so
+// it is reached the way a reader reaches it: from the submission it belongs to.
+await go(`${APP}/activities/PROG-1-LA/submissions/${OWN}?fakeUser=amy`,
     `document.body.innerText.length > 200`);
 await wait(2000);
+await click(button("show-code"));
+await wait(2500);
 
-const opened = await main();
+const opened = await shown();
 check(/include|import|def |main/.test(opened), `the stored source opens (${opened.slice(0, 60)})`);
 
 await click(button("edit"));
-const editing = await main();
+await wait(600);
+const editing = await shown();
 check(editing.includes("Wysłanie tworzy nowe zgłoszenie"),
     `editing says it creates a new submission rather than rewriting this one (${editing.slice(0, 120)})`);
 
@@ -51,11 +58,15 @@ await click(button("resubmit"));
 await wait(2500);
 
 const landed = await evaluate(`return location.pathname;`);
-const after = await main();
+const after = await evaluate(`return document.body.innerText.replace(/\\s+/g, " ").trim();`);
 
 // The refusal renders as the Server worded it, untranslated, in a red alert.
 check(!/checksum/i.test(after), `nothing was refused (${after.slice(0, 90)})`);
 check(/\/submissions\/[^/]+$/.test(landed) && !landed.includes(OWN),
+    // **A screen, because this one was reached as a screen.** The panel's
+    // window keeps a resubmission in the window; here the reader came by
+    // address and the address follows them — `verify-modal-stages.mjs` is the
+    // other half of that rule.
     `and it lands on the submission it created (${landed})`);
 
 await shot("resubmit");

@@ -31,7 +31,6 @@ import QuestionsPage from './pages/activities/activity_id/questions/QuestionsPag
 import RulesPage from './pages/activities/activity_id/rules/RulesPage';
 import ProblemPage from './pages/activities/activity_id/problems/problem_id/ProblemPage';
 import SubmissionPage from './pages/activities/activity_id/submissions/submission_id/SubmissionPage';
-import CodePage from './pages/activities/activity_id/submissions/submission_id/code/CodePage';
 
 import { ApiProvider } from './provider/ApiProvider';
 import { AuthProvider } from './provider/AuthProvider';
@@ -236,10 +235,6 @@ function App() {
                 {
                     path: "/activities/:activityId/submissions/:submissionId",
                     element: <SubmissionPage />
-                },
-                {
-                    path: "/activities/:activityId/submissions/:submissionId/code",
-                    element: <CodePage />
                 },
                 managerRoute("/manager", <ManagerPage />),
                 managerRoute("/manager/activities", <ManagerActivitiesPage />),

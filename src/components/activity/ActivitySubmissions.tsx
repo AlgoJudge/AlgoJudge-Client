@@ -2,13 +2,13 @@ import { ActionIcon, Badge, Button, Group, Paper, ScrollArea, Stack, Text, Toolt
 import { IconChevronDown, IconChevronUp, IconBox, IconSend } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useMatch, useNavigate } from "react-router-dom";
+import { useMatch } from "react-router-dom";
 import { Activity, Series, SubmissionSummary } from "../../api/ParticipantApi";
 import StateBadge from "../submission/StateBadge";
 import ActivityTime from "../time/ActivityTime";
 import { formatInZone } from "../time/format";
 import { useApiEffect } from "../../provider/apiContext";
-import SubmitModal from "./SubmitModal";
+import SubmissionModal from "./SubmissionModal";
 import classes from "./ActivitySubmissions.module.css";
 
 /**
@@ -51,7 +51,6 @@ export interface ActivitySubmissionsProps {
 
 export default function ActivitySubmissions({ activity, series }: ActivitySubmissionsProps) {
     const { t } = useTranslation();
-    const navigate = useNavigate();
     // Which problem the reader is on, where they are on one, so sending from a
     // statement opens on that problem rather than on an empty picker.
     //
@@ -73,7 +72,11 @@ export default function ActivitySubmissions({ activity, series }: ActivitySubmis
             return false;
         }
     });
-    const [sending, setSending] = useState(false);
+    // **What the window is opened on, rather than whether it is open.** Send
+    // opens the form; a row opens that submission. Both are the same window,
+    // and neither changes the address — a screen is reached as a screen, and
+    // this panel is the other half of that rule.
+    const [showing, setShowing] = useState<undefined | { submissionId?: string }>(undefined);
     const [items, setItems] = useState<SubmissionSummary[]>([]);
 
     const activityId = activity?.id;
@@ -129,7 +132,7 @@ export default function ActivitySubmissions({ activity, series }: ActivitySubmis
                     size="compact-xs"
                     variant="light"
                     leftSection={<IconSend size={14} />}
-                    onClick={() => setSending(true)}
+                    onClick={() => setShowing({})}
                 >
                     {t("Send")}
                 </Button>
@@ -140,12 +143,13 @@ export default function ActivitySubmissions({ activity, series }: ActivitySubmis
                 </UnstyledButton>
             </div>
 
-            <SubmitModal
+            <SubmissionModal
                 activity={activity}
                 series={series ?? []}
-                opened={sending}
-                onClose={() => setSending(false)}
+                opened={showing !== undefined}
+                onClose={() => setShowing(undefined)}
                 initialSlug={problemId}
+                initialSubmissionId={showing?.submissionId}
             />
 
             {open && (
@@ -160,7 +164,7 @@ export default function ActivitySubmissions({ activity, series }: ActivitySubmis
                                 key={submission.id}
                                 className={classes.row}
                                 data-testid="submission-row"
-                                onClick={() => navigate(`/activities/${slug}/submissions/${submission.id}`)}
+                                onClick={() => setShowing({ submissionId: submission.id })}
                             >
                                 {/* One line. The name is the only part that may
                                     be cut, because it is the only part somebody

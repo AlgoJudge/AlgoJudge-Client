@@ -1,26 +1,43 @@
-import { Alert, Button, Center, Group, Loader, Stack, Tabs, Text, Title } from "@mantine/core";
+import { Alert, Button, Center, Group, Loader, Stack, Tabs, Text } from "@mantine/core";
 import { IconCopy, IconDownload, IconEdit, IconSend } from "@tabler/icons-react";
 import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useParams } from "react-router-dom";
-import { Activity, SubmissionDetail } from "../../../../../../api/ParticipantApi";
-import { CopyButton, DownloadButton } from "../../../../../../components/buttons";
-import { useApiCall, useApiEffect } from "../../../../../../provider/apiContext";
-import LoadState from "../../../../../../components/LoadState";
-import { languageOf } from "../../../../../../components/submission/offered";
-import { pastedFileName } from "../../../../../../components/editor/languages";
-import { sha256 } from "../../../../../../utils/sha256";
+import { Activity, SubmissionDetail, SubmissionSummary } from "../../api/ParticipantApi";
+import { useApiCall, useApiEffect } from "../../provider/apiContext";
+import { sha256 } from "../../utils/sha256";
+import LoadState from "../LoadState";
+import { CopyButton, DownloadButton } from "../buttons";
+import { pastedFileName } from "../editor/languages";
+import { languageOf } from "./offered";
 
-const CodeEditor = lazy(() => import("../../../../../../components/editor/CodeEditor"));
+const CodeEditor = lazy(() => import("../editor/CodeEditor"));
 
-export default function CodePage() {
+export interface SourceViewProps {
+    activity: Activity;
+    submission: SubmissionDetail;
+    /**
+     * What follows a resubmission. The submission screen goes to the one that
+     * was created; the panel's modal shows it without leaving the page — the
+     * same split `SubmissionForm.onSent` already makes.
+     */
+    onResubmitted: (submission: SubmissionSummary) => void;
+}
+
+/**
+ * The source of one submission, and a way to send a corrected one.
+ *
+ * **Always in a modal**, since 2026-09-10: it was a screen of its own, which
+ * meant reading your own code cost the page you were reading it against. Lifted
+ * out of that screen so the host decides where it sits and what a resubmission
+ * leads to.
+ *
+ * Editing here never rewrites history — the original stays as it was judged —
+ * and the view says so where somebody can read it.
+ */
+export default function SourceView({ activity, submission, onResubmitted }: SourceViewProps) {
     const { t } = useTranslation();
-    const navigate = useNavigate();
     const call = useApiCall();
-    const { activityId, submissionId } = useParams();
 
-    const [activity, setActivity] = useState<Activity | undefined>(undefined);
-    const [submission, setSubmission] = useState<SubmissionDetail | undefined>(undefined);
     const [files, setFiles] = useState<Record<string, string>>({});
     const [active, setActive] = useState<string | null>(null);
     const [editing, setEditing] = useState(false);
@@ -29,12 +46,6 @@ export default function CodePage() {
     const [sending, setSending] = useState(false);
 
     const loadError = useApiEffect(async (api) => {
-        if (!activityId || !submissionId) return;
-        const activity = await api.participantApi.getActivity(activityId);
-        setActivity(activity);
-        const submission = await api.participantApi.getSubmission(activity.id, submissionId);
-        setSubmission(submission);
-
         // Read from the file store by id, as every other stored document is.
         // Keyed by the uploaded name, which is what the tabs show.
         const loaded: Record<string, string> = {};
@@ -43,24 +54,24 @@ export default function CodePage() {
         }
         setFiles(loaded);
         setActive(submission.files[0]?.fileName ?? null);
-    }, [activityId, submissionId]);
-
-    if (!activity || !submission) {
-        return <LoadState error={loadError} loading={!loadError} />;
-    }
+    }, [submission.id, submission.files]);
 
     // **Loaded, and there is nothing to show.** The Server sends only the files
     // this reader may see, and an activity whose attachment table says nothing
     // about `source` withholds it from the submission's own author — so `files`
-    // arrives empty and no request for one is ever issued. Without this the page
-    // kept a spinner turning for ever, which reads as "still loading" and never
-    // stops being wrong.
-    if (!active) {
+    // arrives empty and no request for one is ever issued. Without this a
+    // spinner turned for ever, which reads as "still loading" and never stops
+    // being wrong.
+    if (submission.files.length === 0) {
         return (
             <Alert color="gray" title={t("The source code is not available")}>
                 {t("This submission's files are not shared with you. Whoever runs the activity decides which of them a participant may read.")}
             </Alert>
         );
+    }
+
+    if (!active) {
+        return <LoadState error={loadError} loading={!loadError} />;
     }
 
     const current = files[active] ?? "";
@@ -90,7 +101,9 @@ export default function CodePage() {
                 fileName: pastedFileName(submission.problemType, language),
                 sha256: checksum,
             }));
-            navigate(`/activities/${activity.slug}/submissions/${created.id}`);
+            setSending(false);
+            setEditing(false);
+            onResubmitted(created);
         } catch (e) {
             setError(e instanceof Error ? e.message : String(e));
             setSending(false);
@@ -100,12 +113,8 @@ export default function CodePage() {
     return (
         <Stack gap="md">
             <Group justify="space-between" wrap="wrap">
-                <Stack gap={2}>
-                    <Title order={2}>{t("Source code")}</Title>
-                    <Title>[{submission.problemSlug}] {submission.problemName}</Title>
-                </Stack>
+                <Text size="sm" c="dimmed">[{submission.problemSlug}] {submission.problemName}</Text>
                 <Group>
-                    <Button data-testid="back" variant="default" onClick={() => navigate(-1)}>{t("Back")}</Button>
                     {/* CopyButton and DownloadButton already render the button —
                         the callback supplies its label. Returning another Button
                         here nested one inside the other. */}
@@ -160,14 +169,14 @@ export default function CodePage() {
                 <Text size="sm" c="dimmed">{active}</Text>
             )}
 
-            <Suspense fallback={<Center h={520}><Loader /></Center>}>
+            <Suspense fallback={<Center h={420}><Loader /></Center>}>
                 <CodeEditor
                     value={shown}
                     onChange={setDraft}
                     language={language}
                     problemType={submission.problemType}
                     readOnly={!editing}
-                    height={520}
+                    height={420}
                 />
             </Suspense>
         </Stack>

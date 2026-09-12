@@ -351,6 +351,23 @@ keeping rather than rewriting.
   instead of the public bar. Clear the session first — and only the session, if
   the instance's own settings must survive.
 
+- **A closed dropdown keeps its options in the document.** Mantine hides them
+  rather than unmounting them, so `querySelectorAll("[role=option]")` on a screen
+  with two selects answers with both sets at once — which reads as one select
+  offering the other's contents. Filter on `offsetParent !== null`. The submit
+  screen grew a second select on 2026-09-10 and `verify-points.mjs` began
+  asserting that a Python-only assignment offered three problems and a language.
+
+- **Two submissions a minute apart share an id in the fake.**
+  `ParticipantApiFake.countAttempt` derives one from the round, the contestant,
+  the problem and *minutes since the round started*, so sending twice in the same
+  minute produces one row carrying one id — the second neither appears in the
+  panel's count nor changes what `getSubmission` answers. The product mints a
+  UUID and has no such collision. A check that resubmits something it has just
+  sent cannot assert "a different submission": assert the stage the window
+  landed on, or resubmit a **seeded** one, whose minute is days old.
+  `verify-modal-stages.mjs` does the first and `verify-resubmit.mjs` the second.
+
 ## Writing another
 
 `harness.mjs` is the whole harness — a tab, and the few things worth not writing
