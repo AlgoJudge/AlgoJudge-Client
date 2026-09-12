@@ -178,7 +178,13 @@ export default function ManagerPrintoutsPage() {
                                         <Text size="xs" c="dimmed">{printout.groupName}</Text>
                                     )}
                                 </Table.Td>
-                                <Table.Td><Text size="sm">{printout.activityName}</Text></Table.Td>
+                                <Table.Td>
+                                    <Text size="sm">{printout.activityName}</Text>
+                                    {/* One person works several rooms from this
+                                        queue, and a slug is what they are called
+                                        out loud. */}
+                                    <Text size="xs" c="dimmed" ff="monospace">{printout.activitySlug}</Text>
+                                </Table.Td>
                                 <Table.Td>
                                     <Text ff="monospace" size="sm">{printout.fileName}</Text>
                                     {printout.title && <Text size="xs" c="dimmed">{printout.title}</Text>}

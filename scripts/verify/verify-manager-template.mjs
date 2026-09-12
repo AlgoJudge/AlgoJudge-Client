@@ -77,6 +77,7 @@ for (const area of offered) {
 const NARROWED = [
     ["/manager/submissions", "PROG-1-LA", "AMMPZ-2019"],
     ["/manager/questions", "PROG-1-LA", "AMMPZ-2019"],
+    ["/manager/printouts", "PROG-1-LA", "AMMPZ-2019"],
 ];
 
 for (const [area, mine, theirs] of NARROWED) {

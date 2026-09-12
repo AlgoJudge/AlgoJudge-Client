@@ -1116,6 +1116,8 @@ export interface ManagedPrintout {
     id: string;
     activityId: string;
     activityName: string;
+    /** Beside the name, as the submissions and questions lists both carry it. */
+    activitySlug: string;
     requestedByName: string;
     /** As it was when the request was made, not as it is now. */
     groupName?: string;

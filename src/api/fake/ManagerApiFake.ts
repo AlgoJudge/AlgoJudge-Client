@@ -1623,6 +1623,7 @@ export class ManagerApiFake implements ManagerApi {
             id: row.id,
             activityId: row.activityId,
             activityName: activity?.name ?? "",
+            activitySlug: activity?.slug ?? "",
             requestedByName: row.requestedByName,
             groupName: row.groupName,
             title: row.title,
