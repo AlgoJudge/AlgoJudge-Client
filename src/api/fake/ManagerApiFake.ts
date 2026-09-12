@@ -525,7 +525,13 @@ export class ManagerApiFake implements ManagerApi {
 
     async getGrants(filter: GrantFilter, signal: AbortSignal): Promise<Page<Grant>> {
         await this.settle(signal);
+        const allowed = this.listScope("grant:read:all", filter.activityId);
         const matched = this.access.grants.filter(g =>
+            // A system grant is not an activity's business: somebody holding the
+            // key on activities alone reads those activities' grants and no
+            // others.
+            (allowed === null
+                || (g.activityId !== undefined && allowed.includes(g.activityId))) &&
             (!filter.userId || g.userId === filter.userId) &&
             (!filter.activityId || g.activityId === filter.activityId) &&
             (!filter.scope
@@ -1525,8 +1531,10 @@ export class ManagerApiFake implements ManagerApi {
 
     async getQuestions(filter: ManagedQuestionFilter, signal: AbortSignal): Promise<Page<ManagedQuestion>> {
         await this.settle(signal);
+        const allowed = this.listScope("question:read:all", filter.activityId);
         const needle = filter.search?.trim().toLowerCase();
         const matched = this.questions
+            .filter(q => allowed === null || allowed.includes(q.activityId))
             .filter(q => !filter.activityId || q.activityId === filter.activityId)
             .filter(q => !filter.seriesId || q.seriesId === filter.seriesId)
             .filter(q => !filter.kind || q.kind === filter.kind)
@@ -1611,10 +1619,12 @@ export class ManagerApiFake implements ManagerApi {
 
     async getSubmissions(filter: ManagedSubmissionFilter, signal: AbortSignal): Promise<Page<ManagedSubmission>> {
         await this.settle(signal);
+        const allowed = this.listScope("submission:read:all", filter.activityId);
         const needle = filter.search?.trim().toLowerCase();
         // Filtered before paged, which is the order the Server must use too: the
         // other way round filters one page and calls it a result.
         const matched = this.submissions
+            .filter(s => allowed === null || allowed.includes(s.activityId))
             .filter(s => !filter.activityId || s.activityId === filter.activityId)
             .filter(s => !filter.seriesId || s.seriesId === filter.seriesId)
             .filter(s => !filter.seriesProblemId || s.seriesProblemId === filter.seriesProblemId)
@@ -1691,6 +1701,11 @@ export class ManagerApiFake implements ManagerApi {
 
     async getProblems(filter: ProblemFilter, signal: AbortSignal): Promise<Page<ManagedProblem>> {
         await this.settle(signal);
+        // The library is the installation's, not an activity's, and managing one
+        // activity is what admits somebody to it — so the key is asked for
+        // **anywhere**. Asked at system scope it refused every manager granted on
+        // an activity, which is what the report of 2026-09-09 was about.
+        this.requireAnywhere("problem:read:own");
         const needle = filter.search?.trim().toLowerCase();
         const matched = this.library
             .map(r => r.problem)
@@ -2585,6 +2600,61 @@ export class ManagerApiFake implements ManagerApi {
                         "provider.rule.excess");
                 }
             }
+        }
+    }
+
+    /**
+     * What a panel list may draw from, and the refusal when that is nothing —
+     * `IPermissionService.ListScopeAsync`, mirrored.
+     *
+     * **The fake had no such rule at all**: the unfiltered lists drew everything
+     * for anybody, so a manager granted on one activity looked fine here and was
+     * refused by the Server. Reported 2026-09-09.
+     *
+     * Null means "not narrowed", which is a different answer from an empty list
+     * and callers must not conflate them.
+     *
+     * **Synchronous on purpose.** Reading it through `getMyPermissions` would
+     * spend the fake's own `settle` delay a second time on every list, which was
+     * enough to push the participants panel past what `verify-groups` waits for.
+     */
+    private listScope(permission: string, activityId: string | undefined): string[] | null {
+        if (activityId !== undefined) {
+            if (!this.access.holds(permission, activityId)
+                && !this.access.holds("system:administrator", activityId)) {
+                forbidden(`Access denied: ${permission} is required`, "forbidden");
+            }
+            return null;
+        }
+
+        const me = signedInUserId() ?? ME;
+        const system = this.systemPermissions(me);
+        if (system.includes("system:administrator") || system.includes(permission)) return null;
+
+        const allowed = this.access.grants
+            .filter(g => g.userId === me && g.activityId !== undefined
+                && g.permissions.includes(permission))
+            .map(g => g.activityId!);
+
+        // Holding it nowhere is a refusal. An empty page would tell somebody who
+        // may not look that there is nothing to see.
+        if (allowed.length === 0) forbidden(`Access denied: ${permission} is required`, "forbidden");
+        return allowed;
+    }
+
+    /**
+     * The problem library answers to the key held **anywhere** — managing one
+     * activity is what admits somebody to it. `RequireAnywhereAsync` on the
+     * Server.
+     */
+    private requireAnywhere(permission: string): void {
+        const me = signedInUserId() ?? ME;
+        const everywhere = new Set([
+            ...this.systemPermissions(me),
+            ...this.access.grants.filter(g => g.userId === me).flatMap(g => g.permissions),
+        ]);
+        if (!everywhere.has("system:administrator") && !everywhere.has(permission)) {
+            forbidden(`Access denied: ${permission} is required`, "forbidden");
         }
     }
 

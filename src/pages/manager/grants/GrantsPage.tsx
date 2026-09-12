@@ -15,6 +15,7 @@ import LoadState from "../../../components/LoadState";
 import PermissionSetEditor from "../../../components/permissions/PermissionSetEditor";
 import ActivityTime from "../../../components/time/ActivityTime";
 import { optional, useApiCall, useApiEffect } from "../../../provider/apiContext";
+import DataTable from "../../../components/table/DataTable";
 
 const PAGE_SIZE = 20;
 
@@ -201,135 +202,133 @@ export default function GrantsPage() {
                 />
             </Group>
 
-            <Table.ScrollContainer minWidth={760}>
-                <Table striped highlightOnHover>
-                    <Table.Thead>
-                        <Table.Tr>
-                            <Table.Th>{t("User")}</Table.Th>
-                            <Table.Th>{t("Scope")}</Table.Th>
-                            <Table.Th>{t("Permissions")}</Table.Th>
-                            <Table.Th>{t("Started from")}</Table.Th>
-                            <Table.Th>{t("Status")}</Table.Th>
-                            <Table.Th>{t("Date")}</Table.Th>
-                            <Table.Th />
-                        </Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                        {grants.map(grant => (
-                            <Table.Tr key={grant.id}>
-                                <Table.Td>
-                                    {/* The name opens the grant, as it opens the
-                                        row on the problem, activity and Runner
-                                        lists. The login is under it because a
-                                        department has two people called Jan
-                                        Kowalski and a name alone cannot be
-                                        checked against anything. */}
-                                    <Stack gap={0}>
-                                        <Text
-                                            fw={500}
-                                            style={{ cursor: "pointer" }}
-                                            onClick={() => open({
-                                                userId: grant.userId,
-                                                activityId: grant.activityId,
-                                                permissions: [...grant.permissions],
-                                                createdFromTemplate: grant.createdFromTemplate,
-                                                existing: true,
-                                                overrideSystem: grant.overrideSystem,
-                                                holdsSystem: holdsSystemPermissions(grant.userId),
-                                            })}
-                                        >
-                                            {grant.userName}
+            <DataTable minWidth={760} striped highlightOnHover>
+                <Table.Thead>
+                    <Table.Tr>
+                        <Table.Th>{t("User")}</Table.Th>
+                        <Table.Th>{t("Scope")}</Table.Th>
+                        <Table.Th>{t("Permissions")}</Table.Th>
+                        <Table.Th>{t("Started from")}</Table.Th>
+                        <Table.Th>{t("Status")}</Table.Th>
+                        <Table.Th>{t("Date")}</Table.Th>
+                        <Table.Th />
+                    </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                    {grants.map(grant => (
+                        <Table.Tr key={grant.id}>
+                            <Table.Td>
+                                {/* The name opens the grant, as it opens the
+                                    row on the problem, activity and Runner
+                                    lists. The login is under it because a
+                                    department has two people called Jan
+                                    Kowalski and a name alone cannot be
+                                    checked against anything. */}
+                                <Stack gap={0}>
+                                    <Text
+                                        fw={500}
+                                        style={{ cursor: "pointer" }}
+                                        onClick={() => open({
+                                            userId: grant.userId,
+                                            activityId: grant.activityId,
+                                            permissions: [...grant.permissions],
+                                            createdFromTemplate: grant.createdFromTemplate,
+                                            existing: true,
+                                            overrideSystem: grant.overrideSystem,
+                                            holdsSystem: holdsSystemPermissions(grant.userId),
+                                        })}
+                                    >
+                                        {grant.userName}
+                                    </Text>
+                                    <Text size="xs" c="dimmed" ff="monospace">{grant.userLogin}</Text>
+                                </Stack>
+                            </Table.Td>
+                            <Table.Td>
+                                {grant.activityId
+                                    ? <Text size="sm">{grant.activityName}</Text>
+                                    : (
+                                        <Badge variant="light" color="grape" leftSection={<IconWorld size={12} />}>
+                                            {t("System scope")}
+                                        </Badge>
+                                    )}
+                            </Table.Td>
+                            <Table.Td>
+                                {grant.permissions.includes("system:administrator")
+                                    ? <Badge color="orange" variant="light">{t("Administrator")}</Badge>
+                                    : <Badge variant="outline">{grant.permissions.length}</Badge>}
+                            </Table.Td>
+                            <Table.Td>
+                                <Stack gap={2}>
+                                    <Text size="sm" c="dimmed">{grant.createdFromTemplate ?? "—"}</Text>
+                                    {/* At system scope a person's permissions are
+                                        the union of several rows — one assigned by
+                                        hand, one per linked provider — so a list
+                                        that did not say which row this is cannot
+                                        be acted on. */}
+                                    {grant.managed && (
+                                        <Badge size="xs" variant="light" color="grape">
+                                            {grant.sourceProviderName ?? t("From a provider")}
+                                        </Badge>
+                                    )}
+                                    {grant.overrideSystem && (
+                                        <Badge size="xs" variant="light" color="orange">
+                                            {t("Overrides the system set")}
+                                        </Badge>
+                                    )}
+                                </Stack>
+                            </Table.Td>
+                            <Table.Td>
+                                <Badge variant="light" color={grant.state === "active" ? "teal" : "blue"}>
+                                    {t(grant.state)}
+                                </Badge>
+                            </Table.Td>
+                            <Table.Td>
+                                <ActivityTime value={grant.createdAt} timeZone="Europe/Warsaw" format="date" hideZone />
+                            </Table.Td>
+                            <Table.Td>
+                                <Group gap="xs" justify="flex-end" wrap="nowrap">
+                                    {/* A managed contribution belongs to its
+                                        provider's mapping and is rewritten at every
+                                        sign-in, so an edit here would last until
+                                        that person next signed in. The Server
+                                        refuses it; the screen does not offer it. */}
+                                    {grant.managed && (
+                                        <Text size="xs" c="dimmed" maw={220} ta="right">
+                                            {t("Rewritten at every sign-in. Change the provider's mapping instead.")}
                                         </Text>
-                                        <Text size="xs" c="dimmed" ff="monospace">{grant.userLogin}</Text>
-                                    </Stack>
-                                </Table.Td>
-                                <Table.Td>
-                                    {grant.activityId
-                                        ? <Text size="sm">{grant.activityName}</Text>
-                                        : (
-                                            <Badge variant="light" color="grape" leftSection={<IconWorld size={12} />}>
-                                                {t("System scope")}
-                                            </Badge>
-                                        )}
-                                </Table.Td>
-                                <Table.Td>
-                                    {grant.permissions.includes("system:administrator")
-                                        ? <Badge color="orange" variant="light">{t("Administrator")}</Badge>
-                                        : <Badge variant="outline">{grant.permissions.length}</Badge>}
-                                </Table.Td>
-                                <Table.Td>
-                                    <Stack gap={2}>
-                                        <Text size="sm" c="dimmed">{grant.createdFromTemplate ?? "—"}</Text>
-                                        {/* At system scope a person's permissions are
-                                            the union of several rows — one assigned by
-                                            hand, one per linked provider — so a list
-                                            that did not say which row this is cannot
-                                            be acted on. */}
-                                        {grant.managed && (
-                                            <Badge size="xs" variant="light" color="grape">
-                                                {grant.sourceProviderName ?? t("From a provider")}
-                                            </Badge>
-                                        )}
-                                        {grant.overrideSystem && (
-                                            <Badge size="xs" variant="light" color="orange">
-                                                {t("Overrides the system set")}
-                                            </Badge>
-                                        )}
-                                    </Stack>
-                                </Table.Td>
-                                <Table.Td>
-                                    <Badge variant="light" color={grant.state === "active" ? "teal" : "blue"}>
-                                        {t(grant.state)}
-                                    </Badge>
-                                </Table.Td>
-                                <Table.Td>
-                                    <ActivityTime value={grant.createdAt} timeZone="Europe/Warsaw" format="date" hideZone />
-                                </Table.Td>
-                                <Table.Td>
-                                    <Group gap="xs" justify="flex-end" wrap="nowrap">
-                                        {/* A managed contribution belongs to its
-                                            provider's mapping and is rewritten at every
-                                            sign-in, so an edit here would last until
-                                            that person next signed in. The Server
-                                            refuses it; the screen does not offer it. */}
-                                        {grant.managed && (
-                                            <Text size="xs" c="dimmed" maw={220} ta="right">
-                                                {t("Rewritten at every sign-in. Change the provider's mapping instead.")}
-                                            </Text>
-                                        )}
-                                        <Button
-                                            variant="light"
-                                            size="compact-sm"
-                                            disabled={grant.managed}
-                                            onClick={() => open({
-                                                userId: grant.userId,
-                                                activityId: grant.activityId,
-                                                permissions: [...grant.permissions],
-                                                createdFromTemplate: grant.createdFromTemplate,
-                                                existing: true,
-                                                overrideSystem: grant.overrideSystem,
-                                                holdsSystem: holdsSystemPermissions(grant.userId),
-                                            })}
-                                        >
-                                            {t("Edit")}
-                                        </Button>
-                                        <Button
-                                            variant="light"
-                                            color="red"
-                                            size="compact-sm"
-                                            disabled={grant.managed}
-                                            leftSection={<IconTrash size={14} />}
-                                            onClick={() => revoke(grant)}
-                                        >
-                                            {t("Revoke")}
-                                        </Button>
-                                    </Group>
-                                </Table.Td>
-                            </Table.Tr>
-                        ))}
-                    </Table.Tbody>
-                </Table>
-            </Table.ScrollContainer>
+                                    )}
+                                    <Button
+                                        variant="light"
+                                        size="compact-sm"
+                                        disabled={grant.managed}
+                                        onClick={() => open({
+                                            userId: grant.userId,
+                                            activityId: grant.activityId,
+                                            permissions: [...grant.permissions],
+                                            createdFromTemplate: grant.createdFromTemplate,
+                                            existing: true,
+                                            overrideSystem: grant.overrideSystem,
+                                            holdsSystem: holdsSystemPermissions(grant.userId),
+                                        })}
+                                    >
+                                        {t("Edit")}
+                                    </Button>
+                                    <Button
+                                        variant="light"
+                                        color="red"
+                                        size="compact-sm"
+                                        disabled={grant.managed}
+                                        leftSection={<IconTrash size={14} />}
+                                        onClick={() => revoke(grant)}
+                                    >
+                                        {t("Revoke")}
+                                    </Button>
+                                </Group>
+                            </Table.Td>
+                        </Table.Tr>
+                    ))}
+                </Table.Tbody>
+            </DataTable>
 
             <Group justify="center">
                 <Pagination total={Math.ceil(total / PAGE_SIZE)} value={page} onChange={setPage} />

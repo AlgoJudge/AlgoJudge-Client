@@ -75,7 +75,7 @@ function Footer() {
 
         if (menuItems) {
             return (
-                <Menu key={link.label} trigger="hover" transitionProps={{ exitDuration: 0 }} withinPortal>
+                <Menu key={link.label} trigger="click-hover" transitionProps={{ exitDuration: 0 }} withinPortal>
                     <Menu.Target>
                         <a
                             href={link.link}

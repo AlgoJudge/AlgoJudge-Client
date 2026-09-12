@@ -1,0 +1,19 @@
+/* One line on a desktop, exactly as the `wrap="nowrap"` this replaces. */
+.row {
+    flex-wrap: nowrap;
+}
+
+/*
+ * An issuer, a claim path and a redirect URI are single unbreakable words that
+ * happen to be sixty characters long. Nothing about them wraps, so on a narrow
+ * card they pushed the page sideways rather than the card growing a line.
+ */
+.identifier {
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: $mantine-breakpoint-sm) {
+    .row {
+        flex-wrap: wrap;
+    }
+}

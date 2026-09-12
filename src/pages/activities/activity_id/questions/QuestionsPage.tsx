@@ -9,6 +9,7 @@ import { useApiCall, useApiEffect } from "../../../../provider/apiContext";
 import LoadState from "../../../../components/LoadState";
 import QuestionFormModal from "./submit_question/QuestionFormModal";
 import classes from "./QuestionsPage.module.css";
+import DataTable from "../../../../components/table/DataTable";
 
 const PAGE_SIZE = 10;
 
@@ -194,7 +195,7 @@ export default function QuestionsPage() {
                     leftSection={<IconSearch size={16} />}
                     value={search}
                     onChange={e => onFilter(setSearch)(e.currentTarget.value)}
-                    w={260}
+                    w={{ base: "100%", sm: 260 }}
                 />
                 <Select
                     placeholder={t("All kinds")}
@@ -205,7 +206,7 @@ export default function QuestionsPage() {
                     value={kind}
                     onChange={onFilter(setKind)}
                     clearable
-                    w={180}
+                    w={{ base: "100%", sm: 180 }}
                 />
                 <Select
                     placeholder={t("All series")}
@@ -213,7 +214,7 @@ export default function QuestionsPage() {
                     value={seriesId}
                     onChange={onFilter(setSeriesId)}
                     clearable
-                    w={220}
+                    w={{ base: "100%", sm: 220 }}
                 />
                 <Select
                     placeholder={t("All problems")}
@@ -221,7 +222,7 @@ export default function QuestionsPage() {
                     value={problemId}
                     onChange={onFilter(setProblemId)}
                     clearable
-                    w={260}
+                    w={{ base: "100%", sm: 260 }}
                 />
             </Group>
 
@@ -229,48 +230,46 @@ export default function QuestionsPage() {
             {items?.length === 0 && <Text c="dimmed">{t("Nothing matches the filters")}</Text>}
 
             {items && items.length > 0 && (
-                <Table.ScrollContainer minWidth={720}>
-                    <Table striped highlightOnHover>
-                        <Table.Thead>
-                            <Table.Tr>
-                                <Table.Th>{t("Topic")}</Table.Th>
-                                <Table.Th>{t("Author")}</Table.Th>
-                                <SortableTh label={t("Series")} column="series" sortBy={sortBy} order={order} onSort={onSort} />
-                                <SortableTh label={t("Problem")} column="problem" sortBy={sortBy} order={order} onSort={onSort} />
-                                <SortableTh label={t("Date")} column="createdAt" sortBy={sortBy} order={order} onSort={onSort} />
+                <DataTable minWidth={720} striped highlightOnHover>
+                    <Table.Thead>
+                        <Table.Tr>
+                            <Table.Th>{t("Topic")}</Table.Th>
+                            <Table.Th>{t("Author")}</Table.Th>
+                            <SortableTh label={t("Series")} column="series" sortBy={sortBy} order={order} onSort={onSort} />
+                            <SortableTh label={t("Problem")} column="problem" sortBy={sortBy} order={order} onSort={onSort} />
+                            <SortableTh label={t("Date")} column="createdAt" sortBy={sortBy} order={order} onSort={onSort} />
+                        </Table.Tr>
+                    </Table.Thead>
+                    <Table.Tbody>
+                        {items.map(q => (
+                            <Table.Tr
+                                key={q.id}
+                                className={q.isRead ? classes.read : classes.unread}
+                                onClick={() => open(q)}
+                            >
+                                <Table.Td>
+                                    <Group gap="xs" wrap="nowrap">
+                                        <KindBadge kind={q.kind} />
+                                        <Text fw={q.isRead ? 400 : 600}>{q.topic}</Text>
+                                        {q.answer && <IconMessageReply size={16} />}
+                                    </Group>
+                                </Table.Td>
+                                <Table.Td>{q.authorName}</Table.Td>
+                                <Table.Td>
+                                    {q.seriesName ?? <Text size="sm" c="dimmed">{t("Whole activity")}</Text>}
+                                </Table.Td>
+                                <Table.Td>
+                                    {q.problemSlug
+                                        ? <Text size="sm">[{q.problemSlug}] {q.problemName}</Text>
+                                        : <Text size="sm" c="dimmed">—</Text>}
+                                </Table.Td>
+                                <Table.Td>
+                                    <ActivityTime value={q.createdAt} timeZone={activity.timeZone} format="date" hideZone />
+                                </Table.Td>
                             </Table.Tr>
-                        </Table.Thead>
-                        <Table.Tbody>
-                            {items.map(q => (
-                                <Table.Tr
-                                    key={q.id}
-                                    className={q.isRead ? classes.read : classes.unread}
-                                    onClick={() => open(q)}
-                                >
-                                    <Table.Td>
-                                        <Group gap="xs" wrap="nowrap">
-                                            <KindBadge kind={q.kind} />
-                                            <Text fw={q.isRead ? 400 : 600}>{q.topic}</Text>
-                                            {q.answer && <IconMessageReply size={16} />}
-                                        </Group>
-                                    </Table.Td>
-                                    <Table.Td>{q.authorName}</Table.Td>
-                                    <Table.Td>
-                                        {q.seriesName ?? <Text size="sm" c="dimmed">{t("Whole activity")}</Text>}
-                                    </Table.Td>
-                                    <Table.Td>
-                                        {q.problemSlug
-                                            ? <Text size="sm">[{q.problemSlug}] {q.problemName}</Text>
-                                            : <Text size="sm" c="dimmed">—</Text>}
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <ActivityTime value={q.createdAt} timeZone={activity.timeZone} format="date" hideZone />
-                                    </Table.Td>
-                                </Table.Tr>
-                            ))}
-                        </Table.Tbody>
-                    </Table>
-                </Table.ScrollContainer>
+                        ))}
+                    </Table.Tbody>
+                </DataTable>
             )}
 
             <Group justify="center">
