@@ -225,7 +225,7 @@ export default function LtiPlatformsPage() {
                     <TextInput
                         style={{ flex: 1 }}
                         label={t("What to call it while waiting")}
-                        placeholder={t("WMiI Moodle")}
+                        placeholder={t("Institution's Moodle")}
                         value={note}
                         onChange={event => setNote(event.currentTarget.value)}
                     />
