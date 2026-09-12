@@ -9,12 +9,9 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { registrationOffered } from "../../api/registration";
 import { useInstance } from "../../provider/instanceContext";
+import { PROJECT_ORGANISATION, PROJECT_SITE } from "../../site";
 import illustration from "../../assets/hero.png";
 import classes from "./HomeHero.module.css";
-
-/** Where the source lives, and where the project is described at length. */
-const ORGANISATION = "https://github.com/AlgoJudge";
-const PROJECT = "https://algojudge.pl";
 
 /**
  * What the software says about itself, above what the installation says about
@@ -62,7 +59,7 @@ export const HomeHero: FC = () => {
                 <Stack gap="lg" align="flex-start">
                     <Badge
                         component="a"
-                        href={ORGANISATION}
+                        href={PROJECT_ORGANISATION}
                         target="_blank"
                         rel="noopener noreferrer"
                         variant="light"
@@ -113,7 +110,7 @@ export const HomeHero: FC = () => {
                         )}
                     </Group>
 
-                    <Anchor href={PROJECT} target="_blank" rel="noopener noreferrer">
+                    <Anchor href={PROJECT_SITE} target="_blank" rel="noopener noreferrer">
                         <Group gap={6} wrap="nowrap">
                             {t("About the project")}
                             <IconArrowRight size={16} />

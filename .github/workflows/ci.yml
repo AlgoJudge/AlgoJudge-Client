@@ -101,6 +101,12 @@ jobs:
       - name: Check the ranking arithmetic
         run: npm run check:ranking
 
+      # The document's own head, which no browser check can see: the harness
+      # reads a live page, where React has mounted and the metadata has already
+      # done its work or failed to. A crawler reads the file.
+      - name: Check the shell's metadata
+        run: npm run check:seo
+
       # Not a gate: the Server publishes no OpenAPI document yet, so this only
       # prints the endpoints that will have to be served. It is here so the list
       # is visible in every run rather than only when somebody thinks to ask.
@@ -201,6 +207,11 @@ jobs:
           curl -fsS http://localhost:8080/ >/dev/null
           # A deep link is not a file on disk; without the nginx fallback this 404s.
           curl -fsS http://localhost:8080/activities/PCN1/problems >/dev/null
+          # Two files nothing served before. Both are only ever asked for by
+          # name, and `try_files` answers a name it does not have with
+          # `index.html` at 200 — so a missing one reads as a served one.
+          curl -fsS http://localhost:8080/robots.txt | grep -q "^User-agent:"
+          curl -fsS -o /dev/null -w "%{content_type}\n" http://localhost:8080/favicon.ico | grep -q "^image/"
           docker stop ci-check
 
       # The entrypoint writes an operator's own string into a <script> element,
@@ -239,6 +250,16 @@ jobs:
             if (parsed.apiBaseUrl !== process.env.AWKWARD) {
               throw new Error(`did not round trip: ${JSON.stringify(parsed.apiBaseUrl)}`
                 + ` != ${JSON.stringify(process.env.AWKWARD)}`);
+            }
+            // The head goes through the same rewrite, and it is what a crawler
+            // reads. An `awk` regex that one day matches a line too many would
+            // take a meta element with it, and the assertions above would all
+            // still pass.
+            if (!/<meta\s+name="description"[^>]*content="AlgoJudge is open-source/.test(html)) {
+              throw new Error("the description did not survive the entrypoint");
+            }
+            if (!html.includes("https://github.com/AlgoJudge")) {
+              throw new Error("the links a crawler reads did not survive the entrypoint");
             }
             console.log("ok: the configuration line survived the value intact");
           '

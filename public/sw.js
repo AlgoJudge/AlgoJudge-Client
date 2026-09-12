@@ -143,7 +143,7 @@ const documentFirst = async (request) => {
 /** Unhashed, and nginx gives them no cache policy of their own. */
 const revalidated = (path) =>
     path.startsWith("/locales/")
-    || path === "/algojudge.ico"
+    || path === "/favicon.ico"
     || path === "/manifest.webmanifest"
     || path.startsWith("/icon-")
     || path === "/apple-touch-icon.png";

@@ -4,6 +4,8 @@ import App from "./App.tsx";
 import "./index.css";
 
 import "./i18n";
+// After `./i18n`, because it subscribes to it.
+import "./seo";
 
 import "@mantine/code-highlight/styles.css";
 
