@@ -87,7 +87,13 @@ export default function ManagerPrintoutsPage() {
      * a confirm dialog and nothing to confirm.
      */
     const open = (printout: ManagedPrintout) => {
-        window.open(printoutSheetUrl(printout.id), "_blank", "noopener");
+        // **No `noopener`, deliberately.** It severs the new tab from the
+        // opener, and with it the copy of `sessionStorage` a same-origin tab
+        // inherits — which is where a session lives when the Client is driven
+        // against its own fake, so the sheet would open on the sign-in screen.
+        // It buys nothing here: this is our own route on our own origin, and
+        // `window.opener` reaching back is only a hazard for a page that is not.
+        window.open(printoutSheetUrl(printout.id), "_blank");
         setConfirming(printout);
     };
 

@@ -828,6 +828,7 @@
     "That login method is switched off here.": "Ta metoda logowania jest tu wyłączona.",
     "That provider does not grant you access to this installation. Ask whoever runs it.": "Ten dostawca nie daje Ci dostępu do tej instalacji. Zapytaj osoby, która ją prowadzi.",
     "The Server is not answering": "Server nie odpowiada",
+    "The queue of source somebody asked to have on paper.": "Kolejka kodu, który ktoś poprosił wydrukować.",
     "The source of this printout has been disposed of.": "Kod źródłowy tego wydruku został usunięty.",
     "This device is offline": "To urządzenie jest offline",
     "This device has no network access. Nothing you sent has been lost, and this page returns on its own once the connection does.": "To urządzenie nie ma dostępu do sieci. Nic z tego, co wysłałeś, nie przepadło — strona wróci sama, gdy wróci połączenie.",
