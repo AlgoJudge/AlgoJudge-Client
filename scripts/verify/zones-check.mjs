@@ -136,6 +136,24 @@ check(!/Europe\/Warsaw/.test(accountTip),
     "and not a zone somebody hard-coded");
 await shot("zones-account");
 
+// ── a manager's row, which belongs to an activity the wire had to name ──────
+//
+// `ManagedSubmission` carried no zone until 2026-09-13, so these six rows would
+// have shown the reader's clock and been unable to name the one a deadline was
+// set on — exactly where a manager argues about whether a submission beat it.
+
+await go(`${APP}/manager/submissions?fakeUser=john`,
+    `document.querySelectorAll("tbody [data-testid=time]").length > 0`);
+await wait(1500);
+
+const managed = await tooltipOf(`document.querySelector("tbody [data-testid=time]")`);
+const managedLines = managed.split("\n").map(l => l.trim()).filter(Boolean);
+check(managedLines.length === 2,
+    `a managed submission names two clocks (${JSON.stringify(managed)})`);
+check(managedLines[0]?.includes("(Europe/Warsaw)"),
+    `the activity's, which the wire now carries (${managedLines[0]})`);
+await shot("zones-managed");
+
 // ── the row that decides whether to print a date ────────────────────────────
 //
 // `isToday` compares in the zone the row is drawn in. Left in the activity's it

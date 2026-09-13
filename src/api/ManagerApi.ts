@@ -1059,6 +1059,15 @@ export interface ManagedSubmission {
     id: string;
     activityId: string;
     activitySlug: string;
+    /**
+     * The IANA zone this row's activity keeps its clock in.
+     *
+     * The panel lists rows from several activities at once and every instant is
+     * drawn in the reader's own zone, so a row has to be able to name the clock
+     * a deadline was set on. Without it a manager arguing about whether a
+     * submission beat one would see their own clock and nothing else.
+     */
+    timeZone: string;
     seriesId: string;
     seriesName: string;
     /** The assignment, not the library entry: the slug is the activity's. */
@@ -1239,6 +1248,15 @@ export interface ManagedQuestion {
     id: string;
     activityId: string;
     activitySlug: string;
+    /**
+     * The IANA zone this row's activity keeps its clock in.
+     *
+     * The panel lists rows from several activities at once and every instant is
+     * drawn in the reader's own zone, so a row has to be able to name the clock
+     * a deadline was set on. Without it a manager arguing about whether a
+     * submission beat one would see their own clock and nothing else.
+     */
+    timeZone: string;
     kind: QuestionKind;
     topic: string;
     body: string;

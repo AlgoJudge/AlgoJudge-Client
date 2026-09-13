@@ -265,7 +265,7 @@ export default function ManagerSubmissionPage() {
                     </Group>
                     <Text size="sm" c="dimmed">
                         {submission.userName} · {submission.activitySlug} · {submission.seriesName} ·{" "}
-                        <ActivityTime value={submission.submittedAt} />
+                        <ActivityTime value={submission.submittedAt} timeZone={submission.timeZone} />
                     </Text>
                     <SubmissionOrigin submission={submission} />
                 </Stack>
@@ -326,11 +326,11 @@ export default function ManagerSubmissionPage() {
                                 </Table.Td>
                                 <Table.Td><Text size="sm">{attempt.runnerName ?? "—"}</Text></Table.Td>
                                 <Table.Td>
-                                    <ActivityTime value={attempt.startedAt} />
+                                    <ActivityTime value={attempt.startedAt} timeZone={submission.timeZone} />
                                 </Table.Td>
                                 <Table.Td>
                                     {attempt.finishedAt
-                                        ? <ActivityTime value={attempt.finishedAt} />
+                                        ? <ActivityTime value={attempt.finishedAt} timeZone={submission.timeZone} />
                                         : <Text size="sm" c="dimmed">—</Text>}
                                 </Table.Td>
                                 <Table.Td>

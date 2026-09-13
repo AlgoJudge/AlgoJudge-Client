@@ -80,6 +80,7 @@ const submissionOf = (
         id,
         activityId: activity.id,
         activitySlug: activity.slug,
+        timeZone: "Europe/Warsaw",
         seriesId: series.id,
         seriesName: series.name,
         seriesProblemId: assignmentId(series.id, assignment.slug),

@@ -181,7 +181,7 @@ export default function ManagerQuestionsPage() {
                                 </Group>
                                 <Text size="xs" c="dimmed">
                                     {question.authorName ?? t("Staff")} · {scopeOf(question)} ·{" "}
-                                    <ActivityTime value={question.createdAt} />
+                                    <ActivityTime value={question.createdAt} timeZone={question.timeZone} />
                                     {question.isPublished && ` · ${question.readCount} ${t("reads")}`}
                                 </Text>
                                 <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>{question.body}</Text>
@@ -190,7 +190,7 @@ export default function ManagerQuestionsPage() {
                                     <Card withBorder radius="sm" mt="xs" bg="var(--mantine-color-default-hover)">
                                         <Text size="xs" c="dimmed" mb={4}>
                                             {question.answer.authorName} ·{" "}
-                                            <ActivityTime value={question.answer.answeredAt} />
+                                            <ActivityTime value={question.answer.answeredAt} timeZone={question.timeZone} />
                                         </Text>
                                         <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>{question.answer.body}</Text>
                                     </Card>
