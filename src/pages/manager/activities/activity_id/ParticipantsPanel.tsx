@@ -4,10 +4,10 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     ActivityGroup, Grant, ManagedActivity, ManagedUserSummary, PermissionDefinition,
-    PermissionTemplate,
+    Role,
 } from "../../../../api/ManagerApi";
 import LoadState from "../../../../components/LoadState";
-import { isStaffGrant } from "../../../../api/permissions";
+import { effectivePermissions, isStaffGrant } from "../../../../api/permissions";
 import PermissionSetEditor from "../../../../components/permissions/PermissionSetEditor";
 import TemporaryAccountsModal from "../../../../components/users/TemporaryAccountsModal";
 import ActivityTime from "../../../../components/time/ActivityTime";
@@ -28,8 +28,11 @@ const PAGE_SIZE = 20;
 
 interface Draft {
     userId: string;
+    /** The grant's own entries — additions on top of the role. */
     permissions: string[];
-    createdFromTemplate?: string;
+    /** The role it points at, which is what enrolling normally hands out. */
+    roleId?: string;
+    copiedFromRoleName?: string;
     /** What the manager asked for. Ignored where the permissions settle it. */
     isSystem: boolean;
     existing: boolean;
@@ -49,7 +52,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
     const [catalogue, setCatalogue] = useState<PermissionDefinition[]>([]);
-    const [templates, setTemplates] = useState<PermissionTemplate[]>([]);
+    const [templates, setTemplates] = useState<Role[]>([]);
     const [users, setUsers] = useState<ManagedUserSummary[]>([]);
     const [grantable, setGrantable] = useState<string[]>([]);
     const [draft, setDraft] = useState<Draft | undefined>(undefined);
@@ -64,7 +67,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
         // Both fill a picker in the grant editor and neither is what this tab is
         // for, so a manager who may not read them gets the pickers empty and the
         // roster all the same.
-        setTemplates(await optional(api.managerApi.getPermissionTemplates(), []));
+        setTemplates(await optional(api.managerApi.getRoles(activity.id), []));
         setUsers(await optional(api.managerApi.searchUsers(""), []));
         // What may be handed out here is what the signed-in manager holds **in
         // this activity**, which is not the same set as their system rights.
@@ -93,15 +96,29 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
         }
     };
 
-    const applyTemplate = (name: string | null) => {
+    /**
+     * Points this membership at a role, or takes the link away.
+     *
+     * **Enrolling somebody hands them a role, not a copy of one.** A correction
+     * to it reaches them; what is edited below is what this one person gets on
+     * top of it.
+     */
+    const chooseRole = (id: string | null) => {
         if (!draft) return;
-        const template = templates.find(t => t.name === name);
-        setDraft({
-            ...draft,
-            createdFromTemplate: template?.name,
-            permissions: template ? [...template.permissions] : draft.permissions,
-        });
+        setDraft({ ...draft, roleId: id ?? undefined, copiedFromRoleName: undefined });
     };
+
+    const roleOf = (id: string | undefined) => templates.find(t => t.id === id);
+
+    /**
+     * What the draft would carry once saved: its role and its own entries.
+     *
+     * **The switch is derived from this, not from the entries alone.** A grant
+     * pointing at the manager role holds no entries of its own, so reading only
+     * those would have offered to put whoever runs the activity into its
+     * ranking.
+     */
+    const drafted = (d: Draft) => [...(roleOf(d.roleId)?.permissions ?? []), ...d.permissions];
 
     const save = () => {
         if (!draft?.userId) {
@@ -114,7 +131,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                 activityId: activity.id,
                 permissions: draft.permissions,
                 isSystem: draft.isSystem,
-                createdFromTemplate: draft.createdFromTemplate,
+                roleId: draft.roleId,
             }));
             setDraft(undefined);
         });
@@ -123,7 +140,11 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
     if (!grants) return <LoadState error={loadError} loading={!loadError} />;
 
     const enrolled = new Set(grants.map(g => g.userId));
-    const participantTemplate = templates.find(t => t.isBuiltIn && t.permissions.length > 0);
+    // **What this activity enrols into**, which is the setting that makes a role
+    // of its own reach anybody. Falls back to the shipped one, exactly as the
+    // Server does when the activity has chosen nothing.
+    const participantRole = templates.find(t => t.id === activity.participantRoleId)
+        ?? templates.find(t => t.isBuiltIn && t.name === "participant");
 
     return (
         <Stack gap="md">
@@ -215,8 +236,8 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                         disabled={activity.archivedAt !== undefined}
                         onClick={() => setDraft({
                             userId: "",
-                            permissions: participantTemplate ? [...participantTemplate.permissions] : [],
-                            createdFromTemplate: participantTemplate?.name,
+                            permissions: [],
+                            roleId: participantRole?.id,
                             isSystem: false,
                             existing: false,
                         })}
@@ -256,7 +277,11 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                                 </Group>
                             </Table.Td>
                             <Table.Td>
-                                <Text size="sm" c="dimmed">{grant.createdFromTemplate ?? "—"}</Text>
+                                {/* The role it points at, or — for a set held by
+                                    hand — the label saying where that set began. */}
+                                {grant.roleName
+                                    ? <Badge variant="light" size="sm">{grant.roleName}</Badge>
+                                    : <Text size="sm" c="dimmed">{grant.copiedFromRoleName ?? "—"}</Text>}
                             </Table.Td>
                             <Table.Td>
                                 {/* **Compulsory once set, so this is where it
@@ -275,13 +300,13 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                                     // Staff do not compete, so they are not
                                     // grouped either — the same reason the
                                     // ranking leaves them out.
-                                    disabled={busy || isStaffGrant(grant.permissions, catalogue)}
+                                    disabled={busy || isStaffGrant(effectivePermissions(grant), catalogue)}
                                     onChange={value => void run(() => call(api =>
                                         api.managerApi.setParticipantGroup(
                                             activity.id, grant.userId, value || undefined)))}
                                 />
                             </Table.Td>
-                            <Table.Td><Badge variant="light">{grant.permissions.length}</Badge></Table.Td>
+                            <Table.Td><Badge variant="light">{effectivePermissions(grant).length}</Badge></Table.Td>
                             <Table.Td>
                                 <Badge variant="light" color={grant.state === "active" ? "teal" : "blue"}>
                                     {t(`grantState.${grant.state}`)}
@@ -298,7 +323,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                                         onClick={() => setDraft({
                                             userId: grant.userId,
                                             permissions: [...grant.permissions],
-                                            createdFromTemplate: grant.createdFromTemplate,
+                                            roleId: grant.roleId,
                                             isSystem: grant.isSystem,
                                             existing: true,
                                         })}
@@ -348,11 +373,12 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                             required
                         />
                         <Select
-                            label={t("Start from a template")}
-                            description={t("A template fills the set in and is then forgotten")}
-                            data={templates.map(template => ({ value: template.name, label: template.name }))}
-                            value={draft.createdFromTemplate ?? null}
-                            onChange={applyTemplate}
+                            label={t("Role")}
+                            description={t("A link, not a copy: editing the role changes what this person may do.")}
+                            placeholder={t("No role — a set held by hand")}
+                            data={templates.map(role => ({ value: role.id, label: role.name }))}
+                            value={draft.roleId ?? null}
+                            onChange={chooseRole}
                             clearable
                         />
                         <PermissionSetEditor
@@ -361,6 +387,8 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                             onChange={permissions => setDraft({ ...draft, permissions })}
                             grantable={grantable}
                             scope="activity"
+                            inherited={roleOf(draft.roleId)?.permissions}
+                            inheritedFrom={roleOf(draft.roleId)?.name}
                         />
                         {/* Forced on for staff: a jury member in the ranking
                             beside the students is a bug, not a preference. Free
@@ -369,12 +397,12 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                             what it is for. */}
                         <Switch
                             label={t("Systemic membership")}
-                            description={isStaffGrant(draft.permissions, catalogue)
+                            description={isStaffGrant(drafted(draft), catalogue)
                                 ? t("Whoever runs the activity does not compete in it, so this cannot be turned off.")
                                 : t("Submits like anybody, counts as nobody: absent from the participant count and from the ranking.")}
-                            checked={isStaffGrant(draft.permissions, catalogue) || draft.isSystem}
+                            checked={isStaffGrant(drafted(draft), catalogue) || draft.isSystem}
                             onChange={e => setDraft({ ...draft, isSystem: e.currentTarget.checked })}
-                            disabled={isStaffGrant(draft.permissions, catalogue)}
+                            disabled={isStaffGrant(drafted(draft), catalogue)}
                         />
                         <Alert color="blue">
                             {t("Nobody may grant a permission they do not hold themselves.")}

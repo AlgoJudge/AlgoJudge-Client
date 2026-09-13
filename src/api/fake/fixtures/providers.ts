@@ -47,8 +47,8 @@ const REGISTERED: IdentityProvider[] = [
         hasDeletionSecret: false,
         callbackPath: "/api/v1/identity/providers/university/callback",
         mappingRules: [
-            { claimValue: "students", templateName: "participant" },
-            { claimValue: "lecturers", templateName: "manager" },
+            { claimValue: "students", roleName: "participant" },
+            { claimValue: "lecturers", roleName: "manager" },
         ],
         // Deleting one with people behind it is refused, so the screen needs a
         // provider that has some.
@@ -66,13 +66,13 @@ const REGISTERED: IdentityProvider[] = [
         claimPath: "groups",
         // The other half of the switch: this one admits anybody the directory
         // vouches for, as a participant.
-        unmappedBehavior: "defaultTemplate",
-        defaultTemplateName: "participant",
+        unmappedBehavior: "defaultRole",
+        defaultRoleName: "participant",
         deletionChannelEnabled: true,
         hasClientSecret: true,
         hasDeletionSecret: true,
         callbackPath: "/api/v1/identity/providers/algojudge/callback",
-        mappingRules: [{ claimValue: "staff", templateName: "jury" }],
+        mappingRules: [{ claimValue: "staff", roleName: "jury" }],
         linkedAccounts: 0,
         createdAt: "2026-08-05T11:30:00Z",
     },

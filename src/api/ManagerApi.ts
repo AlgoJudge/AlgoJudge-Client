@@ -52,19 +52,44 @@ export interface PermissionDefinition {
     systemic: boolean;
 }
 
-export interface PermissionTemplate {
+/**
+ * A named permission set a {@link Grant} points at.
+ *
+ * **A grant holds the link, not a copy**, so editing a role changes what
+ * everybody linked to it may do, at once — which is the whole reason it stopped
+ * being a template. The cost is that it fails open, and four things answer that:
+ * a role belongs either to the installation or to one activity, nobody may put
+ * into one a permission they do not hold, every linked grant's systemic flag is
+ * recomputed on each edit, and {@link Role.grants} says how far an edit reaches
+ * before it is made.
+ */
+export interface Role {
     id: string;
     name: string;
     description?: string;
     permissions: string[];
     /** One of the three shipped. Deleting one is refused. */
     isBuiltIn: boolean;
+    /**
+     * Absent for a role the installation shares; otherwise the activity that
+     * owns it, where only that activity's grants may point at it.
+     */
+    activityId?: string;
+    activityName?: string;
+    /** How many grants point at it — how many people an edit reaches. */
+    grants: number;
 }
 
-export interface PermissionTemplateInput {
+export interface RoleInput {
     name: string;
     description?: string;
     permissions: string[];
+    /**
+     * The activity that owns it, or absent for one the installation shares.
+     * Settable only at creation: moving a role between scopes would silently
+     * change who every linked grant answers to.
+     */
+    activityId?: string;
 }
 
 export type GrantState = "invited" | "active";
@@ -126,7 +151,21 @@ export interface Grant {
     /** The group this person competes as here, or absent for themselves. */
     groupId?: string;
     groupName?: string;
+    /**
+     * This grant's **own** entries — what it adds on top of its role, or the
+     * whole set where it points at none.
+     *
+     * What the person actually holds is this unioned with
+     * {@link Grant.rolePermissions}; `effectivePermissions` in `api/permissions`
+     * is the one place that union is written. Two fields rather than one,
+     * because a screen edits the first and may not edit the second.
+     */
     permissions: string[];
+    /** The role this grant points at, if it points at one. */
+    roleId?: string;
+    roleName?: string;
+    /** What that role contributes. Empty where there is no role. */
+    rolePermissions: string[];
     /**
      * A membership that is not a participation: whoever runs the activity, a
      * reference solution, a monitor. Submits like anybody, counts as nobody —
@@ -139,8 +178,11 @@ export interface Grant {
      * somebody says otherwise.
      */
     isSystem: boolean;
-    /** Where the set started. Informational: it is not a reference. */
-    createdFromTemplate?: string;
+    /**
+     * Where a copied set started. Informational, not a reference, and absent on
+     * anything that points at a role.
+     */
+    copiedFromRoleName?: string;
     state: GrantState;
     createdAt: string;
 
@@ -190,7 +232,13 @@ export interface GrantInput {
      * Client maintained is a flag the next caller sets to whatever it likes.
      */
     isSystem?: boolean;
-    createdFromTemplate?: string;
+    /**
+     * The role to point at, or absent to leave the grant holding its own set
+     * alone. A global role, or one belonging to this grant's activity.
+     */
+    roleId?: string;
+    /** Ignored when {@link GrantInput.roleId} is set: the link says it. */
+    copiedFromRoleName?: string;
     state?: GrantState;
     /**
      * Make this activity grant authoritative inside its activity. Ignored at
@@ -229,8 +277,8 @@ export interface IdentityProvider {
     deletionUrl?: string;
     /** Where in the token the mapped value lives: `groups`, `realm_access.roles`. */
     claimPath: string;
-    unmappedBehavior: "deny" | "defaultTemplate";
-    defaultTemplateName?: string;
+    unmappedBehavior: "deny" | "defaultRole";
+    defaultRoleName?: string;
     deletionChannelEnabled: boolean;
     hasClientSecret: boolean;
     hasDeletionSecret: boolean;
@@ -248,17 +296,19 @@ export interface IdentityProvider {
 }
 
 /**
- * One line of the allowlist: this claim value grants this template.
+ * One line of the allowlist: this claim value grants this role.
  *
- * **The one place anything points at a permission template.** A grant does not —
- * choosing one copies its permissions and nothing points back — so editing a
- * template touches nobody who already used it. A rule is different: the
- * contribution is re-derived from it at every sign-in, so editing the template it
- * names *does* reach people, at their next sign-in.
+ * **The contribution this writes is the one grant that is still a copy.** A
+ * claim may match several rules at once and the contribution is the union of
+ * every role they name, which a single link cannot express. It loses nothing:
+ * the union is rewritten from the rules at every sign-in, so editing a role a
+ * rule names reaches those people then rather than immediately.
+ *
+ * Only a global role may be named — mapping is system scope.
  */
 export interface MappingRule {
     claimValue: string;
-    templateName: string;
+    roleName: string;
 }
 
 export interface IdentityProviderInput {
@@ -277,8 +327,8 @@ export interface IdentityProviderInput {
     accountUrl?: string;
     deletionUrl?: string;
     claimPath?: string;
-    unmappedBehavior?: "deny" | "defaultTemplate";
-    defaultTemplateName?: string;
+    unmappedBehavior?: "deny" | "defaultRole";
+    defaultRoleName?: string;
     deletionChannelEnabled: boolean;
     deletionSecret?: string;
     /** Replaced wholesale. An empty list clears the allowlist, which is a real instruction. */
@@ -505,6 +555,15 @@ export interface ManagedActivity {
      * claimed.
      */
     matchingRunners: number;
+
+    /**
+     * The roles this activity enrols into, or absent for the installation's
+     * shipped ones. What self-enrolment, a bulk of temporary accounts and an LTI
+     * launch hand out here — and the setting that makes a role belonging to this
+     * activity reach anybody at all.
+     */
+    participantRoleId?: string;
+    managerRoleId?: string;
 }
 
 export interface ActivityInput {
@@ -540,6 +599,13 @@ export interface ActivityInput {
     maxSubmissionsPerProblem?: number;
     /** Which Runners judge this activity. Empty is the default pool. */
     runnerTags?: string[];
+
+    /**
+     * The roles this activity enrols into. Absent leaves them alone; an empty
+     * string clears one back to the installation's shipped role.
+     */
+    participantRoleId?: string;
+    managerRoleId?: string;
 }
 
 export interface ManagedActivityFilter {
@@ -1628,13 +1694,13 @@ export interface InstanceFontInput {
     name: string;
 }
 
-export type ManagerEventType = "permissionTemplateChanged" | "grantChanged" | "problemChanged"
+export type ManagerEventType = "roleChanged" | "grantChanged" | "problemChanged"
     | "activityChanged" | "managerSeriesChanged" | "submissionChanged" | "questionChanged" | "userChanged"
     | "runnerChanged" | "instanceChanged" | "printoutChanged";
 export type ManagerEvent<T extends ManagerEventType, V> = Event<T, V>;
 
-export type PermissionTemplateChangedEvent = ManagerEvent<"permissionTemplateChanged", {
-    template?: PermissionTemplate;
+export type RoleChangedEvent = ManagerEvent<"roleChanged", {
+    template?: Role;
     deletedId?: string;
 }>;
 
@@ -1708,7 +1774,7 @@ export type InstanceChangedEvent = ManagerEvent<"instanceChanged", {
 }>;
 
 export interface ManagerEventDispatcher {
-    addEventListener(type: "permissionTemplateChanged", listener: (evt: PermissionTemplateChangedEvent) => void, signal: AbortSignal): void;
+    addEventListener(type: "roleChanged", listener: (evt: RoleChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "grantChanged", listener: (evt: GrantChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "problemChanged", listener: (evt: ProblemChangedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "activityChanged", listener: (evt: ActivityChangedEvent) => void, signal: AbortSignal): void;
@@ -1749,10 +1815,15 @@ export interface ManagerApi {
      */
     getMyAccess(signal: AbortSignal): Promise<string[]>;
 
-    getPermissionTemplates(signal: AbortSignal): Promise<PermissionTemplate[]>;
-    createPermissionTemplate(input: PermissionTemplateInput, signal: AbortSignal): Promise<PermissionTemplate>;
-    updatePermissionTemplate(id: string, input: PermissionTemplateInput, signal: AbortSignal): Promise<PermissionTemplate>;
-    deletePermissionTemplate(id: string, signal: AbortSignal): Promise<void>;
+    /**
+     * The installation's roles, plus one activity's own when it is named. An
+     * activity's role is only grantable there, so a picker that asked for every
+     * activity's would offer roles it could not use.
+     */
+    getRoles(activityId: string | undefined, signal: AbortSignal): Promise<Role[]>;
+    createRole(input: RoleInput, signal: AbortSignal): Promise<Role>;
+    updateRole(id: string, input: RoleInput, signal: AbortSignal): Promise<Role>;
+    deleteRole(id: string, signal: AbortSignal): Promise<void>;
 
     getGrants(filter: GrantFilter, signal: AbortSignal): Promise<Page<Grant>>;
 

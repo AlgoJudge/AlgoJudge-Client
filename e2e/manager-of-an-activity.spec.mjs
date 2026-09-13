@@ -1,14 +1,14 @@
 // A manager of one activity, against a real Server.
 //
 // **The report this exists for**: a participant was granted the `manager`
-// template *inside an activity*, and the panel's screens then answered
+// role *inside an activity*, and the panel's screens then answered
 // *"Access denied: problem:read:own is required"*. The panel offered them,
 // because the guard asks what the person holds **anywhere**; the screens refused
 // them, because the Server asked what they hold at **system scope**, where a
 // grant written on an activity says nothing.
 //
 // Nothing else in either repository can see this. `check:ui` drives the fake,
-// whose account fixtures held a system-scope set no template grants; the
+// whose account fixtures held a system-scope set no role grants; the
 // Server's own suite drives the API with no Client. This drives the screens
 // against a Server that authorises them.
 //
@@ -58,21 +58,21 @@ test("a manager granted inside an activity can use the panel", async ({ page, pl
     const person = (await people.json()).items.find(u => u.username === PERSON.login);
     expect(person, `no account named ${PERSON.login} in this database`).toBeTruthy();
 
-    // **The template as it ships**, read rather than transcribed: a copy in this
+    // **The role as it ships**, read rather than transcribed: a copy in this
     // file would pass while the product's own set said something else.
-    const templates = await admin.get(api("/permission-templates"));
-    expect(templates.status(), await templates.text()).toBe(200);
-    const manager = (await templates.json()).find(t => t.name === "manager");
-    expect(manager, "no shipped template named manager").toBeTruthy();
+    const roles = await admin.get(api("/roles"));
+    expect(roles.status(), await roles.text()).toBe(200);
+    const manager = (await roles.json()).find(t => t.name === "manager");
+    expect(manager, "no shipped role named manager").toBeTruthy();
 
-    // Scoped to the activity — which is the whole point, and the shape
-    // `ActivityService` writes for whoever creates one.
+    // Scoped to the activity, and **pointed at the role rather than holding a
+    // copy of it** — the shape `ActivityService` writes for whoever creates one.
     const granted = await admin.post(api("/grants"), {
         data: {
             userId: person.id,
             activityId: activity.id,
-            permissions: manager.permissions,
-            createdFromTemplate: "manager",
+            permissions: [],
+            roleId: manager.id,
         },
     });
     expect(granted.status(), await granted.text()).toBe(200);

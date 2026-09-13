@@ -35,13 +35,13 @@ await click(grantName);
 const grant = await modal();
 check(grant !== null && /nadanie|grant/i.test(grant), "clicking it opens the grant editor");
 
-// 3 — permission templates: the name opens the editor.
-await go(`${APP}/manager/permission-templates?fakeUser=amy`, `document.body.innerText.includes("admin")`);
-const templateName = `[...document.querySelectorAll("p")].find(p => p.textContent.trim() === "manager")`;
-check(await cursorOf(templateName) === "pointer", "a template name shows a pointer");
-await click(templateName);
-const template = await modal();
-check(template !== null && /szablon|template/i.test(template), "clicking it opens the template editor");
+// 3 — roles: the name opens the editor.
+await go(`${APP}/manager/roles?fakeUser=amy`, `document.body.innerText.includes("admin")`);
+const roleName = `[...document.querySelectorAll("p")].find(p => p.textContent.trim() === "manager")`;
+check(await cursorOf(roleName) === "pointer", "a role name shows a pointer");
+await click(roleName);
+const role = await modal();
+check(role !== null && /rol[ęa]|role/i.test(role), "clicking it opens the role editor");
 
 // 4 — submissions: the date opens the submission.
 await go(`${APP}/manager/submissions?fakeUser=amy`, `document.querySelectorAll("tbody tr").length > 0`);

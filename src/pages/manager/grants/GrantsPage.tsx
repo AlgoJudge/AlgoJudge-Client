@@ -9,8 +9,9 @@ import {
     ManagedActivitySummary,
     ManagedUserSummary,
     PermissionDefinition,
-    PermissionTemplate,
+    Role,
 } from "../../../api/ManagerApi";
+import { effectivePermissions } from "../../../api/permissions";
 import LoadState from "../../../components/LoadState";
 import PermissionSetEditor from "../../../components/permissions/PermissionSetEditor";
 import ActivityTime from "../../../components/time/ActivityTime";
@@ -22,8 +23,11 @@ const PAGE_SIZE = 20;
 interface Draft {
     userId: string;
     activityId?: string;
+    /** The grant's own entries — additions on top of the role, or the whole set. */
     permissions: string[];
-    createdFromTemplate?: string;
+    /** The role it points at, or none for a set held by hand. */
+    roleId?: string;
+    copiedFromRoleName?: string;
     /** An existing grant is being edited; the pair cannot be changed. */
     existing: boolean;
     /**
@@ -49,7 +53,7 @@ export default function GrantsPage() {
     const [activityFilter, setActivityFilter] = useState<string | null>(null);
 
     const [catalogue, setCatalogue] = useState<PermissionDefinition[]>([]);
-    const [templates, setTemplates] = useState<PermissionTemplate[]>([]);
+    const [templates, setTemplates] = useState<Role[]>([]);
     const [users, setUsers] = useState<ManagedUserSummary[]>([]);
     const [activities, setActivities] = useState<ManagedActivitySummary[]>([]);
     const [grantable, setGrantable] = useState<string[]>([]);
@@ -62,7 +66,7 @@ export default function GrantsPage() {
     const loadError = useApiEffect(async (api) => {
         setCatalogue(await api.managerApi.getPermissionCatalogue());
         // Pickers, not the page. See `optional`.
-        setTemplates(await optional(api.managerApi.getPermissionTemplates(), []));
+        setTemplates(await optional(api.managerApi.getRoles(activityFilter ?? undefined), []));
         setUsers(await optional(api.managerApi.searchUsers(""), []));
         setActivities(await api.managerApi.getManagedActivities());
 
@@ -91,17 +95,20 @@ export default function GrantsPage() {
         await loadGrantable(draft.activityId);
     };
 
-    const applyTemplate = (name: string | null) => {
+    /**
+     * Points the grant at a role, or takes the link away.
+     *
+     * **It no longer copies anything.** What the role holds stays the role's, so
+     * a correction to it reaches this person; the set edited below is what this
+     * grant adds on top. Clearing the link leaves those additions alone — they
+     * are somebody's decision about this person, and the role was not.
+     */
+    const chooseRole = (id: string | null) => {
         if (!draft) return;
-        const template = templates.find(t => t.name === name);
-        // A template fills the set in and is then forgotten; the name is kept as
-        // a label so the screen can say where a set started, not what it is.
-        setDraft({
-            ...draft,
-            createdFromTemplate: template?.name,
-            permissions: template ? [...template.permissions] : draft.permissions,
-        });
+        setDraft({ ...draft, roleId: id ?? undefined, copiedFromRoleName: undefined });
     };
+
+    const roleOf = (id: string | undefined) => templates.find(t => t.id === id);
 
     /**
      * Whether this person already holds something across the installation.
@@ -112,7 +119,8 @@ export default function GrantsPage() {
      */
     const holdsSystemPermissions = (userId: string): boolean =>
         (grants ?? []).some(g =>
-            g.userId === userId && g.activityId === undefined && g.permissions.length > 0);
+            g.userId === userId && g.activityId === undefined
+            && effectivePermissions(g).length > 0);
 
     const save = async () => {
         if (!draft) return;
@@ -127,7 +135,7 @@ export default function GrantsPage() {
                 userId: draft.userId,
                 activityId: draft.activityId,
                 permissions: draft.permissions,
-                createdFromTemplate: draft.createdFromTemplate,
+                roleId: draft.roleId,
                 overrideSystem: draft.overrideSystem,
             }));
             setDraft(undefined);
@@ -232,7 +240,8 @@ export default function GrantsPage() {
                                             userId: grant.userId,
                                             activityId: grant.activityId,
                                             permissions: [...grant.permissions],
-                                            createdFromTemplate: grant.createdFromTemplate,
+                                            roleId: grant.roleId,
+                                            copiedFromRoleName: grant.copiedFromRoleName,
                                             existing: true,
                                             overrideSystem: grant.overrideSystem,
                                             holdsSystem: holdsSystemPermissions(grant.userId),
@@ -253,13 +262,20 @@ export default function GrantsPage() {
                                     )}
                             </Table.Td>
                             <Table.Td>
-                                {grant.permissions.includes("system:administrator")
+                                {/* What they hold, which is the role and the
+                                    grant's own entries together. */}
+                                {effectivePermissions(grant).includes("system:administrator")
                                     ? <Badge color="orange" variant="light">{t("Administrator")}</Badge>
-                                    : <Badge variant="outline">{grant.permissions.length}</Badge>}
+                                    : <Badge variant="outline">{effectivePermissions(grant).length}</Badge>}
                             </Table.Td>
                             <Table.Td>
                                 <Stack gap={2}>
-                                    <Text size="sm" c="dimmed">{grant.createdFromTemplate ?? "—"}</Text>
+                                    {/* The role it points at, or — for a set
+                                        held by hand — the label saying where
+                                        that set began. */}
+                                    {grant.roleName
+                                        ? <Badge variant="light" size="sm">{grant.roleName}</Badge>
+                                        : <Text size="sm" c="dimmed">{grant.copiedFromRoleName ?? "—"}</Text>}
                                     {/* At system scope a person's permissions are
                                         the union of several rows — one assigned by
                                         hand, one per linked provider — so a list
@@ -305,7 +321,8 @@ export default function GrantsPage() {
                                             userId: grant.userId,
                                             activityId: grant.activityId,
                                             permissions: [...grant.permissions],
-                                            createdFromTemplate: grant.createdFromTemplate,
+                                            roleId: grant.roleId,
+                                            copiedFromRoleName: grant.copiedFromRoleName,
                                             existing: true,
                                             overrideSystem: grant.overrideSystem,
                                             holdsSystem: holdsSystemPermissions(grant.userId),
@@ -389,12 +406,12 @@ export default function GrantsPage() {
                         )}
 
                         <Select
-                            label={t("Start from a template")}
-                            description={t("Copies its permissions in. Nothing links back to it afterwards.")}
-                            placeholder={t("Choose a template")}
-                            data={templates.map(tpl => ({ value: tpl.name, label: tpl.name }))}
-                            value={draft.createdFromTemplate ?? null}
-                            onChange={applyTemplate}
+                            label={t("Role")}
+                            description={t("A link, not a copy: editing the role changes what this person may do.")}
+                            placeholder={t("No role — a set held by hand")}
+                            data={templates.map(role => ({ value: role.id, label: role.name }))}
+                            value={draft.roleId ?? null}
+                            onChange={chooseRole}
                             clearable
                         />
 
@@ -404,6 +421,8 @@ export default function GrantsPage() {
                             onChange={permissions => setDraft({ ...draft, permissions })}
                             grantable={grantable}
                             scope={editorScope}
+                            inherited={roleOf(draft.roleId)?.permissions}
+                            inheritedFrom={roleOf(draft.roleId)?.name}
                         />
 
                         {error && <Alert color="red">{error}</Alert>}

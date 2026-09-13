@@ -4,13 +4,13 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ACTIVITY_DOCUMENT_KINDS, activityEntryPath } from "../../../../api/activityDocuments";
-import { ActivityInput, ManagedActivity, ManagedProblem, ManagedSeries } from "../../../../api/ManagerApi";
+import { ActivityInput, ManagedActivity, ManagedProblem, ManagedSeries, Role } from "../../../../api/ManagerApi";
 import { ActivityDocumentKind, ActivityDocumentRef } from "../../../../api/ParticipantApi";
 import ActivityForm from "../../../../components/activity/ActivityForm";
 import { toInput } from "../../../../components/activity/activityInput";
 import DocumentsPanel from "../../../../components/content/DocumentsPanel";
 import LoadState from "../../../../components/LoadState";
-import { useApiCall, useApiEffect } from "../../../../provider/apiContext";
+import { optional, useApiCall, useApiEffect } from "../../../../provider/apiContext";
 import { sha256 } from "../../../../utils/sha256";
 import ParticipantsPanel from "./ParticipantsPanel";
 import SeriesPanel from "./SeriesPanel";
@@ -29,6 +29,7 @@ export default function ManagerActivityPage() {
     const [draft, setDraft] = useState<ActivityInput | undefined>(undefined);
     const [series, setSeries] = useState<ManagedSeries[]>([]);
     const [problems, setProblems] = useState<ManagedProblem[]>([]);
+    const [roles, setRoles] = useState<Role[]>([]);
     const [error, setError] = useState<string | undefined>(undefined);
     const [busy, setBusy] = useState(false);
     const [reload, setReload] = useState(0);
@@ -47,6 +48,15 @@ export default function ManagerActivityPage() {
         setDraft(toInput(loaded));
         setSeries(loadedSeries);
         setProblems(library.items);
+
+        // **After the page is drawn, not before it.** Only the settings tab's
+        // two pickers read these, and awaiting them up there put another round
+        // trip in front of the first paint — enough that the tab strip was not
+        // there yet when `verify-settings` reached for it.
+        //
+        // A picker, not the page: a manager who may not read the roles still
+        // edits everything else here. See `optional`.
+        setRoles(await optional(api.managerApi.getRoles(loaded.id), []));
 
         api.managerApi.eventDispatcher.addEventListener("managerSeriesChanged", evt => {
             if (evt.data.activityId === loaded.id) setReload(n => n + 1);
@@ -144,6 +154,7 @@ export default function ManagerActivityPage() {
                             slugLocked
                             disabled={activity.archivedAt !== undefined}
                             matchingRunners={activity.matchingRunners}
+                            roles={roles}
                         />
                         <Group justify="flex-end">
                             <Button data-testid="save"

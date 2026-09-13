@@ -43,13 +43,19 @@ const offered = await evaluate(`
 `);
 check(offered.length > 0, `the panel offers ${offered.length}: ${offered.join(" ")}`);
 
-// The seven administration areas are installation-wide and deliberately not a
-// manager's. Naming them is what makes the list above evidence rather than a
-// tally: if one appears, a template gained a permission nobody decided on.
-for (const withheld of ["/manager/users", "/manager/permission-templates", "/manager/runners",
+// The six administration areas that are installation-wide and deliberately not
+// a manager's. Naming them is what makes the list above evidence rather than a
+// tally: if one appears, a role gained a permission nobody decided on.
+for (const withheld of ["/manager/users", "/manager/runners",
     "/manager/instance", "/manager/oidc", "/manager/lti", "/manager/external-content"]) {
     check(!offered.includes(withheld), `and does not offer ${withheld}`);
 }
+
+// **Roles moved from that list**, and the move is the feature. A manager may
+// write the roles of the activity they run — `role:manage` is scoped, so this
+// account reaches its own course's roles and none of the installation's. The
+// area appearing here is what makes that reachable at all.
+check(offered.includes("/manager/roles"), "and does offer /manager/roles, which is scoped");
 
 // ── each one, opened ────────────────────────────────────────────────────────
 //

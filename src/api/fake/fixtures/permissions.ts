@@ -1,9 +1,9 @@
-import { Grant, ManagedActivitySummary, ManagedUserSummary, PermissionDefinition, PermissionTemplate } from "../../ManagerApi";
+import { Grant, ManagedActivitySummary, ManagedUserSummary, PermissionDefinition, Role } from "../../ManagerApi";
 import { isStaffGrant } from "../../permissions";
 import { CONTEST_ID, COURSE_ID, WORKSHOP_ID, WORLD } from "./world";
 
 /**
- * The permission catalogue and the shipped templates.
+ * The permission catalogue and the shipped roles.
  *
  * Mirrors `AlgoJudge-Server`'s `Authorization/Permissions.cs`, which is what
  * enforces it — in the real product this list comes from the Server and here it
@@ -15,7 +15,7 @@ import { CONTEST_ID, COURSE_ID, WORKSHOP_ID, WORLD } from "./world";
  * them, and it is a check somebody runs — run it when a permission is added.
  */
 
-/** The eight an ordinary participant holds, and what the template starts with. */
+/** The eight an ordinary participant holds, and what the role starts with. */
 const PARTICIPANT = [
     "activity:read",
     "submission:read:own",
@@ -102,8 +102,8 @@ export const PERMISSION_CATALOGUE: PermissionDefinition[] = [
     definition("grant:read:all", "grant", "both"),
     definition("grant:update", "grant", "both"),
 
-    definition("template:read", "template", "global"),
-    definition("template:manage", "template", "global"),
+    definition("role:read", "role", "both"),
+    definition("role:manage", "role", "both"),
 
     definition("runner:read", "runner", "global"),
     definition("runner:approve", "runner", "global"),
@@ -139,34 +139,49 @@ const MANAGER = [
     "ranking:read:unfrozen", "ranking:unfreeze",
     "user:create:temporary",
     "grant:read:all", "grant:update",
+    "role:read", "role:manage",
 ];
 
-export const createTemplates = (): PermissionTemplate[] => [
+/**
+ * The shipped roles' ids, so a grant fixture can point at one rather than spell
+ * a set out beside it. Stable, because the seeded grants name them.
+ */
+export const ROLE_IDS = {
+    participant: "018f2c00-0000-7000-8000-0000000000a1",
+    manager: "018f2c00-0000-7000-8000-0000000000a2",
+    admin: "018f2c00-0000-7000-8000-0000000000a3",
+    jury: "018f2c00-0000-7000-8000-0000000000a4",
+} as const;
+
+export const createRoles = (): Role[] => [
     {
-        id: "018f2c00-0000-7000-8000-0000000000a1",
+        id: ROLE_IDS.participant,
         name: "participant",
         description: "Bierze udział: rozwiązuje zadania i widzi swoje wyniki.",
         permissions: [...PARTICIPANT],
         isBuiltIn: true,
+        grants: 0,
     },
     {
-        id: "018f2c00-0000-7000-8000-0000000000a2",
+        id: ROLE_IDS.manager,
         name: "manager",
         description: "Prowadzi aktywność: zadania, zgłoszenia, pytania, zapisy.",
         permissions: [...MANAGER],
         isBuiltIn: true,
+        grants: 0,
     },
     {
-        id: "018f2c00-0000-7000-8000-0000000000a3",
+        id: ROLE_IDS.admin,
         // One entry, because it bypasses the rest. An administrator with a list
         // of individual permissions is an administrator who can be trimmed.
         name: "admin",
         description: "Administruje instalacją. Omija wszystkie sprawdzenia.",
         permissions: ["system:administrator"],
         isBuiltIn: true,
+        grants: 0,
     },
     {
-        id: "018f2c00-0000-7000-8000-0000000000a4",
+        id: ROLE_IDS.jury,
         name: "jury",
         description: "Widzi zgłoszenia i odpowiada na pytania, nie zmienia ustawień.",
         permissions: [
@@ -176,6 +191,7 @@ export const createTemplates = (): PermissionTemplate[] => [
             "ranking:read", "ranking:read:unfrozen",
         ],
         isBuiltIn: false,
+        grants: 0,
     },
 ];
 
@@ -186,10 +202,18 @@ export const createTemplates = (): PermissionTemplate[] => [
  * about who somebody is.
  */
 const named = (
-    grant: Omit<Grant, "userName" | "userLogin" | "isSystem" | "source" | "managed" | "overrideSystem">
+    grant: Omit<Grant,
+        "userName" | "userLogin" | "isSystem" | "source" | "managed" | "overrideSystem"
+        | "rolePermissions">
         & Partial<Pick<Grant, "source" | "managed" | "overrideSystem">>,
 ): Grant => {
     const user = MANAGED_USERS.find(u => u.id === grant.userId);
+    // What the role contributes, read from the role rather than spelled out
+    // again here — a fixture that wrote both would be a fixture that could
+    // disagree with itself about somebody's access.
+    const role = grant.roleId
+        ? createRoles().find(r => r.id === grant.roleId)?.permissions ?? []
+        : [];
     return {
         // Defaults ahead of the spread, so a fixture that states one wins.
         // Every seeded grant is a manual contribution: nothing in the fake has
@@ -201,9 +225,11 @@ const named = (
         ...grant,
         userName: user?.name ?? grant.userId,
         userLogin: user?.username ?? grant.userId,
+        rolePermissions: role,
         // Derived, never written down twice: whoever runs the activity is
-        // systemic by virtue of what they may do in it.
-        isSystem: isStaffGrant(grant.permissions, PERMISSION_CATALOGUE),
+        // systemic by virtue of what they may do in it — through the role it
+        // points at as much as through its own entries.
+        isSystem: isStaffGrant([...role, ...grant.permissions], PERMISSION_CATALOGUE),
     };
 };
 
@@ -221,8 +247,8 @@ export const createGrants = (): Grant[] => [
     named({
         id: "018f2c00-0000-7000-8000-0000000000b1",
         userId: "user-admin",
-        permissions: ["system:administrator"],
-        createdFromTemplate: "admin",
+        permissions: [],
+        roleId: ROLE_IDS.admin,
         state: "active",
         createdAt: new Date(Date.now() - 86400000 * 400).toISOString(),
     }),
@@ -231,8 +257,8 @@ export const createGrants = (): Grant[] => [
         userId: "user-kowalski",
         activityId: COURSE_ID,
         activityName: nameOf(COURSE_ID),
-        permissions: [...MANAGER],
-        createdFromTemplate: "manager",
+        permissions: [],
+        roleId: ROLE_IDS.manager,
         state: "active",
         createdAt: new Date(Date.now() - 86400000 * 30).toISOString(),
     }),
@@ -244,7 +270,7 @@ export const createGrants = (): Grant[] => [
         activityId: CONTEST_ID,
         activityName: nameOf(CONTEST_ID),
         permissions: MANAGER.filter(p => p !== "activity:update"),
-        createdFromTemplate: "manager",
+        copiedFromRoleName: "manager",
         state: "active",
         createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
     }),
@@ -266,8 +292,8 @@ export const createGrants = (): Grant[] => [
         userId: "user-me",
         activityId: CONTEST_ID,
         activityName: nameOf(CONTEST_ID),
-        permissions: [...PARTICIPANT],
-        createdFromTemplate: "participant",
+        permissions: [],
+        roleId: ROLE_IDS.participant,
         state: "active",
         createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
     }),
@@ -280,8 +306,8 @@ export const createGrants = (): Grant[] => [
         userId: "user-me",
         activityId: COURSE_ID,
         activityName: nameOf(COURSE_ID),
-        permissions: [...MANAGER],
-        createdFromTemplate: "manager",
+        permissions: [],
+        roleId: ROLE_IDS.manager,
         state: "active",
         createdAt: new Date(Date.now() - 86400000 * 20).toISOString(),
     }),
@@ -290,8 +316,8 @@ export const createGrants = (): Grant[] => [
         userId: "user-nowak",
         activityId: WORKSHOP_ID,
         activityName: nameOf(WORKSHOP_ID),
-        permissions: [...PARTICIPANT],
-        createdFromTemplate: "participant",
+        permissions: [],
+        roleId: ROLE_IDS.participant,
         state: "invited",
         createdAt: new Date(Date.now() - 3600000).toISOString(),
     }),
@@ -307,7 +333,7 @@ export const createGrants = (): Grant[] => [
  */
 export const MY_SYSTEM_PERMISSIONS = [
     ...PARTICIPANT,
-    "template:read", "template:manage",
+    "role:read", "role:manage",
     "grant:read:all", "grant:update",
     "user:read:all", "user:create", "user:update", "user:block", "user:create:temporary",
     "activity:create", "activity:update", "activity:archive", "activity:enroll",

@@ -54,7 +54,7 @@ const UsersPage = lazy(() => import('./pages/manager/users/UsersPage'));
 const RunnersPage = lazy(() => import('./pages/manager/runners/RunnersPage'));
 const ManagerActivitiesPage = lazy(() => import('./pages/manager/activities/ManagerActivitiesPage'));
 const ManagerActivityPage = lazy(() => import('./pages/manager/activities/activity_id/ManagerActivityPage'));
-const PermissionTemplatesPage = lazy(() => import('./pages/manager/permission_templates/PermissionTemplatesPage'));
+const RolesPage = lazy(() => import('./pages/manager/roles/RolesPage'));
 const GrantsPage = lazy(() => import('./pages/manager/grants/GrantsPage'));
 const ManagerProblemsPage = lazy(() => import('./pages/manager/problems/ManagerProblemsPage'));
 const ManagerProblemPage = lazy(() => import('./pages/manager/problems/problem_id/ManagerProblemPage'));
@@ -254,7 +254,7 @@ function App() {
                 managerRoute("/manager/questions", <ManagerQuestionsPage />),
                 managerRoute("/manager/printouts", <ManagerPrintoutsPage />),
                 managerRoute("/manager/grants", <GrantsPage />),
-                managerRoute("/manager/permission-templates", <PermissionTemplatesPage />),
+                managerRoute("/manager/roles", <RolesPage />),
                 managerRoute("/manager/runners", <RunnersPage />),
                 managerRoute("/manager/instance", <ManagerInstancePage />),
                 managerRoute("/manager/external-content", <ManagerExternalContentPage />),

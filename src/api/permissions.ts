@@ -38,3 +38,19 @@ export const systemicByDefault = (
     catalogue: readonly PermissionDefinition[],
     asked: boolean | undefined,
 ): boolean => isStaffGrant(permissions, catalogue) || asked === true;
+
+/**
+ * What a grant carries: the role it points at and its own entries together.
+ *
+ * **One reader, mirroring the Server's `Permissions.Effective`.** Three screens
+ * draw a permission set and the fake settles one on write; four unions written
+ * four times would eventually disagree about somebody's access, and the one
+ * that disagreed would be the one nobody looked at.
+ *
+ * A grant with no role holds its whole set itself, which is what every
+ * hand-made one does and what every grant made before roles existed kept.
+ */
+export const effectivePermissions = (grant: {
+    readonly permissions: readonly string[];
+    readonly rolePermissions?: readonly string[];
+}): string[] => [...new Set([...(grant.rolePermissions ?? []), ...grant.permissions])];
