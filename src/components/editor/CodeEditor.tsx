@@ -7,20 +7,8 @@ import { MONOSPACE_STACK } from "../../typography";
 import { monacoLanguage } from "./languages";
 import classes from "./CodeEditor.module.css";
 
-// Only the languages a submission may actually be written in. Importing the
-// package entry point instead registers every language Monaco ships and pulls in
-// the TypeScript, CSS, HTML and JSON language services — around nine megabytes
-// of workers for features a solution editor never uses. Each registration is
-// itself lazy: the tokenizer is fetched when a file of that language is opened.
-import "monaco-editor/languages/definitions/cpp/register.js";
-import "monaco-editor/languages/definitions/python/register.js";
-import "monaco-editor/languages/definitions/java/register.js";
-import "monaco-editor/languages/definitions/csharp/register.js";
-import "monaco-editor/languages/definitions/rust/register.js";
-import "monaco-editor/languages/definitions/go/register.js";
-import "monaco-editor/languages/definitions/pascal/register.js";
-import "monaco-editor/languages/definitions/javascript/register.js";
-import "monaco-editor/languages/definitions/typescript/register.js";
+// Which languages are registered, and why only these — see the module.
+import "./registrations";
 
 /**
  * Monaco, wired to the copy installed with the application.

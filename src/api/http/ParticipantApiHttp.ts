@@ -14,6 +14,9 @@ import {
     SubmissionFilter,
     SubmissionSummary,
     SubmitPayload,
+    PagedFilter,
+    Printout,
+    PrintoutRequest,
 } from "../ParticipantApi";
 import { ParticipantEventDispatcherImpl } from "../impl/ParticipantEventDispatcher";
 import { HttpClient, HttpRequestOptions } from "./HttpClient";
@@ -124,6 +127,33 @@ export class ParticipantApiHttp implements ParticipantApi {
                 signal,
                 query: query({ seriesId }),
             });
+    }
+
+    getPrintouts(activityId: string, filter: PagedFilter, signal: AbortSignal): Promise<Page<Printout>> {
+        return this.http.request<Page<Printout>>(
+            `/activities/${encodeURIComponent(activityId)}/printouts`, "GET", {
+                signal,
+                query: query({ page: filter.page, pageSize: filter.pageSize }),
+            });
+    }
+
+    requestPrintout(activityId: string, input: PrintoutRequest, signal: AbortSignal): Promise<Printout> {
+        // Multipart and not JSON, so the bytes are staged and checksummed by the
+        // same path every other upload takes.
+        const form = new FormData();
+        // A picked file goes as a file part: its bytes travel untouched, where a
+        // text field's newlines would be rewritten to CRLF on the way out.
+        if (input.file) form.append("file", input.file, input.file.name);
+        if (input.code !== undefined) form.append("code", input.code);
+        if (input.fileName) form.append("fileName", input.fileName);
+        // Unconditional, for the reason `submit` gives above: a guard here turns
+        // a caller that sent nothing into a request that says nothing.
+        form.append("sha256", input.sha256);
+        if (input.title) form.append("title", input.title);
+        if (input.submissionId) form.append("submissionId", input.submissionId);
+
+        return this.http.request<Printout>(
+            `/activities/${encodeURIComponent(activityId)}/printouts`, "POST", { signal, body: form });
     }
 
     getQuestions(activityId: string, filter: QuestionFilter, signal: AbortSignal): Promise<Page<Question>> {

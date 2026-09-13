@@ -19,11 +19,15 @@ import {
     SubmissionSummary,
     SubmitPayload,
     SUBMISSION_SOURCE,
+    PagedFilter,
+    Printout,
+    PrintoutRequest,
 } from "../ParticipantApi";
 import { FakeActivities, SeriesRelay } from "./FakeActivities";
 import { FakeAccess } from "./FakeAccess";
 import { FakeExclusions } from "./FakeExclusions";
 import { displacerFor, FakeLockdown, isLocked } from "./FakeLockdown";
+import { FakePrintouts } from "./FakePrintouts";
 import { WORLD } from "./fixtures/world";
 import { AttachmentRule } from "../ManagerApi";
 import { maySubmit, mayReadProblems, SeriesTiming } from "../seriesState";
@@ -32,8 +36,10 @@ import { createDataset, Dataset, OPENING_SERIES_DELAY } from "./fixtures";
 import { activityResults, resultOf } from "./fixtures/results";
 import { attemptFiles, readableBy } from "./fixtures/attachments";
 import { attemptId, meOf, SeedAttempt, SeedSeries } from "./fixtures/world";
+import { FakePrintout } from "./fixtures/printouts";
 import { rankingWindow } from "../rankingWindow";
 import { ForbiddenError } from "../ApiError";
+import { conflict } from "./refuse";
 import { Utils } from "./Utils";
 import { sha256 } from "../../utils/sha256";
 import { checksumMismatch, forbidden, notFound } from "./refuse";
@@ -476,6 +482,8 @@ export class ParticipantApiFake implements ParticipantApi {
         private readonly exclusions: FakeExclusions,
         /** And one for what a running round puts out of reach. */
         private readonly lockdown: FakeLockdown,
+        /** And one for the print queue, which one side writes and the other works. */
+        private readonly printouts: FakePrintouts,
         private sleepMs: number = 300,
     ) {
         this.state = new FakeParticipantState(this.eventDispatcher, files, shared, access);
@@ -949,6 +957,83 @@ export class ParticipantApiFake implements ParticipantApi {
         await this.settle(signal);
         const question = this.state.dataset().questions.get(activityId)?.find(q => q.id === questionId);
         if (question) question.isRead = true;
+    }
+
+    async getPrintouts(activityId: string, filter: PagedFilter, signal: AbortSignal): Promise<Page<Printout>> {
+        await this.settle(signal);
+        // **Own, and only own** — the rule the Server enforces. Every enrolled
+        // participant holds the key, so a fake that listed the activity's would
+        // let a screen through that the Server refuses.
+        const mine = this.printouts.mine(activityId, this.meIn(activityId));
+        const page = filter.page ?? 1;
+        const pageSize = filter.pageSize ?? 20;
+
+        return {
+            items: mine.slice((page - 1) * pageSize, page * pageSize),
+            total: mine.length,
+            page,
+            pageSize,
+        };
+    }
+
+    async requestPrintout(activityId: string, input: PrintoutRequest, signal: AbortSignal): Promise<Printout> {
+        await this.settle(signal);
+        const seed = this.state.dataset().seeds.get(activityId);
+        if (!seed?.modules.printouts) throw new ForbiddenError("This activity does not take print requests");
+
+        // The ceiling the Server applies, so a screen cannot learn a rule here
+        // that the real one refuses.
+        if (this.printouts.pending(activityId, this.meIn(activityId)) >= 3) {
+            conflict("You already have print requests waiting", "printout.tooMany");
+        }
+
+        // The fake stores text, so a picked file is read here — the Server keeps
+        // the bytes and this keeps what a screen will draw.
+        const text = input.file ? await input.file.text() : input.code ?? "";
+        const fileName = input.file?.name ?? input.fileName ?? "main.txt";
+
+        const me = meOf(seed);
+        const made: FakePrintout = {
+            id: `po-${Math.random().toString(36).slice(2, 10)}`,
+            title: input.title,
+            fileName,
+            sizeBytes: new TextEncoder().encode(text).length,
+            state: "requested",
+            requestedAt: new Date().toISOString(),
+            requestedByName: me?.name ?? "Ty",
+            requestedByUserId: this.meIn(activityId),
+            // No group: the seeded reader is in none, and a group is stamped
+            // from the grant rather than guessed. The fixture rows carry one so
+            // the operator's screen has the case to draw.
+            sha256: input.sha256,
+            source: text,
+        };
+        this.printouts.add(activityId, made);
+        return ParticipantApiFake.mine(made);
+    }
+
+    /** Whoever is reading, as the queue records them. */
+    private meIn(activityId: string): string {
+        const seed = this.state.dataset().seeds.get(activityId);
+        return (seed ? meOf(seed)?.userId : undefined) ?? "user-me";
+    }
+
+    /**
+     * A row as its requester sees it — which is not as the operator does.
+     *
+     * The source, the digest, the group and who resolved it are the operator's
+     * business, and the Server sends none of them on this wire.
+     */
+    private static mine(row: FakePrintout): Printout {
+        return {
+            id: row.id,
+            title: row.title,
+            fileName: row.fileName,
+            sizeBytes: row.sizeBytes,
+            state: row.state,
+            requestedAt: row.requestedAt,
+            resolvedAt: row.resolvedAt,
+        };
     }
 
     /** Latency, then the abort check — so a cancelled view never sees a result. */

@@ -198,6 +198,7 @@ export interface Activity {
      */
     modules: {
         questions: boolean,
+        printouts: boolean,
     },
     /** Present once the activity has finished. */
     finalScore?: number,
@@ -756,6 +757,60 @@ export interface Question {
  */
 export type QuestionSort = "createdAt" | "series" | "problem";
 
+/** `requested` until somebody takes it to a printer, then says what happened. */
+export type PrintoutState = "requested" | "printing" | "printed" | "discarded";
+
+/**
+ * A print request, as the person who made it sees it.
+ *
+ * **No source.** They sent it and they have it; a second copy on this wire would
+ * be a second place it has to be disposed of.
+ */
+export interface Printout {
+    id: string,
+    title?: string,
+    fileName: string,
+    sizeBytes: number,
+    state: PrintoutState,
+    requestedAt: string,
+    resolvedAt?: string,
+}
+
+/**
+ * What to print.
+ *
+ * `submissionId` is provenance and nothing else — the bytes are always what the
+ * reader is looking at. The source view is tabbed and a submission may be an
+ * archive, so "print the submission" does not name one page of text. The Server
+ * refuses an id that is not the caller's own.
+ */
+export interface PrintoutRequest {
+    /**
+     * A file, when one was picked.
+     *
+     * **Sent as a file part rather than as text, and that is the whole of why
+     * this field exists.** A browser normalises every newline in a multipart
+     * *text* field to CRLF before it leaves, so bytes read off disk and hashed
+     * as they are never match what arrives — the Server answers 422 on a file
+     * nothing is wrong with. Hashing the CRLF version instead would store
+     * something other than what was picked, which is what the checksum is for.
+     */
+    file?: File,
+    /** Typed source, when there is no file. */
+    code?: string,
+    /** Absent when a file carries its own. */
+    fileName?: string,
+    /** Over the bytes being sent. The Server recomputes it and answers 422. */
+    sha256: string,
+    title?: string,
+    submissionId?: string,
+}
+
+export interface PagedFilter {
+    page?: number,
+    pageSize?: number,
+}
+
 export interface QuestionFilter {
     page?: number,
     pageSize?: number,
@@ -981,4 +1036,7 @@ export interface ParticipantApi {
     getQuestions(activityId: string, filter: QuestionFilter, signal: AbortSignal): Promise<Page<Question>>;
     askQuestion(activityId: string, input: AskQuestionInput, signal: AbortSignal): Promise<Question>;
     markQuestionRead(activityId: string, questionId: string, signal: AbortSignal): Promise<void>;
+
+    getPrintouts(activityId: string, filter: PagedFilter, signal: AbortSignal): Promise<Page<Printout>>;
+    requestPrintout(activityId: string, input: PrintoutRequest, signal: AbortSignal): Promise<Printout>;
 }

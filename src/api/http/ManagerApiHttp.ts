@@ -58,6 +58,10 @@ import {
     NewStatement,
     UserSession,
     UserUpdateInput,
+    ManagedPrintout,
+    ManagedPrintoutFilter,
+    PrintoutActivity,
+    PrintoutSheet,
 } from "../ManagerApi";
 import { StatementRef, UploadedFile } from "../FileApi";
 import { ActivityDocumentKind, ActivityDocumentRef, Page } from "../ParticipantApi";
@@ -505,6 +509,40 @@ export class ManagerApiHttp implements ManagerApi {
     reorderSeriesProblems(seriesId: string, orderedIds: string[], signal: AbortSignal): Promise<ManagedSeries> {
         return this.http.request<ManagedSeries>(
             `/series/${encodeURIComponent(seriesId)}/problems/order`, "POST", { signal, body: { orderedIds } });
+    }
+
+    getPrintouts(filter: ManagedPrintoutFilter, signal: AbortSignal): Promise<Page<ManagedPrintout>> {
+        const query: Record<string, string | number | boolean> = {};
+        if (filter.page !== undefined) query.page = filter.page;
+        if (filter.pageSize !== undefined) query.pageSize = filter.pageSize;
+        if (filter.activityId) query.activityId = filter.activityId;
+        if (filter.state) query.state = filter.state;
+        return this.http.request<Page<ManagedPrintout>>("/printouts", "GET", { signal, query });
+    }
+
+    getPrintoutActivities(signal: AbortSignal): Promise<PrintoutActivity[]> {
+        return this.http.request<PrintoutActivity[]>("/printouts/activities", "GET", { signal });
+    }
+
+    getPrintoutSheet(id: string, signal: AbortSignal): Promise<PrintoutSheet> {
+        return this.http.request<PrintoutSheet>(`/printouts/${encodeURIComponent(id)}`, "GET", { signal });
+    }
+
+    claimPrintout(id: string, signal: AbortSignal): Promise<ManagedPrintout> {
+        return this.http.request<ManagedPrintout>(
+            `/printouts/${encodeURIComponent(id)}/claim`, "POST", { signal, body: {} });
+    }
+
+    releasePrintout(id: string, signal: AbortSignal): Promise<ManagedPrintout> {
+        return this.http.request<ManagedPrintout>(
+            `/printouts/${encodeURIComponent(id)}/release`, "POST", { signal, body: {} });
+    }
+
+    resolvePrintout(
+        id: string, outcome: "printed" | "discarded", signal: AbortSignal,
+    ): Promise<ManagedPrintout> {
+        return this.http.request<ManagedPrintout>(
+            `/printouts/${encodeURIComponent(id)}/resolve`, "POST", { signal, body: { outcome } });
     }
 
     getQuestions(filter: ManagedQuestionFilter, signal: AbortSignal): Promise<Page<ManagedQuestion>> {

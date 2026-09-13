@@ -32,6 +32,10 @@ Disallow: /account
 Disallow: /activities
 Disallow: /manager
 Disallow: /lti/
+# The printable sheet. It is a page of somebody else's source, behind a session
+# and `printout:manage`, and it exists to be sent to a printer rather than read
+# on the web.
+Disallow: /print/
 
 # **The Server's, not the router's.** In a one-origin installation the API is
 # under this same host, and the sign-in screen renders a real link into it for

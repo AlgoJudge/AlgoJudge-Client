@@ -248,6 +248,16 @@ export default function ActivityForm(
                         onChange={e => set({ modules: { ...value.modules, questions: e.currentTarget.checked } })}
                         disabled={disabled}
                     />
+                    {/* Off by default, unlike its neighbour: printing assumes
+                        somebody is standing at a printer, and an activity with
+                        nobody there would offer a button leading to a queue no
+                        one works. */}
+                    <Switch
+                        label={t("Printouts")}
+                        checked={value.modules.printouts}
+                        onChange={e => set({ modules: { ...value.modules, printouts: e.currentTarget.checked } })}
+                        disabled={disabled}
+                    />
                 </Group>
                 <Text size="sm" c="dimmed" mt="xs">
                     {t("A disabled module leaves the participant's sidebar entirely.")}

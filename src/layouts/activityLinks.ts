@@ -1,4 +1,4 @@
-import { IconBox, IconChartBarPopular, IconHome, IconMessageQuestion, IconNotes, IconPackageExport, IconSectionSign, IconSettings, TablerIcon } from "@tabler/icons-react";
+import { IconBox, IconChartBarPopular, IconHome, IconMessageQuestion, IconNotes, IconPackageExport, IconPrinter, IconSectionSign, IconSettings, TablerIcon } from "@tabler/icons-react";
 import { Activity } from "../api/ParticipantApi";
 import { hasDocument } from "../api/activityDocuments";
 
@@ -52,6 +52,11 @@ export const activityLinks = (
             ? { to: `${base}/ranking`, label: t("Ranking"), icon: IconChartBarPopular } : undefined,
         enrolled && activity.modules.questions
             ? { to: `${base}/questions`, label: t("Questions and announcements"), icon: IconMessageQuestion } : undefined,
+        // **The second copy of this list, and nothing compares the two.** Only
+        // `EmbeddedLayout` imports it, which is the shell nobody opens while
+        // developing, so an entry added to one and not the other ships silently.
+        enrolled && activity.modules.printouts
+            ? { to: `${base}/printouts`, label: t("Printouts"), icon: IconPrinter } : undefined,
         // From the reference rather than a module flag: whether there are rules
         // is whether somebody published any.
         hasDocument(activity.documents, "rules")

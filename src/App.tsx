@@ -6,7 +6,7 @@ import './App.css';
 
 import { BrandingProvider } from './provider/BrandingProvider';
 import { Notifications } from '@mantine/notifications';
-import { RouterProvider, createBrowserRouter } from 'react-router-dom';
+import { Outlet, RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { lazy, ReactNode } from 'react';
 import Layout from './Layout';
 import HomePage from './pages/home/HomePage';
@@ -28,6 +28,7 @@ import SubmitPage from './pages/activities/activity_id/submit/SubmitPage';
 import SubmissionsPage from './pages/activities/activity_id/submissions/SubmissionsPage';
 import RankingPage from './pages/activities/activity_id/ranking/RankingPage';
 import QuestionsPage from './pages/activities/activity_id/questions/QuestionsPage';
+import PrintoutsPage from './pages/activities/activity_id/printouts/PrintoutsPage';
 import RulesPage from './pages/activities/activity_id/rules/RulesPage';
 import ProblemPage from './pages/activities/activity_id/problems/problem_id/ProblemPage';
 import SubmissionPage from './pages/activities/activity_id/submissions/submission_id/SubmissionPage';
@@ -60,6 +61,8 @@ const ManagerProblemPage = lazy(() => import('./pages/manager/problems/problem_i
 const ManagerSubmissionsPage = lazy(() => import('./pages/manager/submissions/ManagerSubmissionsPage'));
 const ManagerSubmissionPage = lazy(() => import('./pages/manager/submissions/submission_id/ManagerSubmissionPage'));
 const ManagerQuestionsPage = lazy(() => import('./pages/manager/questions/ManagerQuestionsPage'));
+const ManagerPrintoutsPage = lazy(() => import('./pages/manager/printouts/ManagerPrintoutsPage'));
+const PrintoutSheetPage = lazy(() => import('./pages/print/PrintoutSheetPage'));
 const ManagerInstancePage = lazy(() => import('./pages/manager/instance/ManagerInstancePage'));
 const ManagerExternalContentPage = lazy(() => import('./pages/manager/external/ManagerExternalContentPage'));
 const ProvidersPage = lazy(() => import('./pages/manager/providers/ProvidersPage'));
@@ -225,6 +228,10 @@ function App() {
                     element: <QuestionsPage />
                 },
                 {
+                    path: "/activities/:activityId/printouts",
+                    element: <PrintoutsPage />
+                },
+                {
                     path: "/activities/:activityId/rules",
                     element: <RulesPage />
                 },
@@ -245,6 +252,7 @@ function App() {
                 managerRoute("/manager/submissions", <ManagerSubmissionsPage />),
                 managerRoute("/manager/submissions/:submissionId", <ManagerSubmissionPage />),
                 managerRoute("/manager/questions", <ManagerQuestionsPage />),
+                managerRoute("/manager/printouts", <ManagerPrintoutsPage />),
                 managerRoute("/manager/grants", <GrantsPage />),
                 managerRoute("/manager/permission-templates", <PermissionTemplatesPage />),
                 managerRoute("/manager/runners", <RunnersPage />),
@@ -253,7 +261,27 @@ function App() {
                 managerRoute("/manager/oidc", <ProvidersPage />),
                 managerRoute("/manager/lti", <LtiPlatformsPage />)
             ]
-        }
+        },
+        // **The printable sheet, and no shell at all.** Under the application's
+        // layout the navigation prints down the side of the page, which is the
+        // defect the temporary-accounts handout was written to escape. A session
+        // is still required, and the permission is asked here as well as by the
+        // Server: an operator's tab that renders the chrome of a refusal is
+        // worse paper than one that never opened.
+        {
+            errorElement: <RouteErrorPage />,
+            element: <RequireSession><Outlet /></RequireSession>,
+            children: [
+                {
+                    path: "/print/printouts/:printoutId",
+                    element: (
+                        <RequirePermission permissions={["printout:manage"]}>
+                            <PrintoutSheetPage />
+                        </RequirePermission>
+                    ),
+                },
+            ],
+        },
     ], { basename: import.meta.env.BASE_URL });
 
     return (

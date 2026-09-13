@@ -93,6 +93,11 @@ import {
     UserSession,
     UserUpdateInput,
     Trial,
+    ManagedPrintout,
+    ManagedPrintoutFilter,
+    PrintoutActivity,
+    PrintoutChangedEvent,
+    PrintoutSheet,
 } from "./ManagerApi";
 import {
     Activity,
@@ -128,6 +133,9 @@ import {
     SubmissionStateChangedEvent,
     SubmissionSummary,
     SubmitPayload,
+    PagedFilter,
+    Printout,
+    PrintoutRequest,
 } from "./ParticipantApi";
 
 /**
@@ -372,6 +380,12 @@ export class ScopedParticipantApi {
     markQuestionRead(activityId: string, questionId: string): Promise<void> {
         return this.participantApi.markQuestionRead(activityId, questionId, this.signal);
     }
+    getPrintouts(activityId: string, filter: PagedFilter): Promise<Page<Printout>> {
+        return this.participantApi.getPrintouts(activityId, filter, this.signal);
+    }
+    requestPrintout(activityId: string, input: PrintoutRequest): Promise<Printout> {
+        return this.participantApi.requestPrintout(activityId, input, this.signal);
+    }
 }
 
 export class ScopedManagerEventDispatcher {
@@ -383,6 +397,7 @@ export class ScopedManagerEventDispatcher {
     addEventListener(type: "managerSeriesChanged", listener: (evt: SeriesChangedEvent) => void): void;
     addEventListener(type: "submissionChanged", listener: (evt: SubmissionChangedEvent) => void): void;
     addEventListener(type: "questionChanged", listener: (evt: QuestionChangedEvent) => void): void;
+    addEventListener(type: "printoutChanged", listener: (evt: PrintoutChangedEvent) => void): void;
     addEventListener(type: "userChanged", listener: (evt: UserChangedEvent) => void): void;
     addEventListener(type: "runnerChanged", listener: (evt: RunnerChangedEvent) => void): void;
     // The implementation signature below is not one a caller can pick, so every
@@ -664,6 +679,24 @@ export class ScopedManagerApi {
         return this.managerApi.reorderSeriesProblems(seriesId, orderedIds, this.signal);
     }
 
+    getPrintouts(filter: ManagedPrintoutFilter = {}): Promise<Page<ManagedPrintout>> {
+        return this.managerApi.getPrintouts(filter, this.signal);
+    }
+    getPrintoutActivities(): Promise<PrintoutActivity[]> {
+        return this.managerApi.getPrintoutActivities(this.signal);
+    }
+    getPrintoutSheet(id: string): Promise<PrintoutSheet> {
+        return this.managerApi.getPrintoutSheet(id, this.signal);
+    }
+    claimPrintout(id: string): Promise<ManagedPrintout> {
+        return this.managerApi.claimPrintout(id, this.signal);
+    }
+    releasePrintout(id: string): Promise<ManagedPrintout> {
+        return this.managerApi.releasePrintout(id, this.signal);
+    }
+    resolvePrintout(id: string, outcome: "printed" | "discarded"): Promise<ManagedPrintout> {
+        return this.managerApi.resolvePrintout(id, outcome, this.signal);
+    }
     getQuestions(filter: ManagedQuestionFilter = {}): Promise<Page<ManagedQuestion>> {
         return this.managerApi.getQuestions(filter, this.signal);
     }

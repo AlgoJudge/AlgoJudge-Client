@@ -54,6 +54,20 @@ interface Account extends Session {
 /** Ids and logins match `fixtures/permissions.ts`, so a session names a real person. */
 const createAccounts = (): Account[] => [
     {
+        // **The printer operator.** Holds `printout:manage` on the contest and
+        // nothing else anywhere, so signing in as them is what shows the
+        // delegation working rather than being described.
+        userId: "user-drukarz",
+        username: "pdrukarz",
+        firstName: "Piotr",
+        lastName: "Drukarz",
+        email: "p.drukarz@example.edu.pl",
+        emailConfirmed: true,
+        isLocal: true,
+        password: PASSWORD,
+        failedAttempts: 0,
+    },
+    {
         userId: "user-me",
         username: "amy",
         firstName: "Amy",
