@@ -25,6 +25,7 @@
     "check:ranking": "node scripts/check-ranking.mjs",
     "check:seo": "node scripts/check-seo.mjs",
     "check:api": "node scripts/check-api.mjs",
+    "check:instructions": "node scripts/check-instructions.mjs",
     "check:ui": "node scripts/verify/run.mjs",
     "check:browsers": "node scripts/verify/check-browsers.mjs",
     "check:e2e": "playwright test",
