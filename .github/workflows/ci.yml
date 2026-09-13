@@ -120,6 +120,12 @@ jobs:
       - name: List the endpoints the Server has to serve
         run: npm run check:api
 
+      # The numbers CLAUDE.md states about this repository. Every other
+      # step checks the product; this one checks the file the instructions
+      # live in, whose script count had gone stale twice.
+      - name: Check the instruction counts
+        run: npm run check:instructions
+
   browser-checks:
     name: The browser checks
     runs-on: ubuntu-latest

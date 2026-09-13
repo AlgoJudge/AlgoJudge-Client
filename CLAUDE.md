@@ -105,6 +105,7 @@ from nineteen.
 | `npm run check:ranking` | the ICPC and points arithmetic: what a penalty charges for, and what a tie is |
 | `npm run check:seo` | the head a crawler reads, and robots.txt against the route table |
 | `npm run check:api` | lists every endpoint the HTTP layer calls; checks it against an OpenAPI document when given one |
+| `npm run check:instructions` | the counts this file states about the repository, against the repository |
 | `npm run check:ui` | drives a real browser over the screens, against the fake API |
 | `npm run check:e2e` | one test against a full stack that is already up |
 | `npm run check:mobile` | every screen at a phone width: overflow, covered controls, clipped labels, controls under 32px |
@@ -112,24 +113,25 @@ from nineteen.
 | `npm run check:browsers` | that closing our browsers does not close anybody else's |
 | `npm run browsers` | `-- list`, `-- stop <pid>`, `-- stop --all` |
 
-**The table above is the whole of `package.json`'s `scripts`** — twenty-four
-since `check:time` was added on 2026-09-13, and checked against the file each
-time. **The count has been one short twice**, and the table neither time: every
-script had its row, and the number beside it was carried forward rather than
-recounted. Count the rows.
+**The table above is the whole of `package.json`'s `scripts`** — twenty-five
+since `check:instructions` was added on 2026-09-14. **The count had been one
+short twice**, and the table neither time: every script had its row, and the
+number beside it was carried forward rather than recounted. Counting them is
+`check:instructions`'s first assertion, so this no longer relies on a reader.
 It listed thirteen of the eighteen until 2026-08-30: `preview`,
 `check:exchange`, `check:zawodyweb`, `check:access` and `check:e2e` were missing.
 
-**Seventeen npm steps gate, counted from `.github/workflows/ci.yml` on
-2026-09-13.** Lint, `lint:deps`, typecheck and build, then twelve `check:` steps
+**Eighteen npm steps gate, counted from `.github/workflows/ci.yml` on
+2026-09-14.** Lint, `lint:deps`, typecheck and build, then thirteen `check:` steps
 in the `build` job — `check:content`, `check:package`, `check:languages`,
 `check:exchange`, `check:zawodyweb`, `check:access`, `check:time`,
-`check:events`, `check:i18n`, `check:ranking`, `check:seo`, `check:api` — and
-`check:ui` in `browser-checks`, which is thirteen `check:` steps in all. It was
-fifteen and ten until `check:seo` joined them, and sixteen and twelve until
-`check:time` did. No job carries `continue-on-error`, so every one of
-them must exit 0 before anything is merged; the `docker` job, which builds the image and checks the nginx fallback,
-blocks on the same terms. `check:api` is the only step that cannot go red as it
+`check:events`, `check:i18n`, `check:ranking`, `check:seo`, `check:api`,
+`check:instructions` — and `check:ui` in `browser-checks`, which is fourteen
+`check:` steps in all. It was fifteen and ten until `check:seo` joined them,
+sixteen and twelve until `check:time` did, and seventeen and thirteen until
+this one did. No job carries `continue-on-error`, so every one of them must
+exit 0 before anything is merged; the `docker` job, which builds the image and
+checks the nginx fallback, blocks on the same terms. `check:api` is the only step that cannot go red as it
 is invoked — see below.
 
 `ci.yml` says *"Keep this list and the one in CLAUDE.md the same"*, and the
