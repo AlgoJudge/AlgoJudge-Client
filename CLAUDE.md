@@ -112,11 +112,11 @@ from nineteen.
 | `npm run check:browsers` | that closing our browsers does not close anybody else's |
 | `npm run browsers` | `-- list`, `-- stop <pid>`, `-- stop --all` |
 
-**The table above is the whole of `package.json`'s `scripts`** — twenty-three
-since `check:seo`, `check:mobile` and `check:pwa` were added, the last two on
-2026-09-12, and checked against the file each time. **The number was one short
-before them**, and the table was not: every script had its row, and the count
-beside it had been carried forward rather than recounted. Count the rows.
+**The table above is the whole of `package.json`'s `scripts`** — twenty-four
+since `check:time` was added on 2026-09-13, and checked against the file each
+time. **The count has been one short twice**, and the table neither time: every
+script had its row, and the number beside it was carried forward rather than
+recounted. Count the rows.
 It listed thirteen of the eighteen until 2026-08-30: `preview`,
 `check:exchange`, `check:zawodyweb`, `check:access` and `check:e2e` were missing.
 
