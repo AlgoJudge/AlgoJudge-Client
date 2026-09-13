@@ -39,8 +39,8 @@ import {
     ProblemVersionInput,
     ProblemVisibility,
     PermissionDefinition,
-    PermissionTemplate,
-    PermissionTemplateInput,
+    Role,
+    RoleInput,
     PauseInput,
     ResumeInput,
     SeriesInput,
@@ -95,23 +95,24 @@ export class ManagerApiHttp implements ManagerApi {
         return this.http.request<string[]>("/permissions/mine/anywhere", "GET", { signal });
     }
 
-    getPermissionTemplates(signal: AbortSignal): Promise<PermissionTemplate[]> {
-        return this.http.request<PermissionTemplate[]>("/permission-templates", "GET", { signal });
+    getRoles(activityId: string | undefined, signal: AbortSignal): Promise<Role[]> {
+        const query = activityId ? `?activityId=${encodeURIComponent(activityId)}` : "";
+        return this.http.request<Role[]>(`/roles${query}`, "GET", { signal });
     }
 
-    createPermissionTemplate(input: PermissionTemplateInput, signal: AbortSignal): Promise<PermissionTemplate> {
-        return this.http.request<PermissionTemplate>("/permission-templates", "POST", { signal, body: input });
+    createRole(input: RoleInput, signal: AbortSignal): Promise<Role> {
+        return this.http.request<Role>("/roles", "POST", { signal, body: input });
     }
 
-    updatePermissionTemplate(id: string, input: PermissionTemplateInput, signal: AbortSignal): Promise<PermissionTemplate> {
+    updateRole(id: string, input: RoleInput, signal: AbortSignal): Promise<Role> {
         // PUT rather than POST: the input is the whole template, so this
         // replaces it. Every update below reads the same way.
-        return this.http.request<PermissionTemplate>(
-            `/permission-templates/${encodeURIComponent(id)}`, "PUT", { signal, body: input });
+        return this.http.request<Role>(
+            `/roles/${encodeURIComponent(id)}`, "PUT", { signal, body: input });
     }
 
-    async deletePermissionTemplate(id: string, signal: AbortSignal): Promise<void> {
-        await this.http.request<void>(`/permission-templates/${encodeURIComponent(id)}`, "DELETE", { signal });
+    async deleteRole(id: string, signal: AbortSignal): Promise<void> {
+        await this.http.request<void>(`/roles/${encodeURIComponent(id)}`, "DELETE", { signal });
     }
 
     getGrants(filter: GrantFilter, signal: AbortSignal): Promise<Page<Grant>> {

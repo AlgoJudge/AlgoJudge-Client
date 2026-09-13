@@ -15,6 +15,11 @@ import { PermissionDefinition } from "../../api/ManagerApi";
  * - **`system:administrator` swallows the rest.** It bypasses every check, so
  *   ticking anything beside it is theatre; the editor says so and stops
  *   pretending the other boxes mean something.
+ * - **What a role contributes is shown ticked and locked.** A grant carries its
+ *   role's permissions and its own; drawing only the second half would say
+ *   somebody holds nothing when they hold everything a manager does, and
+ *   drawing them alike would invite unticking one and wondering why it came
+ *   back.
  */
 export interface PermissionSetEditorProps {
     catalogue: PermissionDefinition[];
@@ -22,6 +27,13 @@ export interface PermissionSetEditorProps {
     onChange: (value: string[]) => void;
     /** What the signed-in user holds. Anything outside it cannot be granted on. */
     grantable: string[];
+    /**
+     * What the linked role contributes. Drawn ticked and locked, and not part of
+     * `value` — editing here writes the grant's own entries only.
+     */
+    inherited?: string[];
+    /** Names the role in the lock's tooltip, so a row says where it came from. */
+    inheritedFrom?: string;
     /** Which scope is being edited; entries meaningless there are hidden. */
     scope: "global" | "activity";
     readOnly?: boolean;
@@ -30,11 +42,12 @@ export interface PermissionSetEditorProps {
 const ADMINISTRATOR = "system:administrator";
 
 export default function PermissionSetEditor({
-    catalogue, value, onChange, grantable, scope, readOnly,
+    catalogue, value, onChange, grantable, scope, readOnly, inherited, inheritedFrom,
 }: PermissionSetEditorProps) {
     const { t } = useTranslation();
 
-    const isAdministrator = value.includes(ADMINISTRATOR);
+    const fromRole = useMemo(() => new Set(inherited ?? []), [inherited]);
+    const isAdministrator = value.includes(ADMINISTRATOR) || fromRole.has(ADMINISTRATOR);
     const grantsEverything = grantable.includes(ADMINISTRATOR);
 
     const groups = useMemo(() => {
@@ -65,14 +78,18 @@ export default function PermissionSetEditor({
                     <Group justify="space-between" mb="xs">
                         <Text fw={600}>{t(`permissionGroup.${group}`)}</Text>
                         <Badge variant="light" size="sm">
-                            {definitions.filter(d => value.includes(d.key)).length} / {definitions.length}
+                            {definitions.filter(d => value.includes(d.key) || fromRole.has(d.key)).length}
+                            {" / "}
+                            {definitions.length}
                         </Badge>
                     </Group>
                     <Stack gap={6}>
                         {definitions.map(definition => {
                             const canGrant = grantsEverything || grantable.includes(definition.key);
-                            const checked = value.includes(definition.key);
-                            const disabled = readOnly || !canGrant || (isAdministrator && definition.key !== ADMINISTRATOR);
+                            const held = fromRole.has(definition.key);
+                            const checked = held || value.includes(definition.key);
+                            const disabled = readOnly || held || !canGrant
+                                || (isAdministrator && definition.key !== ADMINISTRATOR);
                             const checkbox = (
                                 <Checkbox
                                     checked={checked}
@@ -82,12 +99,24 @@ export default function PermissionSetEditor({
                                         <Group gap="xs" wrap="nowrap">
                                             <Text size="sm">{t(`permission.${definition.key}`)}</Text>
                                             <Text size="xs" c="dimmed" ff="monospace">{definition.key}</Text>
+                                            {held && (
+                                                <Badge variant="light" size="xs" color="gray">
+                                                    {inheritedFrom ?? t("From the role")}
+                                                </Badge>
+                                            )}
                                         </Group>
                                     }
                                 />
                             );
                             // A disabled box says nothing about why. The tooltip is
                             // the only place the reason can live.
+                            if (held) {
+                                return (
+                                    <Tooltip key={definition.key} label={t("This comes from the role. Change the role to change it.")}>
+                                        <div>{checkbox}</div>
+                                    </Tooltip>
+                                );
+                            }
                             return canGrant || readOnly
                                 ? <div key={definition.key}>{checkbox}</div>
                                 : (

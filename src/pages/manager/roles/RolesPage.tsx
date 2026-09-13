@@ -2,7 +2,7 @@ import { Alert, Badge, Button, Card, Group, Modal, SegmentedControl, Stack, Text
 import { IconCopy, IconLock, IconPlus, IconTrash } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { PermissionDefinition, PermissionTemplate } from "../../../api/ManagerApi";
+import { PermissionDefinition, Role } from "../../../api/ManagerApi";
 import LoadState from "../../../components/LoadState";
 import PermissionSetEditor from "../../../components/permissions/PermissionSetEditor";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
@@ -13,21 +13,24 @@ interface Draft {
     description: string;
     permissions: string[];
     isBuiltIn: boolean;
+    /** How many grants an edit would reach. Nothing for a role being made. */
+    grants?: number;
 }
 
-const draftFrom = (template: PermissionTemplate): Draft => ({
-    id: template.id,
-    name: template.name,
-    description: template.description ?? "",
-    permissions: [...template.permissions],
-    isBuiltIn: template.isBuiltIn,
+const draftFrom = (role: Role): Draft => ({
+    id: role.id,
+    name: role.name,
+    description: role.description ?? "",
+    permissions: [...role.permissions],
+    isBuiltIn: role.isBuiltIn,
+    grants: role.grants,
 });
 
-export default function PermissionTemplatesPage() {
+export default function RolesPage() {
     const { t } = useTranslation();
     const call = useApiCall();
 
-    const [templates, setTemplates] = useState<PermissionTemplate[] | undefined>(undefined);
+    const [templates, setTemplates] = useState<Role[] | undefined>(undefined);
     const [catalogue, setCatalogue] = useState<PermissionDefinition[]>([]);
     const [grantable, setGrantable] = useState<string[]>([]);
     const [draft, setDraft] = useState<Draft | undefined>(undefined);
@@ -39,15 +42,15 @@ export default function PermissionTemplatesPage() {
     const loadError = useApiEffect(async (api) => {
         setCatalogue(await api.managerApi.getPermissionCatalogue());
         setGrantable(await api.managerApi.getMyPermissions());
-        setTemplates(await api.managerApi.getPermissionTemplates());
+        setTemplates(await api.managerApi.getRoles(undefined));
 
-        api.managerApi.eventDispatcher.addEventListener("permissionTemplateChanged", () => setReload(n => n + 1));
+        api.managerApi.eventDispatcher.addEventListener("roleChanged", () => setReload(n => n + 1));
     }, [reload]);
 
     const save = async () => {
         if (!draft) return;
         if (draft.name.trim().length === 0) {
-            setError(t("Give the template a name"));
+            setError(t("Give the role a name"));
             return;
         }
         setSaving(true);
@@ -59,8 +62,8 @@ export default function PermissionTemplatesPage() {
                 permissions: draft.permissions,
             };
             await call(api => draft.id
-                ? api.managerApi.updatePermissionTemplate(draft.id, input)
-                : api.managerApi.createPermissionTemplate(input));
+                ? api.managerApi.updateRole(draft.id, input)
+                : api.managerApi.createRole(input));
             setDraft(undefined);
             setReload(n => n + 1);
         } catch (e) {
@@ -70,9 +73,9 @@ export default function PermissionTemplatesPage() {
         }
     };
 
-    const remove = async (template: PermissionTemplate) => {
+    const remove = async (template: Role) => {
         try {
-            await call(api => api.managerApi.deletePermissionTemplate(template.id));
+            await call(api => api.managerApi.deleteRole(template.id));
             setReload(n => n + 1);
         } catch (e) {
             setError(e instanceof Error ? e.message : String(e));
@@ -85,19 +88,19 @@ export default function PermissionTemplatesPage() {
         <Stack gap="md">
             <Group justify="space-between" wrap="wrap">
                 <Stack gap={2}>
-                    <Title>{t("Permission templates")}</Title>
-                    {/* A template fills a grant in and is then forgotten. Saying so
-                        here prevents the reasonable but wrong assumption that
-                        editing one reaches the people who already used it. */}
+                    <Title>{t("Roles")}</Title>
+                    {/* The opposite of what this said until roles arrived, and
+                        the sentence has to be got right: an edit here reaches
+                        everybody holding the role, at once. */}
                     <Text size="sm" c="dimmed">
-                        {t("A template fills in a new grant. Editing it later does not change anyone who already used it.")}
+                        {t("A grant points at a role. Editing one changes what everybody holding it may do.")}
                     </Text>
                 </Stack>
                 <Button
                     leftSection={<IconPlus size={16} />}
                     onClick={() => setDraft({ name: "", description: "", permissions: [], isBuiltIn: false })}
                 >
-                    {t("New template")}
+                    {t("New role")}
                 </Button>
             </Group>
 
@@ -125,6 +128,23 @@ export default function PermissionTemplatesPage() {
                                 <Badge variant="outline" size="sm">
                                     {template.permissions.length} {t("permissions")}
                                 </Badge>
+                                {/* **How far an edit reaches**, on the row rather
+                                    than only in the editor: it is the one guard
+                                    against a live role that a person can see
+                                    before they click anything. */}
+                                <Badge
+                                    variant="light"
+                                    size="sm"
+                                    color={template.grants > 0 ? "blue" : "gray"}
+                                    data-testid={`role-reach-${template.name}`}
+                                >
+                                    {t("held by {{count}}", { count: template.grants })}
+                                </Badge>
+                                {template.activityName && (
+                                    <Badge variant="light" size="sm" color="grape">
+                                        {template.activityName}
+                                    </Badge>
+                                )}
                             </Group>
                             {template.description && <Text size="sm" c="dimmed">{template.description}</Text>}
                         </Stack>
@@ -150,9 +170,10 @@ export default function PermissionTemplatesPage() {
                                 color="red"
                                 size="compact-sm"
                                 leftSection={<IconTrash size={14} />}
-                                // The three shipped templates are what a fresh
+                                // The three shipped roles are what a fresh
                                 // installation grants from; removing one leaves
-                                // nothing to start from.
+                                // nothing to start from. One anybody still holds
+                                // is refused by the Server, with the count.
                                 disabled={template.isBuiltIn}
                                 onClick={() => remove(template)}
                             >
@@ -166,7 +187,7 @@ export default function PermissionTemplatesPage() {
             <Modal
                 opened={!!draft}
                 onClose={() => { setDraft(undefined); setError(undefined); }}
-                title={<Title order={4}>{draft?.id ? t("Edit template") : t("New template")}</Title>}
+                title={<Title order={4}>{draft?.id ? t("Edit role") : t("New role")}</Title>}
                 size="xl"
                 centered
             >
@@ -196,6 +217,18 @@ export default function PermissionTemplatesPage() {
                                 { value: "global", label: t("System scope") },
                             ]}
                         />
+
+                        {/* **Said at the moment of the act.** A role that
+                            nobody holds is an ordinary edit; one that a hundred
+                            grants point at changes a hundred people's access the
+                            instant this is saved, and the only honest place to
+                            say so is here. */}
+                        {(draft.grants ?? 0) > 0 && (
+                            <Alert color="yellow" data-testid="role-reach">
+                                {t("Saving changes what {{count}} grant(s) carry, at once.",
+                                    { count: draft.grants })}
+                            </Alert>
+                        )}
 
                         <PermissionSetEditor
                             catalogue={catalogue}

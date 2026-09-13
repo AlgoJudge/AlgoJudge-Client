@@ -45,11 +45,14 @@ export const MANAGER_AREAS: ManagerArea[] = [
         permissions: ["grant:read:all"],
     },
     {
-        to: "/manager/permission-templates",
-        label: "Permission templates",
-        description: "The sets a grant starts from, and the ones that ship.",
+        to: "/manager/roles",
+        label: "Roles",
+        description: "The sets a grant points at. Editing one reaches everybody holding it.",
         icon: IconUserCheck,
-        permissions: ["template:read"],
+        // Both keys, because a manager grant written before roles existed holds
+        // the second and not the first — and applying a role is the reason to
+        // read one.
+        permissions: ["role:read", "grant:update"],
     },
     {
         to: "/manager/problems",

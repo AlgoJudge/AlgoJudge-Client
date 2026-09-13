@@ -39,7 +39,7 @@ export const PARTICIPANT: Record<ParticipantEventType, true> = {
 };
 
 export const MANAGER: Record<ManagerEventType, true> = {
-    permissionTemplateChanged: true,
+    roleChanged: true,
     grantChanged: true,
     problemChanged: true,
     activityChanged: true,

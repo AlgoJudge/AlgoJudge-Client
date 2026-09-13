@@ -67,7 +67,7 @@ const ROUTES = [
     ["/manager/printouts", "?" + AMY],
     ["/manager/users", "?" + AMY],
     ["/manager/grants", "?" + AMY],
-    ["/manager/permission-templates", "?" + AMY],
+    ["/manager/roles", "?" + AMY],
     ["/manager/runners", "?" + AMY],
     ["/manager/instance", "?" + JOHN],
     ["/manager/external-content", "?" + JOHN],

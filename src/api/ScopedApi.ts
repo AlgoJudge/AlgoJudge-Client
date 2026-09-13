@@ -52,9 +52,9 @@ import {
     ManagerEventDispatcher,
     ManagerEventType,
     PermissionDefinition,
-    PermissionTemplate,
-    PermissionTemplateChangedEvent,
-    PermissionTemplateInput,
+    Role,
+    RoleChangedEvent,
+    RoleInput,
     AnnouncementInput,
     AnswerInput,
     BulkUserInput,
@@ -390,7 +390,7 @@ export class ScopedParticipantApi {
 
 export class ScopedManagerEventDispatcher {
     constructor(private eventDispatcher: ManagerEventDispatcher, private signal: AbortSignal) {}
-    addEventListener(type: "permissionTemplateChanged", listener: (evt: PermissionTemplateChangedEvent) => void): void;
+    addEventListener(type: "roleChanged", listener: (evt: RoleChangedEvent) => void): void;
     addEventListener(type: "grantChanged", listener: (evt: GrantChangedEvent) => void): void;
     addEventListener(type: "problemChanged", listener: (evt: ProblemChangedEvent) => void): void;
     addEventListener(type: "activityChanged", listener: (evt: ActivityChangedEvent) => void): void;
@@ -426,17 +426,17 @@ export class ScopedManagerApi {
         return this.managerApi.getMyAccess(this.signal);
     }
 
-    getPermissionTemplates(): Promise<PermissionTemplate[]> {
-        return this.managerApi.getPermissionTemplates(this.signal);
+    getRoles(activityId?: string): Promise<Role[]> {
+        return this.managerApi.getRoles(activityId, this.signal);
     }
-    createPermissionTemplate(input: PermissionTemplateInput): Promise<PermissionTemplate> {
-        return this.managerApi.createPermissionTemplate(input, this.signal);
+    createRole(input: RoleInput): Promise<Role> {
+        return this.managerApi.createRole(input, this.signal);
     }
-    updatePermissionTemplate(id: string, input: PermissionTemplateInput): Promise<PermissionTemplate> {
-        return this.managerApi.updatePermissionTemplate(id, input, this.signal);
+    updateRole(id: string, input: RoleInput): Promise<Role> {
+        return this.managerApi.updateRole(id, input, this.signal);
     }
-    deletePermissionTemplate(id: string): Promise<void> {
-        return this.managerApi.deletePermissionTemplate(id, this.signal);
+    deleteRole(id: string): Promise<void> {
+        return this.managerApi.deleteRole(id, this.signal);
     }
 
     getGrants(filter: GrantFilter = {}): Promise<Page<Grant>> {

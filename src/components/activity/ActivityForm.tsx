@@ -5,7 +5,7 @@ import {
 import { useClipboard } from "@mantine/hooks";
 import { IconCheck, IconCopy, IconInfoCircle } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
-import { ActivityInput, AttachmentVisibility, JoinPolicy, ScoreVisibility } from "../../api/ManagerApi";
+import { ActivityInput, AttachmentVisibility, JoinPolicy, Role, ScoreVisibility } from "../../api/ManagerApi";
 import ZonedDateTimeInput from "../time/ZonedDateTimeInput";
 import { MAX_RUNNER_TAGS } from "../../api/runnerTags";
 import { MB } from "./activityInput";
@@ -91,10 +91,16 @@ export interface ActivityFormProps {
      * submissions, queues them, and never has them judged.
      */
     matchingRunners?: number;
+    /**
+     * The roles this activity may enrol into: the installation's, plus its own.
+     * Empty where the caller could not read them, and the two pickers say so by
+     * being disabled rather than by offering an empty list.
+     */
+    roles?: Role[];
 }
 
 export default function ActivityForm(
-    { value, onChange, slugLocked, disabled, matchingRunners }: ActivityFormProps,
+    { value, onChange, slugLocked, disabled, matchingRunners, roles = [] }: ActivityFormProps,
 ) {
     const { t } = useTranslation();
     const set = (patch: Partial<ActivityInput>) => onChange({ ...value, ...patch });
@@ -329,6 +335,36 @@ export default function ActivityForm(
                             checked={value.joinPolicy === "closed" || value.unlisted}
                             onChange={e => set({ unlisted: e.currentTarget.checked })}
                             disabled={disabled || value.joinPolicy === "closed"}
+                        />
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 12, sm: 6 }}>
+                        {/* **What joining this activity hands out.** Empty is the
+                            installation's shipped role, which is what every
+                            activity had before it could choose. Choosing one of
+                            this activity's own roles here is the whole way such
+                            a role reaches anybody: self-enrolment, a bulk of
+                            temporary accounts and an LTI launch all read it. */}
+                        <Select
+                            label={t("Participants get the role")}
+                            description={t("Empty means the installation's shipped role.")}
+                            placeholder={t("participant")}
+                            data={roles.map(role => ({ value: role.id, label: role.name }))}
+                            value={value.participantRoleId ?? null}
+                            onChange={v => set({ participantRoleId: v ?? "" })}
+                            disabled={disabled || roles.length === 0}
+                            clearable
+                        />
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 12, sm: 6 }}>
+                        <Select
+                            label={t("Whoever runs it gets the role")}
+                            description={t("Empty means the installation's shipped role.")}
+                            placeholder={t("manager")}
+                            data={roles.map(role => ({ value: role.id, label: role.name }))}
+                            value={value.managerRoleId ?? null}
+                            onChange={v => set({ managerRoleId: v ?? "" })}
+                            disabled={disabled || roles.length === 0}
+                            clearable
                         />
                     </Grid.Col>
                 </Grid>

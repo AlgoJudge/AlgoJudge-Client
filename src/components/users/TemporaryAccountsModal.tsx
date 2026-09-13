@@ -1,7 +1,7 @@
 import { Button, Group, Modal, NumberInput, Select, Stack, TextInput, Title } from "@mantine/core";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CreatedCredential, ManagedActivitySummary, PermissionTemplate } from "../../api/ManagerApi";
+import { CreatedCredential, ManagedActivitySummary, Role } from "../../api/ManagerApi";
 import { useApiCall } from "../../provider/apiContext";
 import ZonedDateTimeInput from "../time/ZonedDateTimeInput";
 import CredentialsModal from "./CredentialsModal";
@@ -25,7 +25,7 @@ export interface TemporaryAccountsModalProps {
     activities?: ManagedActivitySummary[];
     /** Fixed where the modal was opened from inside one activity. */
     activityId?: string;
-    templates: PermissionTemplate[];
+    templates: Role[];
     /** Runs the call and surfaces whatever it failed with. Owned by the screen. */
     run: (operation: () => Promise<unknown>) => Promise<void>;
     busy: boolean;
@@ -110,8 +110,14 @@ export default function TemporaryAccountsModal({
                             searchable
                         />
                     )}
+                    {/* **Empty is the ordinary answer**, and it is the one that
+                        links: the accounts get the activity's participant role
+                        and every later correction to it. Naming a role here
+                        copies that set in instead, which is what somebody wants
+                        who is making twenty accounts that are not participants. */}
                     <Select
-                        label={t("With the permissions of")}
+                        label={t("Instead of the activity's role, exactly this set")}
+                        description={t("Leave empty to hand out the role this activity enrols into.")}
                         data={templates.map(x => ({ value: x.name, label: x.name }))}
                         value={template || null}
                         onChange={v => setTemplate(v ?? "")}

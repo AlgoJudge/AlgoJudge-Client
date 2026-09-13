@@ -1,4 +1,5 @@
 import { ActivityGroup, Grant } from "../ManagerApi";
+import { effectivePermissions } from "../permissions";
 import { signedInUserId } from "./CoreApiFake";
 import { createGrants, MY_SYSTEM_PERMISSIONS, PERMISSION_CATALOGUE } from "./fixtures/permissions";
 import { ME } from "./fixtures/problems";
@@ -56,11 +57,15 @@ export class FakeAccess {
         if (userId === ME) return MY_SYSTEM_PERMISSIONS;
         const global = this.grants.find(g => g.userId === userId && g.activityId === undefined);
         if (!global) return [];
+        // A grant carries its role's permissions as surely as its own, and
+        // reading only the second half here would make every linked account
+        // hold nothing.
+        const held = effectivePermissions(global);
         // An administrator holds the catalogue; there is no list to keep in step
         // with it, which is the point of the permission being what it is.
-        return global.permissions.includes("system:administrator")
+        return held.includes("system:administrator")
             ? PERMISSION_CATALOGUE.map(definition => definition.key)
-            : global.permissions;
+            : held;
     }
 
     /**
@@ -75,6 +80,7 @@ export class FakeAccess {
         const me = this.me();
         if (this.systemPermissions(me).includes(permission)) return true;
         return this.grants.some(g =>
-            g.userId === me && g.activityId === activityId && g.permissions.includes(permission));
+            g.userId === me && g.activityId === activityId
+            && effectivePermissions(g).includes(permission));
     }
 }

@@ -111,8 +111,8 @@ export default function ManagerActivitiesPage() {
                 </Stack>
                 {/* **Offered only to somebody who may use them.** Both of these
                     end in `activity:create`, which is a system-scope right the
-                    manager template does not carry: whoever creates an activity
-                    is granted the template *on it*, so creating belongs to the
+                    manager role does not carry: whoever creates an activity
+                    is pointed at the role *on it*, so creating belongs to the
                     installation rather than to any activity. Drawn regardless
                     until 2026-09-09, which put a manager one click from a
                     refusal — the thing `managerAreas.ts` says a card must never

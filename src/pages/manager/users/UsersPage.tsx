@@ -3,9 +3,10 @@ import { IconArrowMerge, IconKey, IconLock, IconLockOpen, IconPlus, IconSearch, 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    CreatedCredential, Grant, ManagedActivitySummary, ManagedUser, PermissionTemplate, UserSession,
+    CreatedCredential, Grant, ManagedActivitySummary, ManagedUser, Role, UserSession,
 } from "../../../api/ManagerApi";
 import { displayName } from "../../../api/displayName";
+import { effectivePermissions } from "../../../api/permissions";
 import LoadState from "../../../components/LoadState";
 import ActivityTime from "../../../components/time/ActivityTime";
 import CredentialsModal from "../../../components/users/CredentialsModal";
@@ -46,7 +47,7 @@ export default function UsersPage() {
     const [temporaryOnly, setTemporaryOnly] = useState(false);
 
     const [activities, setActivities] = useState<ManagedActivitySummary[]>([]);
-    const [templates, setTemplates] = useState<PermissionTemplate[]>([]);
+    const [templates, setTemplates] = useState<Role[]>([]);
 
     const [selected, setSelected] = useState<ManagedUser | undefined>(undefined);
     const [grants, setGrants] = useState<Grant[]>([]);
@@ -71,7 +72,7 @@ export default function UsersPage() {
 
     const loadError = useApiEffect(async (api) => {
         setActivities(await api.managerApi.getManagedActivities());
-        setTemplates(await optional(api.managerApi.getPermissionTemplates(), []));
+        setTemplates(await optional(api.managerApi.getRoles(undefined), []));
 
         setItems(undefined);
         const result = await api.managerApi.getUsers({
@@ -423,11 +424,11 @@ export default function UsersPage() {
                                                     <Group key={grant.id} justify="space-between">
                                                         <Text size="sm">
                                                             {grant.activityName ?? t("System")}
-                                                            {grant.createdFromTemplate && (
-                                                                <Text component="span" size="xs" c="dimmed"> · {grant.createdFromTemplate}</Text>
+                                                            {(grant.roleName ?? grant.copiedFromRoleName) && (
+                                                                <Text component="span" size="xs" c="dimmed"> · {grant.roleName ?? grant.copiedFromRoleName}</Text>
                                                             )}
                                                         </Text>
-                                                        <Badge variant="light" size="sm">{grant.permissions.length}</Badge>
+                                                        <Badge variant="light" size="sm">{effectivePermissions(grant).length}</Badge>
                                                     </Group>
                                                 ))}
                                             </Stack>

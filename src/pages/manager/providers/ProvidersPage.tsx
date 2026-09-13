@@ -8,7 +8,7 @@ import {
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    DeletionRequest, IdentityProvider, IdentityProviderInput, MappingRule, PermissionTemplate,
+    DeletionRequest, IdentityProvider, IdentityProviderInput, MappingRule, Role,
 } from "../../../api/ManagerApi";
 import LoadState from "../../../components/LoadState";
 import { CopyButton } from "../../../components/buttons";
@@ -54,7 +54,7 @@ const draftFrom = (provider: IdentityProvider): Draft => ({
     deletionUrl: provider.deletionUrl ?? "",
     claimPath: provider.claimPath,
     unmappedBehavior: provider.unmappedBehavior,
-    defaultTemplateName: provider.defaultTemplateName,
+    defaultRoleName: provider.defaultRoleName,
     deletionChannelEnabled: provider.deletionChannelEnabled,
     mappingRules: [...provider.mappingRules],
     hasClientSecret: provider.hasClientSecret,
@@ -83,7 +83,7 @@ export default function ProvidersPage() {
     const call = useApiCall();
 
     const [providers, setProviders] = useState<IdentityProvider[] | undefined>(undefined);
-    const [templates, setTemplates] = useState<PermissionTemplate[]>([]);
+    const [templates, setTemplates] = useState<Role[]>([]);
     const [queue, setQueue] = useState<DeletionRequest[]>([]);
     const [draft, setDraft] = useState<Draft | undefined>(undefined);
     const [error, setError] = useState<string | undefined>(undefined);
@@ -92,7 +92,7 @@ export default function ProvidersPage() {
 
     const loadError = useApiEffect(async (api) => {
         setProviders(await api.managerApi.getIdentityProviders());
-        setTemplates(await optional(api.managerApi.getPermissionTemplates(), []));
+        setTemplates(await optional(api.managerApi.getRoles(undefined), []));
         setQueue((await api.managerApi.getDeletionRequests({ state: "open", pageSize: 50 })).items);
     }, [reload]);
 
@@ -129,7 +129,7 @@ export default function ProvidersPage() {
             deletionUrl: draft.deletionUrl?.trim() || undefined,
             claimPath: draft.claimPath?.trim() || undefined,
             unmappedBehavior: draft.unmappedBehavior,
-            defaultTemplateName: draft.defaultTemplateName,
+            defaultRoleName: draft.defaultRoleName,
             deletionChannelEnabled: draft.deletionChannelEnabled,
             mappingRules: draft.mappingRules,
         };
@@ -215,7 +215,7 @@ export default function ProvidersPage() {
                                             )
                                             : provider.mappingRules.map(rule => (
                                                 <Badge key={rule.claimValue} variant="light">
-                                                    {rule.claimValue} → {rule.templateName}
+                                                    {rule.claimValue} → {rule.roleName}
                                                 </Badge>
                                             ))}
                                     </Group>
@@ -325,29 +325,29 @@ export default function ProvidersPage() {
                                 description={t("Applies to a first sign-in and to somebody who left the group.")}
                                 data={[
                                     { value: "deny", label: t("Refuse the sign-in") },
-                                    { value: "defaultTemplate", label: t("Grant a default set") },
+                                    { value: "defaultRole", label: t("Grant a default set") },
                                 ]}
                                 value={draft.unmappedBehavior ?? "deny"}
                                 onChange={value => setDraft({
                                     ...draft,
-                                    unmappedBehavior: value === "defaultTemplate" ? "defaultTemplate" : "deny",
+                                    unmappedBehavior: value === "defaultRole" ? "defaultRole" : "deny",
                                 })}
                             />
                         </Group>
 
-                        {draft.unmappedBehavior === "defaultTemplate" && (
+                        {draft.unmappedBehavior === "defaultRole" && (
                             <Select
                                 label={t("Default set")}
                                 data={templates.map(template => ({ value: template.name, label: template.name }))}
-                                value={draft.defaultTemplateName ?? null}
-                                onChange={value => setDraft({ ...draft, defaultTemplateName: value ?? undefined })}
+                                value={draft.defaultRoleName ?? null}
+                                onChange={value => setDraft({ ...draft, defaultRoleName: value ?? undefined })}
                             />
                         )}
 
                         <Stack gap={4}>
                             <Text fw={500} size="sm">{t("Mapping")}</Text>
                             <Text size="xs" c="dimmed">
-                                {t("A value at the claim path above, and the permission set it grants. Rewritten at every sign-in: editing the template reaches these people the next time they sign in.")}
+                                {t("A value at the claim path above, and the role it grants. This contribution is rewritten at every sign-in, so editing the role reaches these people the next time they sign in rather than at once.")}
                             </Text>
                             {(draft.mappingRules ?? []).map((rule, index) => (
                                 <Group key={index} gap="xs" wrap="nowrap">
@@ -363,8 +363,8 @@ export default function ProvidersPage() {
                                             value: template.name,
                                             label: template.name,
                                         }))}
-                                        value={rule.templateName || null}
-                                        onChange={value => setRule(index, { templateName: value ?? "" })}
+                                        value={rule.roleName || null}
+                                        onChange={value => setRule(index, { roleName: value ?? "" })}
                                         style={{ flex: 1 }}
                                     />
                                     <ActionIcon
@@ -385,7 +385,7 @@ export default function ProvidersPage() {
                                 leftSection={<IconPlus size={14} />}
                                 onClick={() => setDraft({
                                     ...draft,
-                                    mappingRules: [...(draft.mappingRules ?? []), { claimValue: "", templateName: "" }],
+                                    mappingRules: [...(draft.mappingRules ?? []), { claimValue: "", roleName: "" }],
                                 })}
                             >
                                 {t("Add a rule")}
