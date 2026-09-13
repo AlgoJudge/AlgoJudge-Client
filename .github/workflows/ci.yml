@@ -84,6 +84,13 @@ jobs:
       - name: Check the archive credential rule
         run: npm run check:access
 
+      # The offsets and zones no browser check can reach: the activity form
+      # offers three European zones and every fixture is Europe/Warsaw, so a
+      # half-hour offset, zero, and an identifier the runtime rejects are only
+      # reachable as pure functions.
+      - name: Check how an instant becomes text
+        run: npm run check:time
+
       - name: Check the event socket
         run: npm run check:events
 

@@ -313,7 +313,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                                 </Badge>
                             </Table.Td>
                             <Table.Td>
-                                <ActivityTime value={grant.createdAt} timeZone={activity.timeZone} format="date" hideZone />
+                                <ActivityTime value={grant.createdAt} timeZone={activity.timeZone} format="date" />
                             </Table.Td>
                             <Table.Td>
                                 <Group gap="xs" justify="flex-end" wrap="nowrap">

@@ -1,4 +1,5 @@
 import { Alert, Badge, Group, Stack, Table, Text } from "@mantine/core";
+import { formatInZone, viewerZone } from "../../components/time/format";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import DataTable from "../../components/table/DataTable";
@@ -57,13 +58,13 @@ const parse = (detail: unknown): UvaDocument | undefined => {
  * date library for two fields, and a number that cannot be misread beats a
  * string that only looks familiar.
  */
-const moment = (unix: number | undefined, locale: string) =>
-    unix === undefined ? "—" : new Date(unix * 1000).toLocaleString(locale);
+const moment = (unix: number | undefined) =>
+    unix === undefined ? "—" : formatInZone(new Date(unix * 1000).toISOString(), viewerZone());
 
 const milliseconds = (ms: number | undefined) => (ms === undefined ? "—" : `${ms} ms`);
 
 export default function UvaResult({ detail }: { detail: unknown }) {
-    const { t, i18n } = useTranslation();
+    const { t } = useTranslation();
     const document = parse(detail);
     const external = document?.external;
 
@@ -130,11 +131,11 @@ export default function UvaResult({ detail }: { detail: unknown }) {
                     </Table.Tr>
                     <Table.Tr>
                         <Table.Th>{t("Sent")}</Table.Th>
-                        <Table.Td>{moment(external.submittedAtUnix, i18n.language)}</Table.Td>
+                        <Table.Td>{moment(external.submittedAtUnix)}</Table.Td>
                     </Table.Tr>
                     <Table.Tr>
                         <Table.Th>{t("Judged")}</Table.Th>
-                        <Table.Td>{moment(external.judgedAtUnix, i18n.language)}</Table.Td>
+                        <Table.Td>{moment(external.judgedAtUnix)}</Table.Td>
                     </Table.Tr>
                 </Table.Tbody>
             </DataTable>

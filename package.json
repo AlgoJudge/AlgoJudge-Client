@@ -18,6 +18,7 @@
     "check:exchange": "node scripts/check-exchange.mjs",
     "check:zawodyweb": "node scripts/check-zawodyweb.mjs",
     "check:access": "node scripts/check-access.mjs",
+    "check:time": "node scripts/check-time.mjs",
     "check:content": "node scripts/check-content.mjs",
     "check:events": "node scripts/check-events.mjs",
     "check:i18n": "node scripts/check-i18n.mjs",

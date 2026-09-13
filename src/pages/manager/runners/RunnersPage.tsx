@@ -251,7 +251,7 @@ export default function RunnersPage() {
                             </Table.Td>
                             <Table.Td>
                                 {runner.lastSeenAt
-                                    ? <ActivityTime value={runner.lastSeenAt} timeZone="Europe/Warsaw" hideZone />
+                                    ? <ActivityTime value={runner.lastSeenAt} />
                                     : <Text size="sm" c="dimmed">—</Text>}
                             </Table.Td>
                             <Table.Td>
@@ -371,7 +371,7 @@ export default function RunnersPage() {
                                     <Table.Tr>
                                         <Table.Th>{t("Registered")}</Table.Th>
                                         <Table.Td>
-                                            <ActivityTime value={selected.registeredAt} timeZone="Europe/Warsaw" />
+                                            <ActivityTime value={selected.registeredAt} />
                                         </Table.Td>
                                     </Table.Tr>
                                     <Table.Tr>
@@ -424,7 +424,7 @@ export default function RunnersPage() {
                                     <Group justify="space-between">
                                         <Text size="xs" c="dimmed">
                                             {Math.ceil(attachment.sizeBytes / 1024)} kB ·{" "}
-                                            <ActivityTime value={attachment.uploadedAt} timeZone="Europe/Warsaw" />
+                                            <ActivityTime value={attachment.uploadedAt} />
                                         </Text>
                                         <Text size="xs" c="dimmed" ff="monospace">
                                             sha256 {attachment.sha256.slice(0, 16)}…

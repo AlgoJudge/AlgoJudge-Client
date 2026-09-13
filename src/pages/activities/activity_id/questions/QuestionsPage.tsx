@@ -264,7 +264,7 @@ export default function QuestionsPage() {
                                         : <Text size="sm" c="dimmed">—</Text>}
                                 </Table.Td>
                                 <Table.Td>
-                                    <ActivityTime value={q.createdAt} timeZone={activity.timeZone} format="date" hideZone />
+                                    <ActivityTime value={q.createdAt} timeZone={activity.timeZone} format="date" />
                                 </Table.Td>
                             </Table.Tr>
                         ))}

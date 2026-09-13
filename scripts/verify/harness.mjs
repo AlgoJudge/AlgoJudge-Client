@@ -257,6 +257,27 @@ export async function open({ out = process.env.OUT ?? join(here, "out"), clock =
         await wait(1200);
     };
 
+    /**
+     * Puts the real cursor over an element, for what only a real cursor opens.
+     *
+     * A Mantine tooltip runs on floating-ui's pointer handling, so a synthetic
+     * `mouseover` does nothing at all — measured: the tooltip node never
+     * appears. Anything asserting on hover has to move the mouse, the same way
+     * `click` does.
+     */
+    const hover = async (locator) => {
+        const point = await evaluate(`
+            const element = ${locator};
+            if (!element) return null;
+            element.scrollIntoView({ block: "center" });
+            const box = element.getBoundingClientRect();
+            return { x: Math.round(box.x + box.width / 2), y: Math.round(box.y + box.height / 2) };
+        `);
+        if (!point) throw new Error(`nothing to hover: ${locator}`);
+        await page.mouse.move(point.x, point.y);
+        await wait(700);
+    };
+
     const type = async (selector, value) => {
         await evaluate(`
             const input = document.querySelector(${JSON.stringify(selector)});
@@ -362,7 +383,7 @@ export async function open({ out = process.env.OUT ?? join(here, "out"), clock =
     if (clock) await page.clock.install();
 
     return {
-        send, evaluate, until, wait, shot, go, visit, click, type, setTextarea, tab, managerRow, pages, paintedWith, offline,
+        send, evaluate, until, wait, shot, go, visit, click, hover, type, setTextarea, tab, managerRow, pages, paintedWith, offline,
         clock: {
             fastForward: (ticks) => page.clock.fastForward(ticks),
             runFor: (ticks) => page.clock.runFor(ticks),

@@ -801,7 +801,7 @@ export default function ManagerProblemPage() {
                                         </Group>
                                     </Table.Td>
                                     <Table.Td>
-                                        <ActivityTime value={version.createdAt} timeZone="Europe/Warsaw" format="date" hideZone />
+                                        <ActivityTime value={version.createdAt} format="date" />
                                     </Table.Td>
                                     <Table.Td><Text size="sm">{version.createdByName ?? "—"}</Text></Table.Td>
                                     <Table.Td><Text size="sm" c="dimmed">{version.note ?? "—"}</Text></Table.Td>

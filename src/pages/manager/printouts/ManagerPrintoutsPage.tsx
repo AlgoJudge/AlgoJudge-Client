@@ -11,6 +11,7 @@ import LoadState from "../../../components/LoadState";
 import DataTable from "../../../components/table/DataTable";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
 import { printoutSheetUrl } from "./printoutSheetUrl";
+import ActivityTime from "../../../components/time/ActivityTime";
 
 const PAGE_SIZE = 20;
 
@@ -215,7 +216,7 @@ export default function ManagerPrintoutsPage() {
                                     {printout.title && <Text size="xs" c="dimmed">{printout.title}</Text>}
                                 </Table.Td>
                                 <Table.Td>
-                                    <Text size="sm">{new Date(printout.requestedAt).toLocaleString()}</Text>
+                                    <ActivityTime value={printout.requestedAt} size="sm" />
                                 </Table.Td>
                                 <Table.Td>
                                     <Badge color={STATE_COLOUR[printout.state]} variant="light">

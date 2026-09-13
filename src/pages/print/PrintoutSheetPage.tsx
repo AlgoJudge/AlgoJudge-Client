@@ -5,6 +5,7 @@ import { PrintoutSheet } from "../../api/ManagerApi";
 import LoadState from "../../components/LoadState";
 import { useApiEffect } from "../../provider/apiContext";
 import classes from "./PrintoutSheetPage.module.css";
+import { formatInZone, offsetLabel } from "../../components/time/format";
 
 /**
  * One request, as a page of A4.
@@ -60,13 +61,16 @@ export default function PrintoutSheetPage() {
     if (!sheet) return <LoadState error={error} loading={!error} />;
 
     const { printout } = sheet;
-    // The activity's own zone, so a time on paper reads as the room did rather
-    // than as the operator's laptop does.
-    const asked = new Intl.DateTimeFormat(undefined, {
-        dateStyle: "medium",
-        timeStyle: "short",
-        timeZone: sheet.timeZone,
-    }).format(new Date(printout.requestedAt));
+    // **The activity's own zone — the one exception to showing the reader's.**
+    // Paper leaves the browser and is carried to a room, so it has no reader to
+    // be local to; a time on it has to read as the room did rather than as the
+    // operator's laptop does. The zone is named beside it, because the operator
+    // matching paper against the queue is now reading two different clocks.
+    //
+    // The locale was `undefined` — the operating system's, not the interface's —
+    // so a Polish sheet printed `Jul 15, 2026, 2:00 PM` on an English laptop.
+    const asked = formatInZone(printout.requestedAt, sheet.timeZone);
+    const askedZone = `${offsetLabel(printout.requestedAt, sheet.timeZone)} (${sheet.timeZone})`;
 
     const lines = (sheet.source ?? "").replace(/\n$/, "").split("\n");
 
@@ -78,7 +82,7 @@ export default function PrintoutSheetPage() {
                     {printout.groupName && <span className={classes.dim}> · {printout.groupName}</span>}
                 </p>
                 <p className={classes.meta} data-testid="sheet-when">
-                    {asked} · {printout.activityName}
+                    {asked} <span className={classes.dim}>{askedZone}</span> · {printout.activityName}
                 </p>
                 <p className={`${classes.meta} ${classes.dim}`}>
                     {printout.fileName}

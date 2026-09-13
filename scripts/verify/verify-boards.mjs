@@ -113,12 +113,27 @@ const row = await evaluate(`
 // The exception admits **yesterday's date and nothing else**. Deciding it from
 // "does the row start with a date" instead would be circular: a regression to
 // the full form on any ordinary day would satisfy its own exception and pass.
-const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toLocaleDateString("pl-PL");
+//
+// **Computed in the page, not in this process.** The browser's zone is pinned
+// (`playwright.ui.config.mjs`) and the runner's is whatever the host has — UTC
+// on CI, Europe/Warsaw here — so working out "yesterday" out here and comparing
+// it against text rendered in there was a guard that read as a guard for part
+// of every day and was not one.
+const yesterday = await evaluate(`
+    return new Date(Date.now() - 24 * 60 * 60 * 1000).toLocaleDateString("pl-PL");
+`);
 const crossedMidnight = row !== null && row.startsWith(yesterday);
 check(row !== null && (crossedMidnight ? /^\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}/ : /^\d{2}:\d{2}/).test(row),
     crossedMidnight
         ? `the run crossed midnight, so the row carries yesterday's date (${row})`
         : `the row starts with the hour (${row})`);
+// **Bare, because this reader sits in the activity's own zone.** The suite runs
+// in Europe/Warsaw and every fixture activity is in it, so the offset marker
+// must not appear — it exists for a reader elsewhere, and `zones.spec.mjs` is
+// where that reader lives. Without this line an offset appended to every date
+// in the product would pass the entire suite.
+check(row !== null && !/UTC/.test(row),
+    `and no offset, because the reader is in the activity's zone (${row})`);
 check(row !== null && /\[[A-Z]\]/.test(row), "carries the slug");
 // The name the row gives has to be the name the problems screen gives.
 const slug = row?.match(/\[([A-Z])\]/)?.[1];

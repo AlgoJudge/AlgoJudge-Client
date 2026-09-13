@@ -6,7 +6,7 @@ import { useMatch } from "react-router-dom";
 import { Activity, Series, SubmissionSummary } from "../../api/ParticipantApi";
 import StateBadge from "../submission/StateBadge";
 import ActivityTime from "../time/ActivityTime";
-import { formatInZone } from "../time/format";
+import { sameDayInZone, viewerZone } from "../time/format";
 import { useApiEffect } from "../../provider/apiContext";
 import SubmissionModal from "./SubmissionModal";
 import classes from "./ActivitySubmissions.module.css";
@@ -28,19 +28,23 @@ const HOW_MANY = 12;
 const OPEN_KEY = "algojudge.submissions.open";
 
 /**
- * Whether an instant falls on today **in the activity's zone**, which is the
- * zone the row is drawn in.
+ * Whether an instant falls on today **in the zone the row is drawn in**, which
+ * is the reader's.
  *
- * It compared the reader's own today, and the two disagree for as long as the
- * zones straddle midnight. Found by `verify-boards` on a CI runner in UTC: a
+ * The invariant is the zone, not which zone: this compared the reader's today
+ * against text rendered in the activity's, and the two disagree for as long as
+ * they straddle midnight. Found by `verify-boards` on a CI runner in UTC: a
  * submission a minute old was drawn `30.08.2026 01:56` rather than `01:56`,
  * because it was still 29 August where the comparison was made and already the
- * 30th where the text was rendered. A participant in Warsaw sees that every
- * night between their midnight and UTC's.
+ * 30th where the text was rendered.
+ *
+ * **The halves swapped on 2026-09-13** when the row moved to the reader's zone,
+ * and the comparison moved with it. Left behind it would have produced the same
+ * defect mirrored — a submission a minute old carrying yesterday's date for
+ * everybody whose midnight has passed and the activity's has not.
  */
-const isToday = (value: string, timeZone: string): boolean =>
-    formatInZone(value, timeZone, "date")
-    === formatInZone(new Date().toISOString(), timeZone, "date");
+const isToday = (value: string): boolean =>
+    sameDayInZone(value, new Date().toISOString(), viewerZone());
 
 export interface ActivitySubmissionsProps {
     /** Absent outside an activity, where there is nothing to show. */
@@ -178,9 +182,8 @@ export default function ActivitySubmissions({ activity, series }: ActivitySubmis
                                     <Text size="xs" c="dimmed" ff="monospace" style={{ flexShrink: 0 }}>
                                         <ActivityTime
                                             value={submission.submittedAt}
-                                            timeZone={timeZone ?? "Europe/Warsaw"}
-                                            format={isToday(submission.submittedAt, timeZone ?? "Europe/Warsaw") ? "time" : "datetime"}
-                                            hideZone
+                                            timeZone={timeZone}
+                                            format={isToday(submission.submittedAt) ? "time" : "datetime"}
                                         />
                                     </Text>
                                     {/* The slug leads: it is what somebody

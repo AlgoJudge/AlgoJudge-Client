@@ -1,36 +1,22 @@
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
-import advancedFormat from "dayjs/plugin/advancedFormat";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
-dayjs.extend(advancedFormat);
 
 /**
- * Time formatting, kept out of the components that use it.
+ * What a form needs, and the durations.
  *
- * Instants travel as UTC ISO 8601 and are turned into text only here, in the
- * activity's zone. A contest is announced in one zone and argued about in it, so
- * "18:00" has to mean the same thing to the organiser and to a participant
- * sitting elsewhere — and the zone is always shown, because an unlabelled clock
- * is what makes the two conventions indistinguishable.
+ * The display half lives in `zones.ts` and is re-exported here, so no call site
+ * has to know about the split. It is a split for one reason: that half is pure
+ * `Intl` and can be driven in Node by `check:time`, and this half cannot.
  */
 
-export type TimeFormat = "datetime" | "date" | "time";
-
-const PATTERNS: Record<TimeFormat, string> = {
-    datetime: "DD.MM.YYYY HH:mm",
-    date: "DD.MM.YYYY",
-    time: "HH:mm",
-};
-
-export const formatInZone = (value: string, timeZone: string, format: TimeFormat = "datetime"): string =>
-    dayjs(value).tz(timeZone).format(PATTERNS[format]);
-
-/** The zone's short name at that instant, so it follows daylight saving. */
-export const zoneLabel = (value: string, timeZone: string): string =>
-    dayjs(value).tz(timeZone).format("z");
+export type { TimeFormat } from "./zones";
+export {
+    formatInZone, localeTag, offsetLabel, resolveZone, sameDayInZone, viewerZone, zonedLine,
+} from "./zones";
 
 /**
  * The two directions a form needs, in the activity's zone rather than the

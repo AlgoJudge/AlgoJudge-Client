@@ -18,15 +18,40 @@ export default defineConfig({
     // scripts encode and is the most valuable text in the directory — stays
     // beside what it documents.
     testDir: "./scripts/verify",
-    // **One file, and it is the runner.** `ui.spec.mjs` enumerates the
-    // `verify-*.mjs` scripts and makes a test of each. Collecting those directly
-    // instead would execute every one of them at discovery, before a single test
-    // had started, because a script's work is all at its top level.
-    //
-    // The `**/` is load-bearing too: a `testMatch` glob is matched against the
-    // whole path rather than the basename, and a pattern that matches nothing is
-    // reported as a clean run of zero tests — which reads exactly like success.
-    testMatch: "**/ui.spec.mjs",
+    /**
+     * Two projects, because the feature only exists where the two zones differ.
+     *
+     * **One file each, and each is a runner.** `ui.spec.mjs` enumerates the
+     * `verify-*.mjs` scripts and makes a test of each; collecting those directly
+     * would execute every one of them at discovery, before a single test had
+     * started, because a script's work is all at its top level. The `**​/` is
+     * load-bearing too: a `testMatch` glob is matched against the whole path
+     * rather than the basename, and a pattern that matches nothing is reported
+     * as a clean run of zero tests — which reads exactly like success.
+     *
+     * The default runs the whole suite in **Europe/Warsaw**, which is every
+     * fixture activity's own zone — the "reader sits in the activity's zone"
+     * case, where a date is bare and every existing assertion still means what
+     * it meant. `zones` runs one script in **America/New_York**, which is the
+     * only place the offset marker, the two-line tooltip and the midnight
+     * straddle are reachable at all.
+     *
+     * **Each project names its own file.** A second project without a
+     * `testMatch` would collect `ui.spec.mjs` again — seventy more tests and
+     * twice the wall clock — and `check:ui -- <word>` greps the project name
+     * along with the title, so a bare word would select a whole project.
+     */
+    projects: [
+        {
+            name: "ui",
+            testMatch: "**/ui.spec.mjs",
+        },
+        {
+            name: "zones",
+            testMatch: "**/zones.spec.mjs",
+            use: { timezoneId: "America/New_York" },
+        },
+    ],
 
     /**
      * **Four at a time, measured on 2026-08-20.**
@@ -99,6 +124,12 @@ export default defineConfig({
         baseURL: process.env.APP ?? "http://localhost:5180",
         // Polish, because that is what the screens are asserted in.
         locale: "pl-PL",
+        // **Pinned, because dates are now drawn in the reader's zone.** Left to
+        // the host this is Europe/Warsaw here and UTC on CI, and every assertion
+        // on a rendered time would mean something different in the two places.
+        // Warsaw is the fixtures' own zone, which makes this the "reader sits in
+        // the activity's zone" case; the traveller is `zones.spec.mjs`.
+        timezoneId: "Europe/Warsaw",
         viewport: { width: 1500, height: 1200 },
         trace: "retain-on-failure",
         screenshot: "only-on-failure",
