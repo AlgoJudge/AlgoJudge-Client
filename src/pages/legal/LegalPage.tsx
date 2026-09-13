@@ -91,7 +91,7 @@ export default function LegalPage() {
                 {ref.validFrom && (
                     <Text size="sm" c="dimmed">
                         {t("In force since")}:{" "}
-                        <ActivityTime value={ref.validFrom} timeZone="Europe/Warsaw" format="date" hideZone />
+                        <ActivityTime value={ref.validFrom} format="date" />
                     </Text>
                 )}
 

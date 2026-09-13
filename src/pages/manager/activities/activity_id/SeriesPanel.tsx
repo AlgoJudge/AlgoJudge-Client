@@ -232,7 +232,6 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
             {series.length > 0 && (
                 <ShiftSeries
                     series={series}
-                    timeZone={activity.timeZone}
                     disabled={locked}
                     busy={busy}
                     onShift={(seriesId, minutes) =>

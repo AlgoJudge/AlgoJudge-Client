@@ -299,7 +299,7 @@ export default function GrantsPage() {
                                 </Badge>
                             </Table.Td>
                             <Table.Td>
-                                <ActivityTime value={grant.createdAt} timeZone="Europe/Warsaw" format="date" hideZone />
+                                <ActivityTime value={grant.createdAt} format="date" />
                             </Table.Td>
                             <Table.Td>
                                 <Group gap="xs" justify="flex-end" wrap="nowrap">

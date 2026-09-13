@@ -165,7 +165,7 @@ export default function ActivityForm(
                     <Grid.Col span={{ base: 12, sm: 4 }}>
                         <Select
                             label={t("Time zone")}
-                            description={t("Every time in this activity is shown in it")}
+                            description={t("Every time in this activity is kept in it. You see times in your own zone.")}
                             data={ZONES}
                             value={value.timeZone}
                             onChange={v => v && set({ timeZone: v })}

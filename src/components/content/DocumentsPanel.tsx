@@ -216,7 +216,7 @@ export default function DocumentsPanel<K extends string, R extends PublishedRef<
                                 {revisions.map((ref, index) => (
                                     <Text key={`${ref.fileId}-${index}`} size="xs" c="dimmed">
                                         {ref.language ?? t("Default statement")}
-                                        {ref.validFrom ? <> · <ActivityTime value={ref.validFrom} timeZone="Europe/Warsaw" hideZone /></> : null}
+                                        {ref.validFrom ? <> · <ActivityTime value={ref.validFrom} /></> : null}
                                         {ref.isTemplate ? ` · ${t("template")}` : ""}
                                     </Text>
                                 ))}

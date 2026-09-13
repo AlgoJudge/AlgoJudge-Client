@@ -69,9 +69,9 @@ On Windows PowerShell use `npm.cmd` if the execution policy blocks `npm.ps1`.
 
 Lint, `lint:deps`, typecheck and build are the gate, and so is every `check:`
 script CI runs: `check:content`, `check:package`, `check:languages`,
-`check:exchange`, `check:zawodyweb`, `check:access`, `check:events`,
-`check:i18n`, `check:ranking` and `check:api` in the `build` job, and
-`check:ui`, a Playwright suite, in `browser-checks`.
+`check:exchange`, `check:zawodyweb`, `check:access`, `check:time`,
+`check:events`, `check:i18n`, `check:ranking` and `check:api` in the `build`
+job, and `check:ui`, a Playwright suite, in `browser-checks`.
 
 `npm run check:e2e` is the other suite and runs nowhere automatically: it wants
 a full stack that is already up.

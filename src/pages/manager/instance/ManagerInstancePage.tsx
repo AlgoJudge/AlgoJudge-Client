@@ -15,6 +15,7 @@ import AppearancePanel from "./AppearancePanel";
 import { useApi, useApiCall, useApiEffect } from "../../../provider/apiContext";
 import { useInstance } from "../../../provider/instanceContext";
 import { sha256 } from "../../../utils/sha256";
+import ActivityTime from "../../../components/time/ActivityTime";
 
 /**
  * What the installation says about itself: its name, its mark, and the
@@ -579,7 +580,7 @@ function AccessKeysCard() {
                     <Group key={key.name} justify="space-between">
                         <Text ff="monospace">{key.name}</Text>
                         <Text size="sm" c="dimmed">
-                            {t("Set {{when}}", { when: new Date(key.updatedAt).toLocaleString() })}
+                            {t("Set")} <ActivityTime value={key.updatedAt} />
                         </Text>
                     </Group>
                 ))}

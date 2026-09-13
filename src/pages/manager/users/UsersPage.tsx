@@ -263,7 +263,7 @@ export default function UsersPage() {
                             <Table.Td><Text size="sm">{user.grantCount}</Text></Table.Td>
                             <Table.Td>
                                 {user.lastSeenAt
-                                    ? <ActivityTime value={user.lastSeenAt} timeZone="Europe/Warsaw" format="date" hideZone />
+                                    ? <ActivityTime value={user.lastSeenAt} format="date" />
                                     : <Text size="sm" c="dimmed">{t("never")}</Text>}
                             </Table.Td>
                             <Table.Td>
@@ -362,7 +362,7 @@ export default function UsersPage() {
                                 )}
                                 {selected.expiresAt && (
                                     <Text size="sm" c="dimmed">
-                                        {t("Expires")}: <ActivityTime value={selected.expiresAt} timeZone="Europe/Warsaw" />
+                                        {t("Expires")}: <ActivityTime value={selected.expiresAt} />
                                     </Text>
                                 )}
 
@@ -532,7 +532,7 @@ export default function UsersPage() {
                                                             </Table.Td>
                                                             <Table.Td>
                                                                 {session.lastRequestAt
-                                                                    ? <ActivityTime value={session.lastRequestAt} timeZone="Europe/Warsaw" hideZone />
+                                                                    ? <ActivityTime value={session.lastRequestAt} />
                                                                     : <Text size="sm" c="dimmed">—</Text>}
                                                                 {session.lastRequestPath && (
                                                                     <Text size="xs" c="dimmed" ff="monospace">
@@ -541,10 +541,10 @@ export default function UsersPage() {
                                                                 )}
                                                             </Table.Td>
                                                             <Table.Td>
-                                                                <ActivityTime value={session.startedAt} timeZone="Europe/Warsaw" hideZone />
+                                                                <ActivityTime value={session.startedAt} />
                                                                 {session.expiresAt && (
                                                                     <Text size="xs" c="dimmed">
-                                                                        {t("Expires")}: <ActivityTime value={session.expiresAt} timeZone="Europe/Warsaw" format="date" hideZone />
+                                                                        {t("Expires")}: <ActivityTime value={session.expiresAt} format="date" />
                                                                     </Text>
                                                                 )}
                                                             </Table.Td>
@@ -566,7 +566,7 @@ export default function UsersPage() {
                                             {takenAt && (
                                                 <Text size="xs" c="dimmed">
                                                     {t("Read at")}{" "}
-                                                    <ActivityTime value={takenAt} timeZone="Europe/Warsaw" hideZone />
+                                                    <ActivityTime value={takenAt} />
                                                 </Text>
                                             )}
                                         </>

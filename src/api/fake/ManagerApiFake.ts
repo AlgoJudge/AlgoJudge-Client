@@ -1837,6 +1837,7 @@ export class ManagerApiFake implements ManagerApi {
             id: newId(),
             activityId: record.activity.id,
             activitySlug: record.activity.slug,
+            timeZone: record.activity.timeZone,
             kind: "announcement",
             topic: input.topic,
             body: input.body,

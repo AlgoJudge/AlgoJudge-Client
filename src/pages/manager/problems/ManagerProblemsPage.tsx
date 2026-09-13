@@ -252,7 +252,7 @@ export default function ManagerProblemsPage() {
                                     : <Text size="sm" c="dimmed">—</Text>}
                             </Table.Td>
                             <Table.Td>
-                                <ActivityTime value={problem.createdAt} timeZone="Europe/Warsaw" format="date" hideZone />
+                                <ActivityTime value={problem.createdAt} format="date" />
                             </Table.Td>
                             <Table.Td>
                                 <Group gap="xs" justify="flex-end" wrap="nowrap">

@@ -3,7 +3,7 @@ import { IconClockPlay } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ManagedSeries } from "../../../../api/ManagerApi";
-import { formatInZone } from "../../../../components/time/format";
+import { formatInZone, viewerZone } from "../../../../components/time/format";
 
 /**
  * Moving a round, in minutes.
@@ -19,7 +19,6 @@ import { formatInZone } from "../../../../components/time/format";
  */
 export interface ShiftSeriesProps {
     series: ManagedSeries[];
-    timeZone: string;
     disabled?: boolean;
     busy?: boolean;
     onShift: (seriesId: string, minutes: number) => void;
@@ -28,7 +27,7 @@ export interface ShiftSeriesProps {
 const shifted = (at: string | undefined, minutes: number): string | undefined =>
     at === undefined ? undefined : new Date(Date.parse(at) + minutes * 60_000).toISOString();
 
-export default function ShiftSeries({ series, timeZone, disabled, busy, onShift }: ShiftSeriesProps) {
+export default function ShiftSeries({ series, disabled, busy, onShift }: ShiftSeriesProps) {
     const { t } = useTranslation();
     const [seriesId, setSeriesId] = useState<string>(series[0]?.id ?? "");
     const [minutes, setMinutes] = useState<number>(10);
@@ -40,8 +39,13 @@ export default function ShiftSeries({ series, timeZone, disabled, busy, onShift 
         // A series with no dates has nothing to move, and says so rather than
         // rendering a dash pretending to be a time.
         if (!start && !end) return t("no times");
-        const from = start ? formatInZone(start, timeZone, "time") : "—";
-        const to = end ? formatInZone(end, timeZone, "time") : "—";
+        // **The reader's zone, like every other time on this screen.** This card
+        // sits beside the round list; rendering it in the activity's would have
+        // shown the same round at two different hours a few pixels apart, with
+        // neither of them saying which clock it meant.
+        const zone = viewerZone();
+        const from = start ? formatInZone(start, zone, "time") : "—";
+        const to = end ? formatInZone(end, zone, "time") : "—";
         return `${from}–${to}`;
     };
 

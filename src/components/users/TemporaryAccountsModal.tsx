@@ -6,6 +6,7 @@ import { useApiCall } from "../../provider/apiContext";
 import ZonedDateTimeInput from "../time/ZonedDateTimeInput";
 import CredentialsModal from "./CredentialsModal";
 import { Handout } from "./handout";
+import { viewerZone } from "../time/format";
 
 /**
  * Accounts for one event, made from a prefix and a count, and enrolled as they
@@ -96,7 +97,12 @@ export default function TemporaryAccountsModal({
                         label={t("Expires")}
                         description={t("After this they stop signing in. Empty means never.")}
                         value={expiresAt}
-                        timeZone="Europe/Warsaw"
+                        // **The reader's zone, not an activity's.** An account's
+                        // expiry belongs to no contest, so there is no clock to
+                        // mean but the one the person typing is reading. It was
+                        // a hard-coded Europe/Warsaw, which gave anybody
+                        // elsewhere an hour they did not ask for.
+                        timeZone={viewerZone()}
                         onChange={setExpiresAt}
                     />
                     {activities && (

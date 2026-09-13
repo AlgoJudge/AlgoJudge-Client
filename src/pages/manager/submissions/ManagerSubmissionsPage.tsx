@@ -187,7 +187,7 @@ export default function ManagerSubmissionsPage() {
                                     style={{ cursor: "pointer" }}
                                     onClick={() => navigate(`/manager/submissions/${submission.id}`)}
                                 >
-                                    <ActivityTime value={submission.submittedAt} timeZone="Europe/Warsaw" hideZone />
+                                    <ActivityTime value={submission.submittedAt} timeZone={submission.timeZone} />
                                 </span>
                             </Table.Td>
                             <Table.Td><Text size="sm">{submission.userName}</Text></Table.Td>

@@ -99,6 +99,7 @@ from nineteen.
 | `npm run check:exchange` | the exchange bundle, and that every field of the four manager shapes is carried or deliberately left |
 | `npm run check:zawodyweb` | the §9 converter, against fixtures written from ZawodyWeb's documented format |
 | `npm run check:access` | when a credential for the problem archive may still be sent |
+| `npm run check:time` | the offset, the locale and the zones no browser check can reach |
 | `npm run check:events` | drives the event socket against a stub `WebSocket` |
 | `npm run check:i18n` | every `t("…")` a screen asks for, against every language file |
 | `npm run check:ranking` | the ICPC and points arithmetic: what a penalty charges for, and what a tie is |
@@ -119,13 +120,14 @@ beside it had been carried forward rather than recounted. Count the rows.
 It listed thirteen of the eighteen until 2026-08-30: `preview`,
 `check:exchange`, `check:zawodyweb`, `check:access` and `check:e2e` were missing.
 
-**Sixteen npm steps gate, counted from `.github/workflows/ci.yml` on
-2026-09-10.** Lint, `lint:deps`, typecheck and build, then eleven `check:` steps
+**Seventeen npm steps gate, counted from `.github/workflows/ci.yml` on
+2026-09-13.** Lint, `lint:deps`, typecheck and build, then twelve `check:` steps
 in the `build` job — `check:content`, `check:package`, `check:languages`,
-`check:exchange`, `check:zawodyweb`, `check:access`, `check:events`,
-`check:i18n`, `check:ranking`, `check:seo`, `check:api` — and `check:ui` in
-`browser-checks`, which is twelve `check:` steps in all. It was fifteen and ten
-until `check:seo` joined them. No job carries `continue-on-error`, so every one of
+`check:exchange`, `check:zawodyweb`, `check:access`, `check:time`,
+`check:events`, `check:i18n`, `check:ranking`, `check:seo`, `check:api` — and
+`check:ui` in `browser-checks`, which is thirteen `check:` steps in all. It was
+fifteen and ten until `check:seo` joined them, and sixteen and twelve until
+`check:time` did. No job carries `continue-on-error`, so every one of
 them must exit 0 before anything is merged; the `docker` job, which builds the image and checks the nginx fallback,
 blocks on the same terms. `check:api` is the only step that cannot go red as it
 is invoked — see below.
