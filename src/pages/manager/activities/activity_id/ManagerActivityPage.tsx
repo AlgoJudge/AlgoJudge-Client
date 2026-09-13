@@ -41,9 +41,6 @@ export default function ManagerActivityPage() {
         // The picker offers what may be attached: archived entries have left it,
         // and a page of a hundred is more than any activity needs at once.
         const library = await api.managerApi.getProblems({ pageSize: 100 });
-        // A picker, not the page: a manager who may not read the roles still
-        // edits everything else here. See `optional`.
-        const known = await optional(api.managerApi.getRoles(loaded.id), []);
 
         // Set together: the series panel opens every series it is given on
         // mount, so arriving in two steps would leave it collapsed.
@@ -51,7 +48,15 @@ export default function ManagerActivityPage() {
         setDraft(toInput(loaded));
         setSeries(loadedSeries);
         setProblems(library.items);
-        setRoles(known);
+
+        // **After the page is drawn, not before it.** Only the settings tab's
+        // two pickers read these, and awaiting them up there put another round
+        // trip in front of the first paint — enough that the tab strip was not
+        // there yet when `verify-settings` reached for it.
+        //
+        // A picker, not the page: a manager who may not read the roles still
+        // edits everything else here. See `optional`.
+        setRoles(await optional(api.managerApi.getRoles(loaded.id), []));
 
         api.managerApi.eventDispatcher.addEventListener("managerSeriesChanged", evt => {
             if (evt.data.activityId === loaded.id) setReload(n => n + 1);
