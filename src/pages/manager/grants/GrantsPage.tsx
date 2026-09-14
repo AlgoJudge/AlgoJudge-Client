@@ -16,6 +16,7 @@ import LoadState from "../../../components/LoadState";
 import PermissionSetEditor from "../../../components/permissions/PermissionSetEditor";
 import ActivityTime from "../../../components/time/ActivityTime";
 import { optional, useApiCall, useApiEffect } from "../../../provider/apiContext";
+import { useUserSearch } from "../../../components/users/useUserSearch";
 import DataTable from "../../../components/table/DataTable";
 
 const PAGE_SIZE = 20;
@@ -54,7 +55,7 @@ export default function GrantsPage() {
 
     const [catalogue, setCatalogue] = useState<PermissionDefinition[]>([]);
     const [templates, setTemplates] = useState<Role[]>([]);
-    const [users, setUsers] = useState<ManagedUserSummary[]>([]);
+    const { users, search: searchUsers, remember } = useUserSearch();
     const [activities, setActivities] = useState<ManagedActivitySummary[]>([]);
     const [grantable, setGrantable] = useState<string[]>([]);
 
@@ -67,7 +68,6 @@ export default function GrantsPage() {
         setCatalogue(await api.managerApi.getPermissionCatalogue());
         // Pickers, not the page. See `optional`.
         setTemplates(await optional(api.managerApi.getRoles(activityFilter ?? undefined), []));
-        setUsers(await optional(api.managerApi.searchUsers(""), []));
         setActivities(await api.managerApi.getManagedActivities());
 
         // **The list stays on screen while the next one loads.** This reset ran
@@ -98,8 +98,16 @@ export default function GrantsPage() {
         setGrantable(mine);
     };
 
-    const open = async (draft: Draft) => {
+    /**
+     * Opens the editor on a grant.
+     *
+     * `person` puts whoever it is about into the picker, which is fed by typing
+     * rather than primed with everybody — without it the field on an existing
+     * grant would draw a user id.
+     */
+    const open = async (draft: Draft, person?: ManagedUserSummary) => {
         setError(undefined);
+        if (person) remember(person);
         setDraft(draft);
         await loadGrantable(draft.activityId);
     };
@@ -189,6 +197,14 @@ export default function GrantsPage() {
                     leftSection={<IconPlus size={16} />}
                     onClick={() => open({
                         userId: "",
+                        // **Opened where this person can actually write.** With no
+                        // scope the editor asks what the caller holds at system
+                        // scope, which for anybody whose rights live in an
+                        // activity is nothing — every permission greyed out and a
+                        // refusal on save. A reader who manages exactly one
+                        // activity means that one; anybody with a wider reach
+                        // gets the choice they had.
+                        activityId: activities.length === 1 ? activities[0].id : undefined,
                         permissions: [],
                         existing: false,
                         overrideSystem: false,
@@ -259,6 +275,10 @@ export default function GrantsPage() {
                                             existing: true,
                                             overrideSystem: grant.overrideSystem,
                                             holdsSystem: holdsSystemPermissions(grant.userId),
+                                        }, {
+                                            id: grant.userId,
+                                            name: grant.userName,
+                                            username: grant.userLogin,
                                         })}
                                     >
                                         {grant.userName}
@@ -340,6 +360,10 @@ export default function GrantsPage() {
                                             existing: true,
                                             overrideSystem: grant.overrideSystem,
                                             holdsSystem: holdsSystemPermissions(grant.userId),
+                                        }, {
+                                            id: grant.userId,
+                                            name: grant.userName,
+                                            username: grant.userLogin,
                                         })}
                                     >
                                         {t("Edit")}
@@ -377,10 +401,13 @@ export default function GrantsPage() {
                         <Group grow align="flex-start">
                             <Select
                                 label={t("User")}
+                                placeholder={t("Search by name, username or email")}
                                 data={users.map(u => ({ value: u.id, label: `${u.name} (${u.username})` }))}
                                 value={draft.userId || null}
                                 onChange={v => setDraft({ ...draft, userId: v ?? "" })}
                                 searchable
+                                onSearchChange={searchUsers}
+                                nothingFoundMessage={t("Type a name to look somebody up")}
                                 // The pair identifies the grant, so changing it on
                                 // an existing one would silently move somebody
                                 // else's permissions.

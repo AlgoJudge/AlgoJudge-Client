@@ -92,7 +92,7 @@ export const PERMISSION_CATALOGUE: PermissionDefinition[] = [
     definition("ranking:read:unfrozen", "ranking", "both"),
     definition("ranking:unfreeze", "ranking", "both"),
 
-    definition("user:read:all", "user", "global"),
+    definition("user:read:all", "user", "both"),
     definition("user:create", "user", "global"),
     definition("user:update", "user", "global"),
     definition("user:block", "user", "global"),
@@ -137,6 +137,10 @@ const MANAGER = [
     "printout:manage",
     "announcement:create",
     "ranking:read:unfrozen", "ranking:unfreeze",
+    // Enrolling somebody by hand means naming them, and the lookup that turns a
+    // person into an id asks for this. Without it `activity:enroll` and
+    // `grant:update` were two keys with no screen that could spend them.
+    "user:read:all",
     "user:create:temporary",
     "grant:read:all", "grant:update",
     "role:read", "role:manage",

@@ -7,7 +7,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
-    FileScope, ManagedProblem, ManagedProblemVersion, ManagedUserSummary, ProblemFile, ProblemVisibility,
+    FileScope, ManagedProblem, ManagedProblemVersion, ProblemFile, ProblemVisibility,
 } from "../../../../api/ManagerApi";
 import { StatementRef } from "../../../../api/FileApi";
 import FilePreview, { PreviewableFile } from "../../../../components/files/FilePreview";
@@ -22,6 +22,8 @@ import ActivityTime from "../../../../components/time/ActivityTime";
 import { emptyDocument, isStatementFile, isStatementName, statementFileName } from "../../../../content/types";
 import { tryValidateContent } from "../../../../content/validate";
 import { useApi, useApiCall, useApiEffect } from "../../../../provider/apiContext";
+import { usePermissions } from "../../../../provider/permissionsContext";
+import { useUserSearch } from "../../../../components/users/useUserSearch";
 import { sha256 } from "../../../../utils/sha256";
 import { problemShape, statementRenderers } from "../../../../renderers";
 import { canEmbed, embedReference, linkReference } from "../../../../content/reference";
@@ -30,6 +32,7 @@ export default function ManagerProblemPage() {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const call = useApiCall();
+    const { has } = usePermissions();
     const api = useApi();
     const { problemId } = useParams();
     // Which version the other tabs show. In the URL, so "look at version 2 of
@@ -41,7 +44,7 @@ export default function ManagerProblemPage() {
 
     const [problem, setProblem] = useState<ManagedProblem | undefined>(undefined);
     const [versions, setVersions] = useState<ManagedProblemVersion[]>([]);
-    const [users, setUsers] = useState<ManagedUserSummary[]>([]);
+    const { users, search: searchUsers } = useUserSearch();
     // Keyed by language subtag; the default statement is under DEFAULT_LANGUAGE.
     // One state rather than one per tab: publishing sends them together, because
     // a version carries every language it was published with.
@@ -79,7 +82,6 @@ export default function ManagerProblemPage() {
         setCarried([]);
         const loaded = await api.managerApi.getProblem(problemId);
         setProblem(loaded);
-        setUsers(await api.managerApi.searchUsers(""));
 
         const history = await api.managerApi.getProblemVersions(problemId);
         setVersions(history);
@@ -302,6 +304,11 @@ export default function ManagerProblemPage() {
 
     if (!problem) return <LoadState error={loadError} loading={!loadError} />;
 
+    // **And once it is drawn.** The guard above is reached only before the first
+    // load, so a refetch that failed — or a load that stopped half way — would
+    // otherwise leave a problem on screen with nothing in it and no explanation.
+    const partial = loadError !== undefined ? <LoadState error={loadError} loading={false} /> : null;
+
     const Statement = statementRenderers.resolve(problem.type).value;
     // What this type gives a manager to edit. Everything below that used to
     // assume a package asks this instead.
@@ -407,6 +414,7 @@ export default function ManagerProblemPage() {
 
     return (
         <Stack gap="md">
+            {partial}
             <Group justify="space-between" wrap="wrap">
                 <Stack gap={2}>
                     <Group gap="xs">
@@ -774,6 +782,7 @@ export default function ManagerProblemPage() {
                             : undefined}
                         onDraftChange={handleDraft}
                         onMeasure={measure}
+                        mayMeasure={has("trial:run")}
                     />
                 </Tabs.Panel>}
 
@@ -862,11 +871,14 @@ export default function ManagerProblemPage() {
                         {problem.visibility === "shared" && (
                             <MultiSelect
                                 label={t("Shared with")}
+                                placeholder={t("Search by name, username or email")}
+                                searchable
+                                onSearchChange={searchUsers}
+                                nothingFoundMessage={t("Type a name to look somebody up")}
                                 data={users.map(u => ({ value: u.id, label: `${u.name} (${u.username})` }))}
                                 value={problem.sharedWith}
                                 onChange={ids => run(() => call(api =>
                                     api.managerApi.setProblemVisibility(problem.id, "shared", ids)))}
-                                searchable
                             />
                         )}
                         <Alert color="blue">

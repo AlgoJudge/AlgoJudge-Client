@@ -25,6 +25,14 @@ export interface ManagerArea {
     icon: TablerIcon;
     /** Any one of these admits. Empty means every manager. */
     permissions: string[];
+    /**
+     * Whether the keys above have to be held **at system scope**.
+     *
+     * The default is the union across scopes, which is what a menu wants:
+     * somebody who manages one activity still needs the panel it lives in. An
+     * area the installation owns is the exception — see the Users entry.
+     */
+    systemScope?: boolean;
     /** Planned, not built: shown dead so the shape of the product is legible. */
     soon?: boolean;
 }
@@ -36,6 +44,14 @@ export const MANAGER_AREAS: ManagerArea[] = [
         description: "Accounts, temporary logins in bulk, blocking and notes.",
         icon: IconUsers,
         permissions: ["user:read:all"],
+        // **At system scope, and it is the only area that says so.** The key
+        // joined the shipped `manager` role on 2026-09-14 so that an activity's
+        // manager can look somebody up to enrol them — and this screen is still
+        // the installation's: it lists every account, blocks them and merges
+        // them, and `UserService.ListAsync` goes on asking at system scope. Read
+        // as a union, the card appeared for every manager and the list behind it
+        // refused, which is the one thing this table exists to prevent.
+        systemScope: true,
     },
     {
         to: "/manager/grants",
@@ -152,6 +168,21 @@ export const BUILT_AREAS = MANAGER_AREAS.filter(area => !area.soon);
 export const MANAGER_PERMISSIONS: string[] = [
     ...new Set(BUILT_AREAS.flatMap(area => area.permissions)),
 ];
+
+/**
+ * Whether this reader may open an area.
+ *
+ * One predicate, so the sidebar, the landing screen and the route guard cannot
+ * disagree about a scope the way they would if each spelled the test out.
+ */
+export const admits = (
+    area: ManagerArea,
+    hasAny: (permissions: readonly string[]) => boolean,
+    hasAtSystemScope: (permission: string) => boolean,
+): boolean => area.permissions.length === 0
+    || (area.systemScope
+        ? area.permissions.some(hasAtSystemScope)
+        : hasAny(area.permissions));
 
 /** What a path needs, for the route guard. Longest match wins. */
 export const areaFor = (path: string): ManagerArea | undefined =>

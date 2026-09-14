@@ -11,7 +11,7 @@
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { send, evaluate, wait, shot, go, visit, click, pages, close } = await open();
+const { send, evaluate, until, wait, shot, go, visit, click, pages, close } = await open();
 const { check, report } = results();
 
 // **Two activities this reader is actually enrolled in**, one with the module on
@@ -250,7 +250,24 @@ await wait(2000);
 await click(`document.querySelector("[data-testid=printout-printed]")`);
 await wait(1800);
 
-check(/Wydrukowany/.test(await body()), "confirming marks the row printed");
+// **The row, and not the page.** The fixture seeds a request that is already
+// printed, so `Wydrukowany` is on this screen whatever the click did — the
+// assertion passed for three months while the fake answered 409 to the only
+// call that could have produced it. Two things are asked instead: the row this
+// flow worked on says it, and the window closed, which it does only on success.
+const ROW = `([...document.querySelectorAll("[data-testid=printout-queue] tr")]
+    .find(r => r.innerText.includes("A.cpp"))?.innerText ?? "")`;
+// Polled, not slept on: the list refetches after the confirm, and a fixed wait
+// reads either the old rows or a blank table — both of which look exactly like
+// a row that never changed.
+// **Case-insensitive, because the state is a Mantine `Badge`** and a badge
+// shouts through CSS: `innerText` reads WYDRUKOWANY for a label written
+// `Wydrukowany`. Asserting on the whole page body hid this — the word is in
+// normal case in the state filter beside the table.
+const marked = await until(`/wydrukowany/i.test(${ROW})`);
+check(marked, `confirming marks that row printed (${(await evaluate(`return ${ROW};`)).replace(/\s+/g, " ").slice(0, 90)})`);
+check(await evaluate(`return document.querySelector("[data-testid=modal]") === null;`),
+    "and the window closes, which it does only when the Server accepted it");
 await shot("printouts-queue");
 
 

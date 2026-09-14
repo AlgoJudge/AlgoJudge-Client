@@ -10,7 +10,7 @@ import { ManagedActivitySummary, ManagedQuestion, ManagedSeries } from "../../..
 import { QuestionKind } from "../../../api/ParticipantApi";
 import LoadState from "../../../components/LoadState";
 import ActivityTime from "../../../components/time/ActivityTime";
-import { useApiCall, useApiEffect } from "../../../provider/apiContext";
+import { optional, useApiCall, useApiEffect } from "../../../provider/apiContext";
 
 const PAGE_SIZE = 20;
 
@@ -27,7 +27,18 @@ export default function ManagerQuestionsPage() {
     const call = useApiCall();
 
     const [query, setQuery] = useSearchParams();
-    const activityId = query.get("activity") ?? undefined;
+    const asked = query.get("activity") ?? undefined;
+    /**
+     * An activity this reader may not see questions in — a link that outlived
+     * somebody's rights, or one copied from another manager.
+     *
+     * Remembered rather than rewritten into the address: the effect would have
+     * to own the setter to do that, and a screen whose load edits its own URL is
+     * a loop waiting to happen. Held here, the filter falls back to every
+     * activity and says so.
+     */
+    const [refused, setRefused] = useState<string | undefined>(undefined);
+    const activityId = asked === refused ? undefined : asked;
     const seriesId = query.get("series") ?? undefined;
     const kind = (query.get("kind") ?? undefined) as QuestionKind | undefined;
     const unansweredOnly = query.get("unanswered") === "1";
@@ -58,7 +69,12 @@ export default function ManagerQuestionsPage() {
 
     const loadError = useApiEffect(async (api) => {
         setActivities(await api.managerApi.getManagedActivities());
-        setSeries(activityId ? await api.managerApi.getSeries(activityId) : []);
+        // **A filter, and not a reason to lose the screen.** The rounds are read
+        // with `activity:update`, which this screen does not need and a reader
+        // answering questions may not hold; a link carrying somebody else's
+        // activity would otherwise take the whole page down — filter row
+        // included, so there was no control left to clear it with.
+        setSeries(activityId ? await optional(api.managerApi.getSeries(activityId), []) : []);
 
         // **The list stays on screen while the next one loads.** This reset ran
         // on every effect run, not only the first, so the guard below fired on
@@ -70,12 +86,21 @@ export default function ManagerQuestionsPage() {
         // the first load has ever finished, which turns that guard into what it
         // was written to be. The precedent, and the argument, are in
         // `ParticipantsPanel` and in `MANAGER_PANEL.md`.
-        const result = await api.managerApi.getQuestions({
+        const ask = (scope: string | undefined) => api.managerApi.getQuestions({
             page, pageSize: PAGE_SIZE,
-            activityId, seriesId, kind,
+            activityId: scope, seriesId, kind,
             unansweredOnly: unansweredOnly || undefined,
             search: search || undefined,
         });
+
+        // A scope this person may not read is a stale link, not an error worth
+        // a page. Dropped from the address so the screen and the filter agree
+        // about what is being shown.
+        let result = activityId === undefined ? await ask(undefined) : await optional(ask(activityId), null);
+        if (result === null) {
+            setRefused(activityId);
+            result = await ask(undefined);
+        }
         setItems(result.items);
         setTotal(result.total);
 
@@ -110,6 +135,11 @@ export default function ManagerQuestionsPage() {
                 without this a filter change that lost the connection would leave
                 the previous rows on screen looking current. */}
             {loadError !== undefined && <LoadState error={loadError} loading={false} />}
+            {refused !== undefined && (
+                <Alert color="orange" withCloseButton onClose={() => setRefused(undefined)}>
+                    {t("That activity's questions are not yours to read, so the filter was cleared.")}
+                </Alert>
+            )}
             <Group justify="space-between" wrap="wrap">
                 <Stack gap={2}>
                     <Title>{t("Questions and announcements")}</Title>

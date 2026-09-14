@@ -6,7 +6,7 @@ import { displayName } from "../../api/displayName";
 import { useAuth } from "../../provider/authContext";
 import { useInstance } from "../../provider/instanceContext";
 import { usePermissions } from "../../provider/permissionsContext";
-import { MANAGER_AREAS, MANAGER_PERMISSIONS } from "../../pages/manager/managerAreas";
+import { admits, MANAGER_AREAS, MANAGER_PERMISSIONS } from "../../pages/manager/managerAreas";
 import classes from "./AppLayout.module.css";
 import { IconBox, IconChartBarPopular, IconChevronDown, IconChevronsLeft, IconChevronsRight, IconClock, IconHome, IconListDetails, IconLogout, IconMessageQuestion, IconMoon, IconNotes, IconPackageExport, IconPrinter, IconSectionSign, IconSettings, IconSun, IconUser, TablerIcon } from "@tabler/icons-react";
 import { ComponentPropsWithoutRef, Suspense, useState } from "react";
@@ -76,7 +76,7 @@ const NavbarLink = (props: {
  */
 const ManagerNavbar = (props: { collapsed: boolean }) => {
     const { t } = useTranslation();
-    const { hasAny } = usePermissions();
+    const { hasAny, hasAtSystemScope } = usePermissions();
     const match = useMatch({ path: "/manager", end: false });
     if (!match) return;
     // Somebody who may open nothing in the panel gets no panel navigation —
@@ -84,7 +84,7 @@ const ManagerNavbar = (props: { collapsed: boolean }) => {
     // product is going, and this person is being refused at the door.
     if (!hasAny(MANAGER_PERMISSIONS)) return;
 
-    const links = MANAGER_AREAS.filter(area => area.permissions.length === 0 || hasAny(area.permissions));
+    const links = MANAGER_AREAS.filter(area => admits(area, hasAny, hasAtSystemScope));
     return (
         <>
             {links.map(item => (

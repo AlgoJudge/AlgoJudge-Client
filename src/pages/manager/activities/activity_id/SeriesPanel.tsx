@@ -21,7 +21,7 @@ import ZonedDateTimeInput from "../../../../components/time/ZonedDateTimeInput";
 import CleanCopyModal from "../../../../components/copy/CleanCopyModal";
 import ExportButton from "../../../../components/exchange/ExportButton";
 import { collectSeries } from "../../../../exchange/collect";
-import { useApiCall } from "../../../../provider/apiContext";
+import { optional, useApiCall } from "../../../../provider/apiContext";
 import PauseSeriesModal, { PauseIntent } from "./PauseSeriesModal";
 import ShiftSeries from "./ShiftSeries";
 import OpaqueDocumentField from "../../../../components/manager/OpaqueDocumentField";
@@ -182,7 +182,15 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
         setAttachTo(target);
         setEditing(existing);
         setAttachment(existing ? toAssignmentInput(existing) : { problemId: "", slug: "" });
-        setVersions(existing ? await call(api => api.managerApi.getProblemVersions(existing.problemId)) : []);
+        // **A pin can be offered for a problem the caller may not open.** The
+        // assignment is editable by whoever holds `problem:attach` here, while
+        // the version history is the library's and answers 404 to anybody
+        // outside its access list — so a co-manager editing points, limits or a
+        // slug took the refusal for the whole modal. An empty list means "always
+        // the current one", which is what the field already says.
+        setVersions(existing
+            ? await optional(call(api => api.managerApi.getProblemVersions(existing.problemId)), [])
+            : []);
     };
 
     const pickProblem = async (problemId: string) => {
@@ -195,7 +203,7 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
             slug: attachment?.slug || problem?.slug || "",
             pinnedProblemVersionId: undefined,
         });
-        setVersions(await call(api => api.managerApi.getProblemVersions(problemId)));
+        setVersions(await optional(call(api => api.managerApi.getProblemVersions(problemId)), []));
     };
 
     const saveAttachment = () => {
