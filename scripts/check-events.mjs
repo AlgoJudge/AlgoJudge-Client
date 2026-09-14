@@ -87,6 +87,7 @@ check(eventUrl("/api/v1/") === "wss://judge.example.edu.pl/api/v1/ws",
 const core = new CoreEventDispatcherImpl();
 const participant = new ParticipantEventDispatcherImpl();
 const manager = new ManagerEventDispatcherImpl();
+const managerFeed = manager.feed;
 const heard = { core: [], participant: [], manager: [] };
 const forever = new AbortController().signal;
 core.addEventListener("systemMessage", evt => heard.core.push(evt), forever);
@@ -143,11 +144,61 @@ check(managerSeries.length === 1 && managerSeries[0].data.series.order === 1,
 check(series.length === 2,
     "and does not also land on the participant one, which would read `series.change` off it");
 
+// ── the gate: the manager's feed can be held, and nobody else's ─────────────
+//
+// The switch above the panel stops manager events reaching the screens. What
+// must be impossible is for it to reach any other audience: a participant
+// losing a verdict, a round change, or a session ending because somebody paused
+// a list would be a far worse defect than the one the switch exists to fix.
+const instances = [];
+manager.addEventListener("instanceChanged", evt => instances.push(evt), forever);
+
+const feed = manager.eventDispatcher?.feed ?? managerFeed;
+feed.setLive(false);
+socket.deliver({ type: "systemMessage", data: { message: "still", type: "info" } });
+socket.deliver({ type: "submissionStateChanged", data: { activityId: "a1", submission: { id: "s2" } } });
+socket.deliver({ type: "runnerChanged", data: { runner: { id: "r2" } } });
+socket.deliver({ type: "instanceChanged", data: { instance: { name: "X" } } });
+
+check(heard.core.length === 2, "a core event is delivered while the manager feed is held");
+check(heard.participant.length === 2, "so is a participant one");
+check(heard.manager.length === 1, "and a manager one is not");
+check(instances.length === 1,
+    "except the instance, which is the shell's rather than the panel's");
+check(feed.getSnapshot().kinds.includes("runnerChanged"),
+    "the kind is recorded, so the screen can say something moved");
+check(!feed.getSnapshot().kinds.includes("instanceChanged"),
+    "and what was never held is not recorded as waiting");
+
+feed.setLive(true);
+socket.deliver({ type: "runnerChanged", data: { runner: { id: "r3" } } });
+check(heard.manager.length === 2,
+    "coming back delivers what arrives next, and replays nothing — a buffer here would fail this");
+
+// A dialog holds it the same way, and two dialogs need two closes.
+const first = feed.hold();
+const second = feed.hold();
+socket.deliver({ type: "runnerChanged", data: { runner: { id: "r4" } } });
+check(heard.manager.length === 2, "an open dialog holds the feed");
+first();
+first();
+socket.deliver({ type: "runnerChanged", data: { runner: { id: "r5" } } });
+check(heard.manager.length === 2,
+    "and releasing one twice does not open it — the second dialog is still there");
+second();
+socket.deliver({ type: "runnerChanged", data: { runner: { id: "r6" } } });
+check(heard.manager.length === 3, "the last one closing lets them through again");
+
 // 3 — what a newer Server or a broken one might send.
+// Counted as a difference rather than against a constant: a total written out
+// here is a number every section added later has to remember to update, and the
+// question is only whether these three changed anything.
+const before = heard.core.length + heard.participant.length + heard.manager.length + series.length;
 socket.deliver({ type: "somethingThisBuildHasNeverHeardOf", data: {} });
 socket.deliver("{ not json");
 socket.deliver({ data: { withoutAType: true } });
-check(heard.core.length + heard.participant.length + heard.manager.length + series.length === 5,
+const after = heard.core.length + heard.participant.length + heard.manager.length + series.length;
+check(before === after,
     "an unknown type, a malformed frame and a typeless one are all ignored");
 
 // 4 — a dropped connection comes back, and a stopped one does not.
@@ -199,6 +250,44 @@ events.stop();
 // The Server commits its catalogue beside `openapi.json`, for the same reason
 // and read the same way. Given one, this diffs against it; given none, it says
 // so rather than passing quietly.
+// ── every name this Client knows has somebody listening ─────────────────────
+//
+// The Server has the mirror of this rule — `EventCatalogueTests`'s
+// `Every_declared_event_has_something_that_sends_it` — and between them they
+// were still blind to the failure of 2026-09-14: `activityCreated` was declared
+// on both sides, sent by nothing, and waited for by three screens. That test
+// asks whether a name is *sent*; the diff below asks whether the two sides
+// *spell it alike*. Neither asks whether anybody is **listening**.
+//
+// A name nobody hears is the same defect pointing the other way: a Server
+// spending a fan-out on a frame that reaches a tab and stops.
+{
+    const sources = [];
+    const walk = (directory) => {
+        for (const entry of readdirSync(directory, { withFileTypes: true })) {
+            const path = join(directory, entry.name);
+            if (entry.isDirectory()) walk(path);
+            else if (/\.tsx?$/.test(entry.name)) sources.push(readFileSync(path, "utf8"));
+        }
+    };
+    walk("src");
+
+    // The listener may be written over two lines, which is how the printouts
+    // one is — and how a single-line grep once reported it missing. Either
+    // quote, too: `Header.tsx` uses apostrophes, and a pattern that knew only
+    // double quotes reported the one name it could not see as unheard.
+    const heardBy = (name) =>
+        sources.some(text => new RegExp(`addEventListener\\(\\s*[\\'"]${name}[\\'"]`).test(text));
+
+    const unheard = [...new Set([
+        ...Object.keys(CORE), ...Object.keys(PARTICIPANT), ...Object.keys(MANAGER),
+    ])].filter(name => !heardBy(name));
+
+    console.log("");
+    check(unheard.length === 0,
+        `every name this Client routes has somewhere to land${unheard.length ? `: ${unheard.join(", ")}` : ""}`);
+}
+
 const catalogue = process.argv[2];
 if (catalogue) {
     const { events: served, transport = [] } =

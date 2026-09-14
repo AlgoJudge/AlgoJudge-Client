@@ -110,6 +110,7 @@ import {
     ActivityTimesChangedEvent,
     ActivityUpdatedEvent,
     AnnouncementPublishedEvent,
+    PrintoutStateChangedEvent,
     AskQuestionInput,
     EnrolInput,
     Page,
@@ -329,6 +330,7 @@ export class ScopedParticipantEventDispatcher {
     addEventListener(type: "questionAnswered", listener: (evt: QuestionAnsweredEvent) => void): void;
     addEventListener(type: "questionPublished", listener: (evt: QuestionPublishedEvent) => void): void;
     addEventListener(type: "announcementPublished", listener: (evt: AnnouncementPublishedEvent) => void): void;
+    addEventListener(type: "printoutStateChanged", listener: (evt: PrintoutStateChangedEvent) => void): void;
     addEventListener<T extends ParticipantEventType, V>(type: T, listener: (evt: ParticipantEvent<T, V>) => void): void {
         this.eventDispatcher.addEventListener(type, listener, this.signal);
     }

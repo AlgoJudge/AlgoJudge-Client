@@ -17,14 +17,42 @@ export type StoredPrintout = FakePrintout & { activityId: string };
  * The Server needs no such object; it has one table. This exists so the fake
  * cannot answer a question the Server would answer differently.
  */
+/** What moved, so both audiences can be told the same thing. */
+export interface PrintoutRelay {
+    printoutId: string;
+    activityId: string;
+    state: string;
+    requestedByUserId: string;
+}
+
 export class FakePrintouts {
     /** Keyed by activity id, oldest first — the order a queue is worked in. */
     private readonly byActivity = new Map<string, FakePrintout[]>();
+
+    private readonly listeners: ((relay: PrintoutRelay) => void)[] = [];
 
     constructor(world: SeedActivity[]) {
         for (const activity of world) {
             this.byActivity.set(activity.id, printoutsFor(activity.id, activity.modules.printouts));
         }
+    }
+
+    /**
+     * Both fakes listen; whichever moved a row tells them.
+     *
+     * The Server needs no such thing — it has one queue and one socket, and it
+     * sends `printoutChanged` to whoever works the queue and
+     * `printoutStateChanged` to whoever asked. This exists so the screens can be
+     * watched doing what the Server makes them do: **the fake was silent about
+     * printouts entirely**, so neither subscription had ever been exercised by
+     * any check.
+     */
+    onChanged(listener: (relay: PrintoutRelay) => void): void {
+        this.listeners.push(listener);
+    }
+
+    announce(relay: PrintoutRelay): void {
+        for (const listener of this.listeners) listener(relay);
     }
 
     /** Every queue, flattened, each row carrying where it belongs. */

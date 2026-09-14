@@ -855,12 +855,22 @@ export type ParticipantEventType =
     | "rankingChanged"
     | "questionAnswered"
     | "questionPublished"
-    | "announcementPublished";
+    | "announcementPublished"
+    | "printoutStateChanged";
 
 export type ParticipantEvent<T extends ParticipantEventType, V> = Event<T, V>;
 
+/**
+ * An activity has begun to exist for whoever receives this.
+ *
+ * **The id and nothing else.** An `Activity` is per-reader — what is in it
+ * depends on who is asking — so one cannot be computed once and sent to
+ * everybody, which is why this name went unsent for months while three screens
+ * listened for it. The Server sends it when an activity is published, and the
+ * screen asks for its own copy.
+ */
 export type ActivityCreatedEvent = ParticipantEvent<"activityCreated", {
-    activity: Activity;
+    activityId: string;
 }>;
 
 export type ActivityUpdatedEvent = ParticipantEvent<"activityUpdated", {
@@ -957,9 +967,29 @@ export type QuestionPublishedEvent = ParticipantEvent<"questionPublished", {
     question: Question;
 }>;
 
+/**
+ * An announcement was posted, or withdrawn — `deletedId` says which.
+ *
+ * Withdrawal was staff-only news until 2026-09-14, so a notice corrected during
+ * a contest stayed on every screen that already had it.
+ */
 export type AnnouncementPublishedEvent = ParticipantEvent<"announcementPublished", {
     activityId: string;
-    question: Question;
+    question?: Question;
+    deletedId?: string;
+}>;
+
+/**
+ * A print request of one's own moved through the queue.
+ *
+ * Sent to the person who asked for it and nobody else, so it cannot carry
+ * another contestant's page. Distinct from the manager's `printoutChanged`,
+ * which carries every request in the activity.
+ */
+export type PrintoutStateChangedEvent = ParticipantEvent<"printoutStateChanged", {
+    printoutId: string;
+    activityId: string;
+    state: string;
 }>;
 
 export interface ParticipantEventDispatcher {
@@ -974,6 +1004,7 @@ export interface ParticipantEventDispatcher {
     addEventListener(type: "questionAnswered", listener: (evt: QuestionAnsweredEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "questionPublished", listener: (evt: QuestionPublishedEvent) => void, signal: AbortSignal): void;
     addEventListener(type: "announcementPublished", listener: (evt: AnnouncementPublishedEvent) => void, signal: AbortSignal): void;
+    addEventListener(type: "printoutStateChanged", listener: (evt: PrintoutStateChangedEvent) => void, signal: AbortSignal): void;
     addEventListener<T extends ParticipantEventType, V>(type: T, listener: (evt: ParticipantEvent<T, V>) => void, signal: AbortSignal): void;
 }
 

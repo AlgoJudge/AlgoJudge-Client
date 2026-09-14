@@ -1367,5 +1367,21 @@
     "{{create}} to create, {{reuse}} already here, {{beside}} beside what is here.": "{{create}} to create, {{reuse}} already here, {{beside}} beside what is here.",
     "{{name}} — switched off, so the screen draws itself": "{{name}} — switched off, so the screen draws itself",
     "{{slug}} — no provider is registered under this": "{{slug}} — no provider is registered under this",
-    "{{test}} is not one of the {{count}} tests its group declares": "{{test}} is not one of the {{count}} tests its group declares"
+    "{{test}} is not one of the {{count}} tests its group declares": "{{test}} is not one of the {{count}} tests its group declares",
+    "Changed since": "Changed since",
+    "Changes waiting": "Changes waiting",
+    "Something changed while updates were off.": "Something changed while updates were off.",
+    "Updates off": "Updates off",
+    "Updates on": "Updates on",
+    "accounts": "accounts",
+    "activities": "activities",
+    "people": "people",
+    "printouts": "printouts",
+    "problems": "problems",
+    "questions": "questions",
+    "roles": "roles",
+    "rounds": "rounds",
+    "runners": "runners",
+    "submissions": "submissions",
+    "the installation": "the installation"
 }

@@ -1783,6 +1783,15 @@ export type QuestionChangedEvent = ManagerEvent<"questionChanged", {
  */
 export type PrintoutChangedEvent = ManagerEvent<"printoutChanged", {
     printoutId: string;
+    activityId: string;
+    /**
+     * `requested` | `printing` | `printed` | `discarded`.
+     *
+     * Carried since 2026-09-14. It was the id alone, so every transition arrived
+     * as an identical frame and the only way to learn which had happened was to
+     * fetch the whole queue again.
+     */
+    state: string;
 }>;
 
 export type UserChangedEvent = ManagerEvent<"userChanged", {

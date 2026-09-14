@@ -42,6 +42,8 @@ export class HttpApiFactory {
                 participantApi.eventDispatcher,
                 managerApi.eventDispatcher,
             ),
+            // The gate lives on the dispatcher, which is where the frames are.
+            managerFeed: managerApi.eventDispatcher.feed,
             availability,
         };
     }

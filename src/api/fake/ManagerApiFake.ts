@@ -207,6 +207,19 @@ export class ManagerApiFake implements ManagerApi {
         private readonly printouts: FakePrintouts,
         private sleepMs: number = 300,
     ) {
+        // Whoever works this queue is told it moved — including when it was the
+        // participant who added to it, which is the case a manager cannot see
+        // coming and is the whole reason the event exists.
+        printouts.onChanged(relay => {
+            this.eventDispatcher.dispatchEvent({
+                type: "printoutChanged",
+                data: {
+                    printoutId: relay.printoutId,
+                    activityId: relay.activityId,
+                    state: relay.state,
+                },
+            });
+        });
         this.library = createProblemLibrary(files);
         this.submissions = createSubmissions(files);
         // Its attachments go into the same store, because the panel reads them
@@ -1708,7 +1721,18 @@ export class ManagerApiFake implements ManagerApi {
         row.claimedByUserId = signedInUserId() ?? ME;
         row.claimedByName = "Ty";
         row.claimedAt = new Date().toISOString();
+        this.announcePrintout(row);
         return copy(this.projectPrintout(row));
+    }
+
+    /** Both audiences, from one row — as the Server sends two events from one write. */
+    private announcePrintout(row: StoredPrintout): void {
+        this.printouts.announce({
+            printoutId: row.id,
+            activityId: row.activityId,
+            state: row.state,
+            requestedByUserId: row.requestedByUserId,
+        });
     }
 
     async releasePrintout(id: string, signal: AbortSignal): Promise<ManagedPrintout> {
@@ -1719,6 +1743,7 @@ export class ManagerApiFake implements ManagerApi {
         row.claimedByUserId = undefined;
         row.claimedByName = undefined;
         row.claimedAt = undefined;
+        this.announcePrintout(row);
         return copy(this.projectPrintout(row));
     }
 
@@ -1736,6 +1761,7 @@ export class ManagerApiFake implements ManagerApi {
         row.resolvedAt = new Date().toISOString();
         row.resolvedByName = "Ty";
         row.sourceDisposedAt = row.resolvedAt;
+        this.announcePrintout(row);
         // The source goes with the confirm. The row stays, because it is the
         // audit trail.
         row.source = undefined;

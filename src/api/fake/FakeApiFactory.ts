@@ -43,10 +43,15 @@ export class FakeApiFactory {
         // And one owner for the print queue. A participant asks and the operator
         // prints; two copies would let somebody send a page that never arrived.
         const printouts = new FakePrintouts(WORLD);
+        // Hoisted so the live-update gate on its dispatcher can be handed out
+        // below: the gate is the manager audience's, and the dispatcher is where
+        // the frames actually arrive.
+        const managerApi = new ManagerApiFake(
+            files, instance, activities, access, exclusions, lockdown, printouts);
         return {
             authApi: new CoreApiFake(instance),
             participantApi: new ParticipantApiFake(files, activities, access, exclusions, lockdown, printouts),
-            managerApi: new ManagerApiFake(files, instance, activities, access, exclusions, lockdown, printouts),
+            managerApi,
             fileApi: new FileApiFake(files),
             ltiApi: new LtiApiFake(),
             // The fake dispatches its own events as it changes things, so there
@@ -54,6 +59,8 @@ export class FakeApiFactory {
             events: new NullEventConnection(),
             // Nothing to lose: the fake is in this browser. A window is reached
             // through `?fakeMaintenance=`, which its health call answers.
+            // The gate lives on the dispatcher, which is where the frames are.
+            managerFeed: managerApi.eventDispatcher.feed,
             availability: new NoAvailabilitySignal(),
         }
     }

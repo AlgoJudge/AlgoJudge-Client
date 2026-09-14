@@ -44,6 +44,8 @@ import RouteErrorPage from './pages/error/RouteErrorPage';
 import RequireSession from './routers/Authentication';
 import RequirePermission from './routers/RequirePermission';
 import { areaFor, MANAGER_PERMISSIONS } from './pages/manager/managerAreas';
+import LiveUpdates from './components/manager/LiveUpdates';
+import { RefreshProvider } from './provider/RefreshProvider';
 const AccountPage = lazy(() => import('./pages/account/AccountPage'));
 const LegalPage = lazy(() => import('./pages/legal/LegalPage'));
 
@@ -80,7 +82,10 @@ function App() {
         path,
         element: (
             <RequirePermission permissions={areaFor(path)?.permissions ?? MANAGER_PERMISSIONS}>
-                {element}
+                {/* Every panel screen gets the live-update control here, which
+                    is one place rather than seventeen — and the one place that
+                    cannot be forgotten when the eighteenth is added. */}
+                <LiveUpdates>{element}</LiveUpdates>
             </RequirePermission>
         ),
     });
@@ -327,9 +332,15 @@ function App() {
                                     to — and above the router, because the
                                     shell a route draws depends on whether
                                     this tab is inside a launch. */}
+                                {/* Inside the events, because what it holds
+                                    back is what they deliver, and above the
+                                    router, because its counter is folded into
+                                    every `useApiEffect` below it. */}
+                                <RefreshProvider>
                                 <LaunchProvider>
                                     <RouterProvider router={router} />
                                 </LaunchProvider>
+                                </RefreshProvider>
                             </EventsProvider>
                         </PermissionsProvider>
                     </AuthProvider>
