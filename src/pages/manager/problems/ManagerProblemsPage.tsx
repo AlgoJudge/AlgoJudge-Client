@@ -46,6 +46,9 @@ export default function ManagerProblemsPage() {
     const call = useApiCall();
     const { instance } = useInstance();
     const { has } = usePermissions();
+    // System-scoped, and not in the manager role: an activity's manager retires a
+    // problem by archiving it, which is the control beside this one.
+    const mayDelete = has("problem:delete");
 
     const [copying, setCopying] = useState<ManagedProblem | undefined>(undefined);
     const [importing, setImporting] = useState(false);
@@ -303,7 +306,12 @@ export default function ManagerProblemsPage() {
                                     </Tooltip>
                                     {/* Deleting is refused while the problem is
                                         attached anywhere, so the button says so
-                                        instead of failing on click. */}
+                                        instead of failing on click — and it is
+                                        drawn only to somebody who may delete at
+                                        all. `problem:delete` is system-scoped and
+                                        not in the manager role, whose retirement
+                                        path is Archive beside it. */}
+                                    {mayDelete && (
                                     <Tooltip label={problem.attachedCount > 0
                                         ? t("Attached to an activity — archive it instead")
                                         : t("Delete")}>
@@ -318,6 +326,7 @@ export default function ManagerProblemsPage() {
                                             <IconTrash size={14} />
                                         </Button>
                                     </Tooltip>
+                                    )}
                                 </Group>
                             </Table.Td>
                         </Table.Tr>

@@ -810,14 +810,17 @@ export class ManagerApiFake implements ManagerApi {
 
     async searchUsers(query: string, signal: AbortSignal): Promise<ManagedUserSummary[]> {
         await this.settle(signal);
+        // **An empty needle finds nobody, as on the Server.** `UserService`
+        // returns `[]` before it touches the database, and answering everybody
+        // here is how three pickers looked full in every `check:ui` run and were
+        // empty in every installation.
         const needle = query.trim().toLowerCase();
-        const matched = needle.length === 0
-            ? MANAGED_USERS
-            : MANAGED_USERS.filter(u =>
-                u.name.toLowerCase().includes(needle) ||
-                u.username.toLowerCase().includes(needle) ||
-                (u.email ?? "").toLowerCase().includes(needle));
-        return copy(matched);
+        if (needle.length === 0) return [];
+
+        return copy(MANAGED_USERS.filter(u =>
+            u.name.toLowerCase().includes(needle) ||
+            u.username.toLowerCase().includes(needle) ||
+            (u.email ?? "").toLowerCase().includes(needle)));
     }
 
     async getManagedActivities(signal: AbortSignal): Promise<ManagedActivitySummary[]> {
@@ -1752,7 +1755,14 @@ export class ManagerApiFake implements ManagerApi {
     ): Promise<ManagedPrintout> {
         await this.settle(signal);
         const row = this.printoutRow(id);
-        if (row.state !== "requested") conflict("This request is already resolved", "printout.resolved");
+        // **The two resolved states, as the Server tests them.** `!== "requested"`
+        // also refused `printing` — which is the state every job is in by the
+        // time anybody says what came out of the printer, because the operator
+        // claims it to open the sheet. The only path to "Printed" answered 409
+        // against the fake, so no browser check could walk the queue to its end.
+        if (row.state === "printed" || row.state === "discarded") {
+            conflict("This request is already resolved", "printout.resolved");
+        }
 
         row.state = outcome;
         row.claimedByUserId = undefined;

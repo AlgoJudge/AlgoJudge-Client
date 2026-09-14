@@ -1,7 +1,7 @@
 import { Card, Grid, Group, Stack, Text, Title } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { BUILT_AREAS } from "./managerAreas";
+import { admits, BUILT_AREAS } from "./managerAreas";
 import { usePermissions } from "../../provider/permissionsContext";
 
 /**
@@ -14,9 +14,9 @@ import { usePermissions } from "../../provider/permissionsContext";
  */
 export default function ManagerPage() {
     const { t } = useTranslation();
-    const { hasAny } = usePermissions();
+    const { hasAny, hasAtSystemScope } = usePermissions();
 
-    const areas = BUILT_AREAS.filter(area => hasAny(area.permissions));
+    const areas = BUILT_AREAS.filter(area => admits(area, hasAny, hasAtSystemScope));
 
     return (
         <Stack gap="md">

@@ -14,11 +14,17 @@ import { usePermissions } from "../provider/permissionsContext";
  * Waits while the answer is unknown, for the same reason the session guard does:
  * refusing before the permissions have arrived would show a 403 on every reload.
  */
-const RequirePermission: FC<{ permissions: string[]; children: ReactNode }> = ({ permissions, children }) => {
-    const { hasAny, loading } = usePermissions();
+const RequirePermission: FC<{
+    permissions: string[];
+    /** Held at system scope rather than anywhere — see `ManagerArea.systemScope`. */
+    systemScope?: boolean;
+    children: ReactNode;
+}> = ({ permissions, systemScope, children }) => {
+    const { hasAny, hasAtSystemScope, loading } = usePermissions();
 
     if (loading) return <Center h="60vh"><Loader /></Center>;
-    if (permissions.length > 0 && !hasAny(permissions)) return <ForbiddenPage permissions={permissions} />;
+    const admitted = systemScope ? permissions.some(hasAtSystemScope) : hasAny(permissions);
+    if (permissions.length > 0 && !admitted) return <ForbiddenPage permissions={permissions} />;
     return children;
 };
 

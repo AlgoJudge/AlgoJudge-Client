@@ -8,6 +8,7 @@ import { BundleContents } from "../../exchange/bundle";
 import { ArchiveSource, readArchive } from "../../exchange/read";
 import { Loss } from "../../exchange/zawodyweb/convert";
 import { applyBundle, ImportOutcome } from "../../exchange/apply";
+import { usePermissions } from "../../provider/permissionsContext";
 import { ImportPlan, LibraryProblem, planImport, Resolution, summarise } from "../../exchange/plan";
 import { useApiCall } from "../../provider/apiContext";
 import DataTable from "../../components/table/DataTable";
@@ -97,6 +98,8 @@ export default function ImportBundleModal({ opened, onClose, onImported }: Impor
         }
     };
 
+    const { has } = usePermissions();
+
     const decide = (problemSlug: string, action: Resolution) =>
         setPlan(current => current && {
             ...current,
@@ -105,7 +108,13 @@ export default function ImportBundleModal({ opened, onClose, onImported }: Impor
 
     const activity = contents?.bundle.activity;
     const counts = plan ? summarise(plan) : undefined;
-    const ready = Boolean(contents && plan)
+    // **A bundle carrying an activity creates one**, and `applyBundle` does it
+    // *after* the problems are written — so a reader without `activity:create`
+    // used to get half an import and a refusal. Said before the button, once the
+    // file has been read and it is known whether the question arises at all.
+    const mayCreateActivity = has("activity:create");
+    const refused = Boolean(activity) && !mayCreateActivity;
+    const ready = Boolean(contents && plan) && !refused
         && (!activity || (slug.trim().length > 0 && startsAt.length > 0));
 
     const go = async () => {
@@ -239,6 +248,11 @@ export default function ImportBundleModal({ opened, onClose, onImported }: Impor
                             </Alert>
                         )}
 
+                        {refused && (
+                            <Alert color="orange">
+                                {t("This file carries an activity, and creating one is not yours to do. Ask an administrator, or import a file that holds problems only.")}
+                            </Alert>
+                        )}
                         {activity && (
                             <>
                                 <TextInput

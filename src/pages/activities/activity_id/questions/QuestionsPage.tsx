@@ -147,9 +147,18 @@ export default function QuestionsPage() {
         });
         // A publication adds a row that was not visible before, so the page is
         // refetched: patching would place it wherever it arrived rather than
-        // where the sort puts it, and could push another row off the page.
+        // where the sort puts it, and could push another row off the page. A
+        // withdrawal takes one away, and that is patched — the row goes and
+        // nothing else moves.
         api.participantApi.eventDispatcher.addEventListener("questionPublished", evt => {
-            if (evt.data.activityId === activity.id) setReload(n => n + 1);
+            if (evt.data.activityId !== activity.id) return;
+            if (evt.data.deletedId) {
+                const gone = evt.data.deletedId;
+                setItems(current => current?.filter(q => q.id !== gone));
+                setOpened(current => current?.id === gone ? undefined : current);
+                return;
+            }
+            setReload(n => n + 1);
         });
         api.participantApi.eventDispatcher.addEventListener("announcementPublished", evt => {
             if (evt.data.activityId === activity.id) setReload(n => n + 1);

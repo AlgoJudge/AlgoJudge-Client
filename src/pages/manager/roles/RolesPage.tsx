@@ -1,11 +1,14 @@
-import { Alert, Badge, Button, Card, Group, Modal, SegmentedControl, Stack, Text, TextInput, Textarea, Title } from "@mantine/core";
+import {
+    Alert, Badge, Button, Card, Group, Modal, SegmentedControl, Select, Stack, Text, TextInput, Textarea,
+    Title, Tooltip,
+} from "@mantine/core";
 import { IconCopy, IconLock, IconPlus, IconTrash } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { PermissionDefinition, Role } from "../../../api/ManagerApi";
+import { ManagedActivitySummary, PermissionDefinition, Role } from "../../../api/ManagerApi";
 import LoadState from "../../../components/LoadState";
 import PermissionSetEditor from "../../../components/permissions/PermissionSetEditor";
-import { useApiCall, useApiEffect } from "../../../provider/apiContext";
+import { optional, useApiCall, useApiEffect } from "../../../provider/apiContext";
 
 interface Draft {
     id?: string;
@@ -35,17 +38,49 @@ export default function RolesPage() {
     const [grantable, setGrantable] = useState<string[]>([]);
     const [draft, setDraft] = useState<Draft | undefined>(undefined);
     const [scope, setScope] = useState<"global" | "activity">("activity");
+    /**
+     * Which roles this screen is about: the installation's, or one activity's.
+     *
+     * **`role:manage` is scoped, and this page had no scope.** It listed the
+     * installation's roles, asked what the caller holds at system scope, and
+     * wrote with no activity id — so for a manager whose rights live in an
+     * activity every control on it refused, and the activity's own roles, which
+     * the key exists to let them run, were not on the screen at all.
+     */
+    const [activities, setActivities] = useState<ManagedActivitySummary[]>([]);
+    const [activityScope, setActivityScope] = useState<string | undefined>(undefined);
+    const [chosen, setChosen] = useState(false);
     const [error, setError] = useState<string | undefined>(undefined);
     const [saving, setSaving] = useState(false);
     const [reload, setReload] = useState(0);
 
     const loadError = useApiEffect(async (api) => {
         setCatalogue(await api.managerApi.getPermissionCatalogue());
-        setGrantable(await api.managerApi.getMyPermissions());
-        setTemplates(await api.managerApi.getRoles(undefined));
+
+        const managed = await optional(api.managerApi.getManagedActivities(), []);
+        setActivities(managed);
+
+        // **Opened where this person can write.** Asked once: somebody who may
+        // write the installation's roles came for those, and somebody who may
+        // not lands on an activity they run rather than on a scope where every
+        // control is dead. The first of them, not the only one — a manager of
+        // three courses may write all three, and the picker beside this moves
+        // between them.
+        let asked = activityScope;
+        if (!chosen) {
+            const system = await api.managerApi.getMyPermissions();
+            asked = system.includes("role:manage") || managed.length === 0
+                ? undefined
+                : managed[0].id;
+            setActivityScope(asked);
+            setChosen(true);
+        }
+
+        setGrantable(await api.managerApi.getMyPermissions(asked));
+        setTemplates(await api.managerApi.getRoles(asked));
 
         api.managerApi.eventDispatcher.addEventListener("roleChanged", () => setReload(n => n + 1));
-    }, [reload]);
+    }, [reload, activityScope, chosen]);
 
     const save = async () => {
         if (!draft) return;
@@ -60,6 +95,10 @@ export default function RolesPage() {
                 name: draft.name.trim(),
                 description: draft.description.trim() || undefined,
                 permissions: draft.permissions,
+                // A new role belongs to whatever this screen is scoped to. Left
+                // out, every role ever written here was the installation's — and
+                // refused to anybody who may only write an activity's.
+                activityId: activityScope,
             };
             await call(api => draft.id
                 ? api.managerApi.updateRole(draft.id, input)
@@ -84,6 +123,11 @@ export default function RolesPage() {
 
     if (!templates) return <LoadState error={loadError} loading={!loadError} />;
 
+    /** What the caller holds **at the scope on screen** — the only honest test. */
+    const mayWrite = grantable.includes("role:manage");
+    /** A role is edited where it lives, so a global one is read-only here. */
+    const writable = (role: Role) => mayWrite && (role.activityId ?? undefined) === activityScope;
+
     return (
         <Stack gap="md">
             <Group justify="space-between" wrap="wrap">
@@ -96,12 +140,32 @@ export default function RolesPage() {
                         {t("A grant points at a role. Editing one changes what everybody holding it may do.")}
                     </Text>
                 </Stack>
-                <Button
-                    leftSection={<IconPlus size={16} />}
-                    onClick={() => setDraft({ name: "", description: "", permissions: [], isBuiltIn: false })}
-                >
-                    {t("New role")}
-                </Button>
+                <Group gap="sm" wrap="wrap">
+                    <Select
+                        data={[
+                            { value: "", label: t("The installation") },
+                            ...activities.map(a => ({ value: a.id, label: a.name })),
+                        ]}
+                        value={activityScope ?? ""}
+                        onChange={(v: string | null) => { setActivityScope(v || undefined); setDraft(undefined); }}
+                        allowDeselect={false}
+                        searchable
+                        w={260}
+                        aria-label={t("Whose roles")}
+                    />
+                    <Tooltip
+                        label={t("Editing roles here is not yours to do.")}
+                        disabled={mayWrite}
+                    >
+                        <Button
+                            leftSection={<IconPlus size={16} />}
+                            disabled={!mayWrite}
+                            onClick={() => setDraft({ name: "", description: "", permissions: [], isBuiltIn: false })}
+                        >
+                            {t("New role")}
+                        </Button>
+                    </Tooltip>
+                </Group>
             </Group>
 
             {error && !draft && <Alert color="red" onClose={() => setError(undefined)} withCloseButton>{error}</Alert>}
@@ -149,13 +213,21 @@ export default function RolesPage() {
                             {template.description && <Text size="sm" c="dimmed">{template.description}</Text>}
                         </Stack>
                         <Group gap="xs">
-                            <Button variant="light" size="compact-sm" onClick={() => setDraft(draftFrom(template))}>
+                            {/* A role of a scope this screen is not on is read
+                                here and written where it lives. */}
+                            <Button
+                                variant="light"
+                                size="compact-sm"
+                                disabled={!writable(template)}
+                                onClick={() => setDraft(draftFrom(template))}
+                            >
                                 {t("Edit")}
                             </Button>
                             <Button
                                 variant="light"
                                 size="compact-sm"
                                 leftSection={<IconCopy size={14} />}
+                                disabled={!mayWrite}
                                 onClick={() => setDraft({
                                     ...draftFrom(template),
                                     id: undefined,
@@ -174,7 +246,7 @@ export default function RolesPage() {
                                 // installation grants from; removing one leaves
                                 // nothing to start from. One anybody still holds
                                 // is refused by the Server, with the count.
-                                disabled={template.isBuiltIn}
+                                disabled={template.isBuiltIn || !writable(template)}
                                 onClick={() => remove(template)}
                             >
                                 {t("Delete")}

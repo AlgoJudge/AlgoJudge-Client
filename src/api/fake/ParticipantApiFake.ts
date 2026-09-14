@@ -388,12 +388,18 @@ class FakeParticipantState {
             authorName: "Tomasz Wiśniewski",
             answeredAt: new Date().toISOString(),
         };
+        const wasPublished = question.isPublished;
         question.isPublished = true;
         question.isRead = false;
-        this.events.dispatchEvent({
-            type: "questionAnswered",
-            data: { activityId, question: { ...question } },
-        });
+        // **The type says what happened, as on the Server.** A question becoming
+        // readable by the activity is `questionPublished`, which the screen
+        // refetches on because a row appears that was not there; an answer
+        // changing on a row already drawn is `questionAnswered`, which it
+        // patches. The fake sent the second for both, so no browser check could
+        // see the first ever arriving.
+        this.events.dispatchEvent(wasPublished
+            ? { type: "questionAnswered", data: { activityId, question: { ...question } } }
+            : { type: "questionPublished", data: { activityId, question: { ...question } } });
     }
 
     /**

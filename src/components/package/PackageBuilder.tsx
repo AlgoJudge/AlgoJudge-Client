@@ -56,6 +56,15 @@ export interface PackageBuilderProps {
      * activity and no library permission should show.
      */
     onMeasure?: (archive: Blob) => Promise<PackageMeasurement[] | undefined>;
+    /**
+     * Whether this reader holds `trial:run`.
+     *
+     * A trial is asked for with no activity, so the Server checks the key at
+     * system scope — which an activity's manager never reaches. The control was
+     * drawn enabled to everybody, and the refusal arrived **after** the package
+     * had been built and uploaded.
+     */
+    mayMeasure?: boolean;
     disabled?: boolean;
 }
 
@@ -188,7 +197,7 @@ interface PreviewFile {
 }
 
 export default function PackageBuilder(
-    { stored, onOpenStored, onDraftChange, onMeasure, disabled }: PackageBuilderProps,
+    { stored, onOpenStored, onDraftChange, onMeasure, mayMeasure = true, disabled }: PackageBuilderProps,
 ) {
     const { t } = useTranslation();
     const filesInput = useRef<HTMLInputElement>(null);
@@ -980,12 +989,17 @@ export default function PackageBuilder(
                             activity. The old label said there was no Runner,
                             which stopped being true and would have sent
                             somebody looking in the wrong place. */}
+                        <Tooltip
+                            label={t("Measuring spends a Runner, which is granted in an activity. This problem is in the library.")}
+                            disabled={mayMeasure}
+                        >
                         <Button
                             variant="light"
                             size="compact-sm"
                             leftSection={<IconGauge size={14} />}
                             loading={measuring}
-                            disabled={disabled || !onMeasure || measuring || config.modelSolution === undefined}
+                            disabled={disabled || !onMeasure || !mayMeasure || measuring
+                                || config.modelSolution === undefined}
                             onClick={async () => {
                                 if (!onMeasure) return;
                                 setMeasuring(true);
@@ -1017,6 +1031,7 @@ export default function PackageBuilder(
                         >
                             {t("Measure the model solution")}
                         </Button>
+                        </Tooltip>
                         {measuredGroups(config.calibration).length > 0 && (
                             <Button
                                 variant="light"

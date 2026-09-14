@@ -3,7 +3,7 @@ import { IconPlus, IconTrash, IconUsersPlus, IconX } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    ActivityGroup, Grant, ManagedActivity, ManagedUserSummary, PermissionDefinition,
+    ActivityGroup, Grant, ManagedActivity, PermissionDefinition,
     Role,
 } from "../../../../api/ManagerApi";
 import LoadState from "../../../../components/LoadState";
@@ -13,6 +13,7 @@ import TemporaryAccountsModal from "../../../../components/users/TemporaryAccoun
 import ActivityTime from "../../../../components/time/ActivityTime";
 import { optional, useApiCall, useApiEffect } from "../../../../provider/apiContext";
 import { usePermissions } from "../../../../provider/permissionsContext";
+import { useUserSearch } from "../../../../components/users/useUserSearch";
 import DataTable from "../../../../components/table/DataTable";
 
 /**
@@ -53,7 +54,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
     const [page, setPage] = useState(1);
     const [catalogue, setCatalogue] = useState<PermissionDefinition[]>([]);
     const [templates, setTemplates] = useState<Role[]>([]);
-    const [users, setUsers] = useState<ManagedUserSummary[]>([]);
+    const { users, search: searchUsers, remember } = useUserSearch();
     const [grantable, setGrantable] = useState<string[]>([]);
     const [draft, setDraft] = useState<Draft | undefined>(undefined);
     const [bulk, setBulk] = useState(false);
@@ -64,11 +65,10 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
 
     const loadError = useApiEffect(async (api) => {
         setCatalogue(await api.managerApi.getPermissionCatalogue());
-        // Both fill a picker in the grant editor and neither is what this tab is
-        // for, so a manager who may not read them gets the pickers empty and the
-        // roster all the same.
+        // A picker in the grant editor, and not what this tab is for, so a
+        // manager who may not read the roles gets it empty and the roster all
+        // the same. The person picker is filled by typing — see `useUserSearch`.
         setTemplates(await optional(api.managerApi.getRoles(activity.id), []));
-        setUsers(await optional(api.managerApi.searchUsers(""), []));
         // What may be handed out here is what the signed-in manager holds **in
         // this activity**, which is not the same set as their system rights.
         setGrantable(await api.managerApi.getMyPermissions(activity.id));
@@ -320,13 +320,25 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                                     <Button
                                         variant="light"
                                         size="compact-sm"
-                                        onClick={() => setDraft({
-                                            userId: grant.userId,
-                                            permissions: [...grant.permissions],
-                                            roleId: grant.roleId,
-                                            isSystem: grant.isSystem,
-                                            existing: true,
-                                        })}
+                                        onClick={() => {
+                                            // The picker is fed by searching, so
+                                            // the person being edited has to be
+                                            // put into it or the field shows an
+                                            // id. The row already carries both
+                                            // halves of the label.
+                                            remember({
+                                                id: grant.userId,
+                                                name: grant.userName,
+                                                username: grant.userLogin,
+                                            });
+                                            setDraft({
+                                                userId: grant.userId,
+                                                permissions: [...grant.permissions],
+                                                roleId: grant.roleId,
+                                                isSystem: grant.isSystem,
+                                                existing: true,
+                                            });
+                                        }}
                                     >
                                         {t("Edit")}
                                     </Button>
@@ -363,12 +375,17 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                     <Stack gap="sm">
                         <Select
                             label={t("User")}
+                            placeholder={t("Search by name, username or email")}
                             data={users
                                 .filter(u => draft.existing || !enrolled.has(u.id))
                                 .map(u => ({ value: u.id, label: `${u.name} (${u.username})` }))}
                             value={draft.userId || null}
                             onChange={v => v && setDraft({ ...draft, userId: v })}
                             searchable
+                            onSearchChange={searchUsers}
+                            // Nothing matches until something is typed, and the
+                            // field says so rather than looking broken.
+                            nothingFoundMessage={t("Type a name to look somebody up")}
                             disabled={draft.existing}
                             required
                         />

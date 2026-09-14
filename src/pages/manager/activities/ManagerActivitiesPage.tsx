@@ -38,6 +38,12 @@ export default function ManagerActivitiesPage() {
     const { t } = useTranslation();
     const { hasAny } = usePermissions();
     const mayCreate = hasAny(["activity:create"]);
+    // **Two controls that end in permissions the manager role does not hold.**
+    // Copying is a creation — `DuplicateAsync` asks `activity:create` at system
+    // scope — and deleting asks `activity:delete`, which the role carries
+    // nowhere. Both were drawn to everybody, which is the card-one-click-from-a
+    // -refusal the panel's own rule forbids.
+    const mayDelete = hasAny(["activity:delete"]);
     const navigate = useNavigate();
     const [copying, setCopying] = useState<ManagedActivity | undefined>(undefined);
     const [importing, setImporting] = useState(false);
@@ -262,14 +268,16 @@ export default function ManagerActivitiesPage() {
                                     >
                                         {activity.publishedAt ? t("Withdraw") : t("Publish")}
                                     </Button>
-                                    <Button
-                                        variant="subtle"
-                                        size="compact-sm"
-                                        loading={busy}
-                                        onClick={() => setCopying(activity)}
-                                    >
-                                        {t("Copy for a new run")}
-                                    </Button>
+                                    {mayCreate && (
+                                        <Button
+                                            variant="subtle"
+                                            size="compact-sm"
+                                            loading={busy}
+                                            onClick={() => setCopying(activity)}
+                                        >
+                                            {t("Copy for a new run")}
+                                        </Button>
+                                    )}
                                     <ExportButton
                                         compact
                                         label={t("Export to a file")}
@@ -292,20 +300,22 @@ export default function ManagerActivitiesPage() {
                                         still come back for, so it is refused for
                                         anything that ran — said here rather than
                                         after the click. */}
-                                    <Tooltip label={activity.participantCount > 0
-                                        ? t("This activity has participants — archive it instead")
-                                        : t("Delete")}>
-                                        <Button
-                                            variant="subtle"
-                                            color="red"
-                                            size="compact-sm"
-                                            disabled={activity.participantCount > 0}
-                                            loading={busy}
-                                            onClick={() => run(() => call(api => api.managerApi.deleteActivity(activity.id)))}
-                                        >
-                                            <IconTrash size={14} />
-                                        </Button>
-                                    </Tooltip>
+                                    {mayDelete && (
+                                        <Tooltip label={activity.participantCount > 0
+                                            ? t("This activity has participants — archive it instead")
+                                            : t("Delete")}>
+                                            <Button
+                                                variant="subtle"
+                                                color="red"
+                                                size="compact-sm"
+                                                disabled={activity.participantCount > 0}
+                                                loading={busy}
+                                                onClick={() => run(() => call(api => api.managerApi.deleteActivity(activity.id)))}
+                                            >
+                                                <IconTrash size={14} />
+                                            </Button>
+                                        </Tooltip>
+                                    )}
                                 </Group>
                             </Table.Td>
                         </Table.Tr>

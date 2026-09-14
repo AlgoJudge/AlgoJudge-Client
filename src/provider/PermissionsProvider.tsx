@@ -14,16 +14,26 @@ export const PermissionsProvider: FC<{ children: ReactNode }> = ({ children }) =
     const api = useApi();
     const { status } = useAuth();
     const [permissions, setPermissions] = useState<string[] | undefined>(undefined);
+    /** The same answer asked with no activity — what this person holds installation-wide. */
+    const [system, setSystem] = useState<string[]>([]);
 
     useEffect(() => {
         if (status === "loading") return;
         if (status === "anonymous") {
             setPermissions([]);
+            setSystem([]);
             return;
         }
 
         const controller = new AbortController();
         setPermissions(undefined);
+        // Failing to answer is not a permission here either: an unanswered
+        // question leaves the system-scope set empty, which withholds rather
+        // than opens.
+        api.managerApi.getMyPermissions(undefined, controller.signal)
+            .then(setSystem)
+            .catch(() => setSystem([]));
+
         api.managerApi.getMyAccess(controller.signal)
             .then(setPermissions)
             .catch(() => {
@@ -54,9 +64,10 @@ export const PermissionsProvider: FC<{ children: ReactNode }> = ({ children }) =
 
     const has = (permission: string) => permissions?.includes(permission) ?? false;
     const hasAny = (wanted: readonly string[]) => wanted.some(has);
+    const hasAtSystemScope = (permission: string) => system.includes(permission);
 
     return (
-        <PermissionsContext.Provider value={{ permissions, has, hasAny, loading: permissions === undefined }}>
+        <PermissionsContext.Provider value={{ permissions, has, hasAny, hasAtSystemScope, loading: permissions === undefined }}>
             {children}
         </PermissionsContext.Provider>
     );

@@ -962,9 +962,18 @@ export type QuestionAnsweredEvent = ParticipantEvent<"questionAnswered", {
     question: Question;
 }>;
 
+/**
+ * A question became readable by the whole activity, or stopped being — the
+ * shape `announcementPublished` already had, and for the same reason.
+ *
+ * Withdrawal reached nobody until 2026-09-14, so an answer taken back during a
+ * contest stayed on every screen that already had it. `deletedId` names the row
+ * to drop; the asker is not sent one, because the question is still theirs.
+ */
 export type QuestionPublishedEvent = ParticipantEvent<"questionPublished", {
     activityId: string;
-    question: Question;
+    question?: Question;
+    deletedId?: string;
 }>;
 
 /**

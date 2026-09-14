@@ -81,7 +81,10 @@ function App() {
     const managerRoute = (path: string, element: ReactNode) => ({
         path,
         element: (
-            <RequirePermission permissions={areaFor(path)?.permissions ?? MANAGER_PERMISSIONS}>
+            <RequirePermission
+                permissions={areaFor(path)?.permissions ?? MANAGER_PERMISSIONS}
+                systemScope={areaFor(path)?.systemScope}
+            >
                 {/* Every panel screen gets the live-update control here, which
                     is one place rather than seventeen — and the one place that
                     cannot be forgotten when the eighteenth is added. */}
