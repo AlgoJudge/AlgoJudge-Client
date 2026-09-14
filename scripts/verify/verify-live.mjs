@@ -79,7 +79,7 @@ await evaluate(`
     document.querySelector("[data-testid=live-toggle]").click();
     return true;
 `);
-check(await evaluate(`return document.querySelector("[data-testid=live-toggle]").checked === false;`),
+check(await evaluate(`return document.querySelector("[data-testid=live-toggle]").getAttribute("aria-pressed") === "false";`),
     "the switch turns updates off");
 
 await click(`document.querySelector("[data-testid=rejudge]")`);
@@ -119,7 +119,7 @@ check(await until(`${stateText} === "OCENIONO"`, 20),
 // ── the posture survives a move between screens ──────────────────────────────
 
 await visit("/manager/runners", `${rows} >= 0`);
-check(await evaluate(`return document.querySelector("[data-testid=live-toggle]").checked === false;`),
+check(await evaluate(`return document.querySelector("[data-testid=live-toggle]").getAttribute("aria-pressed") === "false";`),
     "the switch is the panel's, not one screen's, and is remembered across it");
 
 await shot("live-updates-held");

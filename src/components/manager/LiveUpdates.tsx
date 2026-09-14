@@ -1,5 +1,5 @@
-import { Badge, Button, Group, Stack, Switch, Tooltip } from "@mantine/core";
-import { IconRefresh } from "@tabler/icons-react";
+import { Badge, Button, Group, Stack, Tooltip } from "@mantine/core";
+import { IconPlayerPause, IconPlayerPlay, IconRefresh } from "@tabler/icons-react";
 import { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ManagerEventType } from "../../api/ManagerApi";
@@ -71,18 +71,24 @@ export default function LiveUpdates({ children }: { children: ReactNode }) {
                         </Badge>
                     </Tooltip>
                 )}
-                <Switch
-                    checked={live}
-                    onChange={event => setLive(event.currentTarget.checked)}
+                {/* **A button, not a `Switch`.** Mantine renders a switch as
+                    an `<input type="checkbox">`, and this bar sits at the top of
+                    every panel screen inside `app-main` — so it would become the
+                    *first* input on the page. Several browser checks address a
+                    field as "the first input in the main area", and one of them
+                    duly typed a hostname into this control instead. The state is
+                    in the label and in `aria-pressed`, which is what a screen
+                    reader needs anyway. */}
+                <Button
                     data-testid="live-toggle"
-                    color="teal"
-                    label={live ? t("Updates on") : t("Updates off")}
-                    // Orange rather than grey when off: grey reads as a feature
-                    // this person does not use, orange as something deliberately
-                    // stopped — which is the whole difference between a screen
-                    // that is quiet and one that looks broken.
-                    styles={live ? undefined : { label: { color: "var(--mantine-color-orange-filled)" } }}
-                />
+                    aria-pressed={live}
+                    variant={live ? "light" : "filled"}
+                    color={live ? "teal" : "orange"}
+                    leftSection={live ? <IconPlayerPlay size={16} /> : <IconPlayerPause size={16} />}
+                    onClick={() => setLive(!live)}
+                >
+                    {live ? t("Updates on") : t("Updates off")}
+                </Button>
                 <Button
                     variant="default"
                     leftSection={<IconRefresh size={16} />}
