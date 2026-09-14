@@ -191,7 +191,7 @@ export default function QuestionsPage() {
 
             <Group gap="sm" wrap="wrap">
                 <TextInput
-                    placeholder={t("Search by topic")}
+                    placeholder={t("Search by topic or body")}
                     leftSection={<IconSearch size={16} />}
                     value={search}
                     onChange={e => onFilter(setSearch)(e.currentTarget.value)}

@@ -308,6 +308,53 @@ const verdictRow = await evaluate(`
 `);
 check(verdictRow.length > 0, "a row can be read for its verdict");
 
+// ── The filter row survives its own list reloading ───────────────────────────
+//
+// Every manager list used to blank its items before refetching, and the guard
+// underneath returned a full-screen spinner whenever they were falsy — so the
+// filter row went with them. A manager typed one letter, the field was
+// unmounted under their hands, and the second letter went nowhere.
+//
+// Asserted on **focus**, because that is what a person loses. A check that the
+// input still exists would pass against a screen that destroyed and rebuilt it,
+// which is exactly the behaviour being fixed.
+
+await visit("/manager/submissions", `${rows} >= 0`);
+await landed();
+
+const searchBox = `document.querySelector("[data-testid=app-main] input[placeholder]")`;
+const typed = await evaluate(`
+    const input = ${searchBox};
+    if (!input) return null;
+    input.focus();
+    const setter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype, "value").set;
+    setter.call(input, "k");
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    return true;
+`);
+check(Boolean(typed), "the manager's list offers a search box");
+
+if (typed) {
+    await landed();
+    const held = await evaluate(`
+        const input = ${searchBox};
+        return Boolean(input) && document.activeElement === input;
+    `);
+    check(held, "and it keeps the focus while the list behind it reloads");
+
+    // Put it back, so nothing after this reads a narrowed list.
+    await evaluate(`
+        const input = ${searchBox};
+        const setter = Object.getOwnPropertyDescriptor(
+            window.HTMLInputElement.prototype, "value").set;
+        setter.call(input, "");
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        return true;
+    `);
+    await landed();
+}
+
 // ── The activity list, as a set of names rather than a count ─────────────────
 //
 // `PAGE_SIZE` is 5 there and the fixture holds fourteen activities, so a count

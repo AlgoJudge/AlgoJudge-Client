@@ -933,7 +933,13 @@ export class ParticipantApiFake implements ParticipantApi {
         // the organiser explains the lockdown.
         const unreachable = this.unreachableRounds(activityId);
         const matched = all.filter(q =>
-            (!search || q.topic.toLowerCase().includes(search)) &&
+            // Topic and body, which is what the Server searches — and what the
+            // box now says. A body match draws a row whose visible cells do not
+            // carry the word, because the body is only in the detail; that is
+            // the Server's rule and the fake follows it rather than narrowing it.
+            (!search
+                || q.topic.toLowerCase().includes(search)
+                || q.body.toLowerCase().includes(search)) &&
             (!filter.kind || q.kind === filter.kind) &&
             (!filter.seriesId || q.seriesId === filter.seriesId) &&
             (q.seriesId === undefined || !unreachable.has(q.seriesId)) &&

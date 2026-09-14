@@ -70,7 +70,16 @@ export default function GrantsPage() {
         setUsers(await optional(api.managerApi.searchUsers(""), []));
         setActivities(await api.managerApi.getManagedActivities());
 
-        setGrants(undefined);
+        // **The list stays on screen while the next one loads.** This reset ran
+        // on every effect run, not only the first, so the guard below fired on
+        // every refetch and took the whole screen down to a spinner — with the
+        // filter row in it. A manager typed one letter, the field was unmounted
+        // under their hands, and the next letter went nowhere.
+        //
+        // Deleting the reset is the whole fix: `items` is undefined only before
+        // the first load has ever finished, which turns that guard into what it
+        // was written to be. The precedent, and the argument, are in
+        // `ParticipantsPanel` and in `MANAGER_PANEL.md`.
         const result = await api.managerApi.getGrants({
             page, pageSize: PAGE_SIZE,
             scope: (scope as "global" | "activity") ?? undefined,
@@ -162,6 +171,11 @@ export default function GrantsPage() {
 
     return (
         <Stack gap="md">
+            {/* **A refetch that fails has to say so.** The guard above only
+                catches a first load, now that the list is no longer blanked, so
+                without this a filter change that lost the connection would leave
+                the previous rows on screen looking current. */}
+            {loadError !== undefined && <LoadState error={loadError} loading={false} />}
             <Group justify="space-between" wrap="wrap">
                 <Stack gap={2}>
                     <Title>{t("Grants")}</Title>
