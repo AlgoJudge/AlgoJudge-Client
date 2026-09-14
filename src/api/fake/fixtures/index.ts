@@ -389,7 +389,15 @@ export const createDataset = (files: FakeFiles): Dataset => {
                     attempts: [{
                         id: `${summary.id}-job-1`,
                         attempt: 1,
-                        startedAt: summary.submittedAt,
+                        // **A claim instant, as the Server sends it.** The
+                        // Server projects `startedAt` as `ClaimedAt ?? CreatedAt`,
+                        // so a *running* attempt carries the moment a Runner took
+                        // it — not the moment it was sent. Handing the submission
+                        // time over for a running one would make the waiting box
+                        // count the whole queue wait, and every check runs here.
+                        startedAt: summary.state === "running"
+                            ? new Date(Date.now() - 40_000).toISOString()
+                            : summary.submittedAt,
                         finishedAt: finished ? summary.submittedAt : undefined,
                         state: summary.state,
                         verdict: summary.verdict,

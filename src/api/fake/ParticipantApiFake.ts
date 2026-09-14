@@ -171,6 +171,13 @@ class FakeParticipantState {
         summary.state = state;
         detail.state = state;
         detail.attempts[0].state = state;
+        // The Server stamps `ClaimedAt` when a Runner takes the job, and projects
+        // `startedAt` from it — so a screen counting how long judging has taken
+        // counts from here. Without this the fake would hand over the submission
+        // time and the box would show the queue wait as though it were work.
+        if (state === "running") {
+            detail.attempts[0].startedAt = new Date().toISOString();
+        }
         this.events.dispatchEvent({
             type: "submissionStateChanged",
             data: { activityId, submission: { ...summary } },

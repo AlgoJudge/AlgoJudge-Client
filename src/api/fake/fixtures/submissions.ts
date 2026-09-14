@@ -52,7 +52,11 @@ const attemptListOf = (
         id: `${id}-job-${history.length + 1}`,
         attempt: history.length + 1,
         state: attempt.state,
-        startedAt: submittedAt,
+        // As the Server projects it: `ClaimedAt ?? CreatedAt`, so a running
+        // attempt carries when a Runner took it rather than when it was sent.
+        startedAt: attempt.state === "running"
+            ? new Date(Date.now() - 40_000).toISOString()
+            : submittedAt,
         finishedAt: attempt.state === "queued" || attempt.state === "running" ? undefined : finishedAt,
         runnerName: attempt.state === "queued" ? undefined : RUNNERS[history.length % RUNNERS.length],
         // A manager reads every attachment whatever the activity's table says:
