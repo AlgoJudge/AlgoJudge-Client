@@ -1400,8 +1400,12 @@ export class ManagerApiFake implements ManagerApi {
             .filter(u => !needle
                 || `${u.firstName ?? ""} ${u.lastName ?? ""}`.toLowerCase().includes(needle)
                 || u.username.toLowerCase().includes(needle)
-                || (u.email ?? "").toLowerCase().includes(needle)
-                || u.tags.some(tag => tag.toLowerCase().includes(needle)))
+                // **Not the tags.** A user's tags are stored as opaque JSON the
+                // Server never queries — that is what they are for — so the
+                // Server cannot search them without a schema change, and a fake
+                // that did would hide that from every browser check. The box no
+                // longer offers it either.
+                || (u.email ?? "").toLowerCase().includes(needle))
             .map(user => this.withGrantCount(user));
         return copy(paginate(matched, filter.page, filter.pageSize));
     }
