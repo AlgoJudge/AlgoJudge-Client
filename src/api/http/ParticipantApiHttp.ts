@@ -1,3 +1,4 @@
+import { some } from "./filters";
 import {
     Activity,
     ActivityResults,
@@ -44,8 +45,8 @@ export class ParticipantApiHttp implements ParticipantApi {
             query: query({
                 page: filter.page,
                 pageSize: filter.pageSize,
-                state: filter.states?.join(","),
-                type: filter.types?.join(","),
+                state: some(filter.states),
+                type: some(filter.types),
             }),
         });
     }
@@ -76,9 +77,9 @@ export class ParticipantApiHttp implements ParticipantApi {
                 query: query({
                     page: filter.page,
                     pageSize: filter.pageSize,
-                    problemId: filter.problemId,
-                    seriesId: filter.seriesId,
-                    state: filter.states?.join(","),
+                    problemId: some(filter.problemIds),
+                    seriesId: some(filter.seriesIds),
+                    state: some(filter.states),
                 }),
             });
     }
@@ -187,8 +188,12 @@ export class ParticipantApiHttp implements ParticipantApi {
 }
 
 /** Drops absent parameters so they never reach the URL as `undefined`. */
-function query(values: Record<string, string | number | undefined>): HttpRequestOptions["query"] {
+function query(
+    values: Record<string, string | number | string[] | undefined>
+): HttpRequestOptions["query"] {
     return Object.fromEntries(
-        Object.entries(values).filter((entry): entry is [string, string | number] => entry[1] !== undefined)
+        Object.entries(values).filter(
+            (entry): entry is [string, string | number | string[]] => entry[1] !== undefined)
     );
 }
+

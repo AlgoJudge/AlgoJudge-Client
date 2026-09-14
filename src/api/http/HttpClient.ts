@@ -22,7 +22,16 @@ export type SystemMessageType = "success" | "info" | "warning" | "error";
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 export interface HttpRequestOptions {
-    query?: Record<string, string | number | boolean>;
+    /**
+     * An array becomes repeated keys, not a joined string.
+     *
+     * A separator chosen here would have to be a character no value contains,
+     * and one of these values is a verdict — a label the Server stores and
+     * promises never to parse, so that a problem type may invent one without a
+     * Server release. `Wrong answer, test 3` is one verdict, and joining on a
+     * comma would ask for two that match nothing.
+     */
+    query?: Record<string, string | number | boolean | string[]>;
     body?: unknown;
     signal?: AbortSignal;
 }
@@ -61,9 +70,11 @@ export class HttpClient {
     ): Promise<T> {
         options.signal?.throwIfAborted();
 
-        const params = new URLSearchParams(
-            Object.entries(options.query ?? {}).map(([key, value]) => [key, String(value)])
-        );
+        const params = new URLSearchParams();
+        for (const [key, value] of Object.entries(options.query ?? {})) {
+            if (Array.isArray(value)) for (const one of value) params.append(key, one);
+            else params.append(key, String(value));
+        }
         const search = params.toString();
         const url = this.baseUrl + path + (search ? "?" + search : "");
 

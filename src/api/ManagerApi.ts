@@ -1162,13 +1162,26 @@ export interface ManagedSubmissionDetail extends ManagedSubmission {
 export interface ManagedSubmissionFilter {
     page?: number;
     pageSize?: number;
+    /**
+     * **Singular, and staying singular.** This is the scope the Server asks the
+     * permission at rather than a filter, so several of them would be a new
+     * authorization shape and not a wider question.
+     */
     activityId?: string;
-    seriesId?: string;
-    seriesProblemId?: string;
-    userId?: string;
-    state?: JobState;
-    /** Matched against the verdict label exactly; the Server does not parse it. */
-    verdict?: string;
+    /**
+     * Everything below takes several, and **an empty one is never sent**: a
+     * cleared control asks for everything, and the transport drops the key.
+     */
+    seriesIds?: string[];
+    seriesProblemIds?: string[];
+    userIds?: string[];
+    states?: JobState[];
+    /**
+     * Matched against the verdict label exactly; the Server does not parse it,
+     * which is also why the transport sends these as repeated keys and never
+     * joined — a verdict may contain the separator.
+     */
+    verdicts?: string[];
     /** User name or problem slug. */
     search?: string;
 }
@@ -1234,7 +1247,7 @@ export interface ManagedPrintoutFilter {
     page?: number;
     pageSize?: number;
     activityId?: string;
-    state?: PrintoutState;
+    states?: PrintoutState[];
 }
 
 /** One activity the caller may work the queue of. */
@@ -1572,7 +1585,7 @@ export type RunnerState = "pendingApproval" | "approved" | "revoked";
 export interface ManagedRunnerFilter {
     page?: number;
     pageSize?: number;
-    state?: RunnerState;
+    states?: RunnerState[];
     search?: string;
 }
 

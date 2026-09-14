@@ -1,3 +1,4 @@
+import { some } from "../http/filters";
 import { ManagerEventDispatcherImpl } from "../impl/ManagerEventDispatcher";
 import {
     ActivityGroup,
@@ -1338,7 +1339,7 @@ export class ManagerApiFake implements ManagerApi {
         await this.settle(signal);
         const needle = filter.search?.trim().toLowerCase();
         const matched = this.runners
-            .filter(r => !filter.state || r.state === filter.state)
+            .filter(r => !some(filter.states) || filter.states!.includes(r.state))
             .filter(r => !needle
                 || r.name.toLowerCase().includes(needle)
                 || r.address.toLowerCase().includes(needle)
@@ -1653,7 +1654,7 @@ export class ManagerApiFake implements ManagerApi {
         const matched = this.printouts.all()
             .filter(p => allowed === null || allowed.includes(p.activityId))
             .filter(p => !filter.activityId || p.activityId === filter.activityId)
-            .filter(p => !filter.state || p.state === filter.state)
+            .filter(p => !some(filter.states) || filter.states!.includes(p.state))
             // Oldest first: a queue is worked from the front.
             .sort((a, b) => Date.parse(a.requestedAt) - Date.parse(b.requestedAt));
 
@@ -1874,11 +1875,14 @@ export class ManagerApiFake implements ManagerApi {
         const matched = this.submissions
             .filter(s => allowed === null || allowed.includes(s.activityId))
             .filter(s => !filter.activityId || s.activityId === filter.activityId)
-            .filter(s => !filter.seriesId || s.seriesId === filter.seriesId)
-            .filter(s => !filter.seriesProblemId || s.seriesProblemId === filter.seriesProblemId)
-            .filter(s => !filter.userId || s.userId === filter.userId)
-            .filter(s => !filter.state || s.state === filter.state)
-            .filter(s => !filter.verdict || s.verdict === filter.verdict)
+            // Empty means every, which is the rule the Server applies to a value
+            // with no words in it — and what a cleared control asks for.
+            .filter(s => !some(filter.seriesIds) || filter.seriesIds!.includes(s.seriesId))
+            .filter(s => !some(filter.seriesProblemIds)
+                || filter.seriesProblemIds!.includes(s.seriesProblemId))
+            .filter(s => !some(filter.userIds) || filter.userIds!.includes(s.userId))
+            .filter(s => !some(filter.states) || filter.states!.includes(s.state))
+            .filter(s => !some(filter.verdicts) || filter.verdicts!.includes(s.verdict ?? ""))
             .filter(s => !needle
                 || s.userName.toLowerCase().includes(needle)
                 || s.problemSlug.toLowerCase().includes(needle)

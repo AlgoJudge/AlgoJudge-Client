@@ -1,4 +1,4 @@
-import { Center, Group, Loader, Pagination, Select, Stack, Table, Text, Title } from "@mantine/core";
+import { Center, Group, Loader, MultiSelect, Pagination, Stack, Table, Text, Title } from "@mantine/core";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -24,9 +24,9 @@ export default function SubmissionsPage() {
     const [items, setItems] = useState<SubmissionSummary[] | undefined>(undefined);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
-    const [problemId, setProblemId] = useState<string | null>(null);
-    const [seriesId, setSeriesId] = useState<string | null>(null);
-    const [state, setState] = useState<string | null>(null);
+    const [problemIds, setProblemIds] = useState<string[]>([]);
+    const [seriesIds, setSeriesIds] = useState<string[]>([]);
+    const [states, setStates] = useState<string[]>([]);
 
     const error = useApiEffect(async (api) => {
         if (!activityId) return;
@@ -37,9 +37,7 @@ export default function SubmissionsPage() {
         setItems(undefined);
         const result = await api.participantApi.getSubmissions(activity.id, {
             page, pageSize: PAGE_SIZE,
-            problemId: problemId ?? undefined,
-            seriesId: seriesId ?? undefined,
-            states: state ? [state as JobState] : undefined,
+            problemIds, seriesIds, states: states as JobState[],
         });
         setItems(result.items);
         setTotal(result.total);
@@ -50,14 +48,17 @@ export default function SubmissionsPage() {
             if (evt.data.activityId !== activity.id) return;
             setItems(current => current?.map(s => s.id === evt.data.submission.id ? evt.data.submission : s));
         });
-    }, [activityId, page, problemId, seriesId, state]);
+    }, [activityId, page, problemIds, seriesIds, states]);
 
     const problems = series.flatMap(s => (s.problems ?? []).map(p => ({
         value: p.id,
         label: `[${p.slug}] ${p.name}`,
     })));
 
-    const onFilter = <T,>(set: (v: T) => void) => (value: T) => {
+    // A narrower answer rarely has the page somebody was on, so any change to a
+    // filter goes back to the first one. Page 3 of two pages reads as "nothing
+    // here", which is the wrong answer to a filter that matched.
+    const onFilter = (set: (v: string[]) => void) => (value: string[]) => {
         set(value);
         setPage(1);
     };
@@ -69,27 +70,31 @@ export default function SubmissionsPage() {
             <Title>{t("My submissions")}</Title>
 
             <Group gap="sm" wrap="wrap">
-                <Select
-                    placeholder={t("All problems")}
+                <MultiSelect
+                    placeholder={problemIds.length === 0 ? t("All problems") : undefined}
                     data={problems}
-                    value={problemId}
-                    onChange={onFilter(setProblemId)}
+                    value={problemIds}
+                    onChange={onFilter(setProblemIds)}
+                    data-testid="submission-problem"
                     clearable
+                    searchable
                     w={{ base: "100%", sm: 260 }}
                 />
-                <Select
-                    placeholder={t("All series")}
+                <MultiSelect
+                    placeholder={seriesIds.length === 0 ? t("All series") : undefined}
                     data={series.map(s => ({ value: s.id, label: s.name }))}
-                    value={seriesId}
-                    onChange={onFilter(setSeriesId)}
+                    value={seriesIds}
+                    onChange={onFilter(setSeriesIds)}
+                    data-testid="submission-series"
                     clearable
                     w={{ base: "100%", sm: 200 }}
                 />
-                <Select
-                    placeholder={t("Any status")}
+                <MultiSelect
+                    placeholder={states.length === 0 ? t("Any status") : undefined}
                     data={STATES.map(s => ({ value: s, label: t(s) }))}
-                    value={state}
-                    onChange={onFilter(setState)}
+                    value={states}
+                    onChange={onFilter(setStates)}
+                    data-testid="submission-state"
                     clearable
                     w={{ base: "100%", sm: 180 }}
                 />

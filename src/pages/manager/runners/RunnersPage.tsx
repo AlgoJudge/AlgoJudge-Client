@@ -1,5 +1,6 @@
 import {
-    Alert, Badge, Button, Card, Code, Group, Loader, Modal, Pagination, Select, Stack, Table, Tabs,
+    Alert, Badge, Button, Card, Code, Group, Loader, Modal, MultiSelect, Pagination, Stack,
+    Table, Tabs,
     TagsInput, Text, TextInput, Title, Tooltip,
 } from "@mantine/core";
 import { IconCheck, IconSearch, IconTrash, IconX } from "@tabler/icons-react";
@@ -52,7 +53,7 @@ export default function RunnersPage() {
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState("");
-    const [state, setState] = useState<RunnerState | undefined>(undefined);
+    const [states, setStates] = useState<RunnerState[]>([]);
     // The open Runner is in the URL: "look at this machine's log" is a link
     // somebody sends, the same as a filtered submission list.
     const [query, setQuery] = useSearchParams();
@@ -74,7 +75,7 @@ export default function RunnersPage() {
         setItems(undefined);
         const result = await api.managerApi.getRunners({
             page, pageSize: PAGE_SIZE,
-            state,
+            states,
             search: search || undefined,
         });
         setItems(result.items);
@@ -95,7 +96,7 @@ export default function RunnersPage() {
         }
 
         api.managerApi.eventDispatcher.addEventListener("runnerChanged", () => setReload(n => n + 1));
-    }, [page, search, state, reload]);
+    }, [page, search, states, reload]);
 
     // Closing is one action, not three: the panel and the address are the same
     // state seen twice, and a "Back" that left `?runner=` behind pointed at a
@@ -165,11 +166,12 @@ export default function RunnersPage() {
                     onChange={e => { setSearch(e.currentTarget.value); setPage(1); }}
                     w={320}
                 />
-                <Select
-                    placeholder={t("Every state")}
+                <MultiSelect
+                    placeholder={states.length === 0 ? t("Every state") : undefined}
                     data={STATES.map(s => ({ value: s, label: t(`runnerState.${s}`) }))}
-                    value={state ?? null}
-                    onChange={v => { setState((v ?? undefined) as RunnerState | undefined); setPage(1); }}
+                    value={states}
+                    onChange={v => { setStates(v as RunnerState[]); setPage(1); }}
+                    data-testid="runner-state"
                     clearable
                     w={220}
                 />
