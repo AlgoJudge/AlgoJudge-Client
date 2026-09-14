@@ -487,6 +487,20 @@ export class ParticipantApiFake implements ParticipantApi {
         private sleepMs: number = 300,
     ) {
         this.state = new FakeParticipantState(this.eventDispatcher, files, shared, access);
+        // **One's own requests only**, which is what `SendToUserAsync` means on
+        // the Server: the relay carries every queue, and this keeps the rows
+        // belonging to whoever is reading.
+        printouts.onChanged(relay => {
+            if (relay.requestedByUserId !== this.meIn(relay.activityId)) return;
+            this.eventDispatcher.dispatchEvent({
+                type: "printoutStateChanged",
+                data: {
+                    printoutId: relay.printoutId,
+                    activityId: relay.activityId,
+                    state: relay.state,
+                },
+            });
+        });
     }
 
     async getActivities(filter: ActivityFilter, signal: AbortSignal): Promise<Page<Activity>> {
@@ -1042,6 +1056,14 @@ export class ParticipantApiFake implements ParticipantApi {
             source: text,
         };
         this.printouts.add(activityId, made);
+        // The queue moved, and the manager working it has to hear so without
+        // having done anything themselves.
+        this.printouts.announce({
+            printoutId: made.id,
+            activityId,
+            state: made.state,
+            requestedByUserId: made.requestedByUserId,
+        });
         return ParticipantApiFake.mine(made);
     }
 

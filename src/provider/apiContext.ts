@@ -3,6 +3,7 @@ import { Api } from "../api/Api";
 import { ForbiddenError } from "../api/ApiError";
 import { ScopedApi } from "../api/ScopedApi";
 import { useConnectionGeneration } from "./connectionContext";
+import { useRefreshGeneration } from "./refreshContext";
 
 /**
  * The API context and the three hooks that read it, apart from the component
@@ -38,6 +39,11 @@ export const useApiEffect = (f: (api: ScopedApi) => Promise<void>, deps: Depende
     // the call sites: every one of them wants it, and none of them should have
     // to remember. Zero and unchanging until something is actually lost.
     const generation = useConnectionGeneration();
+    // And the one a manager drives: **Odśwież**, or coming back from a pause
+    // with something withheld. Carried here for the same reason as the line
+    // above — every call site wants it and none of them should have to say so,
+    // which is also why adding it changes no dependency list anywhere.
+    const refresh = useRefreshGeneration();
     // Silenced here because here is the one place nothing can go wrong. The list
     // is a parameter rather than a literal, so the rule stops at the wrapper —
     // and what it asks for instead would break the application: `api` is created
@@ -60,7 +66,7 @@ export const useApiEffect = (f: (api: ScopedApi) => Promise<void>, deps: Depende
         return () => controller.abort();
         // Spread rather than passed through: React compares the entries, not the
         // array, so building a new one each render costs nothing.
-    }, [...deps, generation]);
+    }, [...deps, generation, refresh]);
     /* eslint-enable react-hooks/exhaustive-deps */
     return error;
 }

@@ -12,6 +12,7 @@ import { MAX_RUNNER_TAGS } from "../../../api/runnerTags";
 import LoadState from "../../../components/LoadState";
 import ActivityTime from "../../../components/time/ActivityTime";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
+import { useRefreshHold } from "../../../provider/refreshContext";
 import DataTable from "../../../components/table/DataTable";
 
 const PAGE_SIZE = 20;
@@ -67,6 +68,14 @@ export default function RunnersPage() {
     const [tags, setTags] = useState<string[]>([]);
     /** Attachment bodies, keyed by file id, fetched when their tab is opened. */
     const [files, setFiles] = useState<Record<string, string>>({});
+
+    // **Typed tags outlive an arriving event.** The loader re-seeds `tags` from
+    // the row on every run, so any `runnerChanged` — another operator approving a
+    // machine, a Runner restarting — used to wipe what this person was halfway
+    // through typing. Held only while it differs, so an idle panel stays live.
+    useRefreshHold(selected !== undefined
+        && (tags.length !== selected.tags.length
+            || tags.some((tag, at) => tag !== selected.tags[at])));
     const [error, setError] = useState<string | undefined>(undefined);
     const [busy, setBusy] = useState(false);
     const [reload, setReload] = useState(0);

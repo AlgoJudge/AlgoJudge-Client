@@ -44,7 +44,17 @@ export default function ActivitiesPage() {
     // in the Client only works while the list is short, and stops silently when
     // it is not.
     const error = useApiEffect(async (api) => {
-        setItems(undefined);
+        // **The list stays on screen while the next one loads.** Resetting it
+        // here ran on every effect run, not only the first, so the `!items`
+        // guard below fired on every refetch and took the screen down to a
+        // spinner — filter row, open dialog and all.
+        //
+        // Deleting the reset is the whole fix: `items` is undefined only before
+        // the first load has ever finished, which is what that guard was written
+        // for. **The rule belongs to the idiom, not to this screen**: it was
+        // fixed on `ParticipantsPanel` in August and across the eight manager
+        // lists on 2026-09-14, and these four inherited neither because both
+        // were recorded against the screens that found them.
         const result = await api.participantApi.getActivities({ page, pageSize: PAGE_SIZE, states, types });
         setItems(result.items);
         setTotal(result.total);

@@ -1367,5 +1367,21 @@
     "{{create}} to create, {{reuse}} already here, {{beside}} beside what is here.": "{{create}} do utworzenia, {{reuse}} już tutaj jest, {{beside}} obok tego, co już jest.",
     "{{name}} — switched off, so the screen draws itself": "{{name}} — wyłączony, więc ekran rysuje się sam",
     "{{slug}} — no provider is registered under this": "{{slug}} — nie ma pod tym zarejestrowanego dostawcy",
-    "{{test}} is not one of the {{count}} tests its group declares": "{{test}} nie jest jednym z {{count}} testów, które deklaruje jego grupa"
+    "{{test}} is not one of the {{count}} tests its group declares": "{{test}} nie jest jednym z {{count}} testów, które deklaruje jego grupa",
+    "Changed since": "Zmiany od",
+    "Changes waiting": "Czekają zmiany",
+    "Something changed while updates were off.": "Coś się zmieniło, gdy aktualizacje były wyłączone.",
+    "Updates off": "Aktualizacje wyłączone",
+    "Updates on": "Aktualizacje włączone",
+    "accounts": "konta",
+    "activities": "aktywności",
+    "people": "osoby",
+    "printouts": "wydruki",
+    "problems": "zadania",
+    "questions": "pytania",
+    "roles": "role",
+    "rounds": "rundy",
+    "runners": "Runnery",
+    "submissions": "zgłoszenia",
+    "the installation": "instalacja"
 }

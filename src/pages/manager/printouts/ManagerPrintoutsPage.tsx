@@ -1,7 +1,7 @@
 import {
     Alert, Badge, Button, Group, Modal, MultiSelect, Pagination, Select, Stack, Table, Text, Title,
 } from "@mantine/core";
-import { IconPrinter, IconRefresh, IconTrash } from "@tabler/icons-react";
+import { IconPrinter, IconTrash } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { listed, joined } from "../filterParams";
@@ -150,16 +150,10 @@ export default function ManagerPrintoutsPage() {
 
     return (
         <Stack gap="md">
-            <Group justify="space-between" wrap="wrap">
-                <Title>{t("Printouts")}</Title>
-                <Button
-                    variant="default"
-                    leftSection={<IconRefresh size={16} />}
-                    onClick={() => setReload(n => n + 1)}
-                >
-                    {t("Refresh")}
-                </Button>
-            </Group>
+            {/* The queue's own Refresh button stood here. It is the panel's
+                now, above every screen, so a manager does not have to learn
+                which lists happen to have one. */}
+            <Title>{t("Printouts")}</Title>
 
             <Group wrap="wrap">
                 <Select

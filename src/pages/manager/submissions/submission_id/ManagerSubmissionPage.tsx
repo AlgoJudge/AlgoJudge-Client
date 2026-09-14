@@ -247,7 +247,7 @@ export default function ManagerSubmissionPage() {
                 <Stack gap={2}>
                     <Group gap="xs">
                         <Title order={2}>[{submission.problemSlug}] {submission.problemName}</Title>
-                        <Badge variant="light" color={STATE_COLOUR[submission.state]}>
+                        <Badge data-testid="submission-state" variant="light" color={STATE_COLOUR[submission.state]}>
                             {t(`jobState.${submission.state}`)}
                         </Badge>
                         {submission.excluded && (
@@ -288,6 +288,7 @@ export default function ManagerSubmissionPage() {
                             api.managerApi.setSubmissionExcluded(submission.id, excluded, reason)))}
                     />
                     <Button
+                        data-testid="rejudge"
                         leftSection={<IconRefresh size={16} />}
                         loading={busy}
                         onClick={() => run(() => call(api => api.managerApi.rejudgeSubmission(submission.id)))}

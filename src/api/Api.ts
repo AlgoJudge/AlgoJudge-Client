@@ -4,6 +4,7 @@ import { EventConnection } from "./EventConnection";
 import { FileApi } from "./FileApi";
 import { LtiApi } from "./LtiApi";
 import { ManagerApi } from "./ManagerApi";
+import { ManagerFeed } from "./ManagerFeed";
 import { ParticipantApi } from "./ParticipantApi";
 
 export interface Api {
@@ -29,6 +30,12 @@ export interface Api {
      * and never touch this.
      */
     events: EventConnection,
+    /**
+     * Whether the manager panel's events are being delivered, and the switch
+     * that decides. Beside `events` rather than inside it: this holds what has
+     * already arrived in this tab, and never the connection.
+     */
+    managerFeed: ManagerFeed,
     /**
      * Told when the Server stops answering. Read by the gate above the router
      * and by nothing else — a screen does not handle an outage, the shell does.

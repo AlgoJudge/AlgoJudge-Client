@@ -36,6 +36,7 @@ export const PARTICIPANT: Record<ParticipantEventType, true> = {
     questionAnswered: true,
     questionPublished: true,
     announcementPublished: true,
+    printoutStateChanged: true,
 };
 
 export const MANAGER: Record<ManagerEventType, true> = {

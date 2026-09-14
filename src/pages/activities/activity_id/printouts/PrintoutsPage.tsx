@@ -72,10 +72,29 @@ export default function PrintoutsPage() {
         const found = await api.participantApi.getActivity(activityId);
         setActivity(found);
 
-        setItems(undefined);
+        // **The list stays on screen while the next one loads.** Resetting it
+        // here ran on every effect run, not only the first, so the `!items`
+        // guard below fired on every refetch and took the screen down to a
+        // spinner — filter row, open dialog and all.
+        //
+        // Deleting the reset is the whole fix: `items` is undefined only before
+        // the first load has ever finished, which is what that guard was written
+        // for. **The rule belongs to the idiom, not to this screen**: it was
+        // fixed on `ParticipantsPanel` in August and across the eight manager
+        // lists on 2026-09-14, and these four inherited neither because both
+        // were recorded against the screens that found them.
         const result = await api.participantApi.getPrintouts(found.id, { page, pageSize: PAGE_SIZE });
         setItems(result.items);
         setTotal(result.total);
+
+        // **One's own requests only.** The Server sends this with
+        // `SendToUserAsync`, so it cannot carry another contestant's page. The
+        // whole row is refetched rather than patched: the queue is short, and a
+        // request that was resolved leaves the list rather than changing in it.
+        api.participantApi.eventDispatcher.addEventListener(
+            "printoutStateChanged", evt => {
+                if (evt.data.activityId === found.id) setReload(n => n + 1);
+            });
     }, [activityId, page, reload]);
 
     if (!activity) return <LoadState error={error} loading={!error} />;
@@ -190,6 +209,11 @@ export default function PrintoutsPage() {
 
             <Title order={4}>{t("What you have asked for")}</Title>
 
+            {/* **A refetch that failed has to say so here.** The `!activity`
+                guard above is reached only before the first load, so once the
+                screen is drawn a lost connection would otherwise leave stale
+                rows looking current. */}
+            {error !== undefined && <LoadState error={error} loading={false} />}
             {items?.length === 0 && (
                 <Text c="dimmed" data-testid="printouts-empty">{t("Nothing yet.")}</Text>
             )}

@@ -34,7 +34,17 @@ export default function SubmissionsPage() {
         setActivity(activity);
         setSeries(await api.participantApi.getSeries(activity.id));
 
-        setItems(undefined);
+        // **The list stays on screen while the next one loads.** Resetting it
+        // here ran on every effect run, not only the first, so the `!items`
+        // guard below fired on every refetch and took the screen down to a
+        // spinner — filter row, open dialog and all.
+        //
+        // Deleting the reset is the whole fix: `items` is undefined only before
+        // the first load has ever finished, which is what that guard was written
+        // for. **The rule belongs to the idiom, not to this screen**: it was
+        // fixed on `ParticipantsPanel` in August and across the eight manager
+        // lists on 2026-09-14, and these four inherited neither because both
+        // were recorded against the screens that found them.
         const result = await api.participantApi.getSubmissions(activity.id, {
             page, pageSize: PAGE_SIZE,
             problemIds, seriesIds, states: states as JobState[],
@@ -100,6 +110,11 @@ export default function SubmissionsPage() {
                 />
             </Group>
 
+            {/* **A refetch that failed has to say so here.** The `!activity`
+                guard above is reached only before the first load, so once the
+                screen is drawn a lost connection would otherwise leave stale
+                rows looking current. */}
+            {error !== undefined && <LoadState error={error} loading={false} />}
             {!items && <Center my="xl"><Loader /></Center>}
 
             {items?.length === 0 && <Text c="dimmed">{t("No submissions match the filters")}</Text>}
