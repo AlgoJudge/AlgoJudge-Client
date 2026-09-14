@@ -661,6 +661,21 @@ export class ParticipantApiFake implements ParticipantApi {
         return { ...series, hideProblemsWhilePaused: this.state.hidesProblems(series.id) };
     }
 
+    /**
+     * Whether this round has taken its content back — paused with the statements
+     * hidden, or ended in an activity that closes its finished rounds.
+     *
+     * The same question `getProblem` asks, put about a submission: the Server
+     * gives a round's own gate the last word over the source as well as over the
+     * statement, so a participant cannot re-read their code through the one door
+     * the statement is shut at.
+     */
+    private hidesItsContent(activityId: string, seriesId: string): boolean {
+        const series = this.state.dataset().series.get(activityId)?.find(s => s.id === seriesId);
+        if (!series) return false;
+        return !mayReadProblems(this.timingOf(series), this.activityOf(activityId) ?? {});
+    }
+
     async getSeries(activityId: string, signal: AbortSignal): Promise<Series[]> {
         await this.settle(signal);
         const activity = this.activityOf(activityId);
@@ -740,9 +755,16 @@ export class ParticipantApiFake implements ParticipantApi {
         // said so. Filtering when the dataset was built would have frozen
         // yesterday's submissions against today's setting.
         const rules = this.state.rulesFor(activityId);
+        // **And the round's own gate over the source.** The reference goes with
+        // the bytes: withholding it is what leaves the screen no button to draw,
+        // and the Server refuses the same id at the file address. The attempts
+        // and their log are untouched — the source is the whole of what a hidden
+        // round takes back.
+        const hidden = this.hidesItsContent(activityId, detail.seriesId);
         return copy({
             ...this.ruled(detail),
-            files: readableBy(rules, detail.files, false),
+            files: readableBy(rules, detail.files, false)
+                .filter(file => !hidden || file.name !== SUBMISSION_SOURCE),
             attempts: detail.attempts.map(attempt => ({
                 ...attempt,
                 files: readableBy(rules, attempt.files, false),

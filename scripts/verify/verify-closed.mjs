@@ -8,6 +8,19 @@ const { check, report } = results();
 
 const body = () => evaluate(`return document.body.innerText;`);
 const MANAGER_LIST = `[...document.querySelectorAll("tbody tr")].some(r => r.innerText.includes("AMMPZ-2019"))`;
+
+const SUBMISSION_ROWS = `document.querySelectorAll("[data-testid=submission-row], tbody tr").length > 0`;
+/**
+ * A row of the submissions screen, picked by which round it belongs to.
+ *
+ * **By problem slug, because that is what says which round.** `A`–`D` are Runda
+ * 1's, `R` and `S` are Runda 0's; an index into the list would be whichever the
+ * ordering happened to put first, and the two rounds are interleaved in it.
+ */
+const rowOf = (slugs) => `[...document.querySelectorAll("[data-testid=submission-row], tbody tr")]
+    .find(r => /\\[(${slugs})\\]/.test(r.innerText))`;
+const PAUSED_ROUND_ROW = rowOf("A|B|C|D");
+const ENDED_ROUND_ROW = rowOf("R|S");
 /**
  * The Submit button of one **row**, not of the series card wrapping it: the
  * outer card contains every row's text, so the first match is always the round.
@@ -147,6 +160,37 @@ check(await evaluate(`
     return send === undefined || send.disabled;
 `), "and nothing can be sent to it");
 
+// ── And what was written for that round ─────────────────────────────────────
+// The statement is gone; the code written against it is the same reading, one
+// door along. **The row stays** — a participant is not told their work has
+// vanished, only that they cannot open it — and the ended round beside it keeps
+// its own source, which is what shows the rule is the round's and not the
+// activity's.
+//
+// **`visit`, never `go`, from the pause onwards.** The fake's world is in
+// memory: a reload rebuilds it and the round is running again, so a `go` here
+// asserts the unpaused product. Which also means this stays signed in as the
+// manager — the fake's participant surface answers as a participant whoever is
+// signed in, so what is asserted here is the participant rule. The staff
+// exemption is a Server rule and is pinned in `FileAccessTests`.
+await visit("/activities/AMMPZ-2019/submissions", SUBMISSION_ROWS);
+await wait(1500);
+
+check(await evaluate(`return ${PAUSED_ROUND_ROW} !== undefined;`),
+    "a submission made in the paused round is still listed");
+await click(PAUSED_ROUND_ROW);
+await wait(2500);
+check(await evaluate(`return document.querySelector("[data-testid=show-code]") === null;`),
+    "and it offers no way to read its source");
+await shot("closed-hidden-source");
+
+await visit("/activities/AMMPZ-2019/submissions", SUBMISSION_ROWS);
+await wait(1500);
+await click(ENDED_ROUND_ROW);
+await wait(2500);
+check(await evaluate(`return document.querySelector("[data-testid=show-code]") !== null;`),
+    "while the ended round's own source is untouched");
+
 // Put it back, so the next run starts where this one did.
 await visit("/manager/activities", MANAGER_LIST);
 await click(managerRow("AMMPZ-2019"));
@@ -160,6 +204,16 @@ await visit("/activities/AMMPZ-2019/problems", `document.body.innerText.includes
 await wait(1500);
 check(/sp[óo]jno[śs][ćc]/i.test(await body()),
     "resuming brings the statements back");
+
+// **And the source with them.** Without this the two assertions above would
+// pass against a build where the button is simply never drawn.
+await visit("/activities/AMMPZ-2019/submissions", SUBMISSION_ROWS);
+await wait(1500);
+await click(PAUSED_ROUND_ROW);
+await wait(2500);
+check(await evaluate(`return document.querySelector("[data-testid=show-code]") !== null;`),
+    "and the source of what was written for it");
+await shot("closed-resumed-source");
 
 report();
 close();
