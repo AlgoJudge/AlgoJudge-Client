@@ -8,6 +8,7 @@ import {
 import { useApiEffect } from "../../provider/apiContext";
 import { resultRenderers } from "../../renderers";
 import LoadState from "../LoadState";
+import Elapsed from "../time/Elapsed";
 import ActivityTime from "../time/ActivityTime";
 import { languageText } from "./offered";
 import StateBadge from "./StateBadge";
@@ -84,6 +85,10 @@ export default function SubmissionView({
     }
 
     const pending = submission.state === "queued" || submission.state === "running";
+    // The newest attempt's `startedAt`, which the Server projects as
+    // `ClaimedAt ?? CreatedAt` — so while a job is running it is the instant a
+    // Runner took it, not the instant it joined the queue.
+    const startedAt = submission.attempts[0]?.startedAt;
     const Result = resultRenderers.resolve(submission.problemType).value;
 
     return (
@@ -152,6 +157,21 @@ export default function SubmissionView({
                                 ? t("Waiting for a runner to pick this up")
                                 : t("A runner is evaluating this submission")}
                         </Text>
+                        {/* **Only while a runner actually has it.** A queued
+                            submission has nobody working on it, so there is
+                            nothing to count and a number there would suggest
+                            otherwise.
+
+                            It says how long, and nothing else: a box that never
+                            changes reads, after twenty seconds, exactly like a
+                            page that has quietly broken. How many tests have
+                            passed stays private — this is elapsed time and no
+                            more. */}
+                        {submission.state === "running" && startedAt && (
+                            <Text size="sm" c="dimmed" data-testid="judging-for">
+                                {t("Running for")} <Elapsed since={startedAt} fw={600} />
+                            </Text>
+                        )}
                     </Group>
                 </Alert>
             ) : (
