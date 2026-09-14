@@ -39,6 +39,17 @@ export default function SubmitPage() {
         } else {
             setProblem(undefined);
         }
+
+        // **A round can stop while this form is open**, and this screen decides
+        // from `series` whether anything may be sent. Without this the button
+        // stays live over a round that is paused or over, and the refusal
+        // arrives after the solution has been typed — which is the worst moment
+        // to learn it.
+        api.participantApi.eventDispatcher.addEventListener("seriesChanged", evt => {
+            if (evt.data.activityId !== activity.id) return;
+            setSeries(current => current?.map(s =>
+                s.id === evt.data.series.id ? evt.data.series : s));
+        });
     }, [activityId, problemId]);
 
     // The picker shows only when the route carries no problem. Rendering it
