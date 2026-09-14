@@ -1,3 +1,4 @@
+import { some } from "./filters";
 import { InstanceDocumentKind, InstanceDocumentRef, InstanceInfo } from "../CoreApi";
 import {
     ActivityGroup,
@@ -209,10 +210,10 @@ export class ManagerApiHttp implements ManagerApi {
     }
 
     getRunners(filter: ManagedRunnerFilter, signal: AbortSignal): Promise<Page<ManagedRunner>> {
-        const query: Record<string, string | number> = {};
+        const query: Record<string, string | number | string[]> = {};
         if (filter.page !== undefined) query.page = filter.page;
         if (filter.pageSize !== undefined) query.pageSize = filter.pageSize;
-        if (filter.state) query.state = filter.state;
+        if (some(filter.states)) query.state = filter.states!;
         if (filter.search) query.search = filter.search;
         return this.http.request<Page<ManagedRunner>>("/runners", "GET", { signal, query });
     }
@@ -513,11 +514,11 @@ export class ManagerApiHttp implements ManagerApi {
     }
 
     getPrintouts(filter: ManagedPrintoutFilter, signal: AbortSignal): Promise<Page<ManagedPrintout>> {
-        const query: Record<string, string | number | boolean> = {};
+        const query: Record<string, string | number | boolean | string[]> = {};
         if (filter.page !== undefined) query.page = filter.page;
         if (filter.pageSize !== undefined) query.pageSize = filter.pageSize;
         if (filter.activityId) query.activityId = filter.activityId;
-        if (filter.state) query.state = filter.state;
+        if (some(filter.states)) query.state = filter.states!;
         return this.http.request<Page<ManagedPrintout>>("/printouts", "GET", { signal, query });
     }
 
@@ -578,15 +579,18 @@ export class ManagerApiHttp implements ManagerApi {
     }
 
     getSubmissions(filter: ManagedSubmissionFilter, signal: AbortSignal): Promise<Page<ManagedSubmission>> {
-        const query: Record<string, string | number> = {};
+        const query: Record<string, string | number | string[]> = {};
         if (filter.page !== undefined) query.page = filter.page;
         if (filter.pageSize !== undefined) query.pageSize = filter.pageSize;
         if (filter.activityId) query.activityId = filter.activityId;
-        if (filter.seriesId) query.seriesId = filter.seriesId;
-        if (filter.seriesProblemId) query.seriesProblemId = filter.seriesProblemId;
-        if (filter.userId) query.userId = filter.userId;
-        if (filter.state) query.state = filter.state;
-        if (filter.verdict) query.verdict = filter.verdict;
+        // Repeated keys, never joined: a verdict is free text and may hold any
+        // separator this side might pick. An empty selection is not a filter, so
+        // the key is left off entirely rather than sent empty.
+        if (some(filter.seriesIds)) query.seriesId = filter.seriesIds!;
+        if (some(filter.seriesProblemIds)) query.seriesProblemId = filter.seriesProblemIds!;
+        if (some(filter.userIds)) query.userId = filter.userIds!;
+        if (some(filter.states)) query.state = filter.states!;
+        if (some(filter.verdicts)) query.verdict = filter.verdicts!;
         if (filter.search) query.search = filter.search;
         return this.http.request<Page<ManagedSubmission>>("/submissions", "GET", { signal, query });
     }

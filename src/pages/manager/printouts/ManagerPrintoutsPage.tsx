@@ -1,9 +1,10 @@
 import {
-    Alert, Badge, Button, Group, Modal, Pagination, Select, Stack, Table, Text, Title,
+    Alert, Badge, Button, Group, Modal, MultiSelect, Pagination, Select, Stack, Table, Text, Title,
 } from "@mantine/core";
 import { IconPrinter, IconRefresh, IconTrash } from "@tabler/icons-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { listed, joined } from "../filterParams";
 import { useSearchParams } from "react-router-dom";
 import { ManagedPrintout, PrintoutActivity } from "../../../api/ManagerApi";
 import { PrintoutState } from "../../../api/ParticipantApi";
@@ -38,7 +39,8 @@ export default function ManagerPrintoutsPage() {
 
     const [query, setQuery] = useSearchParams();
     const activityId = query.get("activity") ?? undefined;
-    const state = (query.get("state") ?? undefined) as PrintoutState | undefined;
+    // Its identity has to survive a render, or the effect refetches for ever.
+    const states = useMemo(() => listed(query.get("state")) as PrintoutState[], [query]);
     const page = Number(query.get("page") ?? "1");
 
     const [items, setItems] = useState<ManagedPrintout[] | undefined>(undefined);
@@ -68,7 +70,7 @@ export default function ManagerPrintoutsPage() {
 
         setItems(undefined);
         const result = await api.managerApi.getPrintouts({
-            page, pageSize: PAGE_SIZE, activityId, state,
+            page, pageSize: PAGE_SIZE, activityId, states,
         });
         setItems(result.items);
         setTotal(result.total);
@@ -77,7 +79,7 @@ export default function ManagerPrintoutsPage() {
         // is how the same page gets printed twice.
         api.managerApi.eventDispatcher.addEventListener(
             "printoutChanged", () => setReload(n => n + 1));
-    }, [activityId, state, page, reload]);
+    }, [activityId, states, page, reload]);
 
     if (!items && !loadError) return <LoadState error={undefined} loading />;
 
@@ -161,13 +163,13 @@ export default function ManagerPrintoutsPage() {
                     onChange={value => set({ activity: value ?? undefined })}
                     data={activities.map(a => ({ value: a.id, label: a.name }))}
                 />
-                <Select
+                <MultiSelect
                     w={200}
                     clearable
                     data-testid="printout-state"
-                    placeholder={t("Every state")}
-                    value={state ?? null}
-                    onChange={value => set({ state: value ?? undefined })}
+                    placeholder={states.length === 0 ? t("Every state") : undefined}
+                    value={states}
+                    onChange={value => set({ state: joined(value) })}
                     data={[
                         { value: "requested", label: t("Waiting") },
                         { value: "printing", label: t("At a printer") },

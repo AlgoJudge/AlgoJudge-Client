@@ -1,9 +1,13 @@
-import { Alert, Badge, Button, Group, Pagination, Select, Stack, Table, Text, TextInput, Title, Tooltip } from "@mantine/core";
+import {
+    Alert, Badge, Button, Group, MultiSelect, Pagination, Select, Stack, Table, TagsInput, Text,
+    TextInput, Title, Tooltip,
+} from "@mantine/core";
 import { IconRefresh, IconSearch } from "@tabler/icons-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ManagedActivitySummary, ManagedSeries, ManagedSubmission } from "../../../api/ManagerApi";
+import { Grant, ManagedActivitySummary, ManagedSeries, ManagedSubmission } from "../../../api/ManagerApi";
+import { joined, listed, repeated } from "../filterParams";
 import { JobState } from "../../../api/ParticipantApi";
 import LoadState from "../../../components/LoadState";
 import ActivityTime from "../../../components/time/ActivityTime";
@@ -38,8 +42,15 @@ export default function ManagerSubmissionsPage() {
 
     const [query, setQuery] = useSearchParams();
     const activityId = query.get("activity") ?? undefined;
-    const seriesId = query.get("series") ?? undefined;
-    const state = (query.get("state") ?? undefined) as JobState | undefined;
+    // Read through `useMemo` so each list keeps its identity between renders.
+    // A fresh array every render is a fresh dependency every render, and the
+    // effect below would refetch for ever; `query` changes only when the
+    // address does, which is exactly when a filter has moved.
+    const seriesIds = useMemo(() => listed(query.get("series")), [query]);
+    const problemIds = useMemo(() => listed(query.get("problem")), [query]);
+    const userIds = useMemo(() => listed(query.get("user")), [query]);
+    const states = useMemo(() => listed(query.get("state")) as JobState[], [query]);
+    const verdicts = useMemo(() => repeated(query, "verdict"), [query]);
     const search = query.get("q") ?? "";
     const page = Number(query.get("page") ?? "1");
 
@@ -47,15 +58,33 @@ export default function ManagerSubmissionsPage() {
     const [total, setTotal] = useState(0);
     const [activities, setActivities] = useState<ManagedActivitySummary[]>([]);
     const [series, setSeries] = useState<ManagedSeries[]>([]);
+    /**
+     * The activity's roster, for the participant filter.
+     *
+     * From the grants rather than from `searchUsers`: that one asks for
+     * `user:read:all` at system scope, which the shipped manager template does
+     * not carry, and it would offer every account in the installation rather
+     * than the people in this course.
+     */
+    const [roster, setRoster] = useState<Grant[]>([]);
     const [error, setError] = useState<string | undefined>(undefined);
     const [busy, setBusy] = useState(false);
     const [reload, setReload] = useState(0);
 
-    const set = (patch: Record<string, string | undefined>) => {
+    const set = (patch: Record<string, string | string[] | undefined>) => {
         const next = new URLSearchParams(query);
         for (const [key, value] of Object.entries(patch)) {
-            if (value) next.set(key, value);
-            else next.delete(key);
+            // An array is repeated keys rather than one joined value. Only the
+            // verdict needs it, and it needs it because it is the one filter
+            // whose values the Server does not own — see `filterParams`.
+            if (Array.isArray(value)) {
+                next.delete(key);
+                for (const one of value) next.append(key, one);
+            } else if (value) {
+                next.set(key, value);
+            } else {
+                next.delete(key);
+            }
         }
         // Any change to a filter invalidates the page number: page 3 of a
         // narrower result is usually empty, which reads as "nothing here".
@@ -69,10 +98,20 @@ export default function ManagerSubmissionsPage() {
         // appears when the first is set rather than listing every series there is.
         setSeries(activityId ? await api.managerApi.getSeries(activityId) : []);
 
+        // A trimmed role may hold `submission:read:all` and not `grant:read:all`.
+        // The participant filter is then simply not offered, which is better
+        // than a screen that fails to load because one control could not be
+        // filled.
+        setRoster(activityId
+            ? await api.managerApi
+                .getGrants({ activityId, pageSize: 200 })
+                .then(page => page.items, () => [])
+            : []);
+
         setItems(undefined);
         const result = await api.managerApi.getSubmissions({
             page, pageSize: PAGE_SIZE,
-            activityId, seriesId, state,
+            activityId, seriesIds, seriesProblemIds: problemIds, userIds, states, verdicts,
             search: search || undefined,
         });
         setItems(result.items);
@@ -84,7 +123,7 @@ export default function ManagerSubmissionsPage() {
             // times while a manager is reading it.
             setItems(current => current?.map(s => s.id === evt.data.submission.id ? evt.data.submission : s));
         });
-    }, [activityId, seriesId, state, search, page, reload]);
+    }, [activityId, seriesIds, problemIds, userIds, states, verdicts, search, page, reload]);
 
     const rejudge = async (operation: () => Promise<unknown>) => {
         setError(undefined);
@@ -110,13 +149,17 @@ export default function ManagerSubmissionsPage() {
                         {t("A rejudge adds an attempt; it never rewrites the one that was shown.")}
                     </Text>
                 </Stack>
-                {seriesId && (
+                {/* **One round, not several.** A rejudge of a round is an action on
+                    that round, and the endpoint takes one; offering it while two
+                    are narrowed to would either queue twice or quietly pick one.
+                    Narrowing to a single round brings it back. */}
+                {seriesIds.length === 1 && (
                     <Button
                         variant="light"
                         leftSection={<IconRefresh size={16} />}
                         loading={busy}
                         onClick={() => rejudge(async () => {
-                            const count = await call(api => api.managerApi.rejudgeSeries(seriesId));
+                            const count = await call(api => api.managerApi.rejudgeSeries(seriesIds[0]));
                             setError(`${t("Queued a rejudge of")} ${count} ${t("submissions.short")}`);
                         })}
                     >
@@ -135,31 +178,95 @@ export default function ManagerSubmissionsPage() {
                     onChange={e => set({ q: e.currentTarget.value })}
                     w={260}
                 />
+                {/* **The activity stays a single Select.** It is the scope the
+                    Server asks the permission at, not a filter, so several of
+                    them would be a different question rather than a wider one.
+                    Everything narrowed inside it is cleared with it. */}
                 <Select
                     placeholder={t("Every activity")}
                     data={activities.map(a => ({ value: a.id, label: a.name }))}
                     value={activityId ?? null}
-                    onChange={v => set({ activity: v ?? undefined, series: undefined })}
+                    onChange={v => set({
+                        activity: v ?? undefined,
+                        series: undefined, problem: undefined, user: undefined,
+                    })}
+                    data-testid="submission-activity"
                     clearable
                     searchable
                     w={240}
                 />
-                <Select
-                    placeholder={t("Every series")}
+                <MultiSelect
+                    placeholder={seriesIds.length === 0 ? t("Every series") : undefined}
                     data={series.map(s => ({ value: s.id, label: s.name }))}
-                    value={seriesId ?? null}
-                    onChange={v => set({ series: v ?? undefined })}
+                    value={seriesIds}
+                    onChange={v => set({ series: joined(v) })}
+                    data-testid="submission-series"
                     clearable
                     disabled={!activityId}
                     w={220}
                 />
-                <Select
-                    placeholder={t("Every state")}
+                {/* The assignment, which is what the Server narrows on and what
+                    the row's Problem column shows. Grouped by round, because two
+                    rounds may both call something A. */}
+                <MultiSelect
+                    placeholder={problemIds.length === 0 ? t("Every problem") : undefined}
+                    data={series.map(round => ({
+                        group: round.name,
+                        items: (round.problems ?? []).map(p => ({
+                            value: p.id,
+                            label: `[${p.slug}] ${p.name ?? p.problemName}`,
+                        })),
+                    }))}
+                    value={problemIds}
+                    onChange={v => set({ problem: joined(v) })}
+                    data-testid="submission-problem"
+                    clearable
+                    searchable
+                    disabled={!activityId}
+                    w={240}
+                />
+                <MultiSelect
+                    placeholder={userIds.length === 0 ? t("Everybody") : undefined}
+                    data={roster.map(g => ({
+                        value: g.userId,
+                        label: `${g.userName} (${g.userLogin})`,
+                    }))}
+                    value={userIds}
+                    onChange={v => set({ user: joined(v) })}
+                    data-testid="submission-user"
+                    clearable
+                    searchable
+                    disabled={!activityId}
+                    w={260}
+                />
+                <MultiSelect
+                    placeholder={states.length === 0 ? t("Every state") : undefined}
                     data={STATES.map(s => ({ value: s, label: t(`jobState.${s}`) }))}
-                    value={state ?? null}
-                    onChange={v => set({ state: v ?? undefined })}
+                    value={states}
+                    onChange={v => set({ state: joined(v) })}
+                    data-testid="submission-state"
                     clearable
                     w={180}
+                />
+                {/* **Free text, and a sample rather than a catalogue.** A verdict
+                    is a label the Runner produced and the Server stores without
+                    ever parsing, so that a problem type may invent one without a
+                    Server release — which means there is no list of them to
+                    fetch. The suggestions are what the rows on screen carry,
+                    plus whatever is already chosen so a selection never
+                    disappears from its own control. */}
+                <TagsInput
+                    placeholder={verdicts.length === 0 ? t("Every verdict") : undefined}
+                    description={t("Suggested from the rows on screen; any verdict may be typed")}
+                    data={[...new Set([
+                        ...items.map(i => i.verdict).filter((v): v is string => Boolean(v)),
+                        ...verdicts,
+                    ])]}
+                    value={verdicts}
+                    onChange={v => set({ verdict: v })}
+                    data-testid="submission-verdict"
+                    clearable
+                    w={260}
                 />
             </Group>
 

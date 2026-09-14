@@ -723,14 +723,19 @@ export class ParticipantApiFake implements ParticipantApi {
     async getSubmissions(activityId: string, filter: SubmissionFilter, signal: AbortSignal): Promise<Page<SubmissionSummary>> {
         await this.settle(signal);
         const all = this.state.dataset().submissions.get(activityId) ?? [];
+        // Empty means every, on all three: a cleared control asks for
+        // everything, which is the rule the Server applies to a value with no
+        // words in it.
         const states = filter.states ?? [];
+        const problems = filter.problemIds ?? [];
+        const rounds = filter.seriesIds ?? [];
         // Their own work in a round out of reach goes with the round — during an
         // examination, re-reading last week's accepted solution is the thing
         // this exists to stop.
         const unreachable = this.unreachableRounds(activityId);
         const matched = all.filter(s =>
-            (!filter.problemId || s.problemId === filter.problemId) &&
-            (!filter.seriesId || s.seriesId === filter.seriesId) &&
+            (problems.length === 0 || problems.includes(s.problemId)) &&
+            (rounds.length === 0 || rounds.includes(s.seriesId)) &&
             !unreachable.has(s.seriesId) &&
             (states.length === 0 || states.includes(s.state)));
         // **Stamped here**, where it leaves, rather than in the dataset: a

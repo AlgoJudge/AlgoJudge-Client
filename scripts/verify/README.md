@@ -99,8 +99,8 @@ both worth knowing before changing any of it:
 
 ## What they cover
 
-**All 53 of them**, counted with `ls scripts/verify/verify-*.mjs | wc -l` on
-2026-09-09 and grouped by area, because a flat list of 53 is a list nobody reads
+**All 58 of them**, counted with `ls scripts/verify/verify-*.mjs | wc -l` on
+2026-09-14 and grouped by area, because a flat list of 53 is a list nobody reads
 to the end. `ui.spec.mjs` enumerates the directory, so this table is a
 description of the suite and never its definition — a script that is here runs
 whether or not it is named below.
@@ -124,6 +124,8 @@ complete only if adding a script means adding a row.
 | `verify-lockdown` | a running round puts the rest out of reach, scoped to its own activity |
 | `verify-points` | what a problem is worth in its round, and what it may be written in |
 | `verify-groups` | several people competing as one, on the manager's screen |
+| `verify-manager-template` | the panel as a manager actually holds it — every other script drives somebody who is not one |
+| `verify-printouts` | printing source: the delegation, the module switch, and the paper; the one check driving a single permission |
 
 **Problems, statements and submitting**
 
@@ -134,9 +136,17 @@ complete only if adding a script means adding a row.
 | `verify-opaque` | the assignment's three documents typed a character at a time, not pasted whole |
 | `verify-limits` | the limits a participant reads, on the two axes a package states them |
 | `verify-submit-modal` | sending from the submissions panel, and the bar's two controls |
+| `verify-modal-stages` | sending, reading the verdict and reading the source in one window, over the statement it was written against |
+| `verify-editor` | the code editor: the face it is set in, and the theme it follows |
 | `verify-attachments` | what a submission carries, and who may read each part of it |
 | `verify-submission-origin` | the address, browser and session on one submission's detail — and on no list |
 | `verify-resubmit` | a stored submission edited and sent again, checksum and all |
+
+**Filtering a list**
+
+| Script | What it holds to |
+|---|---|
+| `verify-filters` | choosing a filter narrows the list, clearing it gives the list back, two values compose, and the pager follows — on the participant's submissions, the manager's, and the activity chips. **It cannot see the wire**: the fake honours filters the Server was discarding, which is how three of them shipped dead. Its header says so. |
 
 **Results and boards**
 
@@ -157,6 +167,7 @@ complete only if adding a script means adding a row.
 | `verify-clicks` | the name opens the thing it names, on the four screens where it did not |
 | `verify-notifications` | what is announced, where it sits, where clicking it goes |
 | `verify-theme` | the colour scheme applied, remembered, and legible once it is dark |
+| `verify-seo` | the two things about the document only a running page can say; the static half is `npm run check:seo` |
 | `verify-prefs` | one setting, one store, across the application shell and a public page |
 | `verify-name` | the instance names itself: beside the mark in both shells, and in the tab |
 | `verify-instance` | an operator writes what the instance says about itself, including saying nothing |

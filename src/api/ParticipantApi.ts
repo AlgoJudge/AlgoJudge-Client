@@ -549,9 +549,16 @@ export interface SubmissionDetail extends SubmissionSummary {
 export interface SubmissionFilter {
     page?: number,
     pageSize?: number,
-    problemId?: string,
-    seriesId?: string,
+    /** Assignments, not library problems: the id a `ProblemSummary` carries. */
+    problemIds?: string[],
+    seriesIds?: string[],
     states?: JobState[],
+    /**
+     * **Empty means every, and is never sent.** A cleared control asks for
+     * everything, so the transport drops the key rather than putting an empty
+     * value on the wire; the Server reads those the same way, and this side not
+     * relying on that is what keeps the two from disagreeing silently.
+     */
 }
 
 /** What the participant sends. Which fields are set is decided by the problem type. */
