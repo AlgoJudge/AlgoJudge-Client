@@ -20,7 +20,7 @@
 // race out of it — the fake judges this submission between six and fifteen
 // seconds after the dataset is first read, which is not a window to navigate
 // inside of.
-import { open, results } from "./harness.mjs";
+import { open, RESOLVE, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
 const { evaluate, until, wait, shot, go, click, close, clock } = await open({ clock: true });
@@ -82,6 +82,29 @@ check(/kolejce|Czekamy/i.test(waiting), "and the box says it is waiting for a ru
 check(await evaluate(`return ${timer} === null;`),
     "with no timer, because nothing is being judged yet");
 
+/**
+ * The colour of the waiting box, resolved by the browser rather than read off
+ * the prop.
+ *
+ * A queued submission has nobody working on it, and the badge a few lines above
+ * it already says so in grey; a box in the active colour there said the opposite
+ * of its own sentence. Asked of the computed background, because a custom
+ * property read back answers with whatever tokens were written into it.
+ */
+const banner = () => evaluate(`
+    ${RESOLVE}
+    const box = document.querySelector("[data-testid=modal] [data-testid=pending]");
+    return {
+        bg: box ? hex(getComputedStyle(box).backgroundColor) : null,
+        gray: resolved("var(--mantine-color-gray-light)"),
+        blue: resolved("var(--mantine-color-blue-light)"),
+    };
+`);
+
+const queued = await banner();
+check(queued.bg === queued.gray && queued.bg !== queued.blue,
+    `and it is grey while it only waits — ${queued.gray}, not ${queued.blue}, got ${queued.bg}`);
+
 // ── a runner picks it up ────────────────────────────────────────────────────
 //
 // The fake flips it at six seconds and stamps the attempt as the Server does:
@@ -96,6 +119,12 @@ for (let i = 0; i < 14 && await evaluate(`return ${timer} === null;`); i++) {
 
 check(await evaluate(`return ${timer} !== null;`),
     "once a runner has it, the box says how long it has been at it");
+
+// **The other half, or grey would pass by being grey always.** A submission a
+// runner has is work in progress and keeps the active colour.
+const running = await banner();
+check(running.bg === running.blue && running.bg !== running.gray,
+    `and it turns blue once a runner has it — ${running.blue}, got ${running.bg}`);
 
 const first = await timerText();
 check(/\d+:\d\d/.test(first ?? ""),

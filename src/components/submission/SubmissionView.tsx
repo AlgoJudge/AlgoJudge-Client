@@ -89,6 +89,11 @@ export default function SubmissionView({
     // `ClaimedAt ?? CreatedAt` — so while a job is running it is the instant a
     // Runner took it, not the instant it joined the queue.
     const startedAt = submission.attempts[0]?.startedAt;
+    // **Grey while it only waits, blue once a runner has it.** The badge a few
+    // lines above already says grey for `queued` — `StateBadge` and both of the
+    // manager's colour maps agree — and a box in the active colour over "waiting
+    // for a runner" contradicted its own sentence.
+    const waiting = submission.state === "queued";
     const Result = resultRenderers.resolve(submission.problemType).value;
 
     return (
@@ -149,9 +154,18 @@ export default function SubmissionView({
             {/* A submission is visible long before it has a verdict, so the
                 waiting state is a state of this view, not an empty table. */}
             {pending ? (
-                <Alert color="blue" icon={<IconClockPlay size={18} />} title={t(submission.state)}>
+                <Alert
+                    /* Replaces the theme's generic `alert` on this one element,
+                       so a check reads this box rather than whichever Alert
+                       happens to come first — the exclusion notice above is one
+                       too. */
+                    data-testid="pending"
+                    color={waiting ? "gray" : "blue"}
+                    icon={<IconClockPlay size={18} />}
+                    title={t(submission.state)}
+                >
                     <Group gap="sm">
-                        <Loader size="sm" />
+                        <Loader size="sm" color={waiting ? "gray" : "blue"} />
                         <Text size="sm">
                             {submission.state === "queued"
                                 ? t("Waiting for a runner to pick this up")
