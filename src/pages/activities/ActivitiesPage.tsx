@@ -126,7 +126,14 @@ export default function ActivitiesPage() {
                     onClick={() => { if (!item.locked) navigate(activityEntryPath(item)); }}
                     style={item.locked ? { cursor: "default" } : undefined}
                 >
-                    <Group justify="space-between" wrap="nowrap">
+                    {/* The wrapping is in the stylesheet rather than in a
+                        `wrap` prop. `Group` writes that prop as an inline
+                        `--group-wrap`, which no media query can reach; a class
+                        works by replacing the declaration that reads it, and
+                        leaving both would be two rules fighting where only one
+                        of them is visible. Below `sm` the details fall under
+                        the name rather than being squeezed beside it. */}
+                    <Group justify="space-between" className={classes.row}>
                         <Group wrap="nowrap" style={{ minWidth: 0 }}>
                             {getIcon(item.type)}
                             <Stack gap={2} style={{ minWidth: 0 }}>
@@ -149,14 +156,20 @@ export default function ActivitiesPage() {
                                 </Group>
                             </Stack>
                         </Group>
-                        <Stack justify="flex-end" gap={0} className={classes.stack}>
+                        <Stack justify="flex-end" gap={0} className={classes.props} data-testid="activity-props">
                             {item.finalScore !== undefined && (
                                 <Text fw={600}>
                                     {t("Result")}: {item.finalScore}{item.maxScore !== undefined ? ` / ${item.maxScore}` : ""}
                                 </Text>
                             )}
+                            {/* **Smaller on a phone, and only these.** A
+                                responsive style prop rather than a rule in the
+                                module: `Text` sets its size on its own class as
+                                `var(--text-fz, …)`, which a parent font size
+                                does not reach. The result above keeps its size
+                                — it is a result, not a detail of the activity. */}
                             {displayProps(item.props).map(p => (
-                                <Text key={p.key}>{p.key}: {p.value}</Text>
+                                <Text key={p.key} fz={{ base: "xs", sm: "md" }} data-testid="activity-prop">{p.key}: {p.value}</Text>
                             ))}
                         </Stack>
                     </Group>

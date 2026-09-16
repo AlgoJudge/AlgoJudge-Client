@@ -47,6 +47,29 @@
     }
 }
 
-.stack {
-    vertical-align: bottom;
+/* One line on a desktop, exactly as the `wrap="nowrap"` this replaces —
+   `Group` always writes an inline `--group-wrap`, so deleting the prop would
+   otherwise give `wrap` at every width. */
+.row {
+    flex-wrap: nowrap;
+}
+
+/* `vertical-align: bottom` was here, which does nothing to a flex child. What
+   was missing is a floor of zero: without it this column keeps its content
+   width and squeezes the name beside it. */
+.props {
+    min-width: 0;
+}
+
+@media (max-width: $mantine-breakpoint-sm) {
+    .row {
+        flex-wrap: wrap;
+    }
+
+    /* Under the name rather than beside it, fighting it for the same line —
+       and the card's full width once it is there, because a wrapped flex item
+       otherwise keeps the narrow column it lost the fight in. */
+    .props {
+        width: 100%;
+    }
 }
