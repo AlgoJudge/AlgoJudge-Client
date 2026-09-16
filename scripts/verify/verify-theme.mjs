@@ -1,7 +1,7 @@
 // The colour-scheme preference: still applied, still remembered, no longer
 // re-applied on every render of the header — and, at the foot of this file,
 // legible once it is dark.
-import { open, results } from "./harness.mjs";
+import { open, RESOLVE, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
 const { send, evaluate, wait, go, shot } = await open();
@@ -203,26 +203,6 @@ for (const scheme of ["light", "dark"]) {
 // would pass just as well while a token that went nowhere looked fine.
 
 /** Whatever CSS expression is handed in, as the browser finally resolves it. */
-const RESOLVE = `
-    const hex = (value) => {
-        const open = value.indexOf("(");
-        if (open < 0) return value;
-        const parts = value.slice(open + 1, value.lastIndexOf(")"))
-            .split("/").join(",").split(",").slice(0, 3).map(p => parseFloat(p.trim()));
-        return "#" + parts.map(c => Math.round(c).toString(16).padStart(2, "0")).join("");
-    };
-    const resolved = (expression) => {
-        const probe = document.createElement("div");
-        probe.style.position = "fixed";
-        probe.style.opacity = "0";
-        probe.style.pointerEvents = "none";
-        probe.style.backgroundColor = expression;
-        document.body.appendChild(probe);
-        const value = getComputedStyle(probe).backgroundColor;
-        probe.remove();
-        return hex(value);
-    };
-`;
 
 /**
  * WCAG contrast between two `#rrggbb`, worked out here rather than in the page:
