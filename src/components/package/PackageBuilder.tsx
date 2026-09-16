@@ -20,7 +20,7 @@ import {
 } from "../../package/types";
 import { hasErrors, validatePackage } from "../../package/validate";
 import { CopyButton, DownloadButton } from "../buttons";
-import CodeHighlight from "../codehighlight/CodeHighlight";
+import { CodeHighlight } from "@mantine/code-highlight";
 
 /**
  * Assembles a Runner package from loose files.
@@ -1194,7 +1194,22 @@ export default function PackageBuilder(
                                         source, and reads as source. */}
                                     {file.language === undefined
                                         ? <Code block style={{ fontSize: 12 }}>{file.content.slice(0, PREVIEW_LIMIT)}</Code>
-                                        : <CodeHighlight code={file.content.slice(0, PREVIEW_LIMIT)} language={file.language} />}
+                                        : (
+                                            /* **`withLineNumbers`, not a gutter of our own.** The one
+                                               this replaces counted `code.split("\\n")` while the
+                                               component renders `code.trim()`, so this very preview
+                                               numbered three lines 1 to 4 — and it restated the
+                                               library's own line height and padding, two numbers it
+                                               did not own. The built-in gutter counts the code it
+                                               renders and shares `--code-line-height` with the `<pre>`
+                                               beside it, so the two cannot come apart. */
+                                            <CodeHighlight
+                                                withLineNumbers
+                                                attributes={{ lineNumbers: { "data-testid": "code-line-numbers" } }}
+                                                code={file.content.slice(0, PREVIEW_LIMIT)}
+                                                language={file.language}
+                                            />
+                                        )}
                                 </ScrollArea.Autosize>
                                 <Text size="xs" c="dimmed">
                                     {humanSize(sizeOf(file.content))}

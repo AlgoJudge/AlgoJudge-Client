@@ -167,6 +167,33 @@ check(highlighted.text.includes("int add(int a, int b)"), "the checker's source 
 // token and nothing else here does, so this survives the change of engine and
 // still fails if the source arrives unhighlighted.
 check(highlighted.spans > 1, `the source is syntax-highlighted (${highlighted.spans} tokens)`);
+
+// **And a number beside every line the preview actually draws.** The gutter
+// this replaces counted `code.split("\\n")` while the component renders
+// `code.trim()`, so this very fixture — three lines with a trailing newline —
+// was numbered 1 to 4. The count expected is over the *trimmed* source, which
+// is what the `<pre>` holds.
+const numbered = await evaluate(`
+    const modal = document.querySelector("[data-testid=modal]");
+    const gutter = modal.querySelector("[data-testid=code-line-numbers]");
+    const pre = modal.querySelector("pre");
+    const code = pre ? (pre.querySelector("code") ?? pre) : null;
+    return {
+        numbers: gutter ? [...gutter.children].map(d => d.textContent.trim()) : [],
+        lines: pre ? pre.innerText.replace(/\\s+$/, "").split("\\n").length : 0,
+        // Shared with the code beside it rather than restated: one custom
+        // property, so the two columns cannot come apart.
+        gutterLine: gutter ? getComputedStyle(gutter).lineHeight : null,
+        codeLine: code ? getComputedStyle(code).lineHeight : null,
+    };
+`);
+check(numbered.numbers.length === numbered.lines,
+    `every line of the preview carries a number (${numbered.numbers.length} numbers, ${numbered.lines} lines)`);
+check(numbered.numbers[numbered.numbers.length - 1] === String(numbered.lines),
+    `and the last one is ${numbered.lines} (got ${numbered.numbers[numbered.numbers.length - 1]})`);
+check(numbered.gutterLine !== null && numbered.gutterLine === numbered.codeLine,
+    `the numbering and the source share a line height (${numbered.gutterLine} / ${numbered.codeLine})`);
+
 await shot("f-checker");
 
 await evaluate(`
