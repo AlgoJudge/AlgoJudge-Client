@@ -9,7 +9,6 @@ import { RankingProps } from "./parse";
 import { freezeOf, pointsBoard, PointsCell } from "./scoreboard";
 import { useFindMe } from "./useFindMe";
 import classes from "./PointsRanking.module.css";
-import DataTable from "../../components/table/DataTable";
 
 /**
  * The points scoreboard: a column per series, expanding to its problems.
@@ -84,64 +83,66 @@ export default function PointsRanking({ results, timeZone, ranked }: RankingProp
                 disabled={!results.me || !rows.some(r => r.contestantId === results.me)}
             />
 
-            <DataTable minWidth={640} stickyHeader striped highlightOnHover withColumnBorders tabularNums>
-                <Table.Thead>
-                    <Table.Tr>
-                        {placed && <Table.Th className={classes.stickyPlace}>{t("Place")}</Table.Th>}
-                        <Table.Th className={classes.stickyName} style={nameLeft}>
-                            {t("Contestant")}
-                        </Table.Th>
-                        <Table.Th>{t("Solved")}</Table.Th>
-                        <Table.Th>{t("Sum")}</Table.Th>
-                        {results.series.map(s => {
-                            const open = expanded === s.id;
-                            return [
-                                <Table.Th key={s.id}>
-                                    <UnstyledButton onClick={() => toggle(s.id)} className={classes.seriesHeader}>
-                                        {open ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
-                                        {/* Frozen rounds carry an asterisk, as
-                                            the ICPC columns do: a total that
-                                            is still moving must not read as a
-                                            settled one. */}
-                                        <span>{s.name}{s.frozen ? "*" : ""}</span>
-                                    </UnstyledButton>
-                                </Table.Th>,
-                                ...(open ? s.problems.map(p => (
-                                    <Table.Th key={`${s.id}-${p.slug}`} className={classes.problemHeader}>
-                                        {p.slug}{s.frozen ? "*" : ""}
-                                    </Table.Th>
-                                )) : []),
-                            ];
-                        })}
-                    </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                    {rows.map(row => (
-                        <Table.Tr
-                            key={row.contestantId}
-                            ref={row.contestantId === results.me ? myRow : undefined}
-                            className={row.contestantId === results.me ? classes.me : undefined}
-                        >
-                            {placed && <Table.Td className={classes.stickyPlace}>{row.rank}</Table.Td>}
-                            <Table.Td className={classes.stickyName} style={nameLeft}><ContestantName name={row.name} description={row.description} members={row.members} /></Table.Td>
-                            <Table.Td>{row.solved}</Table.Td>
-                            <Table.Td><Text fw={600}>{row.total}</Text></Table.Td>
+            <Table.ScrollContainer minWidth={640}>
+                <Table stickyHeader striped highlightOnHover withColumnBorders tabularNums>
+                    <Table.Thead>
+                        <Table.Tr>
+                            {placed && <Table.Th className={classes.stickyPlace}>{t("Place")}</Table.Th>}
+                            <Table.Th className={classes.stickyName} style={nameLeft}>
+                                {t("Contestant")}
+                            </Table.Th>
+                            <Table.Th>{t("Solved")}</Table.Th>
+                            <Table.Th>{t("Sum")}</Table.Th>
                             {results.series.map(s => {
-                                const cell = row.bySeries[s.id];
                                 const open = expanded === s.id;
                                 return [
-                                    <Table.Td key={s.id}>{cell?.total ?? 0}</Table.Td>,
+                                    <Table.Th key={s.id}>
+                                        <UnstyledButton onClick={() => toggle(s.id)} className={classes.seriesHeader}>
+                                            {open ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
+                                            {/* Frozen rounds carry an asterisk, as
+                                                the ICPC columns do: a total that
+                                                is still moving must not read as a
+                                                settled one. */}
+                                            <span>{s.name}{s.frozen ? "*" : ""}</span>
+                                        </UnstyledButton>
+                                    </Table.Th>,
                                     ...(open ? s.problems.map(p => (
-                                        <Table.Td key={`${s.id}-${p.slug}`} className={classes.problemCell}>
-                                            <CellView cell={cell?.byProblem[p.slug]} />
-                                        </Table.Td>
+                                        <Table.Th key={`${s.id}-${p.slug}`} className={classes.problemHeader}>
+                                            {p.slug}{s.frozen ? "*" : ""}
+                                        </Table.Th>
                                     )) : []),
                                 ];
                             })}
                         </Table.Tr>
-                    ))}
-                </Table.Tbody>
-            </DataTable>
+                    </Table.Thead>
+                    <Table.Tbody>
+                        {rows.map(row => (
+                            <Table.Tr
+                                key={row.contestantId}
+                                ref={row.contestantId === results.me ? myRow : undefined}
+                                className={row.contestantId === results.me ? classes.me : undefined}
+                            >
+                                {placed && <Table.Td className={classes.stickyPlace}>{row.rank}</Table.Td>}
+                                <Table.Td className={classes.stickyName} style={nameLeft}><ContestantName name={row.name} description={row.description} members={row.members} /></Table.Td>
+                                <Table.Td>{row.solved}</Table.Td>
+                                <Table.Td><Text fw={600}>{row.total}</Text></Table.Td>
+                                {results.series.map(s => {
+                                    const cell = row.bySeries[s.id];
+                                    const open = expanded === s.id;
+                                    return [
+                                        <Table.Td key={s.id}>{cell?.total ?? 0}</Table.Td>,
+                                        ...(open ? s.problems.map(p => (
+                                            <Table.Td key={`${s.id}-${p.slug}`} className={classes.problemCell}>
+                                                <CellView cell={cell?.byProblem[p.slug]} />
+                                            </Table.Td>
+                                        )) : []),
+                                    ];
+                                })}
+                            </Table.Tr>
+                        ))}
+                    </Table.Tbody>
+                </Table>
+            </Table.ScrollContainer>
         </Stack>
     );
 }
