@@ -138,6 +138,35 @@ export class InvalidStatusError extends ApiError {
     }
 }
 
+/**
+ * What to put in front of somebody about a refusal.
+ *
+ * `message` alone is not always an answer. The Server writes `detail` for the
+ * cases it has a sentence for, and a **serialiser** refusal has none: ASP.NET
+ * answers `title` = "One or more validation errors occurred." and puts the only
+ * useful words under `errors`, keyed by the field. A screen showing `message`
+ * then tells a manager that something was invalid and nothing about what —
+ * which is how an archive missing one module member read for four days.
+ *
+ * A JSON path (`$.modules`) is shown as the member it names; a real field name
+ * is shown as itself, because that is what the person typed into.
+ */
+export const describe = (e: unknown): string => {
+    if (!(e instanceof ApiError)) return e instanceof Error ? e.message : String(e);
+    const fields = e instanceof ValidationError ? e.fields : undefined;
+    if (!fields) return e.message;
+
+    // **A JSON path wins over a parameter name.** When the serialiser refuses a
+    // body it files the precise complaint under `$.modules` and adds a second
+    // entry under the action's parameter saying only that the input was
+    // required — true, and no help to anybody reading it on a screen.
+    const entries = Object.entries(fields);
+    const paths = entries.filter(([field]) => field.startsWith("$."));
+    const named = (paths.length > 0 ? paths : entries).flatMap(([field, messages]) =>
+        messages.map(message => `${field.replace(/^\$\./, "")}: ${message}`));
+    return named.length > 0 ? [e.message, ...named].join(" ") : e.message;
+};
+
 /** The shape of an RFC 9457 problem document, as this Server writes one. */
 export interface ProblemDocument {
     title?: string;
