@@ -218,11 +218,102 @@ check(/Akademickie Mistrzostwa/.test(paper), "and in which activity");
 check(await evaluate(`return document.querySelector("nav") === null;`),
     "and carries none of the application's navigation");
 
-const mono = await evaluate(`
-    const listing = document.querySelector("[data-testid=sheet-source] pre");
-    return listing ? getComputedStyle(listing).fontFamily : "";
+// ── The listing: a number beside every line, wrapped ones included ─────────
+//
+// **Read as painted lines, not as markup.** The numbering and the source were
+// two text flows in two grid columns — a gutter that never wraps beside a
+// `<pre>` that does — so every long line made the source column one visual row
+// taller than the numbering, and the numbers ran out before the listing ended.
+// What is asserted is where the ink is, which says the same thing about the
+// shape this replaced and about the one that replaced it.
+const listing = await evaluate(`
+    const sheet = document.querySelector("[data-testid=sheet-source]");
+    // One rect per painted line, told apart by whether it can be selected: the
+    // numbering is user-select:none and the source is not. Zero-width rects go,
+    // a trailing newline being one and not a line anybody can read.
+    const painted = (unselectable) => {
+        const walk = document.createTreeWalker(sheet, NodeFilter.SHOW_TEXT);
+        const out = [];
+        for (let node = walk.nextNode(); node; node = walk.nextNode()) {
+            const none = getComputedStyle(node.parentElement).userSelect === "none";
+            if (none !== unselectable) continue;
+            const range = document.createRange();
+            range.selectNodeContents(node);
+            out.push(...[...range.getClientRects()].filter(r => r.width >= 1));
+        }
+        return out;
+    };
+    const numbers = painted(true);
+    const source = painted(false);
+    const rows = [...sheet.querySelectorAll("pre[data-line]")];
+    const last = rows.length;
+    const line = parseFloat(getComputedStyle(sheet).lineHeight);
+    const lastNum = sheet.querySelector('div[data-line="' + last + '"]');
+    const lastCode = sheet.querySelector('pre[data-line="' + last + '"]');
+    return {
+        numbers: numbers.length,
+        painted: source.length,
+        foot: numbers.length && source.length
+            ? Math.round(source[source.length - 1].bottom - numbers[numbers.length - 1].bottom)
+            : null,
+        rows: last,
+        lastNumber: lastNum ? lastNum.textContent.trim() : null,
+        lastGap: lastNum && lastCode
+            ? Math.round(lastCode.getBoundingClientRect().top - lastNum.getBoundingClientRect().top)
+            : null,
+        shortest: last ? Math.round(Math.min(...rows.map(r => r.getBoundingClientRect().height))) : null,
+        wrapped: rows.filter(r => r.getBoundingClientRect().height > line + 1).length,
+        terminated: rows.filter(r => r.textContent.endsWith("\\n")).length,
+        line: Math.round(line),
+        unselectable: lastNum ? getComputedStyle(lastNum).userSelect : null,
+        block: lastCode ? getComputedStyle(lastCode).display : null,
+        family: lastCode ? getComputedStyle(lastCode).fontFamily : "",
+        listingFamily: getComputedStyle(sheet).fontFamily,
+    };
 `);
-check(/mono/i.test(mono), "the listing is monospace: " + mono.slice(0, 30));
+
+// The guard. Without a line that actually wraps, everything under it is true of
+// a listing nothing was ever wrong with.
+check(listing.painted - listing.numbers >= 2 && listing.wrapped >= 1,
+    `the fixture has a line long enough to wrap (${listing.wrapped} of ${listing.numbers} lines do, `
+    + `${listing.painted} painted rows in all)`);
+
+// **The regression.** Two flows drifted apart by a painted row for every line
+// that wrapped; one row per line cannot.
+check(listing.foot !== null && Math.abs(listing.foot) <= 2,
+    `the numbering ends level with the last line of source (${listing.foot}px apart)`);
+check(listing.rows === listing.numbers,
+    `one row per source line (${listing.rows} rows, ${listing.numbers} numbers)`);
+check(listing.lastNumber === String(listing.rows),
+    `and the last line carries its own number (${listing.lastNumber} of ${listing.rows})`);
+check(listing.lastGap !== null && Math.abs(listing.lastGap) <= 2,
+    `whose number sits at the top of its own line (${listing.lastGap}px)`);
+// Nothing sets a height for a blank line: the number cell is never empty and a
+// grid row is as tall as its tallest cell.
+check(listing.shortest >= listing.line - 1,
+    `a blank line still occupies a row (${listing.shortest}px against ${listing.line}px)`);
+
+// **What copying depends on**, the clipboard itself not being reachable from
+// here. `getSelection().toString()` would be the wrong probe — it runs a
+// different serialiser from the one copy uses and has included unselectable
+// text. So the two mechanisms are asserted instead.
+check(listing.unselectable === "none",
+    `the numbering is not part of what is copied (${listing.unselectable})`);
+check(listing.block === "block",
+    `and each line is a block, so a copy has newlines between them (${listing.block})`);
+// **And each one ends in a newline.** A block holding nothing contributes
+// nothing to the clipboard, so without this the blank line in the middle of a
+// listing is simply absent from what somebody pastes — measured against the two
+// flows this replaced, which kept it.
+check(listing.terminated === listing.rows,
+    `every line carries the newline a copy needs (${listing.terminated} of ${listing.rows})`);
+
+// **The face, not the word.** A `<pre>` carries the browser's own generic
+// family, which outranks what the listing hands down — so this passed on the
+// word `monospace` while the two columns were set differently.
+check(/mono/i.test(listing.family), "the listing is monospace: " + listing.family.slice(0, 30));
+check(listing.family === listing.listingFamily,
+    `and the numbering and the source are one face (${listing.family.slice(0, 22)} / ${listing.listingFamily.slice(0, 22)})`);
 
 const digest = await evaluate(`
     return document.querySelector("[data-testid=sheet-digest]")?.textContent?.trim() ?? "";

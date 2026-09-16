@@ -41,6 +41,16 @@ const digest = (seed: string): string => {
 
 const minutesAgo = (n: number) => new Date(Date.now() - n * 60000).toISOString();
 
+/**
+ * **One line is deliberately longer than the paper.** It is 222 characters,
+ * which at 210mm and 9.5pt wraps to three rows, so the sheet has a wrapped
+ * line to number — which is what went wrong, and what `verify-printouts`
+ * measures. It is in the middle and never last:
+ * the check compares where the numbering ends with where the source ends, and
+ * a wrapped *final* line would separate the two for a reason that is not the
+ * defect. The blank line near the top earns its place the same way — an empty
+ * line still has to occupy a row.
+ */
 const SAMPLE = `#include <bits/stdc++.h>
 using namespace std;
 
@@ -50,6 +60,7 @@ int main() {
     vector<long long> a(n);
     for (auto &x : a) cin >> x;
     sort(a.begin(), a.end());
+    cerr << "n=" << n << " mediana=" << a[n / 2] << " min=" << a.front() << " max=" << a.back() << " suma=" << accumulate(a.begin(), a.end(), 0LL) << " srednia=" << (double) accumulate(a.begin(), a.end(), 0LL) / n << endl;
     cout << a[n / 2] << "\\n";
 }
 `;

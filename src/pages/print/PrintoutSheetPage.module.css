@@ -59,12 +59,15 @@
 }
 
 /* Not selected when the operator copies the listing, and not printed as data
-   either — it is a reading aid, not part of the source. */
-.gutter {
+   either — it is a reading aid, not part of the source.
+
+   **A blank line still occupies a row, and nothing here makes it do so.** An
+   empty block box collapses; an empty *grid item* does not, because the row is
+   as tall as its tallest cell and this one is never empty. */
+.num {
     user-select: none;
     text-align: right;
     color: #666666;
-    white-space: pre;
 }
 
 .code {
@@ -73,6 +76,10 @@
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     margin: 0;
+    /* **A `<pre>` carries the browser's own `font-family: monospace`**, which
+       is a declaration on the element and outranks what `.listing` hands down:
+       the two columns were being set in two different faces. */
+    font-family: inherit;
 }
 
 .footer {
