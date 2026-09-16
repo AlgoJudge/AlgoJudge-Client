@@ -8,6 +8,7 @@ import { BundleContents } from "../../exchange/bundle";
 import { ArchiveSource, readArchive } from "../../exchange/read";
 import { Loss } from "../../exchange/zawodyweb/convert";
 import { applyBundle, ImportOutcome } from "../../exchange/apply";
+import { describe } from "../../api/ApiError";
 import { usePermissions } from "../../provider/permissionsContext";
 import { ImportPlan, LibraryProblem, planImport, Resolution, summarise } from "../../exchange/plan";
 import { useApiCall } from "../../provider/apiContext";
@@ -92,7 +93,7 @@ export default function ImportBundleModal({ opened, onClose, onImported }: Impor
             setPlan(planImport(read.contents.bundle, versions));
             setSlug(read.contents.bundle.activity?.slug ?? "");
         } catch (e) {
-            setError(e instanceof Error ? e.message : String(e));
+            setError(describe(e));
         } finally {
             setBusy(false);
         }
@@ -130,7 +131,12 @@ export default function ImportBundleModal({ opened, onClose, onImported }: Impor
             reset();
             onImported(outcome);
         } catch (e) {
-            setError(e instanceof Error ? e.message : String(e));
+            // `describe` rather than `message`: a refusal from the serialiser
+            // carries no `detail`, so the only words naming what it objected to
+            // are under `errors`. An archive written before a module existed was
+            // refused with "One or more validation errors occurred." and the
+            // word `printouts` nowhere on the screen.
+            setError(describe(e));
         } finally {
             setBusy(false);
         }
