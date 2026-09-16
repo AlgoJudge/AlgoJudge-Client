@@ -2,8 +2,9 @@
 
 /* **At least the window.** A strip above a document reads as a banner to scroll
    past; a screen's worth reads as the page. The subtraction is the public
-   shell's own chrome — a 56px bar and the container's 40px above and below —
-   so the introduction ends where the fold is rather than a little past it.
+   shell's own chrome — a 56px bar with a 1px rule under it, and the
+   container's 40px above and below — so the introduction ends where the fold
+   is rather than a little past it.
 
    `svh` and not `vh`: on a telephone `vh` is the height with the browser's own
    bars *hidden*, so the first paint is taller than the window and the features
@@ -21,8 +22,8 @@
     justify-content: space-between;
     gap: rem(48px);
     margin-bottom: var(--mantine-spacing-xl);
-    min-height: calc(100vh - rem(136px));
-    min-height: calc(100svh - rem(136px));
+    min-height: calc(100vh - rem(137px));
+    min-height: calc(100svh - rem(137px));
 }
 
 /* One column until there is room for two, and then **the drawing takes most of
