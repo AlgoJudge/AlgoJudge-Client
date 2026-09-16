@@ -387,6 +387,16 @@ export async function open({ out = process.env.OUT ?? join(here, "out"), clock =
         clock: {
             fastForward: (ticks) => page.clock.fastForward(ticks),
             runFor: (ticks) => page.clock.runFor(ticks),
+            /**
+             * Stops time, so only `runFor` moves it.
+             *
+             * `install()` above leaves it running, which is right while a page
+             * loads and wrong as soon as a script is racing a timer the fake
+             * armed: the seconds it spends reaching a screen are seconds that
+             * timer is also spending. Call this once the page is up, and the
+             * budget belongs to the script.
+             */
+            pauseAt: (when) => page.clock.pauseAt(when),
         },
         // The page belongs to the runner, which closes it. Kept so the call
         // sites that end on it do not have to lose the line.

@@ -55,16 +55,42 @@ const settle = async () => {
     await wait(400);
 };
 
+/**
+ * The same, in the smallest step the fake answers to.
+ *
+ * Used before the queued window is read, where every millisecond spent is a
+ * millisecond of the six the fake gives this submission before handing it to a
+ * runner. A second at a time got there with nothing left.
+ */
+const nudge = async () => {
+    await clock.runFor(350);
+    await wait(250);
+};
+
 // ── the submission nobody is working on yet ─────────────────────────────────
 
 await go(`${APP}/activities/AMMPZ-2019/problems?fakeUser=amy`,
     `document.querySelector("[data-testid=submissions-panel]") !== null`);
-await settle();
+
+// **Stopped here, not merely installed.** The fake hands this submission to a
+// runner on a six-second `setTimeout`, and an installed clock still runs — so
+// those six seconds were being spent by the real time this script takes to open
+// the panel and the window. On a loaded machine the timer won, and the queued
+// case was read as a running one: three assertions red, two of them older than
+// this line. Paused, the only thing that moves time is `settle()` below.
+//
+// The instant is read from the page and nudged forward: `pauseAt` refuses to
+// travel backwards, and the clock moves on between the read and the call.
+await clock.pauseAt(await evaluate(`return Date.now() + 500;`));
+
+await nudge();
 
 // Collapsed by default, and remembered per tab.
 await click(`document.querySelector("[data-testid=submissions-panel] [aria-expanded]")`);
-await settle();
-await until(`document.querySelectorAll("[data-testid=submission-row]").length > 0`, 10);
+for (let i = 0; i < 6; i++) {
+    if (await evaluate(`return document.querySelectorAll("[data-testid=submission-row]").length > 0;`)) break;
+    await nudge();
+}
 
 check(await evaluate(`return ${queuedRow} !== undefined;`),
     "the fixture has a submission waiting for a runner");
@@ -74,7 +100,12 @@ check(await evaluate(`return ${queuedRow} !== undefined;`),
 // before the queued case has been looked at — the window's own first paint is
 // what is wanted, not a later one.
 await click(queuedRow);
-await until(`${modal} !== null`, 12);
+// Nudged rather than waited on: with the clock stopped, a real-time `until`
+// polls a page whose timers are not running and finds nothing for ever.
+for (let i = 0; i < 6; i++) {
+    if (await evaluate(`return ${modal} !== null;`)) break;
+    await nudge();
+}
 check(await evaluate(`return ${modal} !== null;`), "its row opens the window over the page");
 
 const waiting = await evaluate(`return (${modal})?.innerText ?? "";`);
