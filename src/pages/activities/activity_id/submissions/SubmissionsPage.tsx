@@ -9,6 +9,7 @@ import LoadState from "../../../../components/LoadState";
 import StateBadge from "../../../../components/submission/StateBadge";
 import { languageText } from "../../../../components/submission/offered";
 import DataTable from "../../../../components/table/DataTable";
+import { applied, useReload } from "../../../../utils/live";
 
 const PAGE_SIZE = 10;
 
@@ -27,6 +28,7 @@ export default function SubmissionsPage() {
     const [problemIds, setProblemIds] = useState<string[]>([]);
     const [seriesIds, setSeriesIds] = useState<string[]>([]);
     const [states, setStates] = useState<string[]>([]);
+    const [reload, again] = useReload();
 
     const error = useApiEffect(async (api) => {
         if (!activityId) return;
@@ -54,11 +56,17 @@ export default function SubmissionsPage() {
 
         // The reason this screen exists is to watch something finish, so a state
         // change is applied in place rather than waiting for a refetch.
+        //
+        // **And the same event announces a submission that has just been made.**
+        // The Server calls `AnnounceAsync` right after the create commits, with
+        // the same projection — so a `map` alone discarded the one row a
+        // participant most wants to see appear, and the list only caught up when
+        // something else made it refetch.
         api.participantApi.eventDispatcher.addEventListener("submissionStateChanged", evt => {
             if (evt.data.activityId !== activity.id) return;
-            setItems(current => current?.map(s => s.id === evt.data.submission.id ? evt.data.submission : s));
+            setItems(current => applied(current, evt.data.submission, again));
         });
-    }, [activityId, page, problemIds, seriesIds, states]);
+    }, [activityId, page, problemIds, seriesIds, states, reload, again]);
 
     const problems = series.flatMap(s => (s.problems ?? []).map(p => ({
         value: p.id,

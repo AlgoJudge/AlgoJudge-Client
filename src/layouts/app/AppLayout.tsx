@@ -12,6 +12,7 @@ import { IconBox, IconChartBarPopular, IconChevronDown, IconChevronsLeft, IconCh
 import { ComponentPropsWithoutRef, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useApiEffect } from "../../provider/apiContext";
+import { applied, useReload } from "../../utils/live";
 import { Activity, Series } from "../../api/ParticipantApi";
 import { PROJECT_SITE } from "../../site";
 import { publishedLegalKinds } from "../../api/instanceDocuments";
@@ -389,6 +390,7 @@ export default function AppLayout() {
     // activity does not fetch it twice.
     const [activity, setActivity] = useState<Activity | undefined>(undefined);
     const [series, setSeries] = useState<Series[]>([]);
+    const [live, again] = useReload();
     const [activityPermissions, setActivityPermissions] = useState<string[]>([]);
 
     useApiEffect(async (api) => {
@@ -413,7 +415,11 @@ export default function AppLayout() {
         // rather than working out which fields changed.
         api.participantApi.eventDispatcher.addEventListener("seriesChanged", evt => {
             if (evt.data.activityId !== loaded.id) return;
-            setSeries(current => current.map(s => s.id === evt.data.series.id ? evt.data.series : s));
+            // A round created while somebody is inside the activity arrives
+            // here as its first frame, carrying an id this array does not hold.
+            // Dropped, the header clock never started counting to it and the
+            // corner submit panel never offered it.
+            setSeries(current => applied(current, evt.data.series, again) ?? current);
         });
         // The clock counts to the end of the running series, so a moved time has
         // to reach it — otherwise the header keeps counting to an instant that
@@ -422,7 +428,7 @@ export default function AppLayout() {
             if (evt.data.activityId !== loaded.id) return;
             setSeries(await api.participantApi.getSeries(loaded.id));
         });
-    }, [activityId]);
+    }, [activityId, live, again]);
 
     const CollapseButton =
         <>

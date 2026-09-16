@@ -1,5 +1,6 @@
 import { Button, Group, Stack, Text, Title } from "@mantine/core";
 import { useState } from "react";
+import { applied, useReload } from "../../../../utils/live";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Activity, ProblemDetail, Series } from "../../../../api/ParticipantApi";
@@ -27,6 +28,7 @@ export default function SubmitPage() {
 
     const [activity, setActivity] = useState<Activity | undefined>(undefined);
     const [series, setSeries] = useState<Series[] | undefined>(undefined);
+    const [live, again] = useReload();
     const [problem, setProblem] = useState<ProblemDetail | undefined>(undefined);
 
     const loadError = useApiEffect(async (api) => {
@@ -47,10 +49,13 @@ export default function SubmitPage() {
         // to learn it.
         api.participantApi.eventDispatcher.addEventListener("seriesChanged", evt => {
             if (evt.data.activityId !== activity.id) return;
-            setSeries(current => current?.map(s =>
-                s.id === evt.data.series.id ? evt.data.series : s));
+            // A round that begins while this screen is open arrives as its
+            // first frame carrying an id the array does not hold -- creation
+            // announces participants nothing -- so a `map` dropped it and the
+            // screen went on showing the rounds it loaded with.
+            setSeries(current => applied(current, evt.data.series, again));
         });
-    }, [activityId, problemId]);
+    }, [activityId, problemId, live, again]);
 
     // The picker shows only when the route carries no problem. Rendering it
     // whenever `problem` is still undefined flashed the whole list for one frame
