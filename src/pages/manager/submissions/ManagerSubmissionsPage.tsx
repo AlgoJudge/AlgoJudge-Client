@@ -14,6 +14,7 @@ import ActivityTime from "../../../components/time/ActivityTime";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
 import { languageText } from "../../../components/submission/offered";
 import DataTable from "../../../components/table/DataTable";
+import { applied, useReload } from "../../../utils/live";
 
 const PAGE_SIZE = 20;
 
@@ -70,6 +71,7 @@ export default function ManagerSubmissionsPage() {
     const [error, setError] = useState<string | undefined>(undefined);
     const [busy, setBusy] = useState(false);
     const [reload, setReload] = useState(0);
+    const [live, again] = useReload();
 
     const set = (patch: Record<string, string | string[] | undefined>) => {
         const next = new URLSearchParams(query);
@@ -130,9 +132,13 @@ export default function ManagerSubmissionsPage() {
             // Patched in place rather than refetched: a rejudge that walks
             // through queued and running would otherwise reload the page three
             // times while a manager is reading it.
-            setItems(current => current?.map(s => s.id === evt.data.submission.id ? evt.data.submission : s));
+            // **And a submission that has just been made arrives here too.**
+            // The Server sends this event from one place, on creation as well
+            // as on every change, so a `map` alone left a manager watching a
+            // list that never grew.
+            setItems(current => applied(current, evt.data.submission, again));
         });
-    }, [activityId, seriesIds, problemIds, userIds, states, verdicts, search, page, reload]);
+    }, [activityId, seriesIds, problemIds, userIds, states, verdicts, search, page, reload, live, again]);
 
     const rejudge = async (operation: () => Promise<unknown>) => {
         setError(undefined);

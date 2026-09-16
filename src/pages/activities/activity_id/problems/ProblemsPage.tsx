@@ -12,6 +12,7 @@ import { useApiCall, useApiEffect } from "../../../../provider/apiContext";
 import LoadState from "../../../../components/LoadState";
 import { activityRenderers } from "../../../../renderers";
 import classes from "./ProblemsPage.module.css";
+import { applied, useReload } from "../../../../utils/live";
 
 const ProblemRow = ({ problem, activitySlug, canSubmit }: {
     problem: ProblemSummary;
@@ -123,6 +124,7 @@ export default function ProblemsPage() {
 
     const [activity, setActivity] = useState<Activity | undefined>(undefined);
     const [series, setSeries] = useState<Series[] | undefined>(undefined);
+    const [live, again] = useReload();
 
     const reload = useCallback(async () => {
         if (!activityId) return;
@@ -145,14 +147,28 @@ export default function ProblemsPage() {
         // round begins — or is stopped.
         scoped.participantApi.eventDispatcher.addEventListener("seriesChanged", evt => {
             if (evt.data.activityId !== activity.id) return;
-            setSeries(current => current?.map(s => s.id === evt.data.series.id ? evt.data.series : s));
+            // A round that begins while this screen is open arrives as its
+            // first frame carrying an id the array does not hold -- creation
+            // announces participants nothing -- so a `map` dropped it and the
+            // screen went on showing the rounds it loaded with.
+            setSeries(current => applied(current, evt.data.series, again));
         });
         scoped.participantApi.eventDispatcher.addEventListener("problemStatusChanged", evt => {
             if (evt.data.activityId !== activity.id) return;
-            setSeries(current => current?.map(s => ({
-                ...s,
-                problems: s.problems?.map(p => p.id === evt.data.problem.id ? evt.data.problem : p),
-            })));
+            // The same rule one level down: a problem assigned to a running
+            // round after this page loaded is in no series here, so the badge
+            // would never appear, and the reader's own standing on it with it.
+            setSeries(current => {
+                if (!current) return current;
+                if (!current.some(s => s.problems?.some(p => p.id === evt.data.problem.id))) {
+                    again();
+                    return current;
+                }
+                return current.map(s => ({
+                    ...s,
+                    problems: s.problems?.map(p => p.id === evt.data.problem.id ? evt.data.problem : p),
+                }));
+            });
         });
         // A manager moving a start or end time changes every countdown and
         // deadline on this page, and the series carry the times, so the whole
@@ -161,7 +177,7 @@ export default function ProblemsPage() {
             if (evt.data.activityId !== activity.id) return;
             setSeries(await scoped.participantApi.getSeries(activity.id));
         });
-    }, [activityId]);
+    }, [activityId, live, again]);
 
     if (!activity || !series) {
         return <LoadState error={error} loading={!error} />;

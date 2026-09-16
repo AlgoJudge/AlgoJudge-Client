@@ -15,6 +15,7 @@ import MergeAccountModal from "../../../components/users/MergeAccountModal";
 import { optional, useApiCall, useApiEffect } from "../../../provider/apiContext";
 import { useInstance } from "../../../provider/instanceContext";
 import DataTable from "../../../components/table/DataTable";
+import { applied, useReload } from "../../../utils/live";
 
 const PAGE_SIZE = 20;
 
@@ -69,6 +70,7 @@ export default function UsersPage() {
     const [error, setError] = useState<string | undefined>(undefined);
     const [busy, setBusy] = useState(false);
     const [reload, setReload] = useState(0);
+    const [live, again] = useReload();
 
     const loadError = useApiEffect(async (api) => {
         setActivities(await api.managerApi.getManagedActivities());
@@ -94,9 +96,12 @@ export default function UsersPage() {
         setTotal(result.total);
 
         api.managerApi.eventDispatcher.addEventListener("userChanged", evt => {
-            setItems(current => current?.map(u => u.id === evt.data.user.id ? evt.data.user : u));
+            // An account that has just been made arrives on the same event, and
+            // a `map` discarded it: the page stayed as it was and the pager did
+            // not move either.
+            setItems(current => applied(current, evt.data.user, again));
         });
-    }, [page, search, includeBlocked, temporaryOnly, reload]);
+    }, [page, search, includeBlocked, temporaryOnly, reload, live, again]);
 
     const run = async (operation: () => Promise<unknown>) => {
         setError(undefined);

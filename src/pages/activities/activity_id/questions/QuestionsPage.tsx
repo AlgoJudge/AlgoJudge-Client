@@ -10,6 +10,7 @@ import LoadState from "../../../../components/LoadState";
 import QuestionFormModal from "./submit_question/QuestionFormModal";
 import classes from "./QuestionsPage.module.css";
 import DataTable from "../../../../components/table/DataTable";
+import { applied, useReload } from "../../../../utils/live";
 
 const PAGE_SIZE = 10;
 
@@ -108,6 +109,7 @@ export default function QuestionsPage() {
     const [problemId, setProblemId] = useState<string | null>(null);
     const [opened, setOpened] = useState<Question | undefined>(undefined);
     const [reload, setReload] = useState(0);
+    const [live, again] = useReload();
 
     const error = useApiEffect(async (api) => {
         if (!activityId) return;
@@ -140,8 +142,10 @@ export default function QuestionsPage() {
         setItems(result.items);
         setTotal(result.total);
 
+        // A question this page does not hold -- asked from somewhere else, or
+        // pushed off the page since -- is asked for again rather than dropped.
         const refresh = (question: Question) =>
-            setItems(current => current?.map(q => q.id === question.id ? question : q));
+            setItems(current => applied(current, question, again));
         api.participantApi.eventDispatcher.addEventListener("questionAnswered", evt => {
             if (evt.data.activityId === activity.id) refresh(evt.data.question);
         });
@@ -163,7 +167,7 @@ export default function QuestionsPage() {
         api.participantApi.eventDispatcher.addEventListener("announcementPublished", evt => {
             if (evt.data.activityId === activity.id) setReload(n => n + 1);
         });
-    }, [activityId, page, search, kind, seriesId, problemId, sortBy, order, reload]);
+    }, [activityId, page, search, kind, seriesId, problemId, sortBy, order, reload, live, again]);
 
     const open = async (question: Question) => {
         setOpened(question);
