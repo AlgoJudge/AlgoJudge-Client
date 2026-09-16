@@ -36,8 +36,46 @@ import classes from "./ProvidersPage.module.css";
  *   fails at the end of somebody's first sign-in with an error from them.
  */
 
-interface Draft extends IdentityProviderInput {
+/**
+ * A name a rule keeps for as long as somebody is editing it.
+ *
+ * **Not an id, and deliberately not one.** A mapping rule is a value — a claim
+ * and the role it buys — with nothing of its own to be known by, so the Server
+ * neither sends nor stores one and this never leaves the screen. Unique within
+ * a page's life is the whole requirement a React key has.
+ */
+let rules = 0;
+const rowKey = () => `rule-${++rules}`;
+
+/**
+ * A mapping rule while it is being edited.
+ *
+ * **The key is the whole reason this type exists.** The rows were keyed by
+ * position and the trash button removes by position, so React kept the node at
+ * that index and re-rendered it with the next rule's data. The values followed,
+ * because the fields are controlled; what stayed behind was everything that
+ * lives in the DOM rather than in the state — the focus, the caret, an open
+ * `Select`. Delete a rule above the one being typed into and the cursor is in a
+ * different rule, with nothing on screen to say so.
+ */
+interface EditedRule extends MappingRule {
+    rowKey: string;
+}
+
+/**
+ * What goes on the wire: the rule, without the name this screen gave it.
+ *
+ * Named field by field rather than by spreading the rest, so a member added to
+ * `MappingRule` fails to compile here instead of quietly not being sent.
+ */
+const sent = (rule: EditedRule): MappingRule => ({
+    claimValue: rule.claimValue,
+    roleName: rule.roleName,
+});
+
+interface Draft extends Omit<IdentityProviderInput, "mappingRules"> {
     id?: string;
+    mappingRules?: EditedRule[];
     hasClientSecret: boolean;
     hasDeletionSecret: boolean;
 }
@@ -56,7 +94,7 @@ const draftFrom = (provider: IdentityProvider): Draft => ({
     unmappedBehavior: provider.unmappedBehavior,
     defaultRoleName: provider.defaultRoleName,
     deletionChannelEnabled: provider.deletionChannelEnabled,
-    mappingRules: [...provider.mappingRules],
+    mappingRules: provider.mappingRules.map(rule => ({ ...rule, rowKey: rowKey() })),
     hasClientSecret: provider.hasClientSecret,
     hasDeletionSecret: provider.hasDeletionSecret,
 });
@@ -131,7 +169,7 @@ export default function ProvidersPage() {
             unmappedBehavior: draft.unmappedBehavior,
             defaultRoleName: draft.defaultRoleName,
             deletionChannelEnabled: draft.deletionChannelEnabled,
-            mappingRules: draft.mappingRules,
+            mappingRules: draft.mappingRules?.map(sent),
         };
 
         const saved = await run(() => call(api => draft.id
@@ -141,11 +179,13 @@ export default function ProvidersPage() {
         if (saved) setDraft(undefined);
     };
 
-    const setRule = (index: number, rule: Partial<MappingRule>) => {
+    const setRule = (key: string, rule: Partial<MappingRule>) => {
         if (!draft) return;
-        const rules = [...(draft.mappingRules ?? [])];
-        rules[index] = { ...rules[index], ...rule };
-        setDraft({ ...draft, mappingRules: rules });
+        setDraft({
+            ...draft,
+            mappingRules: (draft.mappingRules ?? [])
+                .map(one => (one.rowKey === key ? { ...one, ...rule } : one)),
+        });
     };
 
     return (
@@ -349,12 +389,12 @@ export default function ProvidersPage() {
                             <Text size="xs" c="dimmed">
                                 {t("A value at the claim path above, and the role it grants. This contribution is rewritten at every sign-in, so editing the role reaches these people the next time they sign in rather than at once.")}
                             </Text>
-                            {(draft.mappingRules ?? []).map((rule, index) => (
-                                <Group key={index} gap="xs" wrap="nowrap">
+                            {(draft.mappingRules ?? []).map(rule => (
+                                <Group key={rule.rowKey} gap="xs" wrap="nowrap">
                                     <TextInput
                                         placeholder={t("Claim value")}
                                         value={rule.claimValue}
-                                        onChange={e => setRule(index, { claimValue: e.currentTarget.value })}
+                                        onChange={e => setRule(rule.rowKey, { claimValue: e.currentTarget.value })}
                                         style={{ flex: 1 }}
                                     />
                                     <Select
@@ -364,7 +404,7 @@ export default function ProvidersPage() {
                                             label: template.name,
                                         }))}
                                         value={rule.roleName || null}
-                                        onChange={value => setRule(index, { roleName: value ?? "" })}
+                                        onChange={value => setRule(rule.rowKey, { roleName: value ?? "" })}
                                         style={{ flex: 1 }}
                                     />
                                     <ActionIcon
@@ -372,7 +412,8 @@ export default function ProvidersPage() {
                                         color="red"
                                         onClick={() => setDraft({
                                             ...draft,
-                                            mappingRules: (draft.mappingRules ?? []).filter((_, i) => i !== index),
+                                            mappingRules: (draft.mappingRules ?? [])
+                                                .filter(one => one.rowKey !== rule.rowKey),
                                         })}
                                     >
                                         <IconTrash size={16} />
@@ -385,7 +426,10 @@ export default function ProvidersPage() {
                                 leftSection={<IconPlus size={14} />}
                                 onClick={() => setDraft({
                                     ...draft,
-                                    mappingRules: [...(draft.mappingRules ?? []), { claimValue: "", roleName: "" }],
+                                    mappingRules: [
+                                        ...(draft.mappingRules ?? []),
+                                        { claimValue: "", roleName: "", rowKey: rowKey() },
+                                    ],
                                 })}
                             >
                                 {t("Add a rule")}
