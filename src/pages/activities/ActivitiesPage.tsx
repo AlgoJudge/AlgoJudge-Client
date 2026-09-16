@@ -1,4 +1,4 @@
-import { Badge, Card, Chip, Group, Pagination, Stack, Text, Title } from "@mantine/core";
+import { Badge, Card, Chip, Group, Pagination, Stack, Text, ThemeIcon, Title } from "@mantine/core";
 import { IconLock, IconQuestionMark, IconSchool, IconTrophy } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,17 +13,34 @@ import { displayProps } from "../../components/submission/offered";
 
 const PAGE_SIZE = 5;
 
+/**
+ * The mark beside an activity's name.
+ *
+ * **A tile, and the tile is the size.** Tabler's glyphs do not fill their
+ * 24×24 box equally — measured at a 48px box, the trophy draws 36×34 and the
+ * mortarboard 40×28 — so at one `size` they still read as two. The drawing is
+ * no longer what the eye measures: the tile around it is the same square
+ * whatever is inside, and the glyph only has to fit.
+ */
 const getIcon = (type: string) => {
     // The icon follows the type's name, so a new version of a known type keeps
     // its icon instead of falling through to the default.
-    switch (typeName(type)) {
-        case "contest":
-            return <IconTrophy size="3em" />;
-        case "course":
-            return <IconSchool size="3em" />;
-        default:
-            return <IconQuestionMark size="3em" />;
-    }
+    const Icon = ((): typeof IconTrophy => {
+        switch (typeName(type)) {
+            case "contest":
+                return IconTrophy;
+            case "course":
+                return IconSchool;
+            default:
+                return IconQuestionMark;
+        }
+    })();
+
+    return (
+        <ThemeIcon variant="light" size={48} radius="md" className={classes.icon}>
+            <Icon size={28} />
+        </ThemeIcon>
+    );
 };
 
 const STATES: ActivityState[] = ["ongoing", "upcoming", "finished"];

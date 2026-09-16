@@ -47,6 +47,13 @@
     }
 }
 
+/* The tile behind an activity's mark. It never shrinks: a flex item at its
+   content size would give the row a different indent depending on which glyph
+   it holds, and the names beside it would no longer line up. */
+.icon {
+    flex: 0 0 auto;
+}
+
 /* One line on a desktop, exactly as the `wrap="nowrap"` this replaces —
    `Group` always writes an inline `--group-wrap`, so deleting the prop would
    otherwise give `wrap` at every width. */

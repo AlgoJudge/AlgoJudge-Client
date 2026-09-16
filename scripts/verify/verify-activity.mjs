@@ -75,6 +75,48 @@ check(!listed.includes("PROG-1-LB"),
 check(listed.includes("TRENING-OTWARTY"),
     "while an open one that is listed is there to be joined");
 
+// **The mark beside a name is one size, whatever it draws.** Tabler's glyphs do
+// not fill their 24×24 box equally — the trophy draws 36×34 of a 48px box and
+// the mortarboard 40×28 — so at one `size` the two types read as two sizes.
+// What the eye measures is the tile, so that is what is asserted; the drawing
+// inside it only has to fit.
+//
+// **Read as layout, not as paint.** `.item:hover` scales the card by 1%, and a
+// pointer left over a row by an earlier step made its title 5px from where
+// every other one was — a measurement about the mouse, not about the list.
+// `offsetWidth` and `offsetLeft` ignore transforms; `getBoundingClientRect`
+// does not.
+const marks = await evaluate(`
+    return [...document.querySelectorAll("[data-testid=card]")].map(card => {
+        const svg = card.querySelector("svg");
+        if (!svg) return null;
+        const tile = svg.parentElement;
+        const title = card.querySelector("p");
+        return {
+            box: tile.offsetWidth + "x" + tile.offsetHeight,
+            // Rects here, and deliberately: an SVG element has no offsetWidth
+            // at all. Both are scaled by the same hover, so the comparison
+            // between them survives it even though neither number does.
+            fits: svg.getBoundingClientRect().width <= tile.getBoundingClientRect().width + 0.5
+                && svg.getBoundingClientRect().height <= tile.getBoundingClientRect().height + 0.5,
+            titleLeft: title ? title.offsetLeft : null,
+        };
+    }).filter(Boolean);
+`);
+// The guard: one card, or none, has no two sizes to differ.
+check(marks.length >= 2, `${marks.length} activities carry a mark`);
+check(new Set(marks.map(m => m.box)).size === 1,
+    `every mark is the same box (${[...new Set(marks.map(m => m.box))].join(", ")})`);
+// **And a square**, which is what says there is a tile at all. Without one the
+// box measured is whatever row the glyph sits in — the same for every card, and
+// so silently agreeing while the drawings inside it differ.
+check(marks.every(m => m.box.split("x")[0] === m.box.split("x")[1]),
+    `and it is a square rather than the row around it (${marks[0].box})`);
+check(marks.every(m => m.fits), "and the glyph inside it stays within it");
+// A tile that shrank to its glyph would indent each name differently.
+check(new Set(marks.map(m => m.titleLeft)).size === 1,
+    `so every name starts at the same place (${[...new Set(marks.map(m => m.titleLeft))].join(", ")})`);
+
 // 5 — the link out of an email: the address, with the password in the fragment.
 await visit("/activities/PROG-1-LB", `document.body.innerText.includes("Zapisz si")`);
 check(/Programowanie 1 — grupa LB/.test(await body()),
