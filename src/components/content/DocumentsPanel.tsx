@@ -1,11 +1,14 @@
-import { Badge, Button, Card, Center, Group, Loader, Stack, Table, Text, Title } from "@mantine/core";
-import { useState } from "react";
+import { Badge, Button, Card, Center, Grid, Group, Loader, Stack, Table, Text, Title } from "@mantine/core";
+import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import ActivityTime from "../time/ActivityTime";
+import { ReferencedFile } from "../../content/reference";
 import { tryValidateContent } from "../../content/validate";
 import ContentEditor from "./ContentEditor";
 import LanguageTabs, { DEFAULT_LANGUAGE } from "./LanguageTabs";
 import DataTable from "../../components/table/DataTable";
+
+const ContentView = lazy(() => import("../../content/ContentView"));
 
 /**
  * The documents one owner publishes, each publishable or absent.
@@ -39,8 +42,13 @@ export interface DocumentsPanelProps<K extends string, R extends PublishedRef<K>
     published: R[];
     /** The file name a language's text is stored under. */
     fileName: (kind: K, language: string | undefined) => string;
-    /** What a document's preview may refer to, e.g. the instance's mark. */
-    attachments?: { name: string, mimeType: string }[];
+    /**
+     * What a document may point at, with the address each resolves to — e.g.
+     * the instance's mark. The editor offers the names; the preview draws them.
+     * Pass exactly what this owner's readers get, or the preview promises a
+     * picture the published page will not show.
+     */
+    attachments?: ReferencedFile[];
     busy: boolean;
     /** Runs an operation and surfaces whatever it failed with. Owned by the screen. */
     run: (operation: () => Promise<unknown>) => Promise<void>;
@@ -186,25 +194,47 @@ export default function DocumentsPanel<K extends string, R extends PublishedRef<
                         </Group>
 
                         {loading ? <Center my="md"><Loader /></Center> : (
-                            <>
-                                <LanguageTabs
-                                    value={editing}
-                                    languages={languages}
-                                    onChange={setEditing}
-                                    onAdd={tag => { setSources({ ...sources, [tag]: "" }); setEditing(tag); }}
-                                    onRemove={tag => {
-                                        const rest = { ...sources };
-                                        delete rest[tag];
-                                        setSources(rest);
-                                        if (editing === tag) setEditing(DEFAULT_LANGUAGE);
-                                    }}
-                                />
-                                <ContentEditor
-                                    value={source}
-                                    onChange={value => setSources({ ...sources, [editing]: value })}
-                                    attachments={attachments}
-                                />
-                            </>
+                            <Grid>
+                                <Grid.Col span={{ base: 12, lg: 6 }}>
+                                    <Stack gap="sm">
+                                        <LanguageTabs
+                                            value={editing}
+                                            languages={languages}
+                                            onChange={setEditing}
+                                            onAdd={tag => { setSources({ ...sources, [tag]: "" }); setEditing(tag); }}
+                                            onRemove={tag => {
+                                                const rest = { ...sources };
+                                                delete rest[tag];
+                                                setSources(rest);
+                                                if (editing === tag) setEditing(DEFAULT_LANGUAGE);
+                                            }}
+                                        />
+                                        <ContentEditor
+                                            value={source}
+                                            onChange={value => setSources({ ...sources, [editing]: value })}
+                                            attachments={attachments}
+                                        />
+                                    </Stack>
+                                </Grid.Col>
+
+                                {/* **The reader's renderer, beside the editor**, as a
+                                    statement is previewed on the problem screen. It
+                                    validates on its own, so a document that would be
+                                    refused shows the refusal a reader would get
+                                    rather than an empty box; and it draws the tab
+                                    being edited, which is the language about to be
+                                    published under it. */}
+                                <Grid.Col span={{ base: 12, lg: 6 }}>
+                                    <Card withBorder radius="sm">
+                                        <Title order={5} mb="sm">{t("Preview")}</Title>
+                                        <div data-testid="document-preview">
+                                            <Suspense fallback={<Center my="xl"><Loader /></Center>}>
+                                                <ContentView content={source} attachments={attachments} />
+                                            </Suspense>
+                                        </div>
+                                    </Card>
+                                </Grid.Col>
+                            </Grid>
                         )}
 
                         {revisions && revisions.length > 0 && (

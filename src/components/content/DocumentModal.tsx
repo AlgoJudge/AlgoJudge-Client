@@ -1,6 +1,7 @@
 import { Center, Loader, Modal, Text, Title } from "@mantine/core";
 import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ReferencedFile } from "../../content/reference";
 import { useApiEffect } from "../../provider/apiContext";
 
 const ContentView = lazy(() => import("../../content/ContentView"));
@@ -23,9 +24,15 @@ export interface DocumentModalProps {
     title: string;
     /** The stored text. Absent closes it: there is no document to read. */
     fileId?: string;
+    /**
+     * What the document may point at. The caller's to say, because the modal
+     * shows an instance's documents and an activity's, and only the first may
+     * show the mark.
+     */
+    attachments?: ReferencedFile[];
 }
 
-export default function DocumentModal({ opened, onClose, title, fileId }: DocumentModalProps) {
+export default function DocumentModal({ opened, onClose, title, fileId, attachments = [] }: DocumentModalProps) {
     const { t } = useTranslation();
     // Null rather than undefined for "asked, and there is none".
     const [content, setContent] = useState<string | undefined | null>(undefined);
@@ -54,7 +61,7 @@ export default function DocumentModal({ opened, onClose, title, fileId }: Docume
                 <Text c="dimmed" size="sm">{t("There is no such page here")}</Text>
             ) : (
                 <Suspense fallback={<Center my="xl"><Loader /></Center>}>
-                    <ContentView content={content} attachments={[]} />
+                    <ContentView content={content} attachments={attachments} />
                 </Suspense>
             )}
         </Modal>

@@ -9,7 +9,7 @@ import { InstanceDocumentKind, InstanceDocumentRef } from "../../../api/CoreApi"
 import {
     AccessKey, InstanceRedirect, InstanceRedirects, InstanceSettingsInput,
 } from "../../../api/ManagerApi";
-import { DOCUMENT_KINDS, LOGO_ATTACHMENT } from "../../../api/instanceDocuments";
+import { DOCUMENT_KINDS, instanceDocumentAttachments } from "../../../api/instanceDocuments";
 import SharedDocumentsPanel from "../../../components/content/DocumentsPanel";
 import AppearancePanel from "./AppearancePanel";
 import { useApi, useApiCall, useApiEffect } from "../../../provider/apiContext";
@@ -517,9 +517,10 @@ function DocumentsPanel({ busy, run, store, logoUrl }: PanelProps & { logoUrl?: 
             label={kind => t(`legal.${kind}`)}
             published={instance.documents}
             fileName={documentFileName}
-            // The one attachment an operator's document may point at. Absent
-            // when they turned the mark off, which is theirs to do.
-            attachments={logoUrl ? [{ name: LOGO_ATTACHMENT, mimeType: "image/svg+xml" }] : []}
+            // The one attachment an operator's document may point at, resolved
+            // as every reader resolves it — so the preview draws the mark where
+            // the published page will.
+            attachments={instanceDocumentAttachments(logoUrl)}
             busy={busy}
             run={run}
             store={store}

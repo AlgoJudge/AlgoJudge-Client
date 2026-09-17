@@ -4,7 +4,7 @@ import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "react-router-dom";
 import { LegalDocumentKind } from "../../api/CoreApi";
-import { pickDocumentRef } from "../../api/instanceDocuments";
+import { instanceDocumentAttachments, pickDocumentRef } from "../../api/instanceDocuments";
 import LoadState from "../../components/LoadState";
 import ActivityTime from "../../components/time/ActivityTime";
 import { useApiEffect } from "../../provider/apiContext";
@@ -42,7 +42,7 @@ export default function LegalPage() {
     // only the text of the language being shown is fetched here. An operator who
     // publishes no such document has no reference for it, and that is the whole
     // of "there is none" — no request is made to find out.
-    const { instance } = useInstance();
+    const { instance, logoUrl } = useInstance();
     const ref = pickDocumentRef(instance.documents, kind, i18n.language);
 
     const [content, setContent] = useState<string | undefined | null>(undefined);
@@ -106,7 +106,7 @@ export default function LegalPage() {
                 {/* Unframed, as on the front page: the document is the
                     whole of what this address is for. */}
                 <Suspense fallback={<Center my="xl"><Loader /></Center>}>
-                    <ContentView content={content} attachments={[]} />
+                    <ContentView content={content} attachments={instanceDocumentAttachments(logoUrl)} />
                 </Suspense>
             </Stack>
         </Container>
