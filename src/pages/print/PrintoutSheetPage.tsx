@@ -25,6 +25,10 @@ import { formatInZone, offsetLabel } from "../../components/time/format";
  * tab stays open behind the dialog, so a jam is a reload rather than a lost
  * request.
  */
+/** One character from each of the face's two files: `a` from `latin`, `ł` from `latin-ext`. */
+const FACE_SAMPLES = ["a", "ł"];
+const FACE_PATIENCE_MS = 3000;
+
 export default function PrintoutSheetPage() {
     const { t } = useTranslation();
     const { printoutId } = useParams();
@@ -45,16 +49,36 @@ export default function PrintoutSheetPage() {
     // vanished before the dialog appeared would be a page nobody could print.
     // Guarded on having an opener, because a tab somebody typed the address
     // into cannot be closed by script and the attempt only logs an error.
+    //
+    // **And once the face has arrived, not merely once the page has painted.**
+    // JetBrains Mono is `font-display: swap`, so the first paint is in whatever
+    // the system has, and a dialog opened on it prints that. Both of its files
+    // are asked for, by a character from each: a Polish comment is drawn from
+    // the second. Waited on for a few seconds at most — a sheet in the fallback
+    // face is still the paper somebody queued for, and a dialog that never
+    // opened is not.
     useEffect(() => {
         if (!sheet) return;
 
+        let cancelled = false;
+        let frame = 0;
         const done = () => { if (window.opener) window.close(); };
         window.addEventListener("afterprint", done);
-        const at = requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
+
+        const faces = Promise.all(FACE_SAMPLES.map(sample => document.fonts.load(`1em "JetBrains Mono"`, sample)))
+            .catch(() => undefined);
+        const patience = new Promise(resolve => setTimeout(resolve, FACE_PATIENCE_MS));
+        void Promise.race([faces, patience]).then(() => {
+            if (cancelled) return;
+            frame = requestAnimationFrame(() => {
+                frame = requestAnimationFrame(() => window.print());
+            });
+        });
 
         return () => {
+            cancelled = true;
             window.removeEventListener("afterprint", done);
-            cancelAnimationFrame(at);
+            cancelAnimationFrame(frame);
         };
     }, [sheet]);
 

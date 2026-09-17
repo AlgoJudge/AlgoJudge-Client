@@ -49,7 +49,9 @@ const minutesAgo = (n: number) => new Date(Date.now() - n * 60000).toISOString()
  * the check compares where the numbering ends with where the source ends, and
  * a wrapped *final* line would separate the two for a reason that is not the
  * defect. The blank line near the top earns its place the same way — an empty
- * line still has to occupy a row.
+ * line still has to occupy a row — and so does the Polish comment: its letters
+ * come from the second of JetBrains Mono's two files, and a sheet that loaded
+ * only the first would draw them in another face.
  */
 const SAMPLE = `#include <bits/stdc++.h>
 using namespace std;
@@ -59,6 +61,7 @@ int main() {
     if (!(cin >> n)) return 0;
     vector<long long> a(n);
     for (auto &x : a) cin >> x;
+    // mediana ciągu: wyłącznie środkowy wyraz po posortowaniu
     sort(a.begin(), a.end());
     cerr << "n=" << n << " mediana=" << a[n / 2] << " min=" << a.front() << " max=" << a.back() << " suma=" << accumulate(a.begin(), a.end(), 0LL) << " srednia=" << (double) accumulate(a.begin(), a.end(), 0LL) / n << endl;
     cout << a[n / 2] << "\\n";
