@@ -6,7 +6,7 @@ const APP = process.env.APP ?? "http://localhost:5180";
 // Not the harness's `tab`: that one matches by prefix, because some tabs carry
 // a count. This screen's tabs do not, and the exact match below is what keeps
 // two similarly named ones apart.
-const { send, evaluate, wait, shot, go, click } = await open();
+const { send, evaluate, until, wait, shot, go, click, setTextarea } = await open();
 const { check, report } = results();
 
 const button = (label) => `[...document.querySelectorAll("button")].find(b => b.textContent.trim() === ${JSON.stringify(label)})`;
@@ -59,7 +59,16 @@ await wait(2500);
 check(await evaluate(`return document.querySelector("textarea") !== null;`),
     "one opens in the same editor a statement is written in");
 
-const TEXT = "---\\nversion: 1\\n---\\n\\n# Polityka prywatnosci\\n\\nTa instancja przetwarza dane tak, jak opisano ponizej.\\n";
+// **Beside it, what a reader would get.** The preview is the reader's renderer,
+// which validates on its own — so a document the published page would refuse
+// shows that refusal here, rather than an empty box that reads as a broken
+// screen.
+const preview = `document.querySelector("[data-testid=document-preview]")`;
+await setTextarea("---\nversion: 2\n---\n\n# Zepsuty\n");
+check(await until(`(${preview})?.innerText.includes("Nieobsługiwana wersja") === true`, 20),
+    "the preview shows the refusal a reader would get, not an empty box");
+
+const TEXT = "---\\nversion: 1\\n---\\n\\n# Polityka prywatnosci\\n\\n![Znak](logo.svg)\\n\\nTa instancja przetwarza dane tak, jak opisano ponizej.\\n";
 await evaluate(`
     const area = document.querySelector("textarea");
     Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set.call(area, "${TEXT}");
@@ -67,6 +76,21 @@ await evaluate(`
     return true;
 `);
 await wait(1200);
+check(await until(`(${preview})?.querySelector("h1")?.textContent.includes("Polityka prywatnosci") === true`, 20),
+    "and draws the document as it is typed");
+// **Resolved as the published page resolves it.** The editor offered the mark
+// by name all along; the preview has to draw it, or it promises the operator a
+// page that is not the one readers get.
+const drawnMark = await evaluate(`
+    const box = ${preview};
+    return {
+        src: box?.querySelector("img[alt=Znak]")?.getAttribute("src") ?? null,
+        missing: /Brakujący załącznik/.test(box?.innerText ?? ""),
+    };
+`);
+check(drawnMark.src !== null && !drawnMark.missing,
+    `with the instance's mark in it (${drawnMark.src ?? "no image"}${drawnMark.missing ? ", reported missing" : ""})`);
+await shot("in-document-preview");
 await click(button("Opublikuj"));
 await wait(2500);
 // Mantine uppercases badge text, so these are matched case-insensitively.
@@ -82,6 +106,18 @@ check(await evaluate(`return document.body.innerText.includes("przetwarza dane")
     "and a reader gets the operator's own text");
 check(!await evaluate(`return /szablon dostarczony/i.test(document.body.innerText);`),
     "with no warning that it is a template");
+// **The legal pages resolved nothing until 2026-09-17**, so a policy that showed
+// the mark showed its readers a missing-attachment notice while the preview —
+// and the front page — drew it. `alt` tells the document's image from the
+// navigation's.
+const readMark = await evaluate(`
+    return {
+        src: document.querySelector("img[alt=Znak]")?.getAttribute("src") ?? null,
+        missing: /Brakujący załącznik/.test(document.body.innerText),
+    };
+`);
+check(readMark.src !== null && !readMark.missing,
+    `and the mark it shows is drawn for them too (${readMark.src ?? "no image"}${readMark.missing ? ", reported missing" : ""})`);
 
 // 5 — withdrawing it takes its links with it. Still without a reload: what was
 //     published lives in this tab.

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { PrintoutSheet } from "../../api/ManagerApi";
@@ -72,7 +72,14 @@ export default function PrintoutSheetPage() {
     const asked = formatInZone(printout.requestedAt, sheet.timeZone);
     const askedZone = `${offsetLabel(printout.requestedAt, sheet.timeZone)} (${sheet.timeZone})`;
 
-    const lines = (sheet.source ?? "").replace(/\n$/, "").split("\n");
+    // **Normalised, then split, and every trailing newline goes.** A file
+    // written on Windows left a carriage return at the end of every line, and
+    // `/\n$/` took one newline where a file may end in several — each of the
+    // rest an empty row at the foot of the sheet with a number beside it.
+    const lines = (sheet.source ?? "")
+        .replace(/\r\n?/g, "\n")
+        .replace(/\n+$/, "")
+        .split("\n");
 
     return (
         <div className={classes.sheet} data-testid="printout-sheet">
@@ -96,11 +103,28 @@ export default function PrintoutSheetPage() {
                     {t("The source of this printout has been disposed of.")}
                 </p>
             ) : (
+                /* **One grid row per source line**, rather than two columns
+                   of text side by side. A line long enough to wrap made the
+                   code column one visual row taller than the numbering, so
+                   the numbers drifted upwards and ran out before the listing
+                   ended — on exactly the sheets long enough to need them. A
+                   number and its line are two cells of one row now, so a
+                   line that wraps grows its own row and takes its number
+                   with it. */
                 <div className={classes.listing} data-testid="sheet-source">
-                    <div className={classes.gutter}>
-                        {lines.map((_, i) => `${i + 1}\n`).join("")}
-                    </div>
-                    <pre className={classes.code}>{lines.join("\n")}</pre>
+                    {lines.map((line, i) => (
+                        /* **The trailing newline is what a copy needs.** Each
+                           line is its own block, and a block holding nothing
+                           contributes nothing to the clipboard — measured: the
+                           blank line in the middle of a listing vanished from
+                           what was pasted. It costs no height, the break being
+                           at the end of the last line box rather than before a
+                           new one. */
+                        <Fragment key={i}>
+                            <div className={classes.num} data-line={i + 1}>{i + 1}</div>
+                            <pre className={classes.code} data-line={i + 1}>{line + "\n"}</pre>
+                        </Fragment>
+                    ))}
                 </div>
             )}
 

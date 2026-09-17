@@ -38,6 +38,23 @@ export const DOCUMENT_KINDS: InstanceDocumentKind[] = ["welcome", "home", ...LEG
 export const LOGO_ATTACHMENT = "logo.svg";
 
 /**
+ * What an instance document may point at, with the address it resolves to.
+ *
+ * **One answer for every screen that draws one** — the front page, the legal
+ * pages, the form that shows a document before registering, and the preview
+ * beside the editor. The legal pages passed nothing until 2026-09-17, so a
+ * policy that showed the mark showed a missing-attachment notice to its readers
+ * while the editor offered the mark and the front page drew it.
+ *
+ * Empty when the operator turned the mark off: a reference then reports a
+ * missing attachment, which is true, and is theirs to remove from their text.
+ * Shaped as the renderer's `ReferencedFile` without importing it — nothing in
+ * this layer reaches into the renderer.
+ */
+export const instanceDocumentAttachments = (logoUrl: string | undefined) =>
+    logoUrl ? [{ name: LOGO_ATTACHMENT, mimeType: "image/svg+xml", address: logoUrl }] : [];
+
+/**
  * The instance document to show, for one kind and one interface language.
  *
  * A thin naming of the shared rule in `documentRefs.ts`, which an activity's

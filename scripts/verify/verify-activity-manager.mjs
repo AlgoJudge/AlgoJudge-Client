@@ -3,7 +3,7 @@
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { evaluate, wait, shot, go, visit, click, managerRow, type, setTextarea, tab, close } =
+const { evaluate, until, wait, shot, go, visit, click, managerRow, type, setTextarea, tab, close } =
     await open();
 const { check, report } = results();
 
@@ -40,6 +40,25 @@ check(await evaluate(`
     return [...document.querySelectorAll("[role=tab]")].some(t => /angielski|english/i.test(t.textContent));
 `), "the rules open with every language they were written in");
 await setTextarea(PL);
+
+// **The preview follows the tab being edited.** Each language is published from
+// its own tab, so a preview that went on showing another would be checking the
+// wrong document. The tabs are switched with the button's own `click()`: each
+// translation carries a remove icon, and a click at a point could land on it.
+const shows = (text) => `(document.querySelector("[data-testid=document-preview]")?.innerText ?? "").includes(${JSON.stringify(text)})`;
+const english = `[...document.querySelectorAll("[role=tab]")].find(t => /angielski|english/i.test(t.textContent))`;
+check(await until(`${shows("Zasady grupy LA")}`, 20),
+    "the preview beside the editor draws the language on screen");
+await evaluate(`${english}.click(); return true;`);
+await wait(600);
+await setTextarea(EN);
+check(await until(`${shows("Rules for group LA")} && !${shows("Zasady grupy LA")}`, 20),
+    "and moves with the tab when another language is opened");
+await evaluate(`${english}.closest("[role=tablist]").querySelector("[role=tab]").click(); return true;`);
+check(await until(`${shows("Zasady grupy LA")} && !${shows("Rules for group LA")}`, 20),
+    "and back, without either leaking into the other");
+await shot("mact-document-preview");
+
 await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "publish")`);
 await wait(3000);
 check(/Wcześniejsze wersje/.test(await body()),

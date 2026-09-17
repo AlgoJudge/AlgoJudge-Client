@@ -387,12 +387,55 @@ export async function open({ out = process.env.OUT ?? join(here, "out"), clock =
         clock: {
             fastForward: (ticks) => page.clock.fastForward(ticks),
             runFor: (ticks) => page.clock.runFor(ticks),
+            /**
+             * Stops time, so only `runFor` moves it.
+             *
+             * `install()` above leaves it running, which is right while a page
+             * loads and wrong as soon as a script is racing a timer the fake
+             * armed: the seconds it spends reaching a screen are seconds that
+             * timer is also spending. Call this once the page is up, and the
+             * budget belongs to the script.
+             */
+            pauseAt: (when) => page.clock.pauseAt(when),
         },
         // The page belongs to the runner, which closes it. Kept so the call
         // sites that end on it do not have to lose the line.
         close: () => { },
     };
 }
+
+/**
+ * A colour expression, as the browser resolves it, in `#rrggbb`.
+ *
+ * **Painted onto a probe element rather than read off a custom property.**
+ * `getPropertyValue("--mantine-color-blue-light")` answers with whatever
+ * tokens were written into it, so a comparison against a colour passes or
+ * fails on a spelling. This asks for a computed `background-color`, which is
+ * a colour however it was written.
+ *
+ * A string because it is interpolated into an `evaluate` body: it defines
+ * `hex` and `resolved` in the page, not here.
+ */
+export const RESOLVE = `
+    const hex = (value) => {
+        const open = value.indexOf("(");
+        if (open < 0) return value;
+        const parts = value.slice(open + 1, value.lastIndexOf(")"))
+            .split("/").join(",").split(",").slice(0, 3).map(p => parseFloat(p.trim()));
+        return "#" + parts.map(c => Math.round(c).toString(16).padStart(2, "0")).join("");
+    };
+    const resolved = (expression) => {
+        const probe = document.createElement("div");
+        probe.style.position = "fixed";
+        probe.style.opacity = "0";
+        probe.style.pointerEvents = "none";
+        probe.style.backgroundColor = expression;
+        document.body.appendChild(probe);
+        const value = getComputedStyle(probe).backgroundColor;
+        probe.remove();
+        return hex(value);
+    };
+`;
 
 /**
  * The checks a script accumulates.

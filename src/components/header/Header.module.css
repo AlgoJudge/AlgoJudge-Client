@@ -9,8 +9,11 @@
    `light-dark()` declarations, so the specificity that bit on 2026-08-29 is
    unchanged. */
 .header {
-    height: rem(56px);
-    /* No margin of its own: the page below it is spaced by its own container,
+    /* **No height here**: `.inner` is the bar, and this box has to grow for the
+       mobile menu inside it. Pinned to 56px it could not: the expanded
+       `Collapse` overflowed, so the menu was painted on no background and the
+       content below it painted over it.
+       No margin of its own: the page below it is spaced by its own container,
        and 120 px here put every public page a screenful down. */
     background-color: var(--aj-header-bg, var(--mantine-color-body));
     border-bottom: rem(1px) solid

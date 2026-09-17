@@ -1,4 +1,4 @@
-import { Badge, Card, Chip, Group, Pagination, Stack, Text, Title } from "@mantine/core";
+import { Badge, Card, Chip, Group, Pagination, Stack, Text, ThemeIcon, Title } from "@mantine/core";
 import { IconLock, IconQuestionMark, IconSchool, IconTrophy } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,17 +13,34 @@ import { displayProps } from "../../components/submission/offered";
 
 const PAGE_SIZE = 5;
 
+/**
+ * The mark beside an activity's name.
+ *
+ * **A tile, and the tile is the size.** Tabler's glyphs do not fill their
+ * 24×24 box equally — measured at a 48px box, the trophy draws 36×34 and the
+ * mortarboard 40×28 — so at one `size` they still read as two. The drawing is
+ * no longer what the eye measures: the tile around it is the same square
+ * whatever is inside, and the glyph only has to fit.
+ */
 const getIcon = (type: string) => {
     // The icon follows the type's name, so a new version of a known type keeps
     // its icon instead of falling through to the default.
-    switch (typeName(type)) {
-        case "contest":
-            return <IconTrophy size="3em" />;
-        case "course":
-            return <IconSchool size="3em" />;
-        default:
-            return <IconQuestionMark size="3em" />;
-    }
+    const Icon = ((): typeof IconTrophy => {
+        switch (typeName(type)) {
+            case "contest":
+                return IconTrophy;
+            case "course":
+                return IconSchool;
+            default:
+                return IconQuestionMark;
+        }
+    })();
+
+    return (
+        <ThemeIcon variant="light" size={48} radius="md" className={classes.icon}>
+            <Icon size={28} />
+        </ThemeIcon>
+    );
 };
 
 const STATES: ActivityState[] = ["ongoing", "upcoming", "finished"];
@@ -126,7 +143,14 @@ export default function ActivitiesPage() {
                     onClick={() => { if (!item.locked) navigate(activityEntryPath(item)); }}
                     style={item.locked ? { cursor: "default" } : undefined}
                 >
-                    <Group justify="space-between" wrap="nowrap">
+                    {/* The wrapping is in the stylesheet rather than in a
+                        `wrap` prop. `Group` writes that prop as an inline
+                        `--group-wrap`, which no media query can reach; a class
+                        works by replacing the declaration that reads it, and
+                        leaving both would be two rules fighting where only one
+                        of them is visible. Below `sm` the details fall under
+                        the name rather than being squeezed beside it. */}
+                    <Group justify="space-between" className={classes.row}>
                         <Group wrap="nowrap" style={{ minWidth: 0 }}>
                             {getIcon(item.type)}
                             <Stack gap={2} style={{ minWidth: 0 }}>
@@ -149,14 +173,20 @@ export default function ActivitiesPage() {
                                 </Group>
                             </Stack>
                         </Group>
-                        <Stack justify="flex-end" gap={0} className={classes.stack}>
+                        <Stack justify="flex-end" gap={0} className={classes.props} data-testid="activity-props">
                             {item.finalScore !== undefined && (
                                 <Text fw={600}>
                                     {t("Result")}: {item.finalScore}{item.maxScore !== undefined ? ` / ${item.maxScore}` : ""}
                                 </Text>
                             )}
+                            {/* **Smaller on a phone, and only these.** A
+                                responsive style prop rather than a rule in the
+                                module: `Text` sets its size on its own class as
+                                `var(--text-fz, …)`, which a parent font size
+                                does not reach. The result above keeps its size
+                                — it is a result, not a detail of the activity. */}
                             {displayProps(item.props).map(p => (
-                                <Text key={p.key}>{p.key}: {p.value}</Text>
+                                <Text key={p.key} fz={{ base: "xs", sm: "md" }} data-testid="activity-prop">{p.key}: {p.value}</Text>
                             ))}
                         </Stack>
                     </Group>

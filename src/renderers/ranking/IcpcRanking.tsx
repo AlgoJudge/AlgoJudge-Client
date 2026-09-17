@@ -9,7 +9,6 @@ import { minutesAsClock } from "../../components/time/format";
 import { columnsOf, freezeOf, icpcBoard, IcpcCell } from "./scoreboard";
 import { useFindMe } from "./useFindMe";
 import classes from "./IcpcRanking.module.css";
-import DataTable from "../../components/table/DataTable";
 
 /**
  * The ICPC scoreboard.
@@ -98,51 +97,53 @@ export default function IcpcRanking({ results, timeZone, ranked }: RankingProps)
                 disabled={!results.me || !rows.some(r => r.contestantId === results.me)}
             />
 
-            <DataTable minWidth={640} stickyHeader striped highlightOnHover withColumnBorders tabularNums>
-                <Table.Thead>
-                    <Table.Tr>
-                        {placed && <Table.Th className={classes.stickyPlace}>{t("Place")}</Table.Th>}
-                        <Table.Th className={classes.stickyName} style={nameLeft}>
-                            {t("Contestant")}
-                        </Table.Th>
-                        <Table.Th>{t("Solved")}</Table.Th>
-                        <Table.Th>{t("Penalty")}</Table.Th>
-                        {columns.map(column => (
-                            <Table.Th key={column.slug}>
-                                {/* A frozen round's columns carry an asterisk.
-                                    The combined board mixes rounds, and one
-                                    that put withheld columns beside settled
-                                    ones without saying so would read as a
-                                    standing when it is not one. */}
-                                <Tooltip label={column.frozen
-                                    ? `${column.name} — ${t("this round's ranking is frozen")}`
-                                    : column.name}>
-                                    <span>{column.slug}{column.frozen ? "*" : ""}</span>
-                                </Tooltip>
+            <Table.ScrollContainer minWidth={640}>
+                <Table stickyHeader striped highlightOnHover withColumnBorders tabularNums>
+                    <Table.Thead>
+                        <Table.Tr>
+                            {placed && <Table.Th className={classes.stickyPlace}>{t("Place")}</Table.Th>}
+                            <Table.Th className={classes.stickyName} style={nameLeft}>
+                                {t("Contestant")}
                             </Table.Th>
-                        ))}
-                    </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                    {rows.map(row => (
-                        <Table.Tr
-                            key={row.contestantId}
-                            ref={row.contestantId === results.me ? myRow : undefined}
-                            className={row.contestantId === results.me ? classes.me : undefined}
-                        >
-                            {placed && <Table.Td className={classes.stickyPlace}>{row.rank}</Table.Td>}
-                            <Table.Td className={classes.stickyName} style={nameLeft}><ContestantName name={row.name} description={row.description} members={row.members} /></Table.Td>
-                            <Table.Td>{row.solved}</Table.Td>
-                            <Table.Td>{minutesAsClock(row.penalty)}</Table.Td>
+                            <Table.Th>{t("Solved")}</Table.Th>
+                            <Table.Th>{t("Penalty")}</Table.Th>
                             {columns.map(column => (
-                                <Table.Td key={column.slug} className={classes.cell}>
-                                    <CellView cell={row.cells[column.slug] ?? { attempts: 0, rejected: 0 }} />
-                                </Table.Td>
+                                <Table.Th key={column.slug}>
+                                    {/* A frozen round's columns carry an asterisk.
+                                        The combined board mixes rounds, and one
+                                        that put withheld columns beside settled
+                                        ones without saying so would read as a
+                                        standing when it is not one. */}
+                                    <Tooltip label={column.frozen
+                                        ? `${column.name} — ${t("this round's ranking is frozen")}`
+                                        : column.name}>
+                                        <span>{column.slug}{column.frozen ? "*" : ""}</span>
+                                    </Tooltip>
+                                </Table.Th>
                             ))}
                         </Table.Tr>
-                    ))}
-                </Table.Tbody>
-            </DataTable>
+                    </Table.Thead>
+                    <Table.Tbody>
+                        {rows.map(row => (
+                            <Table.Tr
+                                key={row.contestantId}
+                                ref={row.contestantId === results.me ? myRow : undefined}
+                                className={row.contestantId === results.me ? classes.me : undefined}
+                            >
+                                {placed && <Table.Td className={classes.stickyPlace}>{row.rank}</Table.Td>}
+                                <Table.Td className={classes.stickyName} style={nameLeft}><ContestantName name={row.name} description={row.description} members={row.members} /></Table.Td>
+                                <Table.Td>{row.solved}</Table.Td>
+                                <Table.Td>{minutesAsClock(row.penalty)}</Table.Td>
+                                {columns.map(column => (
+                                    <Table.Td key={column.slug} className={classes.cell}>
+                                        <CellView cell={row.cells[column.slug] ?? { attempts: 0, rejected: 0 }} />
+                                    </Table.Td>
+                                ))}
+                            </Table.Tr>
+                        ))}
+                    </Table.Tbody>
+                </Table>
+            </Table.ScrollContainer>
         </Stack>
     );
 }

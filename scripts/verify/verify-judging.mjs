@@ -20,7 +20,7 @@
 // race out of it — the fake judges this submission between six and fifteen
 // seconds after the dataset is first read, which is not a window to navigate
 // inside of.
-import { open, results } from "./harness.mjs";
+import { open, RESOLVE, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
 const { evaluate, until, wait, shot, go, click, close, clock } = await open({ clock: true });
@@ -55,16 +55,42 @@ const settle = async () => {
     await wait(400);
 };
 
+/**
+ * The same, in the smallest step the fake answers to.
+ *
+ * Used before the queued window is read, where every millisecond spent is a
+ * millisecond of the six the fake gives this submission before handing it to a
+ * runner. A second at a time got there with nothing left.
+ */
+const nudge = async () => {
+    await clock.runFor(350);
+    await wait(250);
+};
+
 // ── the submission nobody is working on yet ─────────────────────────────────
 
 await go(`${APP}/activities/AMMPZ-2019/problems?fakeUser=amy`,
     `document.querySelector("[data-testid=submissions-panel]") !== null`);
-await settle();
+
+// **Stopped here, not merely installed.** The fake hands this submission to a
+// runner on a six-second `setTimeout`, and an installed clock still runs — so
+// those six seconds were being spent by the real time this script takes to open
+// the panel and the window. On a loaded machine the timer won, and the queued
+// case was read as a running one: three assertions red, two of them older than
+// this line. Paused, the only thing that moves time is `settle()` below.
+//
+// The instant is read from the page and nudged forward: `pauseAt` refuses to
+// travel backwards, and the clock moves on between the read and the call.
+await clock.pauseAt(await evaluate(`return Date.now() + 500;`));
+
+await nudge();
 
 // Collapsed by default, and remembered per tab.
 await click(`document.querySelector("[data-testid=submissions-panel] [aria-expanded]")`);
-await settle();
-await until(`document.querySelectorAll("[data-testid=submission-row]").length > 0`, 10);
+for (let i = 0; i < 6; i++) {
+    if (await evaluate(`return document.querySelectorAll("[data-testid=submission-row]").length > 0;`)) break;
+    await nudge();
+}
 
 check(await evaluate(`return ${queuedRow} !== undefined;`),
     "the fixture has a submission waiting for a runner");
@@ -74,13 +100,41 @@ check(await evaluate(`return ${queuedRow} !== undefined;`),
 // before the queued case has been looked at — the window's own first paint is
 // what is wanted, not a later one.
 await click(queuedRow);
-await until(`${modal} !== null`, 12);
+// Nudged rather than waited on: with the clock stopped, a real-time `until`
+// polls a page whose timers are not running and finds nothing for ever.
+for (let i = 0; i < 6; i++) {
+    if (await evaluate(`return ${modal} !== null;`)) break;
+    await nudge();
+}
 check(await evaluate(`return ${modal} !== null;`), "its row opens the window over the page");
 
 const waiting = await evaluate(`return (${modal})?.innerText ?? "";`);
 check(/kolejce|Czekamy/i.test(waiting), "and the box says it is waiting for a runner");
 check(await evaluate(`return ${timer} === null;`),
     "with no timer, because nothing is being judged yet");
+
+/**
+ * The colour of the waiting box, resolved by the browser rather than read off
+ * the prop.
+ *
+ * A queued submission has nobody working on it, and the badge a few lines above
+ * it already says so in grey; a box in the active colour there said the opposite
+ * of its own sentence. Asked of the computed background, because a custom
+ * property read back answers with whatever tokens were written into it.
+ */
+const banner = () => evaluate(`
+    ${RESOLVE}
+    const box = document.querySelector("[data-testid=modal] [data-testid=pending]");
+    return {
+        bg: box ? hex(getComputedStyle(box).backgroundColor) : null,
+        gray: resolved("var(--mantine-color-gray-light)"),
+        blue: resolved("var(--mantine-color-blue-light)"),
+    };
+`);
+
+const queued = await banner();
+check(queued.bg === queued.gray && queued.bg !== queued.blue,
+    `and it is grey while it only waits — ${queued.gray}, not ${queued.blue}, got ${queued.bg}`);
 
 // ── a runner picks it up ────────────────────────────────────────────────────
 //
@@ -96,6 +150,12 @@ for (let i = 0; i < 14 && await evaluate(`return ${timer} === null;`); i++) {
 
 check(await evaluate(`return ${timer} !== null;`),
     "once a runner has it, the box says how long it has been at it");
+
+// **The other half, or grey would pass by being grey always.** A submission a
+// runner has is work in progress and keeps the active colour.
+const running = await banner();
+check(running.bg === running.blue && running.bg !== running.gray,
+    `and it turns blue once a runner has it — ${running.blue}, got ${running.bg}`);
 
 const first = await timerText();
 check(/\d+:\d\d/.test(first ?? ""),

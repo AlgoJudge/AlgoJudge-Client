@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { LegalDocumentKind } from "../../api/CoreApi";
 import { providerChallengeUrl } from "../../api/providerChallenge";
-import { pickDocumentRef, publishedLegalKinds } from "../../api/instanceDocuments";
+import { instanceDocumentAttachments, pickDocumentRef, publishedLegalKinds } from "../../api/instanceDocuments";
 import DocumentModal from "../../components/content/DocumentModal";
 import RequiredAsterisk from "../../components/RequiredAsterisk";
 import { useApiCall } from "../../provider/apiContext";
@@ -33,7 +33,7 @@ export default function RegisterPage() {
 
     // Read from the shared answer: the shell and the front page need it too, and
     // whether this instance takes sign-ups is one fact, not one per screen.
-    const { instance, answered } = useInstance();
+    const { instance, answered, logoUrl } = useInstance();
     const [query] = useSearchParams();
     const [form, setForm] = useState({
         username: "", firstName: "", lastName: "", email: "", password: "", repeat: "",
@@ -265,6 +265,7 @@ export default function RegisterPage() {
                 onClose={() => setReading(undefined)}
                 title={readingRef?.title ?? (reading ? t(`legal.${reading}`) : "")}
                 fileId={readingRef?.fileId}
+                attachments={instanceDocumentAttachments(logoUrl)}
             />
         </Container>
     );

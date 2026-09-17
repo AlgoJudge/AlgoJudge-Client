@@ -338,7 +338,7 @@ this is* are two different moments — a check that waits for text reads the
 unbranded colours, and waiting longer is a slower version of the same race.
 
 **The status colours stay ours** — `red`, `orange`, `teal`, `green`, `yellow`,
-`grape`, and the twenty-nine `color="blue"` places, which are information alerts
+`grape`, and the thirty `color="blue"` places, which are information alerts
 and states. A green *wrong answer* is a defect rather than a preference, and no
 validation could catch it because every hex is formally valid.
 
