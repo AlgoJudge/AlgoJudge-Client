@@ -11,7 +11,7 @@
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
-const { send, evaluate, until, wait, shot, go, visit, click, pages, close } = await open();
+const { send, evaluate, until, wait, shot, go, visit, click, pages, paintedWith, slowly, onEveryLoad, close } = await open();
 const { check, report } = results();
 
 // **Two activities this reader is actually enrolled in**, one with the module on
@@ -268,6 +268,7 @@ const listing = await evaluate(`
         unselectable: lastNum ? getComputedStyle(lastNum).userSelect : null,
         block: lastCode ? getComputedStyle(lastCode).display : null,
         family: lastCode ? getComputedStyle(lastCode).fontFamily : "",
+        features: lastCode ? getComputedStyle(lastCode).fontFeatureSettings : "",
         listingFamily: getComputedStyle(sheet).fontFamily,
     };
 `);
@@ -315,6 +316,28 @@ check(/mono/i.test(listing.family), "the listing is monospace: " + listing.famil
 check(listing.family === listing.listingFamily,
     `and the numbering and the source are one face (${listing.family.slice(0, 22)} / ${listing.listingFamily.slice(0, 22)})`);
 
+// **Without its ligatures**, as the editor draws it: `!=` is two characters on
+// paper, not a `≠` nobody typed.
+check(/"liga" 0/.test(listing.features) && /"calt" 0/.test(listing.features),
+    `the listing turns the face's ligatures off (${listing.features})`);
+
+// **JetBrains Mono, asked of the browser rather than of the stylesheet.** A
+// computed `font-family` names the stack that was requested and says nothing
+// about which face drew the glyphs. Chrome's own answer is read instead, for a
+// plain line and for the Polish comment — whose letters live in the face's
+// second file, so a sheet that had only the first would draw them in another.
+const polish = await evaluate(`
+    const rows = [...document.querySelectorAll("[data-testid=sheet-source] pre[data-line]")];
+    return rows.find(r => /[ąćęłńóśźż]/.test(r.textContent))?.getAttribute("data-line") ?? null;
+`);
+check(polish !== null, `the fixture has a line with Polish letters in it (line ${polish})`);
+for (const [what, line] of [["a plain line", "1"], ["the Polish comment", polish]]) {
+    const faces = line === null ? [] : await paintedWith(`[data-testid=sheet-source] pre[data-line="${line}"]`) ?? [];
+    check(faces.length > 0 && faces.every(face => face.family === "JetBrains Mono" && face.webfont),
+        `${what} is drawn in JetBrains Mono (${faces.map(face => `${face.glyphs}× ${face.family}`).join(", ") || "nothing reported"})`);
+}
+
+
 const digest = await evaluate(`
     return document.querySelector("[data-testid=sheet-digest]")?.textContent?.trim() ?? "";
 `);
@@ -360,6 +383,50 @@ check(marked, `confirming marks that row printed (${(await evaluate(`return ${RO
 check(await evaluate(`return document.querySelector("[data-testid=modal]") === null;`),
     "and the window closes, which it does only when the Server accepted it");
 await shot("printouts-queue");
+
+// ── The dialog waits for the face, but not for ever ────────────────────────
+//
+// **In a tab that has never drawn it, and over a slow network.** The sheet
+// prints itself and JetBrains Mono is `swap`, so a dialog opened on the first
+// paint prints the fallback. This suite's server is on the same machine and
+// would win that race every time, and a tab that had already shown code has
+// both files already — which is how a check of this, written in the flow
+// above, passed with the wait removed. Measured instead with the face held back
+// on a fresh load: `print()` came with both files still `loading`.
+//
+// Last in the script, because the recorder cannot be taken back.
+const printedWith = () => evaluate(`return window.__printedWith ?? null;`);
+await onEveryLoad(`
+    window.__printedWith = null;
+    window.print = () => {
+        window.__printedWith = [...document.fonts]
+            .filter(face => face.family.replace(/["']/g, "") === "JetBrains Mono")
+            .map(face => face.status);
+    };
+`);
+const SHEET = `${APP}/print/printouts/${expected}`;
+const SHEET_UP = `document.querySelector("[data-testid=printout-sheet]") !== null`;
+await go(`${APP}/manager/printouts?fakeUser=pdrukarz`,
+    `document.querySelector("[data-testid=printout-queue]") !== null`);
+
+let fast = await slowly(/jetbrains-mono.*woff2/, 800);
+await go(SHEET, SHEET_UP);
+check(await until(`window.__printedWith !== null`, 20), "a freshly opened sheet asks for the dialog on its own");
+const arrived = await printedWith();
+check(arrived?.length >= 2 && arrived.every(status => status === "loaded"),
+    `only once both of the face's files have arrived (${arrived?.join(", ") ?? "never asked"})`);
+await fast();
+
+// **And a face that never comes still prints.** Paper in the fallback is the
+// paper somebody queued for; a dialog that never opened is not.
+fast = await slowly(/jetbrains-mono.*woff2/, 30000);
+await go(SHEET, SHEET_UP);
+check(await until(`window.__printedWith !== null`, 24),
+    "a sheet whose face never arrives opens the dialog anyway");
+const abandoned = await printedWith();
+check(abandoned !== null && abandoned.some(status => status !== "loaded"),
+    `having given up on the face rather than received it (${abandoned?.join(", ") ?? "never asked"})`);
+await fast();
 
 
 report();

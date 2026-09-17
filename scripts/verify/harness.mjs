@@ -174,6 +174,31 @@ export async function open({ out = process.env.OUT ?? join(here, "out"), clock =
      */
     const offline = (on) => page.context().setOffline(on);
 
+    /**
+     * A resource that arrives late, as it does over a real network.
+     *
+     * The dev server answers from the same machine, so a race a reader would
+     * lose over the internet is one this suite wins every time and never sees.
+     * Answers with the function that takes the delay away again. The late
+     * `continue` is allowed to fail: by then the page may have moved on.
+     */
+    const slowly = async (pattern, ms) => {
+        const late = async (route) => {
+            await new Promise(resolve => setTimeout(resolve, ms));
+            await route.continue().catch(() => { });
+        };
+        await page.route(pattern, late);
+        return () => page.unroute(pattern, late);
+    };
+
+    /**
+     * Source run in every document this tab loads from now on, before the
+     * page's own. For what happens during a load — `evaluate` only reaches a
+     * page that has finished one. There is no taking it back, so a script that
+     * needs it does so last.
+     */
+    const onEveryLoad = (source) => page.addInitScript(source);
+
     const shot = async (name) => {
         // Created here rather than assumed: a missing directory failed the
         // script at its first screenshot, which reads as the screen being wrong.
@@ -384,6 +409,7 @@ export async function open({ out = process.env.OUT ?? join(here, "out"), clock =
 
     return {
         send, evaluate, until, wait, shot, go, visit, click, hover, type, setTextarea, tab, managerRow, pages, paintedWith, offline,
+        slowly, onEveryLoad,
         clock: {
             fastForward: (ticks) => page.clock.fastForward(ticks),
             runFor: (ticks) => page.clock.runFor(ticks),

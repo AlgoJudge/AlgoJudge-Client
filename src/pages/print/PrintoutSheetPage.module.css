@@ -48,11 +48,20 @@
     color: #444444;
 }
 
+/* **JetBrains Mono, the face the editors draw code in**, named here rather than
+   read from `--mantine-font-family-monospace`: that variable is the
+   installation's to change, and paper is not themed. The rest of the stack is
+   what prints if the face never arrives — the sheet waits for it, but not for
+   ever. */
 .listing {
     display: grid;
     grid-template-columns: auto 1fr;
     column-gap: 4mm;
-    font-family: ui-monospace, "Cascadia Mono", "Consolas", "DejaVu Sans Mono", monospace;
+    font-family: "JetBrains Mono", ui-monospace, "Cascadia Mono", "Consolas", "DejaVu Sans Mono", monospace;
+    /* **No ligatures, as in the editor.** The face joins `!=`, `->` and `<<`
+       into single shapes, and Monaco draws with them off — so paper shows the
+       two characters somebody typed, not a `≠` they never did. */
+    font-feature-settings: "liga" 0, "calt" 0;
     font-size: 9.5pt;
     line-height: 1.35;
     margin: 0;
@@ -86,7 +95,7 @@
     border-top: 1px solid #cccccc;
     margin-top: 6mm;
     padding-top: 3mm;
-    font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+    font-family: "JetBrains Mono", ui-monospace, "Cascadia Mono", "Consolas", monospace;
     font-size: 8pt;
     color: #444444;
     word-break: break-all;
