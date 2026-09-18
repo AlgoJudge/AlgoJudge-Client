@@ -45,14 +45,14 @@ await shot("hero-anonymous");
 const links = await evaluate(`
     const inside = [...${HERO}.querySelectorAll("a")].map(a => a.href);
     return {
-        organisation: inside.some(h => h === "https://github.com/AlgoJudge"),
+        organization: inside.some(h => h === "https://github.com/AlgoJudge"),
         project: inside.some(h => h === "https://algojudge.pl/"
             || h === "https://algojudge.pl"),
         blank: [...${HERO}.querySelectorAll("a")]
             .every(a => a.target !== "_blank" || a.rel.includes("noopener")),
     };
 `);
-check(links.organisation, "the badge leads to the organisation on GitHub");
+check(links.organization, "the badge leads to the organization on GitHub");
 check(links.project, "and the link leads to the project's own site");
 check(links.blank, "and every window it opens is opened with rel=noopener");
 
@@ -201,7 +201,7 @@ check(mark.inter && mark.inter.includes("600"),
 // face arrives. What separates Inter from a fallback is the *shape* of the
 // answer — the wordmark's width against the drawing's own height, which is
 // 215.52/38.478 = 5.60 for Inter and far wider for the system serif the first
-// measurement caught. Three per cent is tolerance for hinting, not for a
+// measurement caught. Three percent is tolerance for hinting, not for a
 // different typeface.
 const shape = mark.drawnPrecise / mark.svgHeight;
 check(Math.abs(shape - 5.601) / 5.601 < 0.03,
@@ -211,7 +211,7 @@ check(Math.abs(shape - 5.601) / 5.601 < 0.03,
 // **Optically level with the instance's name beside it.** Their boxes line up
 // on their own; the drawing inside does not, because the gavel reaches further
 // above the letters than the descenders reach below them. The honest measure is
-// the rendered ink — rasterised, that offset is 0.25px with the correction and
+// the rendered ink — rasterized, that offset is 0.25px with the correction and
 // 1.25px without — and the cheap proxy for it here is the glyph box against the
 // name's line box: 0.98px against 2.23px. The threshold sits between them.
 const level = await evaluate(`

@@ -107,7 +107,7 @@ export default function TemporaryAccountsModal({
                     />
                     {activities && (
                         <Select
-                            label={t("Enrol into")}
+                            label={t("Enroll into")}
                             description={t("Accounts with nowhere to submit are of no use")}
                             data={activities.map(a => ({ value: a.id, label: a.name }))}
                             value={chosenActivity || null}
@@ -123,7 +123,7 @@ export default function TemporaryAccountsModal({
                         who is making twenty accounts that are not participants. */}
                     <Select
                         label={t("Instead of the activity's role, exactly this set")}
-                        description={t("Leave empty to hand out the role this activity enrols into.")}
+                        description={t("Leave empty to hand out the role this activity enrolls into.")}
                         data={templates.map(x => ({ value: x.name, label: x.name }))}
                         value={template || null}
                         onChange={v => setTemplate(v ?? "")}

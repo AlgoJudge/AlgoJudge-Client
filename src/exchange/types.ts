@@ -16,9 +16,9 @@ import { isStatementFile, statementFileLanguage } from "../content/types";
  *
  * **Because the importer is the ordinary manager API.** Every write an import
  * makes — creating a problem, publishing a version, attaching an assignment —
- * goes through an endpoint that already exists and already authorises. A Server
+ * goes through an endpoint that already exists and already authorizes. A Server
  * that took a bundle would have to re-derive every one of those checks in a
- * second place, which is a second authorisation surface for one feature.
+ * second place, which is a second authorization surface for one feature.
  *
  * It also keeps the Server clear of a problem type's dialect: a package's
  * layout is a property of its type, and the Server is not allowed to know one
@@ -32,7 +32,7 @@ import { isStatementFile, statementFileLanguage } from "../content/types";
  * loudly beats one claim that something is checked — see
  * `scripts/check-exchange.mjs` here and `CopiedFieldsTests` there.
  *
- * Not carried, ever: submissions, results, questions, grants, enrolments,
+ * Not carried, ever: submissions, results, questions, grants, enrollments,
  * groups, the join password, whether it was published or archived, a round's
  * state, and a problem's owner or share list. None of those is a shape; all of
  * them are this installation's.
@@ -237,7 +237,7 @@ export const NOT_CARRIED = {
         // the bundle — an exchange carries an activity's shape, not who may do
         // what in it — so carrying an id would point the import at a row that
         // either does not exist or belongs to somebody else's course. The
-        // importer enrols into its own shipped roles until somebody says
+        // importer enrolls into its own shipped roles until somebody says
         // otherwise.
         "participantRoleId", "managerRoleId",
     ],

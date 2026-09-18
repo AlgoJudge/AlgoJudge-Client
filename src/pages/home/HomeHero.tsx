@@ -9,7 +9,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { registrationOffered } from "../../api/registration";
 import { useInstance } from "../../provider/instanceContext";
-import { PROJECT_ORGANISATION, PROJECT_SITE } from "../../site";
+import { PROJECT_ORGANIZATION, PROJECT_SITE } from "../../site";
 import illustration from "../../assets/hero.png";
 import classes from "./HomeHero.module.css";
 
@@ -25,16 +25,16 @@ import classes from "./HomeHero.module.css";
  * installation that wants to say something else writes a welcome document
  * instead of editing this: the document renders directly underneath.
  *
- * ## Nothing is a fixed colour
+ * ## Nothing is a fixed color
  *
  * The visual it was drawn from names a blue, a pale tile and a near-black. None
  * of those is written here. An installation may carry its own palette, and a
  * hero painted in the product's blue on a page painted in a university's would
  * be the one panel that ignored them — so this asks Mantine for the primary
- * colour and its own dimmed text, exactly as every other screen does.
+ * color and its own dimmed text, exactly as every other screen does.
  *
  * The illustration is the one thing that cannot follow a palette. It is a
- * drawing with a transparent ground, so it sits on whatever colour is behind
+ * drawing with a transparent ground, so it sits on whatever color is behind
  * it, and it carries no text to translate.
  */
 
@@ -59,7 +59,7 @@ export const HomeHero: FC = () => {
                 <Stack gap="lg" align="flex-start">
                     <Badge
                         component="a"
-                        href={PROJECT_ORGANISATION}
+                        href={PROJECT_ORGANIZATION}
                         target="_blank"
                         rel="noopener noreferrer"
                         variant="light"
@@ -123,7 +123,7 @@ export const HomeHero: FC = () => {
 
             <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="xl">
                 <Feature icon={<IconTrophy size={26} />} title={t("Contests")}>
-                    {t("Organise programming competitions")}
+                    {t("Organize programming competitions")}
                 </Feature>
                 <Feature icon={<IconBook size={26} />} title={t("Courses")}>
                     {t("Create materials for students")}

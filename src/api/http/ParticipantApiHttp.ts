@@ -4,7 +4,7 @@ import {
     ActivityResults,
     ActivityFilter,
     AskQuestionInput,
-    EnrolInput,
+    EnrollInput,
     Page,
     ParticipantApi,
     ProblemDetail,
@@ -55,9 +55,9 @@ export class ParticipantApiHttp implements ParticipantApi {
         return this.http.request<Activity>(`/activities/${encodeURIComponent(idOrSlug)}`, "GET", { signal });
     }
 
-    enroll(idOrSlug: string, input: EnrolInput, signal: AbortSignal): Promise<Activity> {
+    enroll(idOrSlug: string, input: EnrollInput, signal: AbortSignal): Promise<Activity> {
         return this.http.request<Activity>(
-            `/activities/${encodeURIComponent(idOrSlug)}/enrolment`, "POST", { body: input, signal });
+            `/activities/${encodeURIComponent(idOrSlug)}/enrollment`, "POST", { body: input, signal });
     }
 
     getSeries(activityId: string, signal: AbortSignal): Promise<Series[]> {

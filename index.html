@@ -18,7 +18,7 @@
 
       **The manifest is static, and says AlgoJudge rather than the operator's
       name.** Everything an installation calls itself — its name, its logo, its
-      colours — arrives from the API after first paint and can change again over
+      colors — arrives from the API after first paint and can change again over
       the event socket, so none of it is known when a browser reads this file.
       The tab title still follows the installation; the installed name does not.
 
@@ -39,7 +39,7 @@
       What this page says about itself before any of it has loaded.
 
       **It describes the product, not the installation.** An installation's name,
-      logo and colours arrive from `GET /api/v1/instance` after first paint and
+      logo and colors arrive from `GET /api/v1/instance` after first paint and
       can change again over the event socket, so none of them is known when a
       browser — or a crawler — reads this file. The tab title follows the
       installation once the answer is in; everything here does not.
@@ -74,7 +74,7 @@
       Facebook's `language_TERRITORY`, which is not BCP-47: a hyphen here is
       ignored rather than reported. The two are the app's own `supportedLngs`.
     -->
-    <meta property="og:locale" content="en_GB" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:locale:alternate" content="pl_PL" />
 
     <!--
@@ -123,14 +123,14 @@
         scripting on never renders a `noscript`'s contents at all, and one
         without it never removes them.
 
-        The addresses are `PROJECT_SITE` and `PROJECT_ORGANISATION` in
+        The addresses are `PROJECT_SITE` and `PROJECT_ORGANIZATION` in
         `src/site.ts`; `npm run check:seo` compares them character for character,
         because this file cannot import.
       -->
       <noscript>
         <p>
           About the project: <a href="https://algojudge.pl">https://algojudge.pl</a>.
-          GitHub organisation: <a href="https://github.com/AlgoJudge">https://github.com/AlgoJudge</a>.
+          GitHub organization: <a href="https://github.com/AlgoJudge">https://github.com/AlgoJudge</a>.
         </p>
       </noscript>
     </div>

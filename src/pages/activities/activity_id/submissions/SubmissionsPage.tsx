@@ -13,7 +13,7 @@ import { applied, useReload } from "../../../../utils/live";
 
 const PAGE_SIZE = 10;
 
-const STATES: JobState[] = ["queued", "running", "completed", "failed", "cancelled"];
+const STATES: JobState[] = ["queued", "running", "completed", "failed", "canceled"];
 
 export default function SubmissionsPage() {
     const { t } = useTranslation();

@@ -99,7 +99,7 @@ export type Pending = "frozen" | "judging" | "unjudged";
  * outcome.
  *
  * A freeze is a decision to withhold; judging is a wait; an evaluation that
- * **failed or was cancelled** is neither — nothing further is coming for it
+ * **failed or was canceled** is neither — nothing further is coming for it
  * unless a manager rejudges it or rules it out. Three different things to be
  * told, and one label over all of them said *submitted during the freeze* above
  * cells no freeze had touched.
@@ -113,7 +113,7 @@ export type Pending = "frozen" | "judging" | "unjudged";
 const pendingOf = (results: ContestantResult[]): Pending | undefined => {
     if (results.some(result => result.frozen === true)) return "frozen";
     if (results.some(result => result.state === "queued" || result.state === "running")) return "judging";
-    if (results.some(result => result.state === "failed" || result.state === "cancelled")) return "unjudged";
+    if (results.some(result => result.state === "failed" || result.state === "canceled")) return "unjudged";
     return undefined;
 };
 
@@ -188,7 +188,7 @@ export interface IcpcRow {
  * Two counts, and they are deliberately not the same number: what was sent, and
  * what it cost. **Nothing after the accepted submission is either** — ICPC stops
  * charging once a problem is solved, and somebody who submits again out of habit
- * is not penalised for it.
+ * is not penalized for it.
  *
  * Before it, only the **judged rejections** are charged. Counting positions
  * instead was the same arithmetic for as long as every submission came back with

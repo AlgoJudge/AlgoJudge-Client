@@ -338,7 +338,7 @@ export async function open({ out = process.env.OUT ?? join(here, "out"), clock =
      *
      * **The name, not the cell.** A manager row opens from a `<Text onClick>`
      * inside its first cell — deliberately, and it stays that way — so a click
-     * at the centre of the `td` lands beside the handler as often as on it. It
+     * at the center of the `td` lands beside the handler as often as on it. It
      * passes by luck and fails the next run, and the failure reads as the screen
      * being wrong rather than the click missing: every assertion after it fails
      * at once, because the page never opened.
@@ -431,13 +431,13 @@ export async function open({ out = process.env.OUT ?? join(here, "out"), clock =
 }
 
 /**
- * A colour expression, as the browser resolves it, in `#rrggbb`.
+ * A color expression, as the browser resolves it, in `#rrggbb`.
  *
  * **Painted onto a probe element rather than read off a custom property.**
  * `getPropertyValue("--mantine-color-blue-light")` answers with whatever
- * tokens were written into it, so a comparison against a colour passes or
+ * tokens were written into it, so a comparison against a color passes or
  * fails on a spelling. This asks for a computed `background-color`, which is
- * a colour however it was written.
+ * a color however it was written.
  *
  * A string because it is interpolated into an `evaluate` body: it defines
  * `hex` and `resolved` in the page, not here.

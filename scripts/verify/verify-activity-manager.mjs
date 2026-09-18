@@ -155,7 +155,7 @@ await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid
 await wait(1200);
 check(await evaluate(`
     const modal = document.querySelector("[data-testid=modal]");
-    return modal !== null && !/Zapisz do|Enrol in/.test(modal.innerText);
+    return modal !== null && !/Zapisz do|Enroll in/.test(modal.innerText);
 `), "and does not ask which activity, because it already knows");
 await evaluate(`
     const modal = document.querySelector("[data-testid=modal]");
@@ -206,7 +206,7 @@ await click(`[...document.querySelectorAll("button")]
     .find(b => b.textContent.includes("Skopiuj na nową edycję"))`);
 await wait(700);
 
-const dialogue = await evaluate(`
+const dialog = await evaluate(`
     const text = document.body.innerText;
     const button = [...document.querySelectorAll("button")]
         .find(b => b.dataset.testid === "copy");
@@ -216,9 +216,9 @@ const dialogue = await evaluate(`
         blocked: button ? button.disabled : false,
     };
 `);
-check(dialogue.asksForDate, "copying asks when the first round starts");
-check(dialogue.saysUnpublished, "copying says the copy arrives unpublished");
-check(dialogue.blocked, "copying waits for a name and a date");
+check(dialog.asksForDate, "copying asks when the first round starts");
+check(dialog.saysUnpublished, "copying says the copy arrives unpublished");
+check(dialog.blocked, "copying waits for a name and a date");
 
 // Both fields set the same way: `type` takes a CSS selector, and these two are
 // found by placeholder and by input type rather than by any class.
@@ -235,7 +235,7 @@ await evaluate(`
     return true;
 `);
 await wait(300);
-await shot("activity-copy-dialogue");
+await shot("activity-copy-dialog");
 
 await click(`[...document.querySelectorAll("button")]
     .find(b => b.dataset.testid === "copy")`);
@@ -246,7 +246,7 @@ check(listed.includes("asd-2027"), "the copy is in the list");
 // **And it is marked as not ready**, which is the whole reason the state exists:
 // a copy that looked like every other row would be opened by somebody assuming
 // it was.
-// **`textContent`, not `innerText`.** The badge is styled to ellipsise, and the
+// **`textContent`, not `innerText`.** The badge is styled to ellipsize, and the
 // rendered text is what `innerText` reports — so a state can be present, correct
 // and invisible to a check that reads the screen the way a person sees it.
 const states = await evaluate(`

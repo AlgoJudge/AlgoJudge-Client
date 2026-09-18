@@ -43,7 +43,7 @@ export const readArchive = async (input: Blob): Promise<ReadArchive> => {
     }
 
     // **Named at the root, exactly.** ZawodyWeb's own reader looks entries up by
-    // their full name with no normalisation, so an export has no directories in
+    // their full name with no normalization, so an export has no directories in
     // it — an archive that has been repacked with one is not one of these, and
     // saying so beats converting half of it.
     if (ZAWODYWEB.some(name => entries[name])) {

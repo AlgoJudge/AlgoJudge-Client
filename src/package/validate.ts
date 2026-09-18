@@ -60,11 +60,11 @@ export const validatePackage = (tests: TestFile[], config: PackageConfig, fileNa
         issues.push({ level: "error", message: "config.yml has no groups section", file: "config.yml" });
     }
 
-    // **Normalised once, and everything below reads this.** The type says
+    // **Normalized once, and everything below reads this.** The type says
     // `PackageGroup[]`, so nothing here is type-checked against a `config.yml`
     // somebody wrote by hand — and four of the five uses below had no guard, so
     // the very file the check above reports threw `TypeError` out of the
-    // validator and the finding was never delivered. `build.ts` normalises the
+    // validator and the finding was never delivered. `build.ts` normalizes the
     // same way for the reader path.
     const groups = Array.isArray(config.groups) ? config.groups : [];
 

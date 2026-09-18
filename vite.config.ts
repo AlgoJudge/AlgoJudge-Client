@@ -61,7 +61,7 @@ export default defineConfig(({mode}) => {
         },
         // Monaco is reached through a lazy import, so Vite only discovers these
         // when the submit screen is first opened — mid-navigation. It then
-        // re-optimises and asks the page to reload, and the import that
+        // re-optimizes and asks the page to reload, and the import that
         // triggered it fails with a 504. Declaring them up front makes the first
         // dev run deterministic.
         optimizeDeps: {
@@ -80,7 +80,7 @@ export default defineConfig(({mode}) => {
                 'katex',
                 // Shiki is the same shape and was the same defect: the adapter
                 // imports it lazily and pulls a grammar the first time a source
-                // preview opens, so a cold run re-optimised mid-test and the
+                // preview opens, so a cold run re-optimized mid-test and the
                 // reload took the session with it. Six of nine CI failures on
                 // this branch were that, and none reproduced warm.
                 'shiki/core',

@@ -25,7 +25,7 @@ const body = () => evaluate(`return document.body.innerText;`);
 // script spent its whole budget and then reported a missing sentence, twice in
 // three runs. It waits for `data-maintenance` to *say* `away` or `open`, which
 // is the decision, and the assertions below still read the sentence, which is
-// the judgement.
+// the judgment.
 //
 // **Not `!== "unknown"`.** That was the first form and it was wrong: a fresh
 // document carries no attribute at all, `undefined !== "unknown"` is true, and

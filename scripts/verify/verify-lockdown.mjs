@@ -5,7 +5,7 @@
 // flag on `AMMPZ-2019` or `PROG-1-LA`, so the dozen scripts that read those keep
 // reading what they always did.
 //
-// **It is scoped to its activity**, which is what the neighbour round below is
+// **It is scoped to its activity**, which is what the neighbor round below is
 // for: `Ćwiczenia 4` runs beside it and is displaced by it, while `PROG-1-LA`
 // carries on. Until 2026-08-24 every seeded activity ran exactly one round, so
 // no screen ever drew a displaced one — and a locked round rendered as "not
@@ -19,7 +19,7 @@
 // **Two rules this cannot show, and the Server tests do.** Neither is an
 // oversight and both were tried here first.
 //
-// The **file rule**: a statement is authorised by *any* holder, and the fake
+// The **file rule**: a statement is authorized by *any* holder, and the fake
 // serves files from one store without asking which round asked for them, so a
 // check here would pass whatever the rule did.
 //
@@ -94,7 +94,7 @@ check(!/Zablokowane przez/i.test(inside),
     "and an activity-scoped examination locks no other activity");
 await shot("lockdown-inside");
 
-// ── 4. Its own neighbour is displaced, and says by what ─────────────────────
+// ── 4. Its own neighbor is displaced, and says by what ─────────────────────
 //
 // **The row that used to lie.** A displaced round is running, so the clock said
 // "open" while the payload was empty, and the overlay fell through to "not
@@ -102,7 +102,7 @@ await shot("lockdown-inside");
 
 const displaced = await rounds("KOLOKWIUM-2", INSIDE);
 check(/Ćwiczenia 4/.test(displaced),
-    "the neighbouring round is still on the page");
+    "the neighboring round is still on the page");
 // Matched without case: a Mantine badge uppercases its text.
 check(/Zablokowane przez[^\n]*Kolokwium 2/i.test(displaced),
     `the displaced round names what displaced it (${(/Zablokowane przez[^\n]*/i.exec(displaced) ?? ["—"])[0]})`);
@@ -131,7 +131,7 @@ const hidden = await rounds("KOLOKWIUM-2", OUTSIDE);
 check(!/Stos i kolejka/i.test(hidden),
     "outside the room the examination's problem is not listed");
 check(!/Zablokowane przez/i.test(hidden),
-    "and its neighbour is not displaced either: a round nobody can reach is nobody's floor");
+    "and its neighbor is not displaced either: a round nobody can reach is nobody's floor");
 
 // ── 8. The manager widens the scope, and the course locks ───────────────────
 //

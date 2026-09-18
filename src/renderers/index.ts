@@ -28,7 +28,7 @@ const ContentView = lazy(() => import("../content/ContentView"));
 /**
  * How an activity type presents its sections.
  *
- * Only behaviour lives here. What a section is *called* — "Runda 1", "Zajęcia 3"
+ * Only behavior lives here. What a section is *called* — "Runda 1", "Zajęcia 3"
  * — is stored on the series, because a manager may rename it; the type only
  * supplies the default at creation time, which is a manager-side concern.
  */
@@ -118,7 +118,7 @@ export interface SubmitRenderer {
 export const submitRenderers = new TypeRegistry<SubmitRenderer | null>(null)
     .register("standard-io@*", {
         code: true,
-        // **From the catalogue, not written out beside it.** The list and the
+        // **From the catalog, not written out beside it.** The list and the
         // toolchains it has to cover drifted once already; `languages.ts` keeps
         // them together and `check:languages` holds them there.
         file: {
@@ -200,7 +200,7 @@ export interface ProblemTypeOption {
     imported?: true;
 }
 
-const PROBLEM_TYPE_CATALOGUE: ProblemTypeOption[] = [
+const PROBLEM_TYPE_CATALOG: ProblemTypeOption[] = [
     {
         id: "standard-io@1",
         label: "Standard input and output",
@@ -259,7 +259,7 @@ export interface ProblemShape {
      *
      * `false` where somebody else's judge decides them. **Nothing enforces this
      * on either side** — an assignment's `config` is opaque to the Server — so a
-     * manager can write limits that are never honoured and then be shown them as
+     * manager can write limits that are never honored and then be shown them as
      * though they were. Saying so is the only guard there is.
      */
     limits: boolean;
@@ -317,7 +317,7 @@ export const problemShape = new TypeRegistry<ProblemShape>({ package: true, limi
  * other half of that sentence: `uva@1` is drawn perfectly well and cannot be
  * created, so it is registered and not offered.
  */
-export const problemTypes = (): ProblemTypeOption[] => PROBLEM_TYPE_CATALOGUE.filter(type =>
+export const problemTypes = (): ProblemTypeOption[] => PROBLEM_TYPE_CATALOG.filter(type =>
     !type.imported
     && statementRenderers.resolve(type.id).supported && resultRenderers.resolve(type.id).supported);
 
@@ -327,7 +327,7 @@ export const problemTypes = (): ProblemTypeOption[] => PROBLEM_TYPE_CATALOGUE.fi
  * The same argument applies for the same reason: the Server stores the
  * discriminator and never reads it, so what kinds of activity exist is a
  * property of this Client and belongs beside the registry that gives them their
- * behaviour.
+ * behavior.
  */
 export interface ActivityTypeOption {
     /** The stored discriminator, `name@version`. */
@@ -337,7 +337,7 @@ export interface ActivityTypeOption {
     description: string;
 }
 
-const ACTIVITY_TYPE_CATALOGUE: ActivityTypeOption[] = [
+const ACTIVITY_TYPE_CATALOG: ActivityTypeOption[] = [
     {
         id: "contest@1",
         label: "Contest",
@@ -353,7 +353,7 @@ const ACTIVITY_TYPE_CATALOGUE: ActivityTypeOption[] = [
 ];
 
 /**
- * The activity types a manager may choose from: those this Client has behaviour
+ * The activity types a manager may choose from: those this Client has behavior
  * for.
  *
  * Filtered against the registry rather than listed, exactly as the problem types
@@ -362,7 +362,7 @@ const ACTIVITY_TYPE_CATALOGUE: ActivityTypeOption[] = [
  * list would be offering a kind of activity nobody decided how to present.
  */
 export const activityTypes = (): ActivityTypeOption[] =>
-    ACTIVITY_TYPE_CATALOGUE.filter(type => activityRenderers.resolve(type.id).supported);
+    ACTIVITY_TYPE_CATALOG.filter(type => activityRenderers.resolve(type.id).supported);
 
 export { TypeRegistry, typeName } from "./TypeRegistry";
 export type { Resolved } from "./TypeRegistry";

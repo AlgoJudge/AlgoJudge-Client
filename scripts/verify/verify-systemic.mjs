@@ -48,7 +48,7 @@ await wait(1200);
 // A membership that is only a participation, where it is a choice. Opened as a
 // new one: every grant this activity already holds is a staff grant, which is
 // itself the point of the previous check.
-await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "enrol-someone")`);
+await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "enroll-someone")`);
 await wait(1500);
 check(await evaluate(`
     const modal = document.querySelector("[data-testid=modal]");

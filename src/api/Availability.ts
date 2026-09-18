@@ -5,7 +5,7 @@ import { ServiceUnavailableError } from "./ApiError";
  *
  * **Its own member on the API rather than an event on a dispatcher.** The three
  * dispatchers carry what the *Server* said, and their names are diffed against
- * the catalogue the Server commits — synthesising `maintenanceChanged` here
+ * the catalog the Server commits — synthesizing `maintenanceChanged` here
  * would mean claiming the Server announced a window when what actually happened
  * was a proxy refusing a connection. Those are different facts and only one of
  * them is the Server's.

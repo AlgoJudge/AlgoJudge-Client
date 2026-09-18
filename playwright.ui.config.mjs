@@ -69,7 +69,7 @@ export default defineConfig({
      * **Two on CI, four here.** This machine has sixteen cores; a GitHub-hosted
      * `ubuntu-latest` has four, and four workers there would be full
      * subscription of a box that is also serving the dev server. The CI number
-     * is a judgement rather than a measurement — the run that lands with this
+     * is a judgment rather than a measurement — the run that lands with this
      * change is what measures it.
      *
      * **Raising it further buys little.** `verify-results` alone takes 2.1
@@ -92,7 +92,7 @@ export default defineConfig({
      *
      * `scripts/verify/README.md` is right that one red script in a green run is
      * more likely a race than a regression — but that is advice to a person
-     * about re-running it by hand, not a licence for the runner to hide it.
+     * about re-running it by hand, not a license for the runner to hide it.
      *
      * **It gates since 2026-08-30, and that makes this stricter rather than
      * looser.** The reason written here used to be *"in CI this suite does not
@@ -128,7 +128,7 @@ export default defineConfig({
         // the host this is Europe/Warsaw here and UTC on CI, and every assertion
         // on a rendered time would mean something different in the two places.
         // Warsaw is the fixtures' own zone, which makes this the "reader sits in
-        // the activity's zone" case; the traveller is `zones.spec.mjs`.
+        // the activity's zone" case; the traveler is `zones.spec.mjs`.
         timezoneId: "Europe/Warsaw",
         viewport: { width: 1500, height: 1200 },
         trace: "retain-on-failure",

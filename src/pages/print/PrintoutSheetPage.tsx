@@ -60,7 +60,7 @@ export default function PrintoutSheetPage() {
     useEffect(() => {
         if (!sheet) return;
 
-        let cancelled = false;
+        let canceled = false;
         let frame = 0;
         const done = () => { if (window.opener) window.close(); };
         window.addEventListener("afterprint", done);
@@ -69,14 +69,14 @@ export default function PrintoutSheetPage() {
             .catch(() => undefined);
         const patience = new Promise(resolve => setTimeout(resolve, FACE_PATIENCE_MS));
         void Promise.race([faces, patience]).then(() => {
-            if (cancelled) return;
+            if (canceled) return;
             frame = requestAnimationFrame(() => {
                 frame = requestAnimationFrame(() => window.print());
             });
         });
 
         return () => {
-            cancelled = true;
+            canceled = true;
             window.removeEventListener("afterprint", done);
             cancelAnimationFrame(frame);
         };
@@ -96,7 +96,7 @@ export default function PrintoutSheetPage() {
     const asked = formatInZone(printout.requestedAt, sheet.timeZone);
     const askedZone = `${offsetLabel(printout.requestedAt, sheet.timeZone)} (${sheet.timeZone})`;
 
-    // **Normalised, then split, and every trailing newline goes.** A file
+    // **Normalized, then split, and every trailing newline goes.** A file
     // written on Windows left a carriage return at the end of every line, and
     // `/\n$/` took one newline where a file may end in several — each of the
     // rest an empty row at the foot of the sheet with a number beside it.

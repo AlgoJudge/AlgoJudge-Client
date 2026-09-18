@@ -5,7 +5,7 @@ import {
     MyGroup,
     ActivityResults,
     AskQuestionInput,
-    EnrolInput,
+    EnrollInput,
     JobState,
     Page,
     ParticipantApi,
@@ -75,7 +75,7 @@ const copy = <T>(value: T): T => structuredClone(value);
  * Holds the fake state and runs a small scripted timeline over it.
  *
  * The timeline exists because four screens are specified as refreshed by
- * WebSocket events. If the fake never dispatched, that behaviour would not be
+ * WebSocket events. If the fake never dispatched, that behavior would not be
  * built until a Server existed to dispatch — which is the wrong order to
  * discover a bug in it.
  */
@@ -141,7 +141,7 @@ class FakeParticipantState {
 
         // Each round's two ranking instants, wired from the dates it actually
         // holds. A contest's freeze lifts when the round ends and a window opens
-        // when the organiser said, so in this seed neither lands inside a short
+        // when the organizer said, so in this seed neither lands inside a short
         // visit — the timers exist so the path is real, not so it can be watched.
         for (const activity of this.data.activities) {
             for (const seed of this.data.seeds.get(activity.id)?.series ?? []) {
@@ -543,7 +543,7 @@ export class ParticipantApiFake implements ParticipantApi {
         return activity ? copy(this.dressed(activity)) : notFound("Activity");
     }
 
-    async enroll(idOrSlug: string, input: EnrolInput, signal: AbortSignal): Promise<Activity> {
+    async enroll(idOrSlug: string, input: EnrollInput, signal: AbortSignal): Promise<Activity> {
         await this.settle(signal);
         const { activities } = this.state.dataset();
         const activity = activities.find(a => a.id === idOrSlug || a.slug === idOrSlug);
@@ -603,7 +603,7 @@ export class ParticipantApiFake implements ParticipantApi {
             ...activity,
             ...settings,
             membership: this.isMember(activity) ? "enrolled" : activity.membership,
-            joinPolicy: this.shared.enrolmentOf(activity.id).policy,
+            joinPolicy: this.shared.enrollmentOf(activity.id).policy,
             documents: this.shared.documentsOf(activity.id),
             group: this.myGroupOf(activity.id),
             // **Here, where every activity leaves.** The list and the page are
@@ -771,7 +771,7 @@ export class ParticipantApiFake implements ParticipantApi {
         return copy(paginate(matched.map(s => this.ruled(s)), filter.page, filter.pageSize ?? 10));
     }
 
-    // The activity is part of the route and of the real endpoint's authorisation,
+    // The activity is part of the route and of the real endpoint's authorization,
     // but the fake keeps submissions in one map keyed by id, so it goes unused.
     async getSubmission(activityId: string, submissionId: string, signal: AbortSignal): Promise<SubmissionDetail> {
         await this.settle(signal);
@@ -957,7 +957,7 @@ export class ParticipantApiFake implements ParticipantApi {
         // did — silently filters only the page that happens to be visible.
         // A question about a round out of reach goes with it; one about the
         // activity carries no round and stays, because an announcement is how
-        // the organiser explains the lockdown.
+        // the organizer explains the lockdown.
         const unreachable = this.unreachableRounds(activityId);
         const matched = all.filter(q =>
             // Topic and body, which is what the Server searches — and what the
@@ -1104,7 +1104,7 @@ export class ParticipantApiFake implements ParticipantApi {
         };
     }
 
-    /** Latency, then the abort check — so a cancelled view never sees a result. */
+    /** Latency, then the abort check — so a canceled view never sees a result. */
     private async settle(signal: AbortSignal): Promise<void> {
         await Utils.sleep(this.sleepMs);
         signal.throwIfAborted();

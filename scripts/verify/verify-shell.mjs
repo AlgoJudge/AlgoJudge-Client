@@ -74,8 +74,8 @@ const legal = await evaluate(`
         mainSize: parseFloat(mainStyle.fontSize),
         weight: Number(style.fontWeight),
         mainWeight: Number(mainStyle.fontWeight),
-        colour: style.color,
-        mainColour: mainStyle.color,
+        color: style.color,
+        mainColor: mainStyle.color,
         icons: links.reduce((n, a) => n + a.querySelectorAll("svg").length, 0),
         // How far down the navigation the block starts, as a fraction.
         top: (links[0].getBoundingClientRect().top - navBox.top) / navBox.height,
@@ -89,7 +89,7 @@ check(legal.weight < legal.mainWeight, `lighter than the entries above (${legal.
 
 // 3b — the entry you are standing on is marked, and nothing else is. Untested
 // until 2026-08-29, when the class carrying it stopped being applied and only
-// an assertion about a neighbouring font weight noticed.
+// an assertion about a neighboring font weight noticed.
 await go(`${APP}/activities?fakeUser=amy`, `document.querySelector("[data-testid=app-navbar]") !== null`);
 const marked = await evaluate(`
     const navbar = document.querySelector("[data-testid=app-navbar]");
@@ -101,17 +101,17 @@ const marked = await evaluate(`
         active: here.className.split(" ").includes("active"),
         hereBackground: getComputedStyle(here).backgroundColor,
         otherBackground: getComputedStyle(other).backgroundColor,
-        hereColour: getComputedStyle(here).color,
-        otherColour: getComputedStyle(other).color,
+        hereColor: getComputedStyle(here).color,
+        otherColor: getComputedStyle(other).color,
     };
 `);
 check(marked !== null, "the navigation has entries to compare");
 check(marked.active, "the entry for the page you are on is marked active");
 check(marked.hereBackground !== marked.otherBackground,
     `and is drawn differently from the others (${marked.hereBackground} against ${marked.otherBackground})`);
-check(marked.hereColour !== marked.otherColour, "in its own colour too");
+check(marked.hereColor !== marked.otherColor, "in its own color too");
 check(legal.size < legal.mainSize, `and smaller (${legal.size}px against ${legal.mainSize}px)`);
-check(legal.colour !== legal.mainColour, `in a quieter colour (${legal.colour} against ${legal.mainColour})`);
+check(legal.color !== legal.mainColor, `in a quieter color (${legal.color} against ${legal.mainColor})`);
 await shot("s-navbar-legal");
 
 // 4 — and they work.

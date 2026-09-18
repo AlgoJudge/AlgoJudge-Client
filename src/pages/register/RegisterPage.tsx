@@ -21,7 +21,7 @@ const MIN_PASSWORD = 12;
 /**
  * Creating an account, where the instance allows it.
  *
- * Most will not: accounts are made by an organiser or arrive through SSO, and
+ * Most will not: accounts are made by an organizer or arrive through SSO, and
  * local registration is a setting that ships blocked. The screen therefore asks
  * the instance first and says plainly that it takes no sign-ups, rather than
  * offering a form whose answer is always no.
@@ -134,7 +134,7 @@ export default function RegisterPage() {
                 <Paper withBorder shadow="md" p={30} mt={30} radius="md">
                     <Stack gap="sm">
                         <Alert color="blue" icon={<IconInfoCircle size={18} />}>
-                            {t("This instance does not accept sign-ups. Accounts are created by an organiser or come from the identity provider.")}
+                            {t("This instance does not accept sign-ups. Accounts are created by an organizer or come from the identity provider.")}
                         </Alert>
                         <Text size="sm" c="dimmed">
                             {t("If you are expecting an account, ask whoever runs the contest or the course.")}

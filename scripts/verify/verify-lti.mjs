@@ -568,14 +568,14 @@ const asks = await evaluate(`
 `);
 
 if (!asks.saysUnpublished) {
-    fail("the copy dialogue does not say the copy arrives unpublished");
+    fail("the copy dialog does not say the copy arrives unpublished");
 } else {
-    pass("the copy dialogue says the copy arrives unpublished");
+    pass("the copy dialog says the copy arrives unpublished");
 }
 if (!asks.saysWhatTravels) {
-    fail("the copy dialogue does not say what the copy leaves behind");
+    fail("the copy dialog does not say what the copy leaves behind");
 } else {
-    pass("the copy dialogue says what the copy leaves behind");
+    pass("the copy dialog says what the copy leaves behind");
 }
 if (asks.blocked !== true) {
     fail(`copying is offered before a name and a date are given (${asks.blocked})`);
@@ -586,7 +586,7 @@ if (asks.blocked !== true) {
 // Settled rather than mid-transition: a screenshot taken while the modal fades
 // in shows the page through it, which reads as a rendering defect and is not one.
 await new Promise(resolve => setTimeout(resolve, 800));
-await shot("lti-copy-dialogue");
+await shot("lti-copy-dialog");
 
 await close();
 report();

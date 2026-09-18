@@ -1,7 +1,7 @@
 import { ActivityGroup, Grant } from "../ManagerApi";
 import { effectivePermissions } from "../permissions";
 import { signedInUserId } from "./CoreApiFake";
-import { createGrants, MY_SYSTEM_PERMISSIONS, PERMISSION_CATALOGUE } from "./fixtures/permissions";
+import { createGrants, MY_SYSTEM_PERMISSIONS, PERMISSION_CATALOG } from "./fixtures/permissions";
 import { ME } from "./fixtures/problems";
 import { WORLD } from "./fixtures/world";
 
@@ -14,7 +14,7 @@ import { WORLD } from "./fixtures/world";
  * screen still open a door in another — and the door this exists for is the
  * ranking feed, where `ranking:read:unfrozen` decides what leaves.
  *
- * The Server needs no such object. It has one authorisation and one database;
+ * The Server needs no such object. It has one authorization and one database;
  * this exists so the fake cannot answer a question the Server would refuse.
  */
 export class FakeAccess {
@@ -61,10 +61,10 @@ export class FakeAccess {
         // reading only the second half here would make every linked account
         // hold nothing.
         const held = effectivePermissions(global);
-        // An administrator holds the catalogue; there is no list to keep in step
+        // An administrator holds the catalog; there is no list to keep in step
         // with it, which is the point of the permission being what it is.
         return held.includes("system:administrator")
-            ? PERMISSION_CATALOGUE.map(definition => definition.key)
+            ? PERMISSION_CATALOG.map(definition => definition.key)
             : held;
     }
 

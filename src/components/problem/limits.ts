@@ -105,7 +105,7 @@ export interface LanguageLimits {
  * participant rows nobody wrote and would go wrong the moment a Runner learned a
  * toolchain this build has not heard of.
  *
- * A key that is a family has no label in the catalogue and shows as itself,
+ * A key that is a family has no label in the catalog and shows as itself,
  * which reads correctly: `cpp` is what the package says the rule applies to.
  */
 export function limitsByLanguage(config: unknown): LanguageLimits[] {

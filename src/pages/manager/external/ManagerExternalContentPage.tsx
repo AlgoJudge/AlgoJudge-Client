@@ -142,7 +142,7 @@ export default function ManagerExternalContentPage() {
  * Importing problems by number.
  *
  * **The whole of the paste path.** A number carries neither a title nor an
- * address, so the catalogue is asked for the first and the second is built from
+ * address, so the catalog is asked for the first and the second is built from
  * the number — and whether the statement still exists is settled by fetching
  * it, because a problem withdrawn from the archive has no document.
  *
@@ -169,7 +169,7 @@ function ImportCard({ enabled }: { enabled: boolean | undefined }) {
             const done: ImportOutcome[] = [];
             for (const number of numbers) {
                 // One at a time, and on purpose: this asks somebody else's
-                // catalogue and this installation's Server for every entry, and
+                // catalog and this installation's Server for every entry, and
                 // a burst of parallel requests to a public archive is rude in a
                 // way nobody would notice here and everybody would notice there.
                 const found = await lookUp(number).catch(() => undefined);
@@ -187,7 +187,7 @@ function ImportCard({ enabled }: { enabled: boolean | undefined }) {
      * Imports what the picker handed back.
      *
      * **Nothing is looked up.** The picker states the number, the title and the
-     * statement's address, so the catalogue is not asked — that call exists only
+     * statement's address, so the catalog is not asked — that call exists only
      * because a pasted number carries none of it.
      */
     const picked = async (problems: UvaPickerProblem[]) => {

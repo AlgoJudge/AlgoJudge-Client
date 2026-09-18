@@ -247,12 +247,12 @@ events.stop();
 // Fourteen of those were live at once on 2026-08-08, each with a screen waiting
 // on a frame no code path produced, and nothing failed a build.
 //
-// The Server commits its catalogue beside `openapi.json`, for the same reason
+// The Server commits its catalog beside `openapi.json`, for the same reason
 // and read the same way. Given one, this diffs against it; given none, it says
 // so rather than passing quietly.
 // ── every name this Client knows has somebody listening ─────────────────────
 //
-// The Server has the mirror of this rule — `EventCatalogueTests`'s
+// The Server has the mirror of this rule — `EventCatalogTests`'s
 // `Every_declared_event_has_something_that_sends_it` — and between them they
 // were still blind to the failure of 2026-09-14: `activityCreated` was declared
 // on both sides, sent by nothing, and waited for by three screens. That test
@@ -288,10 +288,10 @@ events.stop();
         `every name this Client routes has somewhere to land${unheard.length ? `: ${unheard.join(", ")}` : ""}`);
 }
 
-const catalogue = process.argv[2];
-if (catalogue) {
+const catalog = process.argv[2];
+if (catalog) {
     const { events: served, transport = [] } =
-        JSON.parse(readFileSync(catalogue, "utf8"));
+        JSON.parse(readFileSync(catalog, "utf8"));
 
     const known = [...new Set([...Object.keys(CORE), ...Object.keys(PARTICIPANT), ...Object.keys(MANAGER)])];
 
@@ -313,7 +313,7 @@ if (catalogue) {
         check(before === after, `the ${frame} frame is dropped rather than dispatched`);
     }
 } else {
-    console.log("\nNo event catalogue given, so the two sides were not compared.");
+    console.log("\nNo event catalog given, so the two sides were not compared.");
     console.log("The Server commits one at AlgoJudge-Server/events.json:");
     console.log("    npm run check:events -- ../AlgoJudge-Server/events.json");
 }

@@ -32,7 +32,7 @@ await click(tab("Ustawienia"));
 await wait(900);
 
 check(await heading() === "Link do samodzielnego zapisu",
-    "a password-joined activity offers the self-enrolment link");
+    "a password-joined activity offers the self-enrollment link");
 check(/\/activities\/PROG-1-LA#PROG1-LA$/.test(await shownLink() ?? ""),
     "with the password in the fragment");
 
@@ -52,7 +52,7 @@ await shot("share-open");
 // Closed: nobody to give a link to.
 await choosePolicy("Zamknięta");
 check(await heading() === null,
-    "a closed activity offers none: nobody enrols themselves");
+    "a closed activity offers none: nobody enrolls themselves");
 await shot("share-closed");
 
 report();

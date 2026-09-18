@@ -57,7 +57,7 @@ export const toInput = (activity: ManagedActivity): ActivityInput => ({
     maxSubmissionsPerProblem: activity.maxSubmissionsPerProblem,
     runnerTags: [...activity.runnerTags],
     // Sent back as they came, so a save from the settings tab does not clear
-    // what the enrolment pickers show — an empty string is how one is cleared.
+    // what the enrollment pickers show — an empty string is how one is cleared.
     participantRoleId: activity.participantRoleId ?? "",
     managerRoleId: activity.managerRoleId ?? "",
 });

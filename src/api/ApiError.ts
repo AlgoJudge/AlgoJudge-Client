@@ -142,7 +142,7 @@ export class InvalidStatusError extends ApiError {
  * What to put in front of somebody about a refusal.
  *
  * `message` alone is not always an answer. The Server writes `detail` for the
- * cases it has a sentence for, and a **serialiser** refusal has none: ASP.NET
+ * cases it has a sentence for, and a **serializer** refusal has none: ASP.NET
  * answers `title` = "One or more validation errors occurred." and puts the only
  * useful words under `errors`, keyed by the field. A screen showing `message`
  * then tells a manager that something was invalid and nothing about what —
@@ -156,7 +156,7 @@ export const describe = (e: unknown): string => {
     const fields = e instanceof ValidationError ? e.fields : undefined;
     if (!fields) return e.message;
 
-    // **A JSON path wins over a parameter name.** When the serialiser refuses a
+    // **A JSON path wins over a parameter name.** When the serializer refuses a
     // body it files the precise complaint under `$.modules` and adds a second
     // entry under the action's parameter saying only that the input was
     // required — true, and no help to anybody reading it on a screen.

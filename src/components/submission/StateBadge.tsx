@@ -16,7 +16,7 @@ export interface StateBadgeProps {
  * saying; once it is done the verdict is what the participant came for, so the
  * badge switches from one to the other rather than showing both.
  *
- * Colour comes from the **score**, never from the verdict text. A verdict is a
+ * Color comes from the **score**, never from the verdict text. A verdict is a
  * type-specific string the Client is not entitled to interpret — matching on
  * "Accepted" would work for `standard-io` and quietly mislead for anything
  * else — whereas the score against its maximum means the same thing for every
@@ -28,7 +28,7 @@ const colorFor = ({ state, score, maxScore }: StateBadgeProps): string => {
         case "failed": return "red";
         case "queued":
         case "superseded":
-        case "cancelled": return "gray";
+        case "canceled": return "gray";
         case "completed":
             if (score === undefined || maxScore === undefined || maxScore === 0) return "teal";
             if (score >= maxScore) return "teal";

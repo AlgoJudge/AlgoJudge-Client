@@ -8,7 +8,7 @@ const { check, report } = results();
 const editor = `document.querySelector("[data-testid=app-main] .monaco-editor")`;
 
 // ── 1. Reach an editor ──────────────────────────────────────────────────────
-// The submit page rather than the modal: the colour-scheme toggle lives in the
+// The submit page rather than the modal: the color-scheme toggle lives in the
 // header, and a modal would sit over it.
 await go(`${APP}/activities/AMMPZ-2019/submit/D?fakeUser=amy`,
     `document.body.innerText.includes("Język")`);
@@ -53,9 +53,9 @@ const token = await evaluate(`
 `);
 check(/^"?JetBrains Mono"?/.test(token), `and the theme's monospace token names it — ${token}`);
 
-// ── 3. It follows the application's colour scheme ───────────────────────────
+// ── 3. It follows the application's color scheme ───────────────────────────
 // The frame is on the wrapper, not on `.monaco-editor`, so it is read from the
-// wrapper. A border of zero width, or one painted in the colour behind it, says
+// wrapper. A border of zero width, or one painted in the color behind it, says
 // nothing about where the editor is — both are what this rules out.
 const state = () => evaluate(`
     const el = ${editor};
@@ -64,7 +64,7 @@ const state = () => evaluate(`
     return {
         frame: border ? {
             width: parseFloat(border.borderTopWidth),
-            colour: border.borderTopColor,
+            color: border.borderTopColor,
             radius: border.borderTopLeftRadius,
             behind: getComputedStyle(frame.parentElement).backgroundColor,
         } : null,
@@ -76,8 +76,8 @@ const state = () => evaluate(`
 
 const framed = (seen) => {
     const f = seen.frame;
-    check(f !== null && f.width >= 1 && !/,\s*0\)$/.test(f.colour) && f.colour !== f.behind,
-        `${seen.scheme}: the working area is framed — ${f ? `${f.width}px ${f.colour}, radius ${f.radius}, on ${f.behind}` : "no frame"}`);
+    check(f !== null && f.width >= 1 && !/,\s*0\)$/.test(f.color) && f.color !== f.behind,
+        `${seen.scheme}: the working area is framed — ${f ? `${f.width}px ${f.color}, radius ${f.radius}, on ${f.behind}` : "no frame"}`);
 };
 
 const before = await state();

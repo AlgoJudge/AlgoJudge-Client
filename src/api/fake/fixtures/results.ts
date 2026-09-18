@@ -128,7 +128,7 @@ export interface ResultsQuery {
      * Whether the caller holds `ranking:read:unfrozen` here.
      *
      * It bypasses **both** withholdings, which is what the permission is for: an
-     * organiser has to see the board before releasing it. Applied here rather
+     * organizer has to see the board before releasing it. Applied here rather
      * than by the screen — a screen that drew what it was not sent produced a
      * table of five contestants, no columns and a penalty of zero for everyone,
      * which is how this came to be checked in the right place.

@@ -11,7 +11,7 @@
 // asks `user:read:all` at system scope before even that. A screen that fills a
 // picker from it therefore looks complete against the fake and is empty in an
 // installation, and no amount of driving the fake can tell. The same is true of
-// every scope question below: only a Server that authorises the request knows
+// every scope question below: only a Server that authorizes the request knows
 // whether an activity-scoped grant reaches it.
 //
 //   docker compose -f example-full-stack-docker-compose.yaml up -d --build --wait
@@ -316,7 +316,7 @@ test("a manager of one activity can configure it, its questions, its printouts a
 
         await test.step("somebody already in the installation can be enrolled by hand", async () => {
             await page.goto(`${APP}/manager/activities/${mine}?tab=participants`);
-            await panel().getByTestId("enrol-someone").click();
+            await panel().getByTestId("enroll-someone").click();
             await expect(dialog).toBeVisible();
 
             // **The role carries `activity:enroll` and `grant:update`.** If the
@@ -340,7 +340,7 @@ test("a manager of one activity can configure it, its questions, its printouts a
             const options = await page.getByRole("option").allInnerTexts();
             const canName = options.some(text => new RegExp(PARTICIPANT.login, "i").test(text));
             expect(canName,
-                `the user picker can name somebody to enrol (offered: ${options.join(" | ") || "nothing"})`)
+                `the user picker can name somebody to enroll (offered: ${options.join(" | ") || "nothing"})`)
                 .toBe(true);
 
             {
@@ -422,14 +422,14 @@ test("a manager of one activity can configure it, its questions, its printouts a
                 await signIn(them, PARTICIPANT);
 
                 // Scaffolding, and only reached when the step above could not
-                // enrol them: the activity is open, so they let themselves in.
+                // enroll them: the activity is open, so they let themselves in.
                 // Idempotent — already being in answers with the activity.
                 await them.evaluate(async (url) => {
                     await fetch(url, {
                         method: "POST", credentials: "include",
                         headers: { "content-type": "application/json" }, body: "{}",
                     });
-                }, `${API}/activities/${mine}/enrolment`);
+                }, `${API}/activities/${mine}/enrollment`);
 
                 await them.goto(`${APP}/activities/${mine}/rules`);
                 await expect(theirMain, "the participant reads the rules the manager published")

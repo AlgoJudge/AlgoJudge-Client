@@ -21,7 +21,7 @@ await go(`${APP}/activities/AMMPZ-2019/submit/D?fakeUser=amy`,
 await wait(1500);
 
 /**
- * Whether the form's own send button is the thing at its own centre.
+ * Whether the form's own send button is the thing at its own center.
  *
  * **`elementFromPoint`, not a click and not a screenshot.** A click dispatched
  * through JavaScript lands on the element whatever is drawn over it, so it
@@ -159,7 +159,7 @@ check(wide.every(c => c.fz >= 15),
 //
 // **Not `getComputedStyle(link).backgroundColor`.** The links are transparent
 // before and after: the background belongs to the header. What is asked is
-// what a finger asks — `elementFromPoint` at a link's own centre — and whether
+// what a finger asks — `elementFromPoint` at a link's own center — and whether
 // the bar grew around the menu it opened, which is the whole of the fix.
 await send("Page.setDeviceMetricsOverride",
     { width: 360, height: 740, deviceScaleFactor: 1, mobile: true });

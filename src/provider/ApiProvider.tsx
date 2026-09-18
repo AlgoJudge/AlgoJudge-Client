@@ -7,7 +7,7 @@ import { ApiContext } from "./apiContext";
  * Said in plain markup, in English, on purpose.
  *
  * This provider sits **above** `MantineProvider` and above the instance whose
- * colours the theme is built from, so no themed component is available here and
+ * colors the theme is built from, so no themed component is available here and
  * nothing can be fetched to fill the page in. And the person who sees it is the
  * operator who started the container, not a participant: what they need is the
  * name of the variable and the fact that nothing else on this screen is real.

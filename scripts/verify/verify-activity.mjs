@@ -1,4 +1,4 @@
-// The activity's own page, self-enrolment, and the documents behind both.
+// The activity's own page, self-enrollment, and the documents behind both.
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
@@ -37,7 +37,7 @@ for (let i = 0; i < 20; i++) {
 check(await evaluate(`return location.pathname === "/activities/PROG-1-LA";`),
     "an activity with a participant page opens on that page");
 check(/Witamy na zaj/i.test(await body()),
-    "and the page is the document its organiser wrote");
+    "and the page is the document its organizer wrote");
 const links = await navLinks();
 // Above Zadania, not first in the sidebar: the application's own entries come
 // before the activity's block.
@@ -130,12 +130,12 @@ check(await evaluate(`
 `), "a password is asked for, because that is how this one is joined");
 check(/akceptuj|regulamin/i.test(await body()),
     "and the rules have to be accepted, because there are rules");
-await shot("act-enrol");
+await shot("act-enroll");
 
 // 6 — the wrong password is refused, and says so.
 await click(`[...document.querySelectorAll("input[type=checkbox]")].at(-1)`);
 await type("input[type=password]", "nie-to-haslo");
-await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "enrol")`);
+await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "enroll")`);
 await wait(2000);
 check(/nieprawidłow/i.test(await body()),
     "a wrong password is refused in words rather than silently");
@@ -144,10 +144,10 @@ check(await evaluate(`return document.querySelector("input[type=password]") !== 
 
 // 7 — the right one puts them in, and the page becomes the participant's.
 await type("input[type=password]", PASSWORD);
-await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "enrol")`);
+await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "enroll")`);
 await wait(3000);
 check(!/Zapisz się na tę aktywność/.test(await body()),
-    "the right password enrols, and the form goes");
+    "the right password enrolls, and the form goes");
 check(/Witamy na zaj/i.test(await body()),
     "and the page becomes the one written for participants");
 const after = await navLinks();
@@ -161,7 +161,7 @@ check(await evaluate(`return document.querySelector("input[type=password]") === 
     "an open activity asks for no password");
 check(/Trening otwarty/.test(await body()),
     "and still shows what it wrote for outsiders");
-await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "enrol")`);
+await click(`[...document.querySelectorAll("button")].find(b => b.dataset.testid === "enroll")`);
 await wait(3000);
 check(await evaluate(`return location.pathname === "/activities/TRENING-OTWARTY/problems";`),
     "enrolling in one with no participant page lands on its problems");
@@ -169,7 +169,7 @@ check(await evaluate(`return location.pathname === "/activities/TRENING-OTWARTY/
 // 9 — a closed activity offers no form at all.
 await visit("/activities/WARSZTAT-9", `document.body.innerText.length > 0`);
 check(/zapisuje organizator/i.test(await body()),
-    "a closed activity says the organiser enrols, and offers no form");
+    "a closed activity says the organizer enrolls, and offers no form");
 check(await evaluate(`
     return [...document.querySelectorAll("button")].every(b => b.textContent.trim() !== "Zapisz się");
 `), "there is nothing to press");

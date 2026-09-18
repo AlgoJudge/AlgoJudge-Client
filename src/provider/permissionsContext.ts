@@ -25,7 +25,7 @@ export interface PermissionsContextType {
      * right question for a menu and the wrong one for a screen the installation
      * owns. `user:read:all` is the case that forced this: it is in the shipped
      * `manager` role so that an activity's manager can look somebody up to
-     * enrol them, and the account list is still an administrator's screen — so
+     * enroll them, and the account list is still an administrator's screen — so
      * the panel has to tell the two apart or it offers a card that refuses.
      */
     hasAtSystemScope: (permission: string) => boolean;

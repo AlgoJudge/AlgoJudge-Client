@@ -11,14 +11,14 @@
  * **What may be submitted is the assignment's, not this file's.** The select is
  * drawn from `spec.languages` on the assignment and the Runner refuses anything
  * outside `config.languages`; this map only says what each id is *called* and
- * which Monaco grammar colours it.
+ * which Monaco grammar colors it.
  *
  * That is deliberate. A Server release per language was what the old
  * arrangement cost, and a Client release per language would be the same mistake
  * one floor up: an id this file has never seen still submits, still judges, and
  * shows as its own id with plain-text highlighting until somebody adds a row.
  *
- * ## One catalogue per problem type
+ * ## One catalog per problem type
  *
  * **The type defines what it offers, and what each is called.** `standard-io@1`
  * builds and runs eighteen toolchains here; `uva@1` forwards to
@@ -33,7 +33,7 @@
  * compiler.
  *
  * It mirrors `AlgoJudge-Runner/crates/aj-standard-io/src/language.rs` and
- * `AlgoJudge-External-Runner/src/uva/language.rs`, which are the catalogues of
+ * `AlgoJudge-External-Runner/src/uva/language.rs`, which are the catalogs of
  * record. Where they disagree, the Runner is right and this is out of date.
  */
 
@@ -81,7 +81,7 @@ const STANDARD_IO: Record<string, Toolchain> = {
     "python3": { label: "Python 3 (CPython)", monaco: "python", extension: ".py" },
     "pypy3": { label: "Python 3 (PyPy)", monaco: "python", extension: ".py" },
 
-    // The ids every package written before the catalogue uses, and which the
+    // The ids every package written before the catalog uses, and which the
     // Runner still resolves — to `cpp20-gcc` and `python3`. Carried here so an
     // older assignment's select reads as words rather than as `cpp`.
     "cpp": { label: "C++20 (GCC)", monaco: "cpp", extension: ".cpp" },
@@ -105,14 +105,14 @@ const UVA: Record<string, Toolchain> = {
     "python3": { label: "Python 3 (CPython 3.5.1)", monaco: "python", extension: ".py" },
 };
 
-const CATALOGUES: Record<string, Record<string, Toolchain>> = {
+const CATALOGS: Record<string, Record<string, Toolchain>> = {
     "standard-io@1": STANDARD_IO,
     "output-only@1": STANDARD_IO,
     "uva@1": UVA,
 };
 
 /**
- * The catalogue for a problem type.
+ * The catalog for a problem type.
  *
  * **A type this build has never heard of falls back to `standard-io@1`'s**,
  * which is the largest and the one every shared id is in. That is a label being
@@ -120,8 +120,8 @@ const CATALOGUES: Record<string, Record<string, Toolchain>> = {
  * choice the rest of this file makes: a Runner may know a type this Client does
  * not, and a participant should still read words.
  */
-const catalogueFor = (type: string | undefined): Record<string, Toolchain> =>
-    (type === undefined ? undefined : CATALOGUES[type]) ?? STANDARD_IO;
+const catalogFor = (type: string | undefined): Record<string, Toolchain> =>
+    (type === undefined ? undefined : CATALOGS[type]) ?? STANDARD_IO;
 
 /**
  * What to call a toolchain. **An unknown id is its own label**, not an error and
@@ -129,11 +129,11 @@ const catalogueFor = (type: string | undefined): Record<string, Toolchain> =>
  * empty select today.
  */
 export const languageLabel = (type: string | undefined, id: string): string =>
-    catalogueFor(type)[id]?.label ?? id;
+    catalogFor(type)[id]?.label ?? id;
 
 /** An unmapped language shows as plain text rather than failing to load. */
 export const monacoLanguage = (type: string | undefined, language: string | undefined): string =>
-    (language && catalogueFor(type)[language]?.monaco) ?? "plaintext";
+    (language && catalogFor(type)[language]?.monaco) ?? "plaintext";
 
 /**
  * What pasted source in this toolchain should be called.
@@ -143,23 +143,23 @@ export const monacoLanguage = (type: string | undefined, language: string | unde
  * extension for an unknown language would be guessing at somebody's verdict.
  */
 export const pastedFileName = (type: string | undefined, id: string | undefined): string =>
-    `main${(id && catalogueFor(type)[id]?.extension) ?? ".txt"}`;
+    `main${(id && catalogFor(type)[id]?.extension) ?? ".txt"}`;
 
 /**
  * Every id this build has a label for, under one type. For a manager's editor
  * and for a form with nothing else to offer — never for a gate.
  */
 export const knownLanguages = (type: string | undefined): string[] =>
-    Object.keys(catalogueFor(type));
+    Object.keys(catalogFor(type));
 
 /**
  * Every extension a solution may be **uploaded** under, per problem type.
  *
  * Here rather than beside the submit renderer, because the list this has to
- * agree with is the catalogue above it: the Runner refuses a file whose name the
+ * agree with is the catalog above it: the Runner refuses a file whose name the
  * chosen toolchain does not accept, and it does so as a compilation error before
  * anything is built. Kept apart, the two drift — and they did. This list lived
- * in `renderers/index.ts`, predated the eighteen-toolchain catalogue of
+ * in `renderers/index.ts`, predated the eighteen-toolchain catalog of
  * 2026-08-22, and never gained `.c`: the form offered eight C toolchains and
  * then refused every file one of them could be written in, so a C solution
  * could be pasted and never uploaded.

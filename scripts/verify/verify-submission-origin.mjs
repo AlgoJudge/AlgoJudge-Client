@@ -13,7 +13,7 @@
 // `SubmissionOriginTests.A_judge_reads_it_in_the_detail_and_not_in_the_list` in
 // the Server's suite, against the real DTO.
 //
-// The device is deliberately labelled as the browser and not as the machine. A
+// The device is deliberately labeled as the browser and not as the machine. A
 // page writes it, so whoever is using it can change it, and a room imaged from
 // one disk reports one for every station. It answers *the same browser, two
 // accounts*, and the tooltip says so in as many words.

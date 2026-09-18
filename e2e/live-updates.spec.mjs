@@ -94,7 +94,7 @@ test("pausing a round reaches the people in it, without a reload", async ({ page
     await expect(page).not.toHaveURL(/\/login/, { timeout: 20_000 });
 
     const enrolled = await page.evaluate(async (url) => {
-        const r = await fetch(`${url}/enrolment`, {
+        const r = await fetch(`${url}/enrollment`, {
             method: "POST", credentials: "include",
             headers: { "content-type": "application/json" }, body: "{}",
         });

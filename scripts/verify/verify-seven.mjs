@@ -57,7 +57,7 @@ check(await evaluate(`
     return document.querySelector("input")?.value === "nowy-student";
 `), "and closing leaves what was typed exactly where it was");
 
-// 3 — the same on the enrolment form, with one label rather than two.
+// 3 — the same on the enrollment form, with one label rather than two.
 await go(`${APP}/activities/PROG-1-LB?fakeUser=amy`, `document.body.innerText.includes("Zapisz si")`);
 check(await evaluate(`
     const box = [...document.querySelectorAll("input[type=checkbox]")].at(-1);
@@ -68,7 +68,7 @@ check(!/akceptuję go — |akceptuję go —/.test(await body()),
 await click(`document.querySelector("[data-testid=rules-link]")`);
 await wait(2500);
 check(await evaluate(`return document.querySelector("[data-testid=modal]") !== null;`),
-    "the rules open over the enrolment form");
+    "the rules open over the enrollment form");
 await shot("seven-rules");
 await click(`[...document.querySelectorAll("[data-testid=modal] [data-testid=close-button]")].at(-1)`);
 await wait(1000);

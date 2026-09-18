@@ -53,7 +53,7 @@ export default function OpaqueDocumentField({
      * previous text back and the character disappeared. These three documents
      * could be pasted whole and never typed — and `validationError` could never
      * fire either, because the text was always something this field had just
-     * serialised itself.
+     * serialized itself.
      */
     const [text, setText] = useState(stored);
     const [refused, setRefused] = useState<"syntax" | "shape" | undefined>(undefined);

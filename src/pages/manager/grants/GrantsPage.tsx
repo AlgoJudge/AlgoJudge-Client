@@ -53,7 +53,7 @@ export default function GrantsPage() {
     const [scope, setScope] = useState<string | null>(null);
     const [activityFilter, setActivityFilter] = useState<string | null>(null);
 
-    const [catalogue, setCatalogue] = useState<PermissionDefinition[]>([]);
+    const [catalog, setCatalog] = useState<PermissionDefinition[]>([]);
     const [templates, setTemplates] = useState<Role[]>([]);
     const { users, search: searchUsers, remember } = useUserSearch();
     const [activities, setActivities] = useState<ManagedActivitySummary[]>([]);
@@ -65,7 +65,7 @@ export default function GrantsPage() {
     const [reload, setReload] = useState(0);
 
     const loadError = useApiEffect(async (api) => {
-        setCatalogue(await api.managerApi.getPermissionCatalogue());
+        setCatalog(await api.managerApi.getPermissionCatalog());
         // Pickers, not the page. See `optional`.
         setTemplates(await optional(api.managerApi.getRoles(activityFilter ?? undefined), []));
         setActivities(await api.managerApi.getManagedActivities());
@@ -200,7 +200,7 @@ export default function GrantsPage() {
                         // **Opened where this person can actually write.** With no
                         // scope the editor asks what the caller holds at system
                         // scope, which for anybody whose rights live in an
-                        // activity is nothing — every permission greyed out and a
+                        // activity is nothing — every permission grayed out and a
                         // refusal on save. A reader who manages exactly one
                         // activity means that one; anybody with a wider reach
                         // gets the choice they had.
@@ -457,7 +457,7 @@ export default function GrantsPage() {
                         />
 
                         <PermissionSetEditor
-                            catalogue={catalogue}
+                            catalog={catalog}
                             value={draft.permissions}
                             onChange={permissions => setDraft({ ...draft, permissions })}
                             grantable={grantable}

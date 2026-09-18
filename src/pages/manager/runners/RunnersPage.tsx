@@ -17,7 +17,7 @@ import DataTable from "../../../components/table/DataTable";
 
 const PAGE_SIZE = 20;
 
-const STATE_COLOUR: Record<RunnerState, string> = {
+const STATE_COLOR: Record<RunnerState, string> = {
     pendingApproval: "orange",
     approved: "teal",
     revoked: "gray",
@@ -269,7 +269,7 @@ export default function RunnersPage() {
                             </Table.Td>
                             <Table.Td>
                                 <Tooltip label={runner.revokedReason ?? ""} disabled={!runner.revokedReason}>
-                                    <Badge variant="light" color={STATE_COLOUR[runner.state]}>
+                                    <Badge variant="light" color={STATE_COLOR[runner.state]}>
                                         {t(`runnerState.${runner.state}`)}
                                     </Badge>
                                 </Tooltip>

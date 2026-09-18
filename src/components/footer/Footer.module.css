@@ -1,11 +1,11 @@
-/* The signed-out shell's foot. **It takes the navigation's colours**, because
+/* The signed-out shell's foot. **It takes the navigation's colors**, because
    that is one bar and one decision: an installation whose navigation is a
    saturated blue has a foot to match, and asking for a second pair of keys
    would be asking the same question twice. Nothing moves without a theme. */
 .footer {
     border-top: rem(1px) solid
         var(--aj-footer-border, light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5)));
-    /* Opaque, and its own colour: whatever the page put above it must not show
+    /* Opaque, and its own color: whatever the page put above it must not show
        through the links. */
     background-color: var(--aj-footer-bg, light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7)));
     margin-top: var(--mantine-spacing-xl);
@@ -24,7 +24,7 @@
 }
 
 /* The documents at the foot. They were `c="dimmed"`, which is the *page's*
-   quiet colour — unreadable the moment the foot is a saturated bar rather than
+   quiet color — unreadable the moment the foot is a saturated bar rather than
    the page it used to be. */
 .docLink {
     color: var(--aj-footer-muted, var(--mantine-color-dimmed));

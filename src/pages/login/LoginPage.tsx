@@ -67,7 +67,7 @@ export default function LoginPage() {
     /*
      * The same place, split for the journey through a provider.
      *
-     * **The fragment must not become a `returnUrl`.** A self-enrolment link
+     * **The fragment must not become a `returnUrl`.** A self-enrollment link
      * carries the activity's password there so that no server sees it; a query
      * parameter the Server reads is an access log, a proxy, and the provider's
      * redirect. So the address given to the Server is the path and query alone,
@@ -114,7 +114,7 @@ export default function LoginPage() {
     useEffect(() => {
         if (!redirectTo) return;
         // The activity password stays in the tab, exactly as the buttons below
-        // keep it. Without this, a self-enrolment link loses its password on
+        // keep it. Without this, a self-enrollment link loses its password on
         // precisely the installations that set a redirect.
         if (joinPassword) stashJoinPassword(returnUrlPath, joinPassword);
         // **`replace`, not `assign` and not a router navigation.** A router

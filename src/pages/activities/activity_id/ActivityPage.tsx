@@ -27,13 +27,13 @@ const decoded = (text: string): string => {
 /**
  * An activity's own page, in its two forms.
  *
- * Somebody **in** the activity reads what its organiser wrote for participants.
+ * Somebody **in** the activity reads what its organizer wrote for participants.
  * Somebody who is not reads what they wrote for outsiders, and gets the form to
- * enrol themselves — which is the only way in that does not involve a manager
+ * enroll themselves — which is the only way in that does not involve a manager
  * doing it by hand.
  *
  * Both documents are optional, as every document in the product is. An activity
- * whose organiser wrote no participant page has nothing to draw here, so the
+ * whose organizer wrote no participant page has nothing to draw here, so the
  * address does not stop: it goes on to the problems, which is what somebody
  * clicking the activity was after.
  */
@@ -87,7 +87,7 @@ export default function ActivityPage() {
         const ref = pickDocumentRef(loaded.documents, kind, i18n.language);
         setContent(ref ? await api.fileApi.getText(ref.fileId) : null);
 
-        // Enrolling announces itself, and so does the organiser publishing a
+        // Enrolling announces itself, and so does the organizer publishing a
         // document. Either way the whole page is asked for again rather than
         // patched: there is a document to fetch behind it.
         api.participantApi.eventDispatcher.addEventListener("activityUpdated", evt => {
@@ -110,11 +110,11 @@ export default function ActivityPage() {
     const rules = pickDocumentRef(activity.documents, "rules", i18n.language);
     const mustAccept = rules !== undefined;
     const needsPassword = activity.joinPolicy === "password";
-    const canEnrol = activity.joinPolicy !== "closed"
+    const canEnroll = activity.joinPolicy !== "closed"
         && (!mustAccept || accepted)
         && (!needsPassword || password.trim().length > 0);
 
-    const enrol = async () => {
+    const enroll = async () => {
         setRefused(undefined);
         setBusy(true);
         try {
@@ -185,7 +185,7 @@ export default function ActivityPage() {
                 </Paper>
             )}
 
-            {/* An activity whose organiser wrote nothing shows nothing: not a
+            {/* An activity whose organizer wrote nothing shows nothing: not a
                 placeholder and not an apology. Somebody not enrolled still gets
                 the form, which is what they came for. */}
             {content !== null && (
@@ -199,11 +199,11 @@ export default function ActivityPage() {
             {!enrolled && (
                 <Paper withBorder p="xl" radius="md">
                     <Stack gap="md">
-                        <Title order={3}>{t("Enrol in this activity")}</Title>
+                        <Title order={3}>{t("Enroll in this activity")}</Title>
 
                         {activity.joinPolicy === "closed" ? (
                             <Text c="dimmed">
-                                {t("Enrolment in this activity is done by its organiser.")}
+                                {t("Enrollment in this activity is done by its organizer.")}
                             </Text>
                         ) : (
                             <>
@@ -255,13 +255,13 @@ export default function ActivityPage() {
                                 )}
 
                                 <Group>
-                                    <Button data-testid="enrol"
+                                    <Button data-testid="enroll"
                                         leftSection={<IconLogin2 size={16} />}
-                                        onClick={() => void enrol()}
+                                        onClick={() => void enroll()}
                                         loading={busy}
-                                        disabled={!canEnrol}
+                                        disabled={!canEnroll}
                                     >
-                                        {t("Enrol")}
+                                        {t("Enroll")}
                                     </Button>
                                 </Group>
                             </>

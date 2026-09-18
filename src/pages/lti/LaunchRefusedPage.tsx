@@ -71,7 +71,7 @@ interface Explanation {
 }
 
 /**
- * One entry per code the Server can send. Anything unrecognised falls to a
+ * One entry per code the Server can send. Anything unrecognized falls to a
  * sentence that admits it — inventing a reassuring one for a code this
  * repository does not know is how a wrong explanation gets acted on.
  */
@@ -130,7 +130,7 @@ const explain = (reason: string, t: (key: string) => string): Explanation => {
         default:
             return {
                 title: t("The launch was refused"),
-                detail: t("AlgoJudge did not accept this launch and did not say why in a way this page recognises."),
+                detail: t("AlgoJudge did not accept this launch and did not say why in a way this page recognizes."),
             };
     }
 };

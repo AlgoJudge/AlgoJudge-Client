@@ -270,7 +270,7 @@ version: 1
 An introduction to programming for first-year students. Solutions are handed in
 here, and the mark for the course is the sum of the problems' scores.
 
-If you are in this group, enrol below with the password you were given in class.
+If you are in this group, enroll below with the password you were given in class.
 `;
 
 /** And what a participant reads there instead, once they are in. */

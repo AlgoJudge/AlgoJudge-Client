@@ -7,7 +7,7 @@ import { formatInZone, offsetLabel, resolveZone, TimeFormat, viewerZone, zonedLi
  * **The tooltip is where the activity's clock lives now.** Hovering — or
  * tabbing to it — gives the activity's zone and the reader's, each with its
  * offset and its IANA identifier, so "when does this actually open" and "what
- * did the organiser mean" are both answerable without arithmetic.
+ * did the organizer mean" are both answerable without arithmetic.
  */
 export interface ActivityTimeProps extends TextProps {
     /** UTC ISO 8601. */

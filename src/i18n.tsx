@@ -12,7 +12,7 @@ i18n
         fallbackLng: 'en',
 
         /*
-         * **Development only.** Unconditional, this logged initialisation,
+         * **Development only.** Unconditional, this logged initialization,
          * every namespace load and a line per missing key into the console of
          * every browser on every installation — noise of exactly the kind the
          * `pl-PL` note below explains is worth removing, because it is what

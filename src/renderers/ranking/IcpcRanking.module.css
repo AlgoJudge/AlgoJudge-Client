@@ -1,5 +1,5 @@
 /* ICPC cells carry two numbers: when the problem was solved and what it cost in
-   attempts. Colour says solved, attempted or waiting on the freeze. */
+   attempts. Color says solved, attempted or waiting on the freeze. */
 
 .cell {
     padding: 2px 6px;

@@ -9,22 +9,22 @@ import { PermissionDefinition } from "./ManagerApi";
  * among the competitors — a jury member in the ranking beside the students is a
  * bug, not a preference.
  *
- * Read from `systemic`, which the catalogue publishes. It used to be worked out
+ * Read from `systemic`, which the catalog publishes. It used to be worked out
  * as "anything the participant template does not grant", which is the same
  * answer for every permission that existed when it was written — and the wrong
- * one for `trial:run`, where the screen greyed the switch on while the Server
+ * one for `trial:run`, where the screen grayed the switch on while the Server
  * stored it off. Do not infer this from `participant` again; they are two
  * questions and the Server answers both.
  *
- * A permission the catalogue does not describe is treated as staff: an unknown
+ * A permission the catalog does not describe is treated as staff: an unknown
  * right is more likely to be a new one somebody has been given than an ordinary
  * participant's, and guessing the other way quietly puts them in the ranking.
  */
 export const isStaffGrant = (
     permissions: readonly string[],
-    catalogue: readonly PermissionDefinition[],
+    catalog: readonly PermissionDefinition[],
 ): boolean => permissions.some(key =>
-    catalogue.find(definition => definition.key === key)?.systemic !== false);
+    catalog.find(definition => definition.key === key)?.systemic !== false);
 
 /**
  * What a grant's systemic flag is, given what it carries.
@@ -35,9 +35,9 @@ export const isStaffGrant = (
  */
 export const systemicByDefault = (
     permissions: readonly string[],
-    catalogue: readonly PermissionDefinition[],
+    catalog: readonly PermissionDefinition[],
     asked: boolean | undefined,
-): boolean => isStaffGrant(permissions, catalogue) || asked === true;
+): boolean => isStaffGrant(permissions, catalog) || asked === true;
 
 /**
  * What a grant carries: the role it points at and its own entries together.

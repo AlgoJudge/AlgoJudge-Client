@@ -9,8 +9,8 @@
  * `ValidationError` and `ChecksumMismatchError` were declared and thrown nowhere.
  *
  * That cost nothing in production — the transport builds them from
- * `problem+json` — but it meant a screen's behaviour against the fake was not
- * evidence of its behaviour against the Server, which is the whole reason the
+ * `problem+json` — but it meant a screen's behavior against the fake was not
+ * evidence of its behavior against the Server, which is the whole reason the
  * fake exists.
  *
  * **The codes are the Server's, not invented here.** Each one below is a string

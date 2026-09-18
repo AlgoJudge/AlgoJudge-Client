@@ -1,5 +1,5 @@
 import {
-    InstanceDocumentKind, InstanceDocumentRef, InstanceInfo, InstanceTheme, LocalisedLogo, ThemeColours,
+    InstanceDocumentKind, InstanceDocumentRef, InstanceInfo, InstanceTheme, LocalizedLogo, ThemeColors,
 } from "../CoreApi";
 import { parse as parseYaml } from "yaml";
 import { InstanceFontInput, InstanceSettingsInput, ThemeInput, InstanceThemeInput }
@@ -65,7 +65,7 @@ const FAKE_THEME: InstanceTheme = {
 };
 
 /** Six hexadecimal digits, as the Server's own rule. */
-const COLOUR = /^#[0-9a-fA-F]{6}$/;
+const COLOR = /^#[0-9a-fA-F]{6}$/;
 
 const THEME_FORMAT = "algojudge-theme";
 const THEME_VERSION = 1;
@@ -105,8 +105,8 @@ function parseTheme(text: string): ThemeInput {
     }
 
     return {
-        light: root.light as ThemeColours | undefined,
-        dark: root.dark as ThemeColours | undefined,
+        light: root.light as ThemeColors | undefined,
+        dark: root.dark as ThemeColors | undefined,
         fontFamily: typeof root.fontFamily === "string" ? root.fontFamily : undefined,
         fontFamilyHeadings: typeof root.fontFamilyHeadings === "string" ? root.fontFamilyHeadings : undefined,
         fonts: Array.isArray(root.fonts) ? root.fonts as ThemeInput["fonts"] : undefined,
@@ -114,7 +114,7 @@ function parseTheme(text: string): ThemeInput {
 }
 
 /**
- * One scheme's colours, refused the way the Server refuses them.
+ * One scheme's colors, refused the way the Server refuses them.
  *
  * **The narrow rule is copied rather than skipped**, because the screen has to
  * behave here as it does against a Server: a value that would be turned away in
@@ -122,23 +122,23 @@ function parseTheme(text: string): ThemeInput {
  * on its happy path. An empty field is absent, not black — that is what "leave
  * it at the default" looks like on the wire.
  */
-function colours(stated: ThemeColours | undefined, scheme: string): ThemeColours | undefined {
+function colors(stated: ThemeColors | undefined, scheme: string): ThemeColors | undefined {
     if (!stated) return undefined;
 
     const kept: Record<string, string> = {};
     for (const [key, value] of Object.entries(stated)) {
         const trimmed = (value ?? "").trim();
         if (trimmed.length === 0) continue;
-        if (!COLOUR.test(trimmed)) {
+        if (!COLOR.test(trimmed)) {
             invalid(
-                `${scheme}.${key} is '${trimmed}', which is not a colour: six hexadecimal digits `
+                `${scheme}.${key} is '${trimmed}', which is not a color: six hexadecimal digits `
                 + "after a hash, and nothing else",
-                "theme.colour");
+                "theme.color");
         }
         kept[key] = trimmed.toLowerCase();
     }
 
-    return Object.keys(kept).length > 0 ? kept as ThemeColours : undefined;
+    return Object.keys(kept).length > 0 ? kept as ThemeColors : undefined;
 }
 
 /**
@@ -274,7 +274,7 @@ export class FakeInstance {
             this.info = { ...this.info, logo: mark };
         } else {
             const others = (this.info.logoTranslations ?? []).filter(entry => entry.language !== language);
-            const translations: LocalisedLogo[] = mark
+            const translations: LocalizedLogo[] = mark
                 ? [...others, { language, logo: mark }]
                 : others;
             this.info = { ...this.info, logoTranslations: translations.length > 0 ? translations : undefined };
@@ -306,8 +306,8 @@ export class FakeInstance {
 
         const stated = input.theme ?? parseTheme(text ?? "");
         const theme: InstanceTheme = {
-            light: colours(stated.light, "light"),
-            dark: colours(stated.dark, "dark"),
+            light: colors(stated.light, "light"),
+            dark: colors(stated.dark, "dark"),
             fontFamily: stated.fontFamily?.trim() || undefined,
             fontFamilyHeadings: stated.fontFamilyHeadings?.trim() || undefined,
             fonts: (stated.fonts ?? []).map(face => {
@@ -459,7 +459,7 @@ export class FakeInstance {
     }
 
     private static restore(documents: InstanceDocumentRef[]): InstanceInfo {
-        // The shipped default: accounts come from an organiser or from SSO.
+        // The shipped default: accounts come from an organizer or from SSO.
         const defaults: InstanceInfo = {
             name: "Wydział Informatyki",
             localRegistrationEnabled: false,
@@ -540,7 +540,7 @@ export class FakeInstance {
         };
         const signInRedirect = text("fakeSignInRedirect");
         const registerRedirect = text("fakeRegisterRedirect");
-        // The installation that carries its own colours. Off by default, because
+        // The installation that carries its own colors. Off by default, because
         // the other forty-six checks read the screens as they ship.
         const themed = flag("fakeTheme");
         if (themed === true) instance.theme = FAKE_THEME;

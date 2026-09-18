@@ -25,7 +25,7 @@ const ZONES = ["Europe/Warsaw", "Europe/London", "UTC"];
 /**
  * The address to send to a class.
  *
- * Offered wherever somebody may enrol themselves, which is both policies that
+ * Offered wherever somebody may enroll themselves, which is both policies that
  * allow it — the difference is only whether the password rides along. An open
  * activity needs the link just as much: it may be unlisted, and then the address
  * is the only way anybody reaches it.
@@ -58,7 +58,7 @@ function ShareLink({ slug, password, withPassword }: {
     return (
         <Stack gap={4}>
             <Text size="sm" fw={500}>
-                {withPassword ? t("Link for self-enrolment") : t("Link to the activity")}
+                {withPassword ? t("Link for self-enrollment") : t("Link to the activity")}
             </Text>
             <Group gap="xs" wrap="nowrap">
                 <Text size="sm" ff="monospace" style={{ wordBreak: "break-all" }}>{link}</Text>
@@ -70,8 +70,8 @@ function ShareLink({ slug, password, withPassword }: {
             </Group>
             <Text size="xs" c="dimmed">
                 {withPassword
-                    ? t("Anybody with this link and an account can enrol themselves.")
-                    : t("Anybody with an account can enrol themselves from this link.")}
+                    ? t("Anybody with this link and an account can enroll themselves.")
+                    : t("Anybody with an account can enroll themselves from this link.")}
             </Text>
         </Stack>
     );
@@ -92,7 +92,7 @@ export interface ActivityFormProps {
      */
     matchingRunners?: number;
     /**
-     * The roles this activity may enrol into: the installation's, plus its own.
+     * The roles this activity may enroll into: the installation's, plus its own.
      * Empty where the caller could not read them, and the two pickers say so by
      * being disabled rather than by offering an empty list.
      */
@@ -254,7 +254,7 @@ export default function ActivityForm(
                         onChange={e => set({ modules: { ...value.modules, questions: e.currentTarget.checked } })}
                         disabled={disabled}
                     />
-                    {/* Off by default, unlike its neighbour: printing assumes
+                    {/* Off by default, unlike its neighbor: printing assumes
                         somebody is standing at a printer, and an activity with
                         nobody there would offer a button leading to a queue no
                         one works. */}
@@ -288,7 +288,7 @@ export default function ActivityForm(
             </Card>
 
             <Card withBorder radius="sm">
-                <Title order={5} mb="sm">{t("Visibility and enrolment")}</Title>
+                <Title order={5} mb="sm">{t("Visibility and enrollment")}</Title>
                 <Grid>
                     <Grid.Col span={{ base: 12, sm: 4 }}>
                         {/* One setting, because it is one question. A ranking
@@ -311,7 +311,7 @@ export default function ActivityForm(
                     <Grid.Col span={{ base: 12, sm: 4 }}>
                         <Select
                             label={t("Who may join")}
-                            description={t("A manager may always enrol somebody by hand")}
+                            description={t("A manager may always enroll somebody by hand")}
                             data={[
                                 { value: "closed", label: t("joinPolicy.closed") },
                                 { value: "password", label: t("joinPolicy.password") },
@@ -328,7 +328,7 @@ export default function ActivityForm(
                             mt="xl"
                             label={t("Hide from the activity list of people who are not enrolled")}
                             description={value.joinPolicy === "closed"
-                                ? t("A closed activity is hidden either way: nobody enrols themselves.")
+                                ? t("A closed activity is hidden either way: nobody enrolls themselves.")
                                 : t("It stays reachable by its address, which is how a link works.")}
                             // Forced on where the policy already means it, rather
                             // than left switchable and quietly ignored.
@@ -342,7 +342,7 @@ export default function ActivityForm(
                             installation's shipped role, which is what every
                             activity had before it could choose. Choosing one of
                             this activity's own roles here is the whole way such
-                            a role reaches anybody: self-enrolment, a bulk of
+                            a role reaches anybody: self-enrollment, a bulk of
                             temporary accounts and an LTI launch all read it. */}
                         <Select
                             label={t("Participants get the role")}
@@ -385,7 +385,7 @@ export default function ActivityForm(
                     disabled={disabled}
                 />
 
-                {/* Both policies that admit self-enrolment get the link. Only
+                {/* Both policies that admit self-enrollment get the link. Only
                     `closed` has nobody to give it to. */}
                 {value.joinPolicy !== "closed" && (
                     <Grid mt="sm">

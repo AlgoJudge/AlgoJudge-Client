@@ -69,7 +69,7 @@ function Header() {
                 // `click-hover` rather than `hover`: with `hover` alone Mantine
                 // makes the target's own click a no-op, so on a touch screen the
                 // menu opens on a tap and will not close on the next one. The
-                // pointer behaviour is unchanged.
+                // pointer behavior is unchanged.
                 <Menu key={link.label} trigger="click-hover" transitionProps={{ exitDuration: 0 }} withinPortal>
                     <Menu.Target>
                         <a

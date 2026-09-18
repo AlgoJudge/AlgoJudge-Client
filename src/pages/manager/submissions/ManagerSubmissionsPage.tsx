@@ -18,16 +18,16 @@ import { applied, useReload } from "../../../utils/live";
 
 const PAGE_SIZE = 20;
 
-const STATE_COLOUR: Record<JobState, string> = {
+const STATE_COLOR: Record<JobState, string> = {
     queued: "gray",
     running: "blue",
     completed: "teal",
     failed: "red",
-    cancelled: "gray",
+    canceled: "gray",
     superseded: "gray",
 };
 
-const STATES: JobState[] = ["queued", "running", "completed", "failed", "cancelled"];
+const STATES: JobState[] = ["queued", "running", "completed", "failed", "canceled"];
 
 /**
  * Every submission in the installation, across activities.
@@ -268,7 +268,7 @@ export default function ManagerSubmissionsPage() {
                     clearable
                     w={180}
                 />
-                {/* **Free text, and a sample rather than a catalogue.** A verdict
+                {/* **Free text, and a sample rather than a catalog.** A verdict
                     is a label the Runner produced and the Server stores without
                     ever parsing, so that a problem type may invent one without a
                     Server release — which means there is no list of them to
@@ -327,7 +327,7 @@ export default function ManagerSubmissionsPage() {
                             <Table.Td><Text size="sm">{languageText(submission.props)}</Text></Table.Td>
                             <Table.Td>
                                 <Group gap={4} wrap="nowrap">
-                                    <Badge variant="light" color={STATE_COLOUR[submission.state]}>
+                                    <Badge variant="light" color={STATE_COLOR[submission.state]}>
                                         {t(`jobState.${submission.state}`)}
                                     </Badge>
                                     {submission.attempts > 1 && (

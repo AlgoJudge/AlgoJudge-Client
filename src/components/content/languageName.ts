@@ -4,7 +4,7 @@
  * `Intl.DisplayNames` knows every subtag the browser knows, which is more than
  * any table we would keep here, and it answers in the interface language — so a
  * Polish interface says "angielski" and an English one says "English". Where it
- * is unavailable or does not recognise the tag, the tag itself is the answer:
+ * is unavailable or does not recognize the tag, the tag itself is the answer:
  * `uk` is worse than "ukraiński" and better than nothing.
  */
 export const languageName = (tag: string, inLanguage: string): string => {

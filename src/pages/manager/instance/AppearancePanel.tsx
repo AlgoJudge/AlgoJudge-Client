@@ -6,37 +6,37 @@ import { IconDownload, IconTrash, IconUpload } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
-import { ThemeColours } from "../../../api/CoreApi";
+import { ThemeColors } from "../../../api/CoreApi";
 import { ThemeInput } from "../../../api/ManagerApi";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
 import { useInstance } from "../../../provider/instanceContext";
 
 /**
- * The installation's own colours and typeface.
+ * The installation's own colors and typeface.
  *
  * ## An empty field is the default, and the form has to say so
  *
  * Nothing here has a value until somebody types one. An untouched field is sent
  * as absent, the Server stores no key for it, and the screen draws what
- * AlgoJudge ships — so clearing a colour is how an operator undoes it, and the
+ * AlgoJudge ships — so clearing a color is how an operator undoes it, and the
  * notice at the top says that rather than leaving it to be discovered.
  *
  * ## Why the form writes a file
  *
- * Saving serialises what is here into the theme file and publishes it, which is
+ * Saving serializes what is here into the theme file and publishes it, which is
  * the same document an operator can write by hand and drop into a
  * pre-configuration directory. **One thing is in force and one thing can be
- * downloaded**; the form is a door to it rather than a second place a colour
+ * downloaded**; the form is a door to it rather than a second place a color
  * lives.
  *
  * ## What is not here
  *
  * Radius, spacing, shadow and font size are the product's. So are the status
- * colours — a green *wrong answer* is a defect rather than a preference, and no
+ * colors — a green *wrong answer* is a defect rather than a preference, and no
  * validation could catch it, because every hex is formally valid.
  */
 
-type Group = { id: "brand" | "surface" | "shell"; fields: (keyof ThemeColours)[] };
+type Group = { id: "brand" | "surface" | "shell"; fields: (keyof ThemeColors)[] };
 
 /** One field per token, grouped the way somebody thinks about a brand. */
 const GROUPS: Group[] = [
@@ -71,7 +71,7 @@ function groupTitle(id: Group["id"], t: TFunction): string {
 function groupHint(id: Group["id"], t: TFunction): string {
     switch (id) {
         case "brand":
-            return t("One colour each. The ten shades a screen needs are worked out from it, so this one value reaches a pale panel, a rule and dark text on it.");
+            return t("One color each. The ten shades a screen needs are worked out from it, so this one value reaches a pale panel, a rule and dark text on it.");
         case "surface":
             return t("The ground a page sits on, the panels on it, and what is written there.");
         case "shell":
@@ -79,7 +79,7 @@ function groupHint(id: Group["id"], t: TFunction): string {
     }
 }
 
-function fieldLabel(key: keyof ThemeColours, t: TFunction): string {
+function fieldLabel(key: keyof ThemeColors, t: TFunction): string {
     switch (key) {
         case "primary": return t("Primary");
         case "secondary": return t("Secondary");
@@ -122,10 +122,10 @@ export default function AppearancePanel({ busy, run, store }: Props) {
 
     useApiEffect(async api => { setFonts(await api.managerApi.getInstanceFonts()); }, [instance]);
 
-    const colour = (scheme: "light" | "dark", key: keyof ThemeColours) =>
+    const color = (scheme: "light" | "dark", key: keyof ThemeColors) =>
         (draft[scheme] ?? {})[key] ?? "";
 
-    const setColour = (scheme: "light" | "dark", key: keyof ThemeColours, value: string) =>
+    const setColor = (scheme: "light" | "dark", key: keyof ThemeColors, value: string) =>
         setDraft({ ...draft, [scheme]: { ...(draft[scheme] ?? {}), [key]: value } });
 
     const families = [...GENERIC, ...new Set(fonts.map(name => name).filter(Boolean))];
@@ -135,7 +135,7 @@ export default function AppearancePanel({ busy, run, store }: Props) {
         <Stack gap="md">
             <Alert color="gray" p="xs">
                 <Text size="sm">
-                    {t("Every colour here is optional. A field left empty is the colour AlgoJudge ships, so clearing one is how it is undone. Sizes, spacing and rounding are the product's and are not set here.")}
+                    {t("Every color here is optional. A field left empty is the color AlgoJudge ships, so clearing one is how it is undone. Sizes, spacing and rounding are the product's and are not set here.")}
                 </Text>
             </Alert>
 
@@ -160,16 +160,16 @@ export default function AppearancePanel({ busy, run, store }: Props) {
                                                 // "clear it to undo it" stops
                                                 // being true.
                                                 fixOnBlur={false}
-                                                value={colour("light", field)}
-                                                onChange={value => setColour("light", field, value)}
+                                                value={color("light", field)}
+                                                onChange={value => setColor("light", field, value)}
                                             />
                                             <ColorInput
                                                 data-testid={`theme-dark-${field}`}
                                                 label={`${fieldLabel(field, t)} — ${t("dark")}`}
                                                 format="hex"
                                                 fixOnBlur={false}
-                                                value={colour("dark", field)}
-                                                onChange={value => setColour("dark", field, value)}
+                                                value={color("dark", field)}
+                                                onChange={value => setColor("dark", field, value)}
                                             />
                                         </Group>
                                     </Grid.Col>
@@ -394,7 +394,7 @@ function weightOf(name: string): number {
 }
 
 /** What the form starts from: the theme in force, or nothing. */
-function draftOf(theme: { light?: ThemeColours; dark?: ThemeColours; fontFamily?: string; fontFamilyHeadings?: string; fonts: { name: string; family: string; weight: number; style: string }[] } | undefined): ThemeInput {
+function draftOf(theme: { light?: ThemeColors; dark?: ThemeColors; fontFamily?: string; fontFamilyHeadings?: string; fonts: { name: string; family: string; weight: number; style: string }[] } | undefined): ThemeInput {
     if (!theme) return {};
     return {
         light: { ...theme.light },

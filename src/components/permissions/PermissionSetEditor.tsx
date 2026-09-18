@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { PermissionDefinition } from "../../api/ManagerApi";
 
 /**
- * Picks a set of permissions from the catalogue the Server publishes.
+ * Picks a set of permissions from the catalog the Server publishes.
  *
  * Two rules are visible here rather than only enforced on the way in:
  *
@@ -13,7 +13,7 @@ import { PermissionDefinition } from "../../api/ManagerApi";
  *   Hiding it reads as a missing feature; showing it disabled says "you do not
  *   have this yourself", which is the actual reason.
  * - **`system:administrator` swallows the rest.** It bypasses every check, so
- *   ticking anything beside it is theatre; the editor says so and stops
+ *   ticking anything beside it is theater; the editor says so and stops
  *   pretending the other boxes mean something.
  * - **What a role contributes is shown ticked and locked.** A grant carries its
  *   role's permissions and its own; drawing only the second half would say
@@ -22,7 +22,7 @@ import { PermissionDefinition } from "../../api/ManagerApi";
  *   back.
  */
 export interface PermissionSetEditorProps {
-    catalogue: PermissionDefinition[];
+    catalog: PermissionDefinition[];
     value: string[];
     onChange: (value: string[]) => void;
     /** What the signed-in user holds. Anything outside it cannot be granted on. */
@@ -42,7 +42,7 @@ export interface PermissionSetEditorProps {
 const ADMINISTRATOR = "system:administrator";
 
 export default function PermissionSetEditor({
-    catalogue, value, onChange, grantable, scope, readOnly, inherited, inheritedFrom,
+    catalog, value, onChange, grantable, scope, readOnly, inherited, inheritedFrom,
 }: PermissionSetEditorProps) {
     const { t } = useTranslation();
 
@@ -51,7 +51,7 @@ export default function PermissionSetEditor({
     const grantsEverything = grantable.includes(ADMINISTRATOR);
 
     const groups = useMemo(() => {
-        const applicable = catalogue.filter(d => d.scope === "both" || d.scope === scope);
+        const applicable = catalog.filter(d => d.scope === "both" || d.scope === scope);
         const byGroup = new Map<string, PermissionDefinition[]>();
         for (const definition of applicable) {
             const list = byGroup.get(definition.group) ?? [];
@@ -59,7 +59,7 @@ export default function PermissionSetEditor({
             byGroup.set(definition.group, list);
         }
         return [...byGroup.entries()];
-    }, [catalogue, scope]);
+    }, [catalog, scope]);
 
     const toggle = (key: string, checked: boolean) => {
         onChange(checked ? [...value, key] : value.filter(p => p !== key));

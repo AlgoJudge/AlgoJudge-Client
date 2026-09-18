@@ -29,7 +29,7 @@ export interface Session {
  * One way the signed-in person signs in, as their own account screen needs to
  * describe it.
  *
- * `deletionUrl` is **configuration, not discovery** — OIDC standardises no such
+ * `deletionUrl` is **configuration, not discovery** — OIDC standardizes no such
  * address. Absent means this installation knows of no page where the identity
  * itself can be ended, and the screen then offers only what it can do by
  * itself. Never guess one: a wrong link sends somebody who wants to leave to a
@@ -57,7 +57,7 @@ export interface InstanceInfo {
      * the product's own.
      *
      * A reader has to be able to tell whose installation they are looking at:
-     * the mark says it to somebody who recognises the mark, and the name says it
+     * the mark says it to somebody who recognizes the mark, and the name says it
      * to everybody else. Shown beside the logo, and in the window title as
      * `AlgoJudge | <name>`.
      *
@@ -67,7 +67,7 @@ export interface InstanceInfo {
      * indistinguishable from "named AlgoJudge".
      */
     name?: string,
-    /** Shipped **off**: accounts are created by an organiser or arrive by SSO. */
+    /** Shipped **off**: accounts are created by an organizer or arrive by SSO. */
     localRegistrationEnabled: boolean,
     /** Whether the registration form must collect an address. */
     requireEmail: boolean,
@@ -96,7 +96,7 @@ export interface InstanceInfo {
      * two of them. A language without one uses `logo`, exactly as a statement
      * without a translation uses `content.md`.
      */
-    logoTranslations?: LocalisedLogo[],
+    logoTranslations?: LocalizedLogo[],
     /**
      * Whether the mark appears in the application shell. False is how an
      * operator turns it off; a page that wants no picture simply does not
@@ -161,12 +161,12 @@ export interface InstanceInfo {
      */
     externalJudgingEnabled: boolean,
     /**
-     * The operator's colours and typeface. **Absent means the installation has
+     * The operator's colors and typeface. **Absent means the installation has
      * set none**, and the Client draws the theme it ships with.
      *
      * The values travel here rather than as a file reference, unlike every
      * document beside them: the shell needs them before the first paint, and a
-     * second round trip would guarantee a flash of the wrong colours on every
+     * second round trip would guarantee a flash of the wrong colors on every
      * arrival.
      */
     theme?: InstanceTheme,
@@ -175,13 +175,13 @@ export interface InstanceInfo {
 /**
  * What an installation looks like.
  *
- * **Every colour is optional and absent means the product's default** — never
+ * **Every color is optional and absent means the product's default** — never
  * black and never empty. The Server omits a key nobody set rather than sending
  * `null`, so a reader must treat *not there* and *not set* as one thing.
  */
 export interface InstanceTheme {
-    light?: ThemeColours,
-    dark?: ThemeColours,
+    light?: ThemeColors,
+    dark?: ThemeColors,
     fontFamily?: string,
     fontFamilyHeadings?: string,
     /** The faces to draw with, already resolved to addresses. */
@@ -192,13 +192,13 @@ export interface InstanceTheme {
 }
 
 /**
- * One colour scheme, stated in full.
+ * One color scheme, stated in full.
  *
  * A dark scheme worked out from a light one fails a contrast floor
  * unpredictably, and `verify-theme.mjs` asserts one — so both are set rather
  * than one derived.
  */
-export interface ThemeColours {
+export interface ThemeColors {
     /* Brand. One hex each; the ten Mantine shades are generated from it, which
        is why one value reaches a pale tile, a rule and dark text on it. */
     primary?: string,
@@ -206,7 +206,7 @@ export interface ThemeColours {
     accent?: string,
     /**
      * Its own key rather than a shade of `primary`: in an identity system a
-     * link is usually a different hue, not a lighter brand colour.
+     * link is usually a different hue, not a lighter brand color.
      */
     link?: string,
 
@@ -267,7 +267,7 @@ export interface InstanceLogo {
     sha256: string,
 }
 
-export interface LocalisedLogo {
+export interface LocalizedLogo {
     /** BCP-47 subtag, as a statement translation carries. */
     language: string,
     logo: InstanceLogo,

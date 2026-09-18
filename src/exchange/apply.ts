@@ -13,7 +13,7 @@ import { Progress } from "./collect";
  * **Every call here is an endpoint that already exists**, in the order the
  * manager's own screens use — the problem, its statement, the version that
  * names it, then the activity, its rounds and their assignments. So an import
- * is authorised exactly as the equivalent hand-work would be, and needs no
+ * is authorized exactly as the equivalent hand-work would be, and needs no
  * permission of its own.
  *
  * A failure part way leaves a draft rather than a live activity: the same

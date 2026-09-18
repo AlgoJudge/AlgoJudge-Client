@@ -2,7 +2,7 @@
  * When a participant may see one round's standings.
  *
  * A window rather than a switch, because "from the start until the results are
- * announced" is what an organiser says — and **per round**, because a contest
+ * announced" is what an organizer says — and **per round**, because a contest
  * publishes the first round's board while the second is still being fought.
  * Absent bounds are open ones: no `from` means the round's own start, and no
  * start either means from the beginning; no `to` means for ever.

@@ -138,7 +138,7 @@ appends it itself, so `VITE_APP_API_BASE_URL` names only the origin:
 | *(empty)* | nothing: the fake API is used instead |
 
 A value configured in either of the older shapes — ending in `/v1` or `/api/v1`
-— is accepted and normalised rather than refused. See `src/api/http/apiBase.ts`.
+— is accepted and normalized rather than refused. See `src/api/http/apiBase.ts`.
 
 ### Running without a Server
 

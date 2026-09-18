@@ -60,7 +60,7 @@ export interface CodeEditorProps {
     /**
      * The problem type, because a language id means a different compiler under
      * different types — and a different grammar with it. Absent falls back to
-     * `standard-io@1`'s catalogue.
+     * `standard-io@1`'s catalog.
      */
     problemType?: string;
 }

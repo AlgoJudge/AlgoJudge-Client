@@ -7,7 +7,7 @@
  * layout cannot ask for more. Everything below follows from that: the chrome is
  * one slim row, and the content scrolls inside itself rather than making the
  * page scroll, because a scrollbar inside a scrollbar is the single most
- * recognisable sign of a badly embedded tool.
+ * recognizable sign of a badly embedded tool.
  */
 
 .shell {

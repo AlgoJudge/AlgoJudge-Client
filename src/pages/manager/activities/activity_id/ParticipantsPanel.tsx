@@ -21,7 +21,7 @@ import DataTable from "../../../../components/table/DataTable";
  *
  * There is no membership table beside this one: a grant in an activity **is**
  * the membership, so enrolling somebody and saying what they may do is a single
- * act. Bulk enrolment and join codes come later; one at a time is what the
+ * act. Bulk enrollment and join codes come later; one at a time is what the
  * permission model already supports.
  */
 
@@ -52,7 +52,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
     const [grants, setGrants] = useState<Grant[] | undefined>(undefined);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
-    const [catalogue, setCatalogue] = useState<PermissionDefinition[]>([]);
+    const [catalog, setCatalog] = useState<PermissionDefinition[]>([]);
     const [templates, setTemplates] = useState<Role[]>([]);
     const { users, search: searchUsers, remember } = useUserSearch();
     const [grantable, setGrantable] = useState<string[]>([]);
@@ -64,7 +64,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
     const [newGroup, setNewGroup] = useState("");
 
     const loadError = useApiEffect(async (api) => {
-        setCatalogue(await api.managerApi.getPermissionCatalogue());
+        setCatalog(await api.managerApi.getPermissionCatalog());
         // A picker in the grant editor, and not what this tab is for, so a
         // manager who may not read the roles gets it empty and the roster all
         // the same. The person picker is filled by typing — see `useUserSearch`.
@@ -140,7 +140,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
     if (!grants) return <LoadState error={loadError} loading={!loadError} />;
 
     const enrolled = new Set(grants.map(g => g.userId));
-    // **What this activity enrols into**, which is the setting that makes a role
+    // **What this activity enrolls into**, which is the setting that makes a role
     // of its own reach anybody. Falls back to the shipped one, exactly as the
     // Server does when the activity has chosen nothing.
     const participantRole = templates.find(t => t.id === activity.participantRoleId)
@@ -231,7 +231,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                             {t("Temporary accounts")}
                         </Button>
                     )}
-                    <Button data-testid="enrol-someone"
+                    <Button data-testid="enroll-someone"
                         leftSection={<IconPlus size={16} />}
                         disabled={activity.archivedAt !== undefined}
                         onClick={() => setDraft({
@@ -242,7 +242,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                             existing: false,
                         })}
                     >
-                        {t("Enrol someone")}
+                        {t("Enroll someone")}
                     </Button>
                 </Group>
             </Group>
@@ -300,7 +300,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                                     // Staff do not compete, so they are not
                                     // grouped either — the same reason the
                                     // ranking leaves them out.
-                                    disabled={busy || isStaffGrant(effectivePermissions(grant), catalogue)}
+                                    disabled={busy || isStaffGrant(effectivePermissions(grant), catalog)}
                                     onChange={value => void run(() => call(api =>
                                         api.managerApi.setParticipantGroup(
                                             activity.id, grant.userId, value || undefined)))}
@@ -367,7 +367,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
             <Modal
                 opened={draft !== undefined}
                 onClose={() => setDraft(undefined)}
-                title={<Title order={4}>{draft?.existing ? t("Edit the grant") : t("Enrol someone")}</Title>}
+                title={<Title order={4}>{draft?.existing ? t("Edit the grant") : t("Enroll someone")}</Title>}
                 size="xl"
                 centered
             >
@@ -399,7 +399,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                             clearable
                         />
                         <PermissionSetEditor
-                            catalogue={catalogue}
+                            catalog={catalog}
                             value={draft.permissions}
                             onChange={permissions => setDraft({ ...draft, permissions })}
                             grantable={grantable}
@@ -414,12 +414,12 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                             what it is for. */}
                         <Switch
                             label={t("Systemic membership")}
-                            description={isStaffGrant(drafted(draft), catalogue)
+                            description={isStaffGrant(drafted(draft), catalog)
                                 ? t("Whoever runs the activity does not compete in it, so this cannot be turned off.")
                                 : t("Submits like anybody, counts as nobody: absent from the participant count and from the ranking.")}
-                            checked={isStaffGrant(drafted(draft), catalogue) || draft.isSystem}
+                            checked={isStaffGrant(drafted(draft), catalog) || draft.isSystem}
                             onChange={e => setDraft({ ...draft, isSystem: e.currentTarget.checked })}
-                            disabled={isStaffGrant(drafted(draft), catalogue)}
+                            disabled={isStaffGrant(drafted(draft), catalog)}
                         />
                         <Alert color="blue">
                             {t("Nobody may grant a permission they do not hold themselves.")}

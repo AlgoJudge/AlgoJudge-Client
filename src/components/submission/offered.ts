@@ -118,8 +118,8 @@ export function languageOf(props: unknown): string | undefined {
  * label, or a dash where the type declared none.
  *
  * The **label**, not the id — `C++17 (GCC)` rather than `cpp17-gcc`. A screen
- * showed the raw id before the catalogue existed, when the id happened to be a
- * word a person recognised.
+ * showed the raw id before the catalog existed, when the id happened to be a
+ * word a person recognized.
  */
 export const languageText = (props: unknown): string => {
     const id = languageOf(props);

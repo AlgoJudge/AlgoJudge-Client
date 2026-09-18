@@ -25,7 +25,7 @@ const CodeEditor = lazy(() => import("../../../../components/editor/CodeEditor")
  * session on the first request a brand-new browser makes. `Group` drops falsy
  * children, so an absent value leaves no gap and no stray separator.
  *
- * The device is labelled as the browser rather than as the machine, and that is
+ * The device is labeled as the browser rather than as the machine, and that is
  * the whole of what may be claimed for it: a page writes it, so it is forgeable,
  * and a room of machines imaged from one disk reports one for all of them. It
  * answers *the same browser, two accounts*.
@@ -110,7 +110,7 @@ function ExclusionModal(
             <Modal opened={open} onClose={() => setOpen(false)} title={t("Do not count this submission")}>
                 <Stack gap="sm">
                     <Text size="sm">
-                        {t("It keeps its verdict and its place in the list, and it stays counted against the submission limit. It stops counting towards the ranking, the best score and the grade sent to the LMS.")}
+                        {t("It keeps its verdict and its place in the list, and it stays counted against the submission limit. It stops counting toward the ranking, the best score and the grade sent to the LMS.")}
                     </Text>
                     <Textarea
                         label={t("Reason")}
@@ -136,27 +136,27 @@ function ExclusionModal(
     );
 }
 
-const STATE_COLOUR: Record<JobState, string> = {
+const STATE_COLOR: Record<JobState, string> = {
     queued: "gray",
     running: "blue",
     completed: "teal",
     failed: "red",
-    cancelled: "gray",
+    canceled: "gray",
     superseded: "gray",
 };
 
 /**
- * Whether an attempt is over, and so cannot be cancelled.
+ * Whether an attempt is over, and so cannot be canceled.
  *
  * The Server refuses four states here and this listed two, with the button's
- * own `disabled` making up one of the difference — so a cancelled attempt was
+ * own `disabled` making up one of the difference — so a canceled attempt was
  * correctly unclickable under a tooltip offering to cancel it. `superseded`
  * joins them for the same reason: a rejudge overtook it, and there is nothing
  * left to stop.
  */
 const isFinished = (state: JobState) =>
     state === "completed" || state === "failed"
-    || state === "cancelled" || state === "superseded";
+    || state === "canceled" || state === "superseded";
 
 /**
  * One submission, with every attempt it has had.
@@ -247,7 +247,7 @@ export default function ManagerSubmissionPage() {
                 <Stack gap={2}>
                     <Group gap="xs">
                         <Title order={2}>[{submission.problemSlug}] {submission.problemName}</Title>
-                        <Badge data-testid="submission-state" variant="light" color={STATE_COLOUR[submission.state]}>
+                        <Badge data-testid="submission-state" variant="light" color={STATE_COLOR[submission.state]}>
                             {t(`jobState.${submission.state}`)}
                         </Badge>
                         {submission.excluded && (
@@ -321,7 +321,7 @@ export default function ManagerSubmissionPage() {
                             <Table.Tr key={attempt.id}>
                                 <Table.Td><Text fw={500}>{attempt.attempt}</Text></Table.Td>
                                 <Table.Td>
-                                    <Badge variant="light" color={STATE_COLOUR[attempt.state]}>
+                                    <Badge variant="light" color={STATE_COLOR[attempt.state]}>
                                         {t(`jobState.${attempt.state}`)}
                                     </Badge>
                                 </Table.Td>
@@ -336,7 +336,7 @@ export default function ManagerSubmissionPage() {
                                 </Table.Td>
                                 <Table.Td>
                                     <Group justify="flex-end">
-                                        {/* A finished job is history: cancelling one
+                                        {/* A finished job is history: canceling one
                                             would rewrite a result someone has seen. */}
                                         <Tooltip
                                             label={isFinished(attempt.state)

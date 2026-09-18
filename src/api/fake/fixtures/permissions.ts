@@ -3,7 +3,7 @@ import { isStaffGrant } from "../../permissions";
 import { CONTEST_ID, COURSE_ID, WORKSHOP_ID, WORLD } from "./world";
 
 /**
- * The permission catalogue and the shipped roles.
+ * The permission catalog and the shipped roles.
  *
  * Mirrors `AlgoJudge-Server`'s `Authorization/Permissions.cs`, which is what
  * enforces it — in the real product this list comes from the Server and here it
@@ -47,7 +47,7 @@ const definition = (key: string, group: string, scope: PermissionDefinition["sco
         systemic: !NOT_SYSTEMIC.includes(key),
     });
 
-export const PERMISSION_CATALOGUE: PermissionDefinition[] = [
+export const PERMISSION_CATALOG: PermissionDefinition[] = [
     definition("activity:read", "activity", "activity"),
     definition("activity:create", "activity", "global"),
     definition("activity:update", "activity", "both"),
@@ -233,7 +233,7 @@ const named = (
         // Derived, never written down twice: whoever runs the activity is
         // systemic by virtue of what they may do in it — through the role it
         // points at as much as through its own entries.
-        isSystem: isStaffGrant([...role, ...grant.permissions], PERMISSION_CATALOGUE),
+        isSystem: isStaffGrant([...role, ...grant.permissions], PERMISSION_CATALOG),
     };
 };
 
@@ -333,7 +333,7 @@ export const createGrants = (): Grant[] => [
  * It starts with the participant set on purpose. "Nobody may grant a permission
  * they do not hold" is otherwise self-defeating: enrolling someone means giving
  * them `activity:read` and `submission:create`, and a manager who did not hold
- * those could not enrol anybody. A manager of an activity is also in it.
+ * those could not enroll anybody. A manager of an activity is also in it.
  */
 export const MY_SYSTEM_PERMISSIONS = [
     ...PARTICIPANT,

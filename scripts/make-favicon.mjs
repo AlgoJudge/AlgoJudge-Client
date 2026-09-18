@@ -7,7 +7,7 @@
 // Run by hand, `node scripts/make-favicon.mjs`, never from `npm run build`.
 //
 // **Why the mark is blue and not black or white.** An `.ico` carries no media
-// query, so one colour has to survive both tab strips. Measured against the two
+// query, so one color has to survive both tab strips. Measured against the two
 // grounds a browser actually uses:
 //
 //   #228be6  on white   3.6:1     on Chrome's dark strip (#202124)  4.6:1
@@ -29,7 +29,7 @@ import { chromium } from "@playwright/test";
 
 const SOURCE = "src/assets/algojudge.svg";
 const OUT = "public/favicon.ico";
-const COLOUR = "#228be6";
+const COLOR = "#228be6";
 const SIZES = [16, 32, 48, 64];
 
 // Room around the gavel so it is not flush with the edge at 16 px, in fractions
@@ -68,7 +68,7 @@ const box = await page.evaluate(() => {
     };
 });
 
-// Square, centred, with the margin — a viewBox that is not square would be
+// Square, centered, with the margin — a viewBox that is not square would be
 // letterboxed into the icon and the gavel would sit off to one side.
 const side = Math.max(box.width, box.height) * (1 + MARGIN * 2);
 const view = [
@@ -83,7 +83,7 @@ for (const size of SIZES) {
     const framed = svg
         .replace(/viewBox="[^"]*"/, `viewBox="${view}"`)
         .replace(/width="[\d.]+"\n\s*height="[\d.]+"/, `width="${size}" height="${size}"`)
-        .replace(/fill="#000000"/, `fill="${COLOUR}"`);
+        .replace(/fill="#000000"/, `fill="${COLOR}"`);
 
     await page.setContent(`<!doctype html><style>html,body{margin:0}
       #text{display:none} svg{display:block}</style>${framed}`);
@@ -107,9 +107,9 @@ const entries = images.map((png, index) => {
     // 0 means 256 here, which none of these are.
     entry.writeUInt8(SIZES[index], 0);
     entry.writeUInt8(SIZES[index], 1);
-    entry.writeUInt8(0, 2);              // no colour palette
+    entry.writeUInt8(0, 2);              // no color palette
     entry.writeUInt8(0, 3);              // reserved
-    entry.writeUInt16LE(1, 4);           // colour planes
+    entry.writeUInt16LE(1, 4);           // color planes
     entry.writeUInt16LE(32, 6);          // bits per pixel
     entry.writeUInt32LE(png.length, 8);
     entry.writeUInt32LE(offset, 12);
@@ -119,5 +119,5 @@ const entries = images.map((png, index) => {
 
 writeFileSync(OUT, Buffer.concat([header, ...entries, ...images]));
 
-console.log(`  ok   ${OUT}: ${SIZES.join(", ")} px in ${COLOUR}, ${offset} bytes`);
+console.log(`  ok   ${OUT}: ${SIZES.join(", ")} px in ${COLOR}, ${offset} bytes`);
 console.log(`  ---  from ${SOURCE}, viewBox ${view}`);

@@ -13,10 +13,10 @@ export interface EditorLanguage {
 /**
  * The languages the editor in this build actually knows.
  *
- * **Asked of Monaco rather than written down.** The product's own catalogue
+ * **Asked of Monaco rather than written down.** The product's own catalog
  * (`languages.ts`) lists *toolchains* — `c99-gcc` and `c99-clang` are two
  * entries and one grammar — because a submission is judged by a compiler. A
- * printout is judged by nobody: what matters is the syntax the editor colours
+ * printout is judged by nobody: what matters is the syntax the editor colors
  * and the extension the page is named with, and there are nine of those where
  * there are dozens of the other.
  *

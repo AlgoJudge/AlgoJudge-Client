@@ -136,7 +136,7 @@ export default function ManagerInstancePage() {
         } catch (e) {
             // **An abort is not a failure**, and catching here is what made it
             // look like one: `useApiEffect` already ignores a request its own
-            // cleanup cancelled, but a `catch` inside the effect swallows it
+            // cleanup canceled, but a `catch` inside the effect swallows it
             // first. Under React's development double-invoke that is every
             // mount, so the screen drew a value it had read and a note saying it
             // could not read one, side by side. Seen in a browser on
@@ -248,12 +248,12 @@ export default function ManagerInstancePage() {
             <Stack gap={2}>
                 <Title order={2}>{t("Instance")}</Title>
                 <Text size="sm" c="dimmed">
-                    {t("What this installation is called, the mark and colours it shows, and the documents it publishes.")}
+                    {t("What this installation is called, the mark and colors it shows, and the documents it publishes.")}
                 </Text>
             </Stack>
 
             {/* Named so a check can ask whether a save was refused. Matching a
-                red alert by its colour, or by any word likely to appear in a
+                red alert by its color, or by any word likely to appear in a
                 refusal, picks up the informational alerts on the other tabs. */}
             {error && (
                 <Alert
@@ -284,7 +284,7 @@ export default function ManagerInstancePage() {
                             />
                             <Switch
                                 label={t("Accept local sign-ups")}
-                                description={t("Off by default: accounts are created by an organiser or arrive by SSO.")}
+                                description={t("Off by default: accounts are created by an organizer or arrive by SSO.")}
                                 checked={settings.localRegistrationEnabled}
                                 onChange={e => setSettings({ ...settings, localRegistrationEnabled: e.currentTarget.checked })}
                             />

@@ -1,7 +1,7 @@
 // A filter chosen on the screen narrows the list the Server answers with.
 //
 // **The one thing in this repository that can prove it.** `check:ui` drives the
-// screens against the fake, which honours every filter; the Server's own suite
+// screens against the fake, which honors every filter; the Server's own suite
 // drives the API with no Client. Neither can see the two disagreeing about what
 // goes on the wire — and on 2026-09-14 they had been disagreeing for months. The
 // participant's submissions screen sent `problemId`, `seriesId` and `state` on
@@ -103,7 +103,7 @@ test("a round chosen on the screen narrows the participant's submissions", async
     await expect(page).not.toHaveURL(/\/login/, { timeout: 20_000 });
 
     const enrolled = await page.evaluate(async (url) => {
-        const r = await fetch(`${url}/enrolment`, {
+        const r = await fetch(`${url}/enrollment`, {
             method: "POST", credentials: "include",
             headers: { "content-type": "application/json" }, body: "{}",
         });
@@ -130,7 +130,7 @@ test("a round chosen on the screen narrows the participant's submissions", async
     // `verify-submit-modal` and `submit-to-verdict.spec.mjs` already.
     for (const round of rounds) {
         // **No newline in it, deliberately.** A text field in a `FormData` has
-        // its line endings normalised to CRLF on the way into a multipart body,
+        // its line endings normalized to CRLF on the way into a multipart body,
         // so a checksum computed here does not describe the bytes the browser
         // sends, and the Server refuses it with `checksum_mismatch` — correctly.
         // The screens send a file rather than a string and never meet this; a

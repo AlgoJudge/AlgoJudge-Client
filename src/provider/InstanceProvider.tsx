@@ -68,7 +68,7 @@ export const InstanceProvider: FC<{ children: ReactNode }> = ({ children }) => {
      * different moments, and only the document can say which one this is.
      *
      * It exists because the browser checks need it — a check that waited for
-     * text and then read a colour was reading the default one, and waiting
+     * text and then read a color was reading the default one, and waiting
      * longer is not a fix for that, it is a slower version of the same race.
      */
     useEffect(() => {
@@ -100,7 +100,7 @@ export const InstanceProvider: FC<{ children: ReactNode }> = ({ children }) => {
     }, [api]);
 
     // The tab says whose installation this is, after saying what software it is:
-    // the product first, because that is what the reader recognises across
+    // the product first, because that is what the reader recognizes across
     // installations, and the operator's name after it where there is one. An
     // unnamed installation says `AlgoJudge` and nothing else — the same title
     // `index.html` carries before any of this has loaded.

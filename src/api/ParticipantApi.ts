@@ -71,15 +71,15 @@ export type ActivityMembership = "enrolled" | "invited" | "open";
 /**
  * How somebody gets in without a manager doing it for them.
  *
- * A manager may always enrol somebody by hand — that is what a grant is — so
- * these are the three answers to *self*-enrolment and nothing else.
+ * A manager may always enroll somebody by hand — that is what a grant is — so
+ * these are the three answers to *self*-enrollment and nothing else.
  */
 export type JoinPolicy =
-    /** No self-enrolment, and not listed to anybody who is not already in it. */
+    /** No self-enrollment, and not listed to anybody who is not already in it. */
     | "closed"
-    /** Self-enrolment on giving the activity's join password. */
+    /** Self-enrollment on giving the activity's join password. */
     | "password"
-    /** Self-enrolment, no password. */
+    /** Self-enrollment, no password. */
     | "open";
 
 /**
@@ -94,7 +94,7 @@ export type ActivityDocumentKind =
     | "welcome"
     /** What a participant reads there instead — their landing page. */
     | "home"
-    /** The regulations, and what the enrolment form asks acceptance of. */
+    /** The regulations, and what the enrollment form asks acceptance of. */
     | "rules";
 
 /**
@@ -160,7 +160,7 @@ export interface Activity {
     group?: MyGroup,
     /**
      * How somebody not enrolled may get in. Carried to the participant because
-     * the activity's own page draws the enrolment form from it — the Server
+     * the activity's own page draws the enrollment form from it — the Server
      * still decides, and refuses whatever the form sends if it is wrong.
      */
     joinPolicy: JoinPolicy,
@@ -234,17 +234,17 @@ export interface Locked {
 }
 
 /**
- * What the enrolment form collected.
+ * What the enrollment form collected.
  *
  * Both fields are conditional on the activity: the password only under
  * `joinPolicy: "password"`, the acceptance only where there are rules to accept.
  * The Server is told what was given and decides; sending neither where both were
  * required is refused there, not here.
  */
-export interface EnrolInput {
+export interface EnrollInput {
     /** The activity's join password, as typed or as it arrived in the link. */
     password?: string,
-    /** Recorded with the enrolment, so it stays answerable who accepted what. */
+    /** Recorded with the enrollment, so it stays answerable who accepted what. */
     acceptedRules?: boolean,
 }
 
@@ -297,7 +297,7 @@ export interface Series {
      * When this round's standings may be seen. Absent `from` means the round's
      * own start; absent `to` means for ever.
      *
-     * Per round rather than per activity: an organiser publishes the first
+     * Per round rather than per activity: an organizer publishes the first
      * round's board while the second is still being fought.
      */
     rankingVisibleFrom?: string,
@@ -429,13 +429,13 @@ export interface ProblemDetail {
 /**
  * `superseded` is an attempt a rejudge overtook while it was still queued.
  *
- * Distinct from `cancelled`, which a manager does on purpose — an attempt list
- * saying somebody cancelled an attempt nobody cancelled is a misreading the
+ * Distinct from `canceled`, which a manager does on purpose — an attempt list
+ * saying somebody canceled an attempt nobody canceled is a misreading the
  * reader has no way to check. It never appears as a *submission's* state, only
  * an attempt's: the newest attempt is always the one a rejudge just added.
  */
 export type JobState =
-    "queued" | "running" | "completed" | "failed" | "cancelled" | "superseded";
+    "queued" | "running" | "completed" | "failed" | "canceled" | "superseded";
 
 export interface SubmissionSummary {
     id: string,
@@ -455,7 +455,7 @@ export interface SubmissionSummary {
     /** Short label from the Runner, e.g. `Accepted`. Meaning is the type's business. */
     verdict?: string,
     /**
-     * A manager ruled that this counts towards no standing.
+     * A manager ruled that this counts toward no standing.
      *
      * **The score above stays what it was**: an exclusion rules on what a
      * submission counts for, not on what the judge said. Told rather than left
@@ -657,7 +657,7 @@ export interface ResultSeries {
      * standing when it is not one.
      */
     frozen: boolean,
-    /** When the organiser said it comes back. Absent means they did not say. */
+    /** When the organizer said it comes back. Absent means they did not say. */
     revealAt?: string,
     problems: ResultProblem[],
 }
@@ -796,7 +796,7 @@ export interface PrintoutRequest {
      * A file, when one was picked.
      *
      * **Sent as a file part rather than as text, and that is the whole of why
-     * this field exists.** A browser normalises every newline in a multipart
+     * this field exists.** A browser normalizes every newline in a multipart
      * *text* field to CRLF before it leaves, so bytes read off disk and hashed
      * as they are never match what arrives — the Server answers 422 on a file
      * nothing is wrong with. Hashing the CRLF version instead would store
@@ -1047,7 +1047,7 @@ export interface ParticipantApi {
      * refused by the Server; the Client sends what the form collected and does
      * not check it.
      */
-    enroll(idOrSlug: string, input: EnrolInput, signal: AbortSignal): Promise<Activity>;
+    enroll(idOrSlug: string, input: EnrollInput, signal: AbortSignal): Promise<Activity>;
 
     getSeries(activityId: string, signal: AbortSignal): Promise<Series[]>;
     getProblem(activityId: string, problemSlug: string, signal: AbortSignal): Promise<ProblemDetail>;

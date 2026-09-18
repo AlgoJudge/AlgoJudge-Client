@@ -34,7 +34,7 @@ export default function RolesPage() {
     const call = useApiCall();
 
     const [templates, setTemplates] = useState<Role[] | undefined>(undefined);
-    const [catalogue, setCatalogue] = useState<PermissionDefinition[]>([]);
+    const [catalog, setCatalog] = useState<PermissionDefinition[]>([]);
     const [grantable, setGrantable] = useState<string[]>([]);
     const [draft, setDraft] = useState<Draft | undefined>(undefined);
     const [scope, setScope] = useState<"global" | "activity">("activity");
@@ -55,7 +55,7 @@ export default function RolesPage() {
     const [reload, setReload] = useState(0);
 
     const loadError = useApiEffect(async (api) => {
-        setCatalogue(await api.managerApi.getPermissionCatalogue());
+        setCatalog(await api.managerApi.getPermissionCatalog());
 
         const managed = await optional(api.managerApi.getManagedActivities(), []);
         setActivities(managed);
@@ -303,7 +303,7 @@ export default function RolesPage() {
                         )}
 
                         <PermissionSetEditor
-                            catalogue={catalogue}
+                            catalog={catalog}
                             value={draft.permissions}
                             onChange={permissions => setDraft({ ...draft, permissions })}
                             grantable={grantable}

@@ -4,7 +4,7 @@
 // file whose extension the chosen toolchain does not accept, and it does so as a
 // *compilation error* — so a language offered in the select whose extension the
 // file field rejects is a language a participant can only paste. That is not a
-// hypothetical: the accept list predated the eighteen-toolchain catalogue of
+// hypothetical: the accept list predated the eighteen-toolchain catalog of
 // 2026-08-22 and never gained `.c`, so eight C toolchains were offered and every
 // C file was refused by the form in front of them.
 //
@@ -49,7 +49,7 @@ const TYPE = "standard-io@1";
 const uploadable = uploadableExtensions(TYPE);
 
 const offered = knownLanguages(TYPE);
-check(offered.length > 0, `the catalogue has toolchains to check (${offered.length})`);
+check(offered.length > 0, `the catalog has toolchains to check (${offered.length})`);
 
 const stranded = offered.filter(id => {
     const name = pastedFileName(TYPE, id);

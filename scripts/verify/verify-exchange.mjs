@@ -136,9 +136,9 @@ check(Array.isArray(rows) && rows.length > 0, `every problem in the archive is l
 // CSS** and `innerText` reports what is rendered rather than what was written.
 // The first version of this line matched the source string and found nothing,
 // on a plan that was entirely correct.
-const recognised = rows.filter(r => /JUŻ TUTAJ JEST/i.test(r));
-check(recognised.length === 4,
-    `the four unchanged problems are recognised as already here (${recognised.length})`);
+const recognized = rows.filter(r => /JUŻ TUTAJ JEST/i.test(r));
+check(recognized.length === 4,
+    `the four unchanged problems are recognized as already here (${recognized.length})`);
 
 // **`tablice` is retired in the fixture, and that is the interesting row.** It
 // holds the same bytes and still cannot be reused — the Server refuses to
@@ -337,7 +337,7 @@ await wait(7000);
 
 const converted = (await modal()).replaceAll(String.fromCharCode(160), " ");
 check(/Skonwertowane z archiwum ZawodyWeb/.test(converted),
-    `the archive is recognised and converted (${converted.slice(0, 60)})`);
+    `the archive is recognized and converted (${converted.slice(0, 60)})`);
 
 // **The losses are the point.** ZawodyWeb drops an unknown language in silence;
 // this says which one, before anything is written.

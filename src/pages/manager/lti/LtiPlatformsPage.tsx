@@ -6,7 +6,7 @@ import { IconAlertTriangle, IconCopy, IconPlus, IconShieldLock, IconTrash } from
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    Placement, Platform, PlatformInput, RegistrationInvitation, RosterEnrolment, RosterView,
+    Placement, Platform, PlatformInput, RegistrationInvitation, RosterEnrollment, RosterView,
     ToolRegistration,
 } from "../../../api/LtiApi";
 import LoadState from "../../../components/LoadState";
@@ -46,7 +46,7 @@ export default function LtiPlatformsPage() {
     const [copyStart, setCopyStart] = useState("");
     const [rosterOf, setRosterOf] = useState<Placement | undefined>(undefined);
     const [roster, setRoster] = useState<RosterView | undefined>(undefined);
-    const [enrolled, setEnrolled] = useState<RosterEnrolment | undefined>(undefined);
+    const [enrolled, setEnrolled] = useState<RosterEnrollment | undefined>(undefined);
     const [registration, setRegistration] = useState<ToolRegistration | undefined>(undefined);
     const [invitations, setInvitations] = useState<RegistrationInvitation[] | undefined>(undefined);
     const [note, setNote] = useState("");
@@ -107,11 +107,11 @@ export default function LtiPlatformsPage() {
         void run(async () => setRoster(await call(api => api.ltiApi.getRoster(placement.id))));
     };
 
-    const enrolFromRoster = async () => {
+    const enrollFromRoster = async () => {
         if (!rosterOf) return;
         const placement = rosterOf;
         await run(async () => {
-            setEnrolled(await call(api => api.ltiApi.enrolFromRoster(placement.id)));
+            setEnrolled(await call(api => api.ltiApi.enrollFromRoster(placement.id)));
             // Re-read, because linking changes what the list says about people:
             // somebody unmatched a moment ago now has an account behind them.
             setRoster(await call(api => api.ltiApi.getRoster(placement.id)));
@@ -172,7 +172,7 @@ export default function LtiPlatformsPage() {
                                         <Table.Td>
                                             {platform.isIdentityAuthority
                                                 ? (
-                                                    // Said in colour because it is the setting that
+                                                    // Said in color because it is the setting that
                                                     // decides whether a compromised platform can take
                                                     // an account.
                                                     <Badge color="orange" variant="light">
@@ -598,7 +598,7 @@ export default function LtiPlatformsPage() {
                         <Button variant="default" onClick={() => setRosterOf(undefined)}>
                             {t("Close")}
                         </Button>
-                        <Button data-testid="put-in-activity" loading={busy} onClick={() => void enrolFromRoster()}>
+                        <Button data-testid="put-in-activity" loading={busy} onClick={() => void enrollFromRoster()}>
                             {t("Put them in the activity")}
                         </Button>
                     </Group>

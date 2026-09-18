@@ -1,5 +1,5 @@
-/* Verdict colouring for the per-test table. Kept as light backgrounds so the
-   text stays readable in both colour schemes. */
+/* Verdict coloring for the per-test table. Kept as light backgrounds so the
+   text stays readable in both color schemes. */
 
 .ok {
     background-color: light-dark(var(--mantine-color-green-1), var(--mantine-color-green-9));
