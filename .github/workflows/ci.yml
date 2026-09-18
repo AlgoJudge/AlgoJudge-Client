@@ -61,7 +61,7 @@ jobs:
 
       # A toolchain offered by the submit form that the same form's file
       # field then refuses is a language a participant can only paste.
-      - name: Check the language catalogue against what may be uploaded
+      - name: Check the language catalog against what may be uploaded
         run: npm run check:languages
 
       # The exchange bundle, and the partition it is: every field of the four
@@ -255,7 +255,7 @@ jobs:
             const m = lines[0].match(/^\s*<script>window\.__ALGOJUDGE__ = (.*);<\/script>$/);
             if (!m) throw new Error("not one well-formed script element: " + lines[0]);
             const parsed = JSON.parse(m[1]);
-            // Both strings, or `ApiFactory` stops recognising "true" and
+            // Both strings, or `ApiFactory` stops recognizing "true" and
             // `apiBase` throws on .trim().
             if (typeof parsed.apiBaseUrl !== "string" || typeof parsed.useFakeApi !== "string") {
               throw new Error("both values must be strings: " + JSON.stringify(parsed));

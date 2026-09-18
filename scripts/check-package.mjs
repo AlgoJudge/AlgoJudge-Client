@@ -96,7 +96,7 @@ else ok("all four tests survived, in order, byte for byte");
 if (back.checker?.name !== "checker.cpp") fail("checker did not survive");
 else ok("checker survived");
 
-// **An interactive package, whole.** The config key travelled for free from the
+// **An interactive package, whole.** The config key traveled for free from the
 // beginning — the whole object is written as YAML — but the source did not, and
 // nothing said so: the archive came back naming an interactor it no longer held,
 // the validator was silent, and the Runner refused the package at judging time
@@ -152,7 +152,7 @@ console.log("\nloose files, classified by name");
 // **Order is the assertion.** `interactor.cpp` matches no other predicate, so
 // this would pass whatever the order — but `interactive-checker.cpp` matches the
 // interactor's pattern *and* the checker's, and the more specific has to win.
-// A file named for neither must stay unrecognised rather than be guessed at.
+// A file named for neither must stay unrecognized rather than be guessed at.
 const named = (name) => new File([`// ${name}`], name, { type: "text/plain" });
 for (const [name, expected] of [
     ["checker.cpp", "checker"],
@@ -165,11 +165,11 @@ for (const [name, expected] of [
     const taken = await intakeFiles([named(name)]);
     const landed = ["checker", "interactor", "modelSolution"].find(k => taken[k]?.name === name);
     if (landed !== expected) {
-        fail(`${name} was taken as ${landed ?? "unrecognised"}, expected ${expected ?? "unrecognised"}`);
-    } else if (expected === undefined && !taken.unrecognised.includes(name)) {
-        fail(`${name} was neither classified nor reported as unrecognised`);
+        fail(`${name} was taken as ${landed ?? "unrecognized"}, expected ${expected ?? "unrecognized"}`);
+    } else if (expected === undefined && !taken.unrecognized.includes(name)) {
+        fail(`${name} was neither classified nor reported as unrecognized`);
     } else {
-        ok(`${name} → ${expected ?? "unrecognised"}`);
+        ok(`${name} → ${expected ?? "unrecognized"}`);
     }
 }
 

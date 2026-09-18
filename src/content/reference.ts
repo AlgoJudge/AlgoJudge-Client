@@ -34,7 +34,7 @@ export const referenceTarget = (name: string): string =>
 /**
  * The name a parsed reference points at.
  *
- * markdown-it normalises a link destination the way a URL is normalised, so
+ * markdown-it normalizes a link destination the way a URL is normalized, so
  * `<moja grafika.png>` arrives as `moja%20grafika.png`. Matching that against a
  * file called "moja grafika.png" fails, and the reader is told the attachment is
  * missing when it is sitting right there. A malformed escape decodes to itself

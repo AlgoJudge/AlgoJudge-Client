@@ -9,7 +9,7 @@ import { Pending } from "./scoreboard";
  *
  * One wording for both boards, so the ICPC table and the points table cannot
  * come to describe the same cell differently. A freeze is a decision to
- * withhold, judging is a wait, and an evaluation that failed or was cancelled is
+ * withhold, judging is a wait, and an evaluation that failed or was canceled is
  * neither — one label over all three said *submitted during the freeze* above
  * cells no freeze had touched.
  *
@@ -19,7 +19,7 @@ import { Pending } from "./scoreboard";
  * a Polish screen with every other check staying silent.
  *
  * Nor may the sentence above spell a call out: that check walks `src`, so a
- * quoted example in a comment reads to it as a key no catalogue holds.
+ * quoted example in a comment reads to it as a key no catalog holds.
  */
 export const pendingLabel = (t: TFunction, pending: Pending): string => {
     if (pending === "frozen") return t("Submitted during the freeze");

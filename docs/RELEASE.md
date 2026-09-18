@@ -330,7 +330,7 @@ Their order is the order the release follows, not a constraint.
 - [ ] The package carries `0.1.1`, and `0.1`, `0` and `latest` have moved onto
       it.
 - [ ] `docker pull ghcr.io/algojudge/algojudge-client:0.1.1` succeeds from
-      outside the organisation, or the package's visibility is deliberately
+      outside the organization, or the package's visibility is deliberately
       private.
 - [ ] Ops has been stood up against the published tags rather than local builds.
 

@@ -175,7 +175,7 @@ writeFileSync(REGISTRY, `${JSON.stringify([...registry(), {
 
 const swept = await stopAll();
 check(!alive(chrome.pid) && !alive(firefox.pid), "stop --all closes the browsers it started");
-check(!alive(leak), "and the leak it recognised by its profile");
+check(!alive(leak), "and the leak it recognized by its profile");
 check(alive(decoy), "and leaves the browser on somebody else's profile running");
 check(registry().length === 0, "the registry is empty afterwards");
 check(swept.untouched >= before.length + 1, `it reports what it did not touch (${swept.untouched})`);
@@ -199,7 +199,7 @@ const direct = await stop({
 check(direct.outcome === "refused", "handed that entry directly, stop refuses it too");
 check(alive(decoy), "and that browser is still running");
 
-// The last line of defence, on its own. Everything above decides whether a
+// The last line of defense, on its own. Everything above decides whether a
 // browser is ours **before** closing it politely and waiting for it to go — and
 // in those few seconds the pid can be released and handed to something else. So
 // the kill asks once more, and this is that question with a wrong answer.

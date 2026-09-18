@@ -293,8 +293,8 @@ check(!said(lost, "penalty is"), "a 1200 s penalty is exactly twenty minutes, so
 const other = structuredClone(contest);
 other["contest.xml"] = encode(new TextDecoder().decode(contest["contest.xml"])
     .replace("<penaltytime>1200</penaltytime>", "<penaltytime>600</penaltytime>"));
-const penalised = await convertArchive(other);
-check(said(penalised.lost, "counts twenty minutes"),
+const penalized = await convertArchive(other);
+check(said(penalized.lost, "counts twenty minutes"),
     "a penalty that is not twenty minutes is reported");
 
 // ── 6. The contest's prose becomes the rules page ───────────────────────────

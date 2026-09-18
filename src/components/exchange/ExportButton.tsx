@@ -22,7 +22,7 @@ interface ExportButtonProps {
     /** Without `.zip`; the extension is added here so every export agrees. */
     filename: string;
     label: string;
-    /** An icon-only button in a row of them, rather than a labelled one. */
+    /** An icon-only button in a row of them, rather than a labeled one. */
     compact?: boolean;
     onError: (message: string) => void;
     onWarning?: (message: string) => void;

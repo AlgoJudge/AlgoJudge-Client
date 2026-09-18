@@ -1,4 +1,4 @@
-// The application icons, rasterised from the mark this repository already ships.
+// The application icons, rasterized from the mark this repository already ships.
 //
 //     node scripts/make-icons.mjs
 //
@@ -8,13 +8,13 @@
 // named by one. This script is committed beside them so the export can be
 // repeated rather than remembered.
 //
-// **Playwright rather than a rasteriser.** It is already a devDependency, and
+// **Playwright rather than a rasterizer.** It is already a devDependency, and
 // the alternative was a new image dependency in a repository that keeps
 // `npm audit` at zero. The browser is also the thing that will draw the mark
 // everywhere else, so what comes out is what a user sees.
 //
-// Source: `src/assets/algojudge.svg`, recoloured to Mantine's `blue.6` — the
-// same drawing in the same colour as the tab icon, so the mark is one mark
+// Source: `src/assets/algojudge.svg`, recolored to Mantine's `blue.6` — the
+// same drawing in the same color as the tab icon, so the mark is one mark
 // wherever it is shown. The wordmark is hidden and only `#gavel` is framed: a
 // home screen gives an icon a square, and 255x38 of wordmark in one is
 // illegible.
@@ -90,7 +90,7 @@ for (const icon of ICONS) {
         const width = box.width / frame.width * view.width;
         const height = box.height / frame.height * view.height;
 
-        // Square, centred, with the margin outside the mark on every side.
+        // Square, centered, with the margin outside the mark on every side.
         const side = Math.max(width, height) * (1 + 2 * margin);
         const x = left + width / 2 - side / 2;
         const y = top + height / 2 - side / 2;

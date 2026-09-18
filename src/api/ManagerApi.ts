@@ -1,4 +1,4 @@
-import { InstanceDocumentKind, InstanceDocumentRef, InstanceInfo, ThemeColours } from "./CoreApi";
+import { InstanceDocumentKind, InstanceDocumentRef, InstanceInfo, ThemeColors } from "./CoreApi";
 import { Event } from "./Event";
 import { StatementRef, UploadedFile } from "./FileApi";
 import { SeriesImportanceScope } from "./seriesImportance";
@@ -20,9 +20,9 @@ import {
 export type PermissionScope = "global" | "activity" | "both";
 
 /**
- * One entry from the catalogue the **Server** publishes.
+ * One entry from the catalog the **Server** publishes.
  *
- * The catalogue is served rather than hard-coded here, because the Server is
+ * The catalog is served rather than hard-coded here, because the Server is
  * what enforces it: an editor that offered a permission the Server does not know
  * would grant nothing, and one that hid a permission the Server does know would
  * leave a right unmanageable. The Client translates `key` and falls back to
@@ -401,7 +401,7 @@ export interface ManagedActivitySummary {
 }
 
 /**
- * Visibility and enrolment, mirroring the Server enums. Score and log are two
+ * Visibility and enrollment, mirroring the Server enums. Score and log are two
  * settings rather than one policy: a manager may want a public scoreboard while
  * the compiler output stays internal.
  */
@@ -557,8 +557,8 @@ export interface ManagedActivity {
     matchingRunners: number;
 
     /**
-     * The roles this activity enrols into, or absent for the installation's
-     * shipped ones. What self-enrolment, a bulk of temporary accounts and an LTI
+     * The roles this activity enrolls into, or absent for the installation's
+     * shipped ones. What self-enrollment, a bulk of temporary accounts and an LTI
      * launch hand out here — and the setting that makes a role belonging to this
      * activity reach anybody at all.
      */
@@ -601,7 +601,7 @@ export interface ActivityInput {
     runnerTags?: string[];
 
     /**
-     * The roles this activity enrols into. Absent leaves them alone; an empty
+     * The roles this activity enrolls into. Absent leaves them alone; an empty
      * string clears one back to the installation's shipped role.
      */
     participantRoleId?: string;
@@ -657,7 +657,7 @@ export interface ManagedSeries {
      * When participants may see this round's standings. Absent `from` means the
      * round's own start; absent `to` means for ever.
      *
-     * A window per round rather than per activity: an organiser publishes the
+     * A window per round rather than per activity: an organizer publishes the
      * first round's board while the second is still being fought. Different
      * from the freeze above it — that hides late results within a board, this
      * decides whether there is a board at all.
@@ -726,7 +726,7 @@ export interface SeriesInput {
      * When participants may see this round's standings. Absent `from` means the
      * round's own start; absent `to` means for ever.
      *
-     * A window per round rather than per activity: an organiser publishes the
+     * A window per round rather than per activity: an organizer publishes the
      * first round's board while the second is still being fought. Different
      * from the freeze above it — that hides late results within a board, this
      * decides whether there is a board at all.
@@ -1090,7 +1090,7 @@ export interface ManagedSubmission {
     /** How many evaluation jobs it has had. A rejudge adds one. */
     attempts: number;
     /**
-     * A manager ruled that this counts towards no standing. On the list as well
+     * A manager ruled that this counts toward no standing. On the list as well
      * as the detail, unlike `ipAddress`: no disclosure question, and a manager
      * scanning two hundred rows should not open each.
      */
@@ -1450,9 +1450,9 @@ export interface BulkUserInput {
     count: number;
     expiresAt?: string;
     tags?: string[];
-    /** Enrol them all into one activity as they are created. */
+    /** Enroll them all into one activity as they are created. */
     activityId?: string;
-    /** The permission set the enrolment carries. Ignored without an activity. */
+    /** The permission set the enrollment carries. Ignored without an activity. */
     permissions?: string[];
 }
 
@@ -1486,12 +1486,12 @@ export interface AccountMerge {
     mergedAt: string;
     mergedByUserId: string;
     /**
-     * When the emptied account is anonymised, which is also when an undo stops
+     * When the emptied account is anonymized, which is also when an undo stops
      * being offered. Until then it is only blocked, so an undo gives it back
      * whole.
      */
-    anonymiseAfter: string;
-    sourceAnonymisedAt?: string;
+    anonymizeAfter: string;
+    sourceAnonymizedAt?: string;
     undoneAt?: string;
     canUndo: boolean;
 }
@@ -1700,11 +1700,11 @@ export interface InstanceThemeInput {
 
 /**
  * What the form sends. **An empty string is absent**: the form sends every
- * field and an untouched one means the product's default rather than a colour.
+ * field and an untouched one means the product's default rather than a color.
  */
 export interface ThemeInput {
-    light?: ThemeColours;
-    dark?: ThemeColours;
+    light?: ThemeColors;
+    dark?: ThemeColors;
     fontFamily?: string;
     fontFamilyHeadings?: string;
     fonts?: ThemeFontInput[];
@@ -1765,7 +1765,7 @@ export type SeriesChangedEvent = ManagerEvent<"managerSeriesChanged", {
     deletedId?: string;
 }>;
 
-/** Sent as a job is claimed, finishes, or is cancelled. */
+/** Sent as a job is claimed, finishes, or is canceled. */
 export type SubmissionChangedEvent = ManagerEvent<"submissionChanged", {
     submission: ManagedSubmission;
 }>;
@@ -1832,7 +1832,7 @@ export interface ManagerApi {
     readonly eventDispatcher: ManagerEventDispatcher;
 
     /** Every permission the Server knows. The editor renders exactly this. */
-    getPermissionCatalogue(signal: AbortSignal): Promise<PermissionDefinition[]>;
+    getPermissionCatalog(signal: AbortSignal): Promise<PermissionDefinition[]>;
 
     /**
      * What the signed-in user themselves holds in a scope.
@@ -2051,7 +2051,7 @@ export interface ManagerApi {
     getInstanceDocumentHistory(kind: InstanceDocumentKind, signal: AbortSignal): Promise<InstanceDocumentRef[]>;
 
     /**
-     * Sets the operator's colours and typeface, from the form or from a file.
+     * Sets the operator's colors and typeface, from the form or from a file.
      * Answers the whole instance, so the shell repaints without being told.
      */
     setInstanceTheme(input: InstanceThemeInput, signal: AbortSignal): Promise<InstanceInfo>;
@@ -2113,7 +2113,7 @@ export interface ManagerApi {
     publishActivityDocument(activityId: string, kind: ActivityDocumentKind, statements: NewStatement[], signal: AbortSignal): Promise<ManagedActivity>;
     /**
      * Stops publishing one. Its references go and its links go with them — the
-     * navigation, the enrolment form's acceptance box, the activity's own page.
+     * navigation, the enrollment form's acceptance box, the activity's own page.
      */
     unpublishActivityDocument(activityId: string, kind: ActivityDocumentKind, signal: AbortSignal): Promise<ManagedActivity>;
     /** Every revision of one activity document, newest first. */
@@ -2228,7 +2228,7 @@ export interface ManagerApi {
     /** Stops a job that has not finished. A finished one is history. */
     cancelAttempt(submissionId: string, attemptId: string, signal: AbortSignal): Promise<ManagedSubmissionDetail>;
     /**
-     * Rules that a submission counts towards no standing, or lifts the ruling.
+     * Rules that a submission counts toward no standing, or lifts the ruling.
      *
      * Neither a rejudge nor a cancellation — those are about evaluating, this
      * about what the evaluation counts for. Lifting clears the reason with it.

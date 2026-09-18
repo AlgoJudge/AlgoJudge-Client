@@ -6,7 +6,7 @@ import { ScopedApi } from "../../../api/ScopedApi";
  * **Two ways in, one way through.** The picker hands back everything needed —
  * number, title and the statement's address — so nothing is asked of anybody
  * else. A pasted list of numbers carries neither a title nor an address, so
- * those are looked up in the public catalogue, which is the only reason this
+ * those are looked up in the public catalog, which is the only reason this
  * talks to `uhunt.onlinejudge.org` at all.
  *
  * Both paths meet in {@link importOne}, so a problem imported by clicking and
@@ -18,7 +18,7 @@ import { ScopedApi } from "../../../api/ScopedApi";
  * guess about what somebody else's `status` column means.
  */
 
-/** What the catalogue answers about one problem. */
+/** What the catalog answers about one problem. */
 export interface UvaProblem {
     number: number;
     title: string;
@@ -69,11 +69,11 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === "object" && value !== null && !Array.isArray(value);
 
 /**
- * Reads what the catalogue said, and refuses to guess.
+ * Reads what the catalog said, and refuses to guess.
  *
  * **The shape here is not something this product controls**, so it is read
  * defensively: a title is a non-empty string or there is no answer. Anything
- * else means the catalogue changed, and inventing a title from a changed shape
+ * else means the catalog changed, and inventing a title from a changed shape
  * would create a problem named after a bug.
  *
  * **What it answers today** (measured 2026-08-16, `/api/p/num/100`):
@@ -87,7 +87,7 @@ export const titleIn = (answer: unknown): string | undefined => {
 };
 
 /**
- * Asks the public catalogue about one number.
+ * Asks the public catalog about one number.
  *
  * `uhunt.onlinejudge.org` answers `Access-Control-Allow-Origin: *`, measured
  * rather than assumed, which is why this is a call from the browser and not one

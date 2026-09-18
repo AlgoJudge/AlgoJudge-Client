@@ -45,7 +45,7 @@ const { CARRIED, NOT_CARRIED, FIELDS, BUNDLE_TYPE, statementLanguage, isStatemen
     await import(`../${OUT}/exchange/types.js`);
 const { writeBundle, readBundle, weigh, danglingAssignments, REFUSE_BYTES } =
     await import(`../${OUT}/exchange/bundle.js`);
-const { planImport, summarise, freeSlug } = await import(`../${OUT}/exchange/plan.js`);
+const { planImport, summarize, freeSlug } = await import(`../${OUT}/exchange/plan.js`);
 const { shiftTo, anchorOf } = await import(`../${OUT}/exchange/dates.js`);
 const { projectActivity, projectSeries, projectProblem } = await import(`../${OUT}/exchange/project.js`);
 const { partition, mediaTypeOf } = await import(`../${OUT}/exchange/partition.js`);
@@ -248,7 +248,7 @@ check(retired.problems[0].asks,
 check(retired.problems[0].action === "beside" && retired.problems[0].found?.archived === true,
     `and is proposed beside it rather than un-retiring somebody's problem (${retired.problems[0].action})`);
 
-check(summarise(fresh).create === 1 && summarise(same).reuse === 1, "the summary counts what the plan says");
+check(summarize(fresh).create === 1 && summarize(same).reuse === 1, "the summary counts what the plan says");
 check(freeSlug("a", new Set(["a", "a-2"])) === "a-3", "a free slug steps past what is taken");
 
 // ── 6. The dates move on the wall clock ─────────────────────────────────────
@@ -337,7 +337,7 @@ check(split.statements[0].language === undefined && split.statements[1].language
 check(split.files.length === 0,
     `and nothing content.* is left among the ordinary files (${split.files.length})`);
 check(split.packageFileId === "id-package" && split.samplesFileId === undefined,
-    "the package is recognised as the package");
+    "the package is recognized as the package");
 
 // **The media type the bytes go up under, which decides the name they come back
 // down under.** The Server derives a statement's extension from what it

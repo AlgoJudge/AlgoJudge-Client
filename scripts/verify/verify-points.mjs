@@ -101,7 +101,7 @@ check(offered.length === 1 && offered[0] === "Python 3 (CPython)",
 await shot("pts-languages");
 
 // And the contest, which takes three, still offers three — two C++ toolchains
-// that would have been one entry called `cpp` before the catalogue existed.
+// that would have been one entry called `cpp` before the catalog existed.
 await visit("/activities/AMMPZ-2019/submit/D", `document.body.innerText.includes("Język")`);
 await wait(2500);
 await click(`[...document.querySelectorAll("[data-testid=app-main] input")]
@@ -116,7 +116,7 @@ check(contest.includes("C++20 (GCC)") && contest.includes("C++17 (GCC)")
         && contest.includes("Python 3 (CPython)"),
     `another assignment offers its own three (${contest.join(", ")})`);
 // The standard alone is not a toolchain, and neither is a bare id. A select
-// showing either is the catalogue not having reached this screen.
+// showing either is the catalog not having reached this screen.
 check(!contest.some(o => /^(cpp|python|java|cpp17|cpp20)$/.test(o)),
     `and none of them is shown as a bare id (${contest.join(", ")})`);
 

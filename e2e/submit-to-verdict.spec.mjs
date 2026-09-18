@@ -1,7 +1,7 @@
 // Submit to verdict, through every part at once.
 //
 // A manager builds an activity and a problem, publishes a version by reference,
-// attaches it and enrols a participant; the participant sends a solution through
+// attaches it and enrolls a participant; the participant sends a solution through
 // the real screen; a Runner with no sandbox claims the job and reports; and the
 // verdict reaches the screen **over the socket**, without a reload.
 //
@@ -53,7 +53,7 @@ test("a submission reaches a verdict, and the screen shows it without a reload",
             type: "contest@1",
             rankingType: "icpc",
             timeZone: "Europe/Warsaw",
-            // Open, so the participant can enrol themselves rather than needing
+            // Open, so the participant can enroll themselves rather than needing
             // a grant written for them.
             joinPolicy: "open",
             languages: ["python"],
@@ -103,7 +103,7 @@ test("a submission reaches a verdict, and the screen shows it without a reload",
     await runner.register(`e2e-${activitySlug}`);
     const approved = await admin.post(api(`/runners/${runner.id}/approve`));
     expect(approved.status(), await approved.text()).toBe(200);
-    // The manager's row, not the registration acknowledgement.
+    // The manager's row, not the registration acknowledgment.
     expect((await approved.json()).state).toBe("approved");
     await runner.authenticate();
 
@@ -120,7 +120,7 @@ test("a submission reaches a verdict, and the screen shows it without a reload",
     // test is about starts at the submit form, and an activity nobody is in
     // refuses everything before that with `activity:read is required`.
     const enrolled = await page.evaluate(async (api) => {
-        const r = await fetch(`${api}/enrolment`, {
+        const r = await fetch(`${api}/enrollment`, {
             method: "POST", credentials: "include",
             headers: { "content-type": "application/json" }, body: "{}",
         });

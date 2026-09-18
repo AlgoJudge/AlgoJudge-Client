@@ -287,7 +287,7 @@ const UserButton = ({ compact, ...props }: ComponentPropsWithoutRef<'button'> & 
 
                     {/* `c` and not a rule: `dimmed` is written as an inline
                         custom property, so a stylesheet cannot repoint it — and
-                        on the drawer's blue it is grey on blue at 2:1. */}
+                        on the drawer's blue it is gray on blue at 2:1. */}
                     <Text c={compact ? "blue.1" : "dimmed"} size="xs">
                         {session?.username}
                     </Text>
@@ -345,8 +345,8 @@ const InstanceMark = ({ collapsed }: { collapsed: boolean }) => {
     return (
         <>
             {/* In a light box, because a logo is drawn for paper: on the
-                navigation's own colour an operator's mark disappears. Seventy per
-                cent of the width, centred, so it reads without dominating. */}
+                navigation's own color an operator's mark disappears. Seventy
+                percent of the width, centered, so it reads without dominating. */}
             <NavLink to="/" className={classes.mark} data-collapsed={collapsed || undefined}>
                 {/* Scaled, not a fixed pixel height: Mantine's own sizes all
                     carry `--mantine-scale`, and a mark that ignored it was the
@@ -376,7 +376,7 @@ export default function AppLayout() {
     const [railed, collapse] = useDisclosure();
     // The rail is a desktop idea, and the flag outlives the width that set it:
     // somebody who collapsed the navigation on a desktop and then opened the
-    // same session on a phone got a 100px drawer of unlabelled icons. Below
+    // same session on a phone got a 100px drawer of unlabeled icons. Below
     // `sm` the drawer is always the full one.
     const narrow = useMediaQuery(`(max-width: ${em(768)})`);
     const collapsed = railed && !narrow;
@@ -595,7 +595,7 @@ export default function AppLayout() {
                 panel's modal needs the rounds to offer a problem — so nothing is
                 fetched twice.
 
-                **Enrolment, because the panel sends.** Its Send button opens the
+                **Enrollment, because the panel sends.** Its Send button opens the
                 same form as the Submit screen, and the Server refuses a
                 submission from somebody who is not in the activity. The
                 navigation has hidden Submit from them all along; this was the

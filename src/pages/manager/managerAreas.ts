@@ -46,7 +46,7 @@ export const MANAGER_AREAS: ManagerArea[] = [
         permissions: ["user:read:all"],
         // **At system scope, and it is the only area that says so.** The key
         // joined the shipped `manager` role on 2026-09-14 so that an activity's
-        // manager can look somebody up to enrol them — and this screen is still
+        // manager can look somebody up to enroll them — and this screen is still
         // the installation's: it lists every account, blocks them and merges
         // them, and `UserService.ListAsync` goes on asking at system scope. Read
         // as a union, the card appeared for every manager and the list behind it
@@ -80,7 +80,7 @@ export const MANAGER_AREAS: ManagerArea[] = [
     {
         to: "/manager/activities",
         label: "Activities",
-        description: "Contests and courses: series, assignments, times and enrolment.",
+        description: "Contests and courses: series, assignments, times and enrollment.",
         icon: IconListDetails,
         permissions: ["activity:create", "activity:update", "activity:archive"],
     },

@@ -31,13 +31,13 @@ export interface ActivityNotificationsProps {
     slug?: string;
 }
 
-/** What each kind of change says, and what colour carries it. */
-const SERIES_MESSAGE: Record<SeriesChange, { key: string, colour: string }> = {
-    opened: { key: "series.opened", colour: "teal" },
-    closed: { key: "series.closed", colour: "gray" },
-    paused: { key: "series.paused", colour: "orange" },
-    resumed: { key: "series.resumed", colour: "teal" },
-    rescheduled: { key: "series.rescheduled", colour: "blue" },
+/** What each kind of change says, and what color carries it. */
+const SERIES_MESSAGE: Record<SeriesChange, { key: string, color: string }> = {
+    opened: { key: "series.opened", color: "teal" },
+    closed: { key: "series.closed", color: "gray" },
+    paused: { key: "series.paused", color: "orange" },
+    resumed: { key: "series.resumed", color: "teal" },
+    rescheduled: { key: "series.rescheduled", color: "blue" },
 };
 
 export default function ActivityNotifications({ activityId, slug }: ActivityNotificationsProps) {
@@ -48,10 +48,10 @@ export default function ActivityNotifications({ activityId, slug }: ActivityNoti
         if (!activityId || !slug) return;
 
         /** Clickable, and keyed so a burst of the same thing replaces itself. */
-        const show = (key: string, colour: string, title: string, message: string, to: string) =>
+        const show = (key: string, color: string, title: string, message: string, to: string) =>
             notifications.show({
                 id: key,
-                color: colour,
+                color,
                 title,
                 message,
                 autoClose: 8000,
@@ -71,7 +71,7 @@ export default function ActivityNotifications({ activityId, slug }: ActivityNoti
             if (!said) return;
             show(
                 `series-${series.id}`,
-                said.colour,
+                said.color,
                 series.name,
                 t(said.key),
                 `/activities/${slug}/problems`,

@@ -13,7 +13,7 @@
 .section {
     display: flex;
     flex-direction: column;
-    /* **Spread, not centred.** Centring a block shorter than the window leaves
+    /* **Spread, not centered.** Centering a block shorter than the window leaves
        the same dead band above the badge as below the tiles, and the one under
        the bar is the one a reader notices. This starts where the page starts
        and lets the space fall between the two halves, which is the proportion

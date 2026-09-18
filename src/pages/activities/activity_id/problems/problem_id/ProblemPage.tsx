@@ -114,7 +114,7 @@ export default function ProblemPage() {
 
     const Statement = statementRenderers.resolve(problem.type).value;
     // **Whose limits these are.** An assignment's `config` is opaque to the
-    // Server and honoured by whoever judges — so for a problem judged by an
+    // Server and honored by whoever judges — so for a problem judged by an
     // archive, a manager could write time and memory into it and this screen
     // would present them as the rules. They are not; the archive's are.
     const shape = problemShape.resolve(problem.type).value;

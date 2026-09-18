@@ -14,7 +14,7 @@ import { ParticipantEventType } from "../ParticipantApi";
  * producing an event that arrives and is silently dropped.
  *
  * Exported because they are this Client's answer to "which names do we know",
- * and `scripts/check-events.mjs` diffs that answer against the catalogue the
+ * and `scripts/check-events.mjs` diffs that answer against the catalog the
  * Server commits. The compiler can see a name missing from a record; only a
  * diff can see a name missing from the other side of the wire.
  */

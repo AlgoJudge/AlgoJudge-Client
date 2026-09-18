@@ -207,7 +207,7 @@ export interface SeedAttempt {
     /** Compiler output or the judge's message. Managers always see it. */
     log?: string;
     /**
-     * A manager ruled that it counts towards no standing.
+     * A manager ruled that it counts toward no standing.
      *
      * It stays in every list with its verdict and keeps its place against the
      * ceiling; what it leaves is the board, the best score and the status.
@@ -305,7 +305,7 @@ export interface SeedActivity {
     /**
      * Whether the manager fixtures manage it.
      *
-     * The manager's list is the four an organiser here actually runs plus the one
+     * The manager's list is the four an organizer here actually runs plus the one
      * they archived; the participant's list also holds contests from other years
      * and other people's groups. Both are projected from this one description, so
      * what they share cannot drift — this only says who sees the row.
@@ -635,7 +635,7 @@ export const WORLD: SeedActivity[] = [
         // ranking is one row, without a place.
         scoreVisibility: "participantOnly",
         attachmentVisibility: COURSE_ATTACHMENTS,
-        // The emailed-link case: a group of students enrol themselves with the
+        // The emailed-link case: a group of students enroll themselves with the
         // password their lecturer gave them.
         joinPolicy: "password",
         joinPassword: COURSE_JOIN_PASSWORD,
@@ -710,7 +710,7 @@ export const WORLD: SeedActivity[] = [
                     { contestant: "student-me", problem: "uva100", at: 8700, language: "python", state: "completed", verdict: "Accepted", score: 1, maxScore: 1 },
                     { contestant: "student-1", problem: "rekurencja", at: 7200, language: "python", state: "completed", verdict: "Accepted", score: 100 },
                     { contestant: "student-1", problem: "sortowanie", at: 7800, language: "python", state: "completed", verdict: "Partially accepted", score: 80 },
-                    { contestant: "student-3", problem: "rekurencja", at: 9000, language: "python", state: "cancelled" },
+                    { contestant: "student-3", problem: "rekurencja", at: 9000, language: "python", state: "canceled" },
                 ],
             },
             {
@@ -911,7 +911,7 @@ export const WORLD: SeedActivity[] = [
         maxAttachments: 3,
         languages: CONTEST_LANGUAGES,
         props: { "Prowadzący": "Jan Kowalski" },
-        // Not in it. This is the one the enrolment form is for.
+        // Not in it. This is the one the enrollment form is for.
         membership: "open",
         managed: false,
         contestants: [],
@@ -976,7 +976,7 @@ export const WORLD: SeedActivity[] = [
                 runnerTags: ["lab-a"],
                 assignments: [{ problem: ARRAYS, slug: "stos", name: "Stos i kolejka" }],
             },
-            // **The neighbour, and the reason it is here.** Every seeded
+            // **The neighbor, and the reason it is here.** Every seeded
             // activity ran exactly one round, so no screen ever drew a
             // displaced round — which is how a locked one came to render as
             // "not started yet" under a countdown to a start already past.

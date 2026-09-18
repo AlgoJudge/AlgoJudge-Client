@@ -114,11 +114,11 @@ check(await evaluate(`return ${timer} === null;`),
     "with no timer, because nothing is being judged yet");
 
 /**
- * The colour of the waiting box, resolved by the browser rather than read off
+ * The color of the waiting box, resolved by the browser rather than read off
  * the prop.
  *
  * A queued submission has nobody working on it, and the badge a few lines above
- * it already says so in grey; a box in the active colour there said the opposite
+ * it already says so in gray; a box in the active color there said the opposite
  * of its own sentence. Asked of the computed background, because a custom
  * property read back answers with whatever tokens were written into it.
  */
@@ -134,7 +134,7 @@ const banner = () => evaluate(`
 
 const queued = await banner();
 check(queued.bg === queued.gray && queued.bg !== queued.blue,
-    `and it is grey while it only waits — ${queued.gray}, not ${queued.blue}, got ${queued.bg}`);
+    `and it is gray while it only waits — ${queued.gray}, not ${queued.blue}, got ${queued.bg}`);
 
 // ── a runner picks it up ────────────────────────────────────────────────────
 //
@@ -151,8 +151,8 @@ for (let i = 0; i < 14 && await evaluate(`return ${timer} === null;`); i++) {
 check(await evaluate(`return ${timer} !== null;`),
     "once a runner has it, the box says how long it has been at it");
 
-// **The other half, or grey would pass by being grey always.** A submission a
-// runner has is work in progress and keeps the active colour.
+// **The other half, or gray would pass by being gray always.** A submission a
+// runner has is work in progress and keeps the active color.
 const running = await banner();
 check(running.bg === running.blue && running.bg !== running.gray,
     `and it turns blue once a runner has it — ${running.blue}, got ${running.bg}`);

@@ -5,7 +5,7 @@ import { useApi } from "./apiContext";
 import { useInstance } from "./instanceContext";
 
 /**
- * The Mantine provider, wearing the installation's colours.
+ * The Mantine provider, wearing the installation's colors.
  *
  * ## Why this sits below `InstanceProvider` rather than above everything
  *

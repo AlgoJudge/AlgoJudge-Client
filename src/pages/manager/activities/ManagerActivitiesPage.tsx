@@ -32,7 +32,7 @@ const state = (activity: ManagedActivity): "upcoming" | "ongoing" | "finished" |
     return activity.startDate || activity.endDate ? "ongoing" : "untimed";
 };
 
-const STATE_COLOUR = { upcoming: "blue", ongoing: "teal", finished: "gray", untimed: "gray" } as const;
+const STATE_COLOR = { upcoming: "blue", ongoing: "teal", finished: "gray", untimed: "gray" } as const;
 
 export default function ManagerActivitiesPage() {
     const { t } = useTranslation();
@@ -226,7 +226,7 @@ export default function ManagerActivitiesPage() {
                                 {activity.publishedAt ? (
                                     <Badge
                                         variant="light"
-                                        color={STATE_COLOUR[state(activity)]}
+                                        color={STATE_COLOR[state(activity)]}
                                         styles={{ label: { overflow: "visible" } }}
                                     >
                                         {t(`activityState.${state(activity)}`)}
@@ -347,7 +347,7 @@ export default function ManagerActivitiesPage() {
                     {/* A choice, not a free field, as it is for a problem: the
                         type decides how the activity presents its series, and a
                         string nothing is registered for gets whatever generic
-                        behaviour the fallback happens to have. */}
+                        behavior the fallback happens to have. */}
                     <Select
                         label={t("Type")}
                         description={chosenType ? t(chosenType.description) : undefined}

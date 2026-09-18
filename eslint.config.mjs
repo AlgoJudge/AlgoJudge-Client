@@ -54,7 +54,7 @@ export default [
              * predates them.
              *
              * Turning them on means changing when screens set state and how
-             * they read refs, which is behaviour, with its own verification.
+             * they read refs, which is behavior, with its own verification.
              * Doing that inside a dependency sweep would put a render change
              * in a diff nobody reviews for render changes. They are off here so
              * lint stays silent, and on the day they are fixed this block is

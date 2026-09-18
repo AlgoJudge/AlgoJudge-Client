@@ -1,4 +1,4 @@
-// The colour-scheme preference: still applied, still remembered, no longer
+// The color-scheme preference: still applied, still remembered, no longer
 // re-applied on every render of the header — and, at the foot of this file,
 // legible once it is dark.
 import { open, RESOLVE, results } from "./harness.mjs";
@@ -91,13 +91,13 @@ check(Math.abs(short.bottom - short.viewport) < 4,
 //
 // **Everything above this line passed while the two screens below were
 // unreadable.** The suite proved the switch flips, the choice is stored and the
-// header does not churn, and never read a colour — so `.problem` sat at 1.4:1
+// header does not churn, and never read a color — so `.problem` sat at 1.4:1
 // for as long as it existed and nothing went red.
 //
-// Colours are read *computed*, from the browser, because that is the only thing
+// Colors are read *computed*, from the browser, because that is the only thing
 // that catches the shape of the fault that was here: `.active` asked for
 // `var(--mantine-text-color)`, which Mantine does not define, so the declaration
-// was dropped and the colour inherited. Nothing in the source says "wrong".
+// was dropped and the color inherited. Nothing in the source says "wrong".
 
 /**
  * Every card in the page's main region, with its contrast against the first
@@ -189,7 +189,7 @@ for (const scheme of ["light", "dark"]) {
     }
 }
 
-// ── An installation's own colours ───────────────────────────────────────────
+// ── An installation's own colors ───────────────────────────────────────────
 //
 // **Read through a probe element, never off the custom property.** A custom
 // property read with `getPropertyValue` comes back as whatever tokens were
@@ -210,8 +210,8 @@ for (const scheme of ["light", "dark"]) {
  * back in to be divided would be a round trip for arithmetic.
  */
 function contrast(a, b) {
-    const luminance = (colour) => {
-        const channels = [1, 3, 5].map(i => parseInt(colour.slice(i, i + 2), 16) / 255)
+    const luminance = (color) => {
+        const channels = [1, 3, 5].map(i => parseInt(color.slice(i, i + 2), 16) / 255)
             .map(c => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)));
         return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
     };
@@ -257,8 +257,8 @@ const BRANDED = {
  * The tokens, read where they are used rather than where they are declared.
  *
  * `primary` is the one that cannot be compared to a single variable: an operator
- * states one colour and ten shades are generated from it, so what is asserted is
- * that **the colour they asked for is one of the ten** — true whatever the
+ * states one color and ten shades are generated from it, so what is asserted is
+ * that **the color they asked for is one of the ten** — true whatever the
  * generator does with the other nine, and false the moment their value stops
  * reaching the ramp at all.
  */
@@ -291,9 +291,9 @@ const TOKENS = `
         // one would end it. It has cost two runs.)
         filled: resolved("var(--mantine-primary-color-filled)"),
         // The working area, which showed the page ground until 2026-08-30 and
-        // put the rows on almost their own colour.
+        // put the rows on almost their own color.
         main: main ? hex(getComputedStyle(main).backgroundColor) : "no main region",
-        // A hover colour, so it is read as the variable rather than off an
+        // A hover color, so it is read as the variable rather than off an
         // element: CSS :hover does not answer a synthetic event, and a check
         // that dispatched one would be asserting nothing.
         accent: resolved("var(--aj-nav-accent)"),
@@ -309,7 +309,7 @@ for (const scheme of ["light", "dark"]) {
     await evaluate(`localStorage.setItem("mantine-color-scheme-value", ${JSON.stringify(scheme)}); return true;`);
     // **Waits for the installation to have answered, not for words on the
     // screen.** The defaults are drawn while that answer is in flight, so a
-    // check that waited for text read the unbranded colours — and waiting longer
+    // check that waited for text read the unbranded colors — and waiting longer
     // is a slower version of the same race rather than a fix for it.
     await go(`${APP}/activities?fakeUser=amy&fakeTheme=on`,
         `document.documentElement.dataset.instance === "loaded"`
@@ -328,12 +328,12 @@ for (const scheme of ["light", "dark"]) {
     }
 
     check(got.shades.includes(want.primary),
-        `${scheme}: the brand colour ${want.primary} is one of the ten shades — got ${got.shades.join(" ")}`);
-    // **The colour they typed, not a neighbour of it.** A ramp is generated
+        `${scheme}: the brand color ${want.primary} is one of the ten shades — got ${got.shades.join(" ")}`);
+    // **The color they typed, not a neighbor of it.** A ramp is generated
     // around a value, so the one an operator states is rarely index 6 — and
     // index 6 is what a button is painted with unless the shade is pinned.
     check(got.filled === want.primary,
-        `${scheme}: a button is painted the colour the instance stated — ` +
+        `${scheme}: a button is painted the color the instance stated — ` +
         `${want.primary}, got ${got.filled}`);
 
     // A family, not a file: `serif` and `monospace` are two of the four generic
@@ -363,13 +363,13 @@ for (const scheme of ["light", "dark"]) {
     //
     // **And the rows themselves carry the instance's surface**, which they did
     // not until the two themes were photographed and these two screens came out
-    // grey while everything around them had changed. A theme that stops at the
+    // gray while everything around them had changed. A theme that stops at the
     // shell is half a theme, and nothing here said so.
     const cards = await evaluate(CARD_CONTRAST);
     check(cards.length >= 4, `${scheme}: ${cards.length} branded cards to look at`);
     // Two steps, not one: a finished activity sits on the surface itself and a
     // running one on the deeper step blended from it. What is asserted is that
-    // no row is on a palette grey any more.
+    // no row is on a palette gray any more.
     const steps = await evaluate(`
         ${RESOLVE}
         return ["--aj-row", "--aj-row-hover", "--aj-row-active"]
@@ -389,7 +389,7 @@ for (const scheme of ["light", "dark"]) {
 // the account into `sessionStorage`, so `/login` with one still there redirects
 // straight into the application — and the `header` element then found is
 // `AppShell.Header`, whose background is the *surface* token. This check read
-// `#fffde7` and called it a missing header colour until the session was cleared;
+// `#fffde7` and called it a missing header color until the session was cleared;
 // the same mechanism cost `verify-maintenance` two red CI runs in August.
 await evaluate(`
     localStorage.setItem("mantine-color-scheme-value", "light");
@@ -406,7 +406,7 @@ const header = await evaluate(`
     const foot = [...document.querySelectorAll("div")].find(d =>
         d.className && String(d.className).includes("footer"));
     return {
-        colour: bar ? hex(getComputedStyle(bar).backgroundColor) : "no header",
+        color: bar ? hex(getComputedStyle(bar).backgroundColor) : "no header",
         foot: foot ? hex(getComputedStyle(foot).backgroundColor) : "no footer",
         // Says which shell this is, so the assertion below cannot pass by
         // reading the application's bar and calling it the public one.
@@ -414,15 +414,15 @@ const header = await evaluate(`
     };
 `);
 check(!header.application, "the sign-in screen is the public shell, not the application's");
-check(header.colour === BRANDED.light.header,
-    `the public bar carries the instance's colour — ${BRANDED.light.header}, got ${header.colour}`);
+check(header.color === BRANDED.light.header,
+    `the public bar carries the instance's color — ${BRANDED.light.header}, got ${header.color}`);
 check(header.foot === BRANDED.light.nav,
     `and its foot carries the navigation's — ${BRANDED.light.nav}, got ${header.foot}`);
 
 // ── And an installation with no theme is untouched ──────────────────────────
 //
 // The other half of the promise, and the one that is easy to lose: absent means
-// **the colour AlgoJudge ships**, not black and not empty. Nothing in this
+// **the color AlgoJudge ships**, not black and not empty. Nothing in this
 // Client writes a default, so what is asserted is that the navigation is still
 // Mantine's own blue and the page ground variable was never defined.
 await go(`${APP}/activities?fakeUser=amy`,

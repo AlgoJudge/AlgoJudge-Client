@@ -12,7 +12,7 @@
  *
  * **A `<pre>` block becomes an ordinary fence and nothing more.** Promoting one
  * to a sample pair — the `in` fence immediately followed by an `out` fence that
- * `CONTENT_FORMAT.md` defines — is a judgement about which block is input and
+ * `CONTENT_FORMAT.md` defines — is a judgment about which block is input and
  * which is output, and a wrong guess puts one where the other belongs. A
  * manager makes it in the editor, on a statement that already reads correctly.
  */

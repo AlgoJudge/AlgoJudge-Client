@@ -1,6 +1,6 @@
 import {
     DeepLinkAnswer, DeepLinkChoosing, GradeSummary, LaunchContext, LtiApi, Placement, Platform,
-    PlatformInput, RegistrationInvitation, RosterEnrolment, RosterView, ToolRegistration,
+    PlatformInput, RegistrationInvitation, RosterEnrollment, RosterView, ToolRegistration,
 } from "../LtiApi";
 import { HttpClient } from "./HttpClient";
 
@@ -82,9 +82,9 @@ export class LtiApiHttp implements LtiApi {
             `/lti/placements/${encodeURIComponent(placementId)}/roster`, "GET", { signal });
     }
 
-    enrolFromRoster(placementId: string, signal: AbortSignal): Promise<RosterEnrolment> {
-        return this.http.request<RosterEnrolment>(
-            `/lti/placements/${encodeURIComponent(placementId)}/roster/enrol`, "POST", { signal });
+    enrollFromRoster(placementId: string, signal: AbortSignal): Promise<RosterEnrollment> {
+        return this.http.request<RosterEnrollment>(
+            `/lti/placements/${encodeURIComponent(placementId)}/roster/enroll`, "POST", { signal });
     }
 
     listInvitations(signal: AbortSignal): Promise<RegistrationInvitation[]> {

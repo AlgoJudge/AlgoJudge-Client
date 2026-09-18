@@ -24,7 +24,7 @@ export const DEFAULT_RUNNER_TAG = "default";
 export const MAX_RUNNER_TAGS = 16;
 
 /** Trimmed, lowercased, de-duplicated, blanks dropped — as the Server stores them. */
-export const normaliseRunnerTags = (tags: readonly string[] | undefined): string[] =>
+export const normalizeRunnerTags = (tags: readonly string[] | undefined): string[] =>
     [...new Set((tags ?? []).map(tag => tag.trim().toLowerCase()).filter(tag => tag.length > 0))];
 
 /**
@@ -35,8 +35,8 @@ export const normaliseRunnerTags = (tags: readonly string[] | undefined): string
  * given a tag leaves the general Runners, for the same reason.
  */
 export const effectiveRunnerTags = (tags: readonly string[] | undefined): string[] => {
-    const normalised = normaliseRunnerTags(tags);
-    return normalised.length === 0 ? [DEFAULT_RUNNER_TAG] : normalised;
+    const normalized = normalizeRunnerTags(tags);
+    return normalized.length === 0 ? [DEFAULT_RUNNER_TAG] : normalized;
 };
 
 /** Whether a Runner in these pools may be handed work tagged that way. */

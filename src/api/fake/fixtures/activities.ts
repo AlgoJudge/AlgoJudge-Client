@@ -14,7 +14,7 @@ import {
  * name, how many rounds it had and which problems were in them. Both are now
  * projections of `world.ts`, so what they share cannot drift apart.
  *
- * Only the activities marked `managed` reach here — the ones an organiser on
+ * Only the activities marked `managed` reach here — the ones an organizer on
  * this instance actually runs, plus the one they archived. A contest somebody
  * competed in years ago is in the participant's list and not in this one, which
  * is a difference in who sees the row, not in what the row says.

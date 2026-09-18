@@ -209,8 +209,8 @@ function App() {
                     element: <ActivitiesPage />
                 },
                 {
-                    // The activity's own page: what its organiser wrote, or the
-                    // form to enrol for somebody who is not in it yet. Exact, so
+                    // The activity's own page: what its organizer wrote, or the
+                    // form to enroll for somebody who is not in it yet. Exact, so
                     // it does not swallow the screens below it.
                     path: "/activities/:activityId",
                     element: <ActivityPage />
@@ -297,7 +297,7 @@ function App() {
                renders nothing of its own. */
             <ApiProvider>
                 {/* And the instance above the theme, which is the whole of what
-                    lets an installation carry its own colours: `MantineProvider`
+                    lets an installation carry its own colors: `MantineProvider`
                     was the outermost provider until 2026-08-30 and the instance
                     was fetched four levels under it, so the theme it was handed
                     could never depend on the installation.

@@ -11,7 +11,7 @@
 // On 2026-09-14 three filters on the participant's submissions screen had been
 // dead against the real Server for months — the action bound `page` and
 // `pageSize` and nothing else, so ASP.NET Core discarded the rest and answered
-// 200 with the whole list. **The fake honoured all three**, so the screen worked
+// 200 with the whole list. **The fake honored all three**, so the screen worked
 // in every place anybody tested it. A browser check would have been green
 // throughout, and one claiming otherwise would be worse than none.
 //
@@ -71,7 +71,7 @@ const chosen = async (testid) => await evaluate(`
  *
  * **Filtered by `offsetParent`.** Mantine hides a closed dropdown rather than
  * unmounting it, so every option on the screen is in the document whether or not
- * anybody can see it — an unfiltered `[role=option]` counts the neighbouring
+ * anybody can see it — an unfiltered `[role=option]` counts the neighboring
  * controls' options too.
  */
 const optionsOf = async (testid) => {
@@ -251,7 +251,7 @@ const everyRow = await managed("");
 check(everyRow > 0, `the manager's list starts with rows on it (${everyRow})`);
 
 const statuses = [];
-for (const state of ["queued", "running", "failed", "cancelled"]) {
+for (const state of ["queued", "running", "failed", "canceled"]) {
     const narrowed = await managed(`?state=${state}`);
     if (narrowed > 0 && narrowed < everyRow) statuses.push({ state, narrowed });
     if (statuses.length === 2) break;
@@ -317,7 +317,7 @@ check(verdictRow.length > 0, "a row can be read for its verdict");
 //
 // Asserted on **focus**, because that is what a person loses. A check that the
 // input still exists would pass against a screen that destroyed and rebuilt it,
-// which is exactly the behaviour being fixed.
+// which is exactly the behavior being fixed.
 
 await visit("/manager/submissions", `${rows} >= 0`);
 await landed();

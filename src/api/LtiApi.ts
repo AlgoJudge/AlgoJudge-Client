@@ -60,7 +60,7 @@ export interface LaunchContext {
  */
 export interface GradeSummary {
     total: number;
-    synchronised: number;
+    synchronized: number;
     pending: number;
     deferred: number;
     withheld: number;
@@ -266,7 +266,7 @@ export interface RosterSkip {
     reason: string;
 }
 
-export interface RosterEnrolment {
+export interface RosterEnrollment {
     read: number;
     linked: number;
     granted: number;
@@ -380,7 +380,7 @@ export interface LtiApi {
      * Puts that roster into the activity. Answers what it did and — the part
      * worth reading — whom it declined to place, and why.
      */
-    enrolFromRoster(placementId: string, signal: AbortSignal): Promise<RosterEnrolment>;
+    enrollFromRoster(placementId: string, signal: AbortSignal): Promise<RosterEnrollment>;
 
     /** Registrations somebody here is expecting, newest first. */
     listInvitations(signal: AbortSignal): Promise<RegistrationInvitation[]>;

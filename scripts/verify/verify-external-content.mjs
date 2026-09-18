@@ -76,7 +76,7 @@ if (rows >= 2) {
 
 // ── Importing by number ────────────────────────────────────────────────────
 //
-// The fake fetches nothing and knows no catalogue, so what can be measured here
+// The fake fetches nothing and knows no catalog, so what can be measured here
 // is what the screen does with the answers rather than whether an import works.
 // That is the half a browser can see, and the half the gate cannot.
 

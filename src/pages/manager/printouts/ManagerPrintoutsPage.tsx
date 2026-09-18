@@ -16,7 +16,7 @@ import ActivityTime from "../../../components/time/ActivityTime";
 
 const PAGE_SIZE = 20;
 
-const STATE_COLOUR: Record<PrintoutState, string> = {
+const STATE_COLOR: Record<PrintoutState, string> = {
     requested: "blue",
     printing: "orange",
     printed: "green",
@@ -224,7 +224,7 @@ export default function ManagerPrintoutsPage() {
                                     <ActivityTime value={printout.requestedAt} size="sm" />
                                 </Table.Td>
                                 <Table.Td>
-                                    <Badge color={STATE_COLOUR[printout.state]} variant="light">
+                                    <Badge color={STATE_COLOR[printout.state]} variant="light">
                                         {printout.state === "printed" ? t("Printed")
                                             : printout.state === "discarded" ? t("Discarded")
                                                 : printout.state === "printing" ? t("At a printer")

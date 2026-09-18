@@ -174,7 +174,7 @@ export default function ManagerProblemPage() {
             if (seen.state === "completed") {
                 // The measurement is opaque to the Server and arrives as text.
                 // Guarded rather than cast: a document this screen does not
-                // recognise is an ordinary case, not a crash — and that has to
+                // recognize is an ordinary case, not a crash — and that has to
                 // include text which is not JSON at all. A Runner writing a
                 // stack trace threw `SyntaxError` here, past the very message
                 // below that was written for it.
@@ -190,7 +190,7 @@ export default function ManagerProblemPage() {
                 if (!rows?.length) throw new Error(t("The trial finished but measured nothing"));
                 return rows;
             }
-            if (seen.state === "failed" || seen.state === "cancelled") {
+            if (seen.state === "failed" || seen.state === "canceled") {
                 // The Runner's own words, which are the only thing that says
                 // what went wrong with somebody's package.
                 throw new Error(seen.failureReason ?? t("The trial did not finish"));

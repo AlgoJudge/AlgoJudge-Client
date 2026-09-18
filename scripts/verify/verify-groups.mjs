@@ -56,7 +56,7 @@ const alerts = () => evaluate(`
  * **The panel needs about two seconds to redraw** — `useApiEffect` makes six
  * sequential calls and the fake sleeps 300 ms in each — and a fixed pause long
  * enough for that on a loaded machine is dead time on every run. Two of them
- * were enough to push a neighbouring check past its own timeout in CI.
+ * were enough to push a neighboring check past its own timeout in CI.
  */
 const until = async (expression, tries = 30) => {
     for (let attempt = 0; attempt < tries; attempt++) {

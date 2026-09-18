@@ -3,7 +3,7 @@
 // **The last check is the one this file exists for.** A `uva@1` problem is the
 // first thing in the product whose content came from another host, and the rule
 // is that a participant screen never reaches one: the statement is a copy stored
-// here, and the verdict travelled through the Server. Reviewing that by reading
+// here, and the verdict traveled through the Server. Reviewing that by reading
 // the code is exactly how it stops being true, so it is measured instead —
 // every `fetch` the page makes and every resource it loaded, compared against
 // its own origin.

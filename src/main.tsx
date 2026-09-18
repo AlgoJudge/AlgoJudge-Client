@@ -9,7 +9,7 @@ import "./seo";
 
 import "@mantine/code-highlight/styles.css";
 
-// The language is i18next's own (it detects and stores it) and the colour scheme
+// The language is i18next's own (it detects and stores it) and the color scheme
 // is Mantine's. There is no provider of ours in between: two stores for one
 // setting meant the last screen to mount decided what the reader saw.
 /*

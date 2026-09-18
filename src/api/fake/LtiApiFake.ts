@@ -1,6 +1,6 @@
 import {
     DeepLinkAnswer, DeepLinkChoosing, GradeSummary, LaunchContext, LtiApi, Placement, Platform,
-    PlatformInput, RegistrationInvitation, RosterEnrolment, RosterEntry, RosterView,
+    PlatformInput, RegistrationInvitation, RosterEnrollment, RosterEntry, RosterView,
     ToolRegistration,
 } from "../LtiApi";
 import { conflict, invalid, notFound } from "./refuse";
@@ -28,7 +28,7 @@ export class LtiApiFake implements LtiApi {
 
     private grades: GradeSummary = {
         total: 24,
-        synchronised: 21,
+        synchronized: 21,
         pending: 1,
         deferred: 2,
         withheld: 0,
@@ -170,7 +170,7 @@ export class LtiApiFake implements LtiApi {
         requireNamespace(input);
 
         const platform: Platform = {
-            ...normalise(input),
+            ...normalize(input),
             id: `platform-${this.nextId}`,
             providerId: `provider-lti-${this.nextId}`,
             createdAt: new Date().toISOString(),
@@ -194,7 +194,7 @@ export class LtiApiFake implements LtiApi {
         }
         requireNamespace(input);
 
-        Object.assign(existing, normalise(input), { id: existing.id, providerId: existing.providerId, createdAt: existing.createdAt });
+        Object.assign(existing, normalize(input), { id: existing.id, providerId: existing.providerId, createdAt: existing.createdAt });
         return { ...existing };
     }
 
@@ -248,7 +248,7 @@ export class LtiApiFake implements LtiApi {
         };
     }
 
-    async enrolFromRoster(placementId: string): Promise<RosterEnrolment> {
+    async enrollFromRoster(placementId: string): Promise<RosterEnrollment> {
         if (!this.placements.some(p => p.id === placementId)) throw notFound("Placement");
 
         const skipped = this.roster
@@ -386,14 +386,14 @@ export class LtiApiFake implements LtiApi {
 
     async resyncGrades(linkId: string): Promise<number> {
         if (linkId !== "link-1") throw notFound("Placement");
-        const queued = this.grades.synchronised + this.grades.pending + this.grades.failed;
-        this.grades = { ...this.grades, synchronised: 0, pending: queued, failed: 0 };
+        const queued = this.grades.synchronized + this.grades.pending + this.grades.failed;
+        this.grades = { ...this.grades, synchronized: 0, pending: queued, failed: 0 };
         return queued;
     }
 }
 
 /** Trimmed the way the Server trims it, so the screen sees the stored form. */
-const normalise = (input: PlatformInput) => ({
+const normalize = (input: PlatformInput) => ({
     displayName: input.displayName.trim(),
     issuer: input.issuer.trim(),
     clientId: input.clientId.trim(),

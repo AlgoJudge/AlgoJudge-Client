@@ -35,7 +35,7 @@ export default defineConfig({
         // the host this is Europe/Warsaw here and UTC on CI, and every assertion
         // on a rendered time would mean something different in the two places.
         // Warsaw is the fixtures' own zone, which makes this the "reader sits in
-        // the activity's zone" case; the traveller is `zones.spec.mjs`.
+        // the activity's zone" case; the traveler is `zones.spec.mjs`.
         timezoneId: "Europe/Warsaw",
         viewport: { width: 1500, height: 1200 },
         trace: "retain-on-failure",

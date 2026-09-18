@@ -15,7 +15,7 @@ const { send, evaluate, until, wait, shot, go, visit, click, pages, paintedWith,
 const { check, report } = results();
 
 // **Two activities this reader is actually enrolled in**, one with the module on
-// and one with it off. Enrolment matters: an entry is absent for somebody who is
+// and one with it off. Enrollment matters: an entry is absent for somebody who is
 // not in the activity whatever the module says, so an activity they are not in
 // would make the "off" case prove nothing — measured, after a sabotage passed
 // against exactly that.
@@ -296,7 +296,7 @@ check(listing.shortest >= listing.line - 1,
 
 // **What copying depends on**, the clipboard itself not being reachable from
 // here. `getSelection().toString()` would be the wrong probe — it runs a
-// different serialiser from the one copy uses and has included unselectable
+// different serializer from the one copy uses and has included unselectable
 // text. So the two mechanisms are asserted instead.
 check(listing.unselectable === "none",
     `the numbering is not part of what is copied (${listing.unselectable})`);

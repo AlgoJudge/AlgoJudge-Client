@@ -151,7 +151,7 @@ export default function HomePage() {
 
                         {activities.length === 0 ? (
                             <Text size="sm" c="dimmed">
-                                {t("You are not enrolled in anything yet. An organiser adds you to an activity.")}
+                                {t("You are not enrolled in anything yet. An organizer adds you to an activity.")}
                             </Text>
                         ) : (
                             <Grid>

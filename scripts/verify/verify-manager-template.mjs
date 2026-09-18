@@ -13,7 +13,7 @@
 //
 // **Start on `/` and not on a manager address.** `?fakeUser=` is read while the
 // fake is built, and a cold load straight onto `/manager` renders nothing at
-// all — measured, and an artefact of the fake rather than of the product.
+// all — measured, and an artifact of the fake rather than of the product.
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";

@@ -25,7 +25,7 @@
  */
 /* `wordmark` and not `mark`: this file already had a `.mark`, and it is the
    operator's logo in the navigation drawer. Two rules under one name meant this
-   one's `margin-inline` reached that one and pushed it off centre. */
+   one's `margin-inline` reached that one and pushed it off center. */
 .wordmark {
     display: inline-flex;
     align-items: center;
@@ -68,8 +68,8 @@
 
 /* **The working area is a panel, not the page ground.** It was transparent, so
    it showed whatever `body` had — and an installation whose ground is a pale
-   tint then put the rows on almost their own colour, at a contrast nobody could
-   read. `--mantine-color-body` is the panel colour: white with no theme, and the
+   tint then put the rows on almost their own color, at a contrast nobody could
+   read. `--mantine-color-body` is the panel color: white with no theme, and the
    instance's `surface` with one, so this line changes nothing until a theme
    sets one. The ground stays visible where a ground belongs — behind the shell. */
 .main {
@@ -114,7 +114,7 @@
     @mixin hover {
         background-color: var(--aj-nav-hover, var(--mantine-color-blue-7));
         /* The instance's accent where it has one. An accent is a small
-           highlight on a coloured bar, which is exactly what this is; the
+           highlight on a colored bar, which is exactly what this is; the
            navigation's own text is the fallback, so nothing moves without a
            theme. */
         color: var(--aj-nav-accent, var(--aj-nav-text, var(--mantine-color-white)));
@@ -210,9 +210,9 @@
 
 /* The instance mark at the top of the navigation.
 
-   A light box in both colour schemes: a logo is made for paper, and the
-   navigation is a saturated blue that swallows one. Seventy per cent of the
-   width, centred, so a wide crest cannot push the navigation sideways and a
+   A light box in both color schemes: a logo is made for paper, and the
+   navigation is a saturated blue that swallows one. Seventy percent of the
+   width, centered, so a wide crest cannot push the navigation sideways and a
    narrow one is still worth looking at. */
 .mark {
     display: block;
@@ -265,7 +265,7 @@
 }
 
 /* The separator between them. Drawn by the link rather than by an element of
-   its own so the list stays a list of links, and given its own colour so it
+   its own so the list stays a list of links, and given its own color so it
    does not brighten with the one it happens to follow. */
 .footLink:not(:last-child)::after {
     /* The spaces are load-bearing. JSX leaves no text node between the links,
@@ -308,7 +308,7 @@
 }
 
 /* The scrollbar of the middle section, on the navigation's own blue: the default
-   grey is drawn for a light surface and all but disappears here. */
+   gray is drawn for a light surface and all but disappears here. */
 .navbar :global(.mantine-ScrollArea-thumb) {
     background-color: var(--aj-nav-scrollbar, var(--mantine-color-blue-3));
 }

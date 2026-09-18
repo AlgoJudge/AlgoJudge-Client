@@ -8,7 +8,7 @@ import { seedActivityDocuments, COURSE_ID, INVITED_COURSE_ID, OPEN_ID } from "./
 import { FakeFiles } from "./FileApiFake";
 import { invalid } from "./refuse";
 
-interface Enrolment {
+interface Enrollment {
     policy: JoinPolicy;
     password?: string;
     unlisted: boolean;
@@ -84,14 +84,14 @@ export class FakeActivities {
     private readonly documents: Map<string, ActivityDocumentRef[]>;
     /** Every revision ever published, newest first, keyed `${activityId}/${kind}`. */
     private readonly history = new Map<string, ActivityDocumentRef[]>();
-    private readonly enrolment = new Map<string, Enrolment>();
+    private readonly enrollment = new Map<string, Enrollment>();
     /** What the reader has joined during this visit, on top of the fixtures. */
     private readonly joined = new Set<string>();
     private readonly seriesListeners: ((relay: SeriesRelay) => void)[] = [];
     /**
      * What a manager changed about the activity that a participant can see.
      *
-     * The same reason the documents and the enrolment live here: the two halves
+     * The same reason the documents and the enrollment live here: the two halves
      * of the fake keep their own activity, and a setting saved in the panel that
      * never reached the other half is a setting that looks like it did nothing —
      * which is exactly how the series dates behaved before they were relayed.
@@ -105,11 +105,11 @@ export class FakeActivities {
         }
         // The two that are joinable at all. Everything else is closed, which is
         // also the default for an activity nobody configured.
-        this.enrolment.set(COURSE_ID, { policy: "password", password: COURSE_JOIN_PASSWORD, unlisted: true });
-        this.enrolment.set(OPEN_ID, { policy: "open", unlisted: false });
+        this.enrollment.set(COURSE_ID, { policy: "password", password: COURSE_JOIN_PASSWORD, unlisted: true });
+        this.enrollment.set(OPEN_ID, { policy: "open", unlisted: false });
         // Unlisted **and** password-protected: reachable only by the link, which
         // is the state the share link exists for.
-        this.enrolment.set(INVITED_COURSE_ID, {
+        this.enrollment.set(INVITED_COURSE_ID, {
             policy: "password", password: COURSE_JOIN_PASSWORD, unlisted: true,
         });
     }
@@ -171,17 +171,17 @@ export class FakeActivities {
         return `${activityId}/${language ? `${kind}-${language}` : kind}.md`;
     }
 
-    enrolmentOf(activityId: string): Enrolment {
-        return this.enrolment.get(activityId) ?? { policy: "closed", unlisted: true };
+    enrollmentOf(activityId: string): Enrollment {
+        return this.enrollment.get(activityId) ?? { policy: "closed", unlisted: true };
     }
 
-    setEnrolment(activityId: string, policy: JoinPolicy, password: string | undefined, unlisted: boolean): void {
-        this.enrolment.set(activityId, {
+    setEnrollment(activityId: string, policy: JoinPolicy, password: string | undefined, unlisted: boolean): void {
+        this.enrollment.set(activityId, {
             policy,
             // Kept only where it means anything, so switching to open and back
             // does not quietly restore a password nobody meant to reinstate.
             password: policy === "password" ? password?.trim() || undefined : undefined,
-            // Under `closed` there is no self-enrolment at all, so it is hidden
+            // Under `closed` there is no self-enrollment at all, so it is hidden
             // whatever the switch says: the policy already means it.
             unlisted: policy === "closed" ? true : unlisted,
         });
@@ -196,18 +196,18 @@ export class FakeActivities {
      */
     isListed(activityId: string, isMember: boolean): boolean {
         if (isMember) return true;
-        const { policy, unlisted } = this.enrolmentOf(activityId);
+        const { policy, unlisted } = this.enrollmentOf(activityId);
         return policy !== "closed" && !unlisted;
     }
 
-    /** Refuses exactly as the Server will: a wrong password is not an enrolment. */
+    /** Refuses exactly as the Server will: a wrong password is not an enrollment. */
     join(activityId: string, password: string | undefined): void {
-        const settings = this.enrolmentOf(activityId);
+        const settings = this.enrollmentOf(activityId);
         if (settings.policy === "closed") {
-            throw new ForbiddenError("Do tej aktywności zapisuje organizator", "enrolment.closed");
+            throw new ForbiddenError("Do tej aktywności zapisuje organizator", "enrollment.closed");
         }
         if (settings.policy === "password" && (password ?? "").trim() !== (settings.password ?? "")) {
-            throw new ForbiddenError("Hasło zapisu jest nieprawidłowe", "enrolment.password");
+            throw new ForbiddenError("Hasło zapisu jest nieprawidłowe", "enrollment.password");
         }
         this.joined.add(activityId);
     }

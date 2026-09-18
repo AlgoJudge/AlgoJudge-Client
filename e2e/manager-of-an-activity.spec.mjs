@@ -10,7 +10,7 @@
 // Nothing else in either repository can see this. `check:ui` drives the fake,
 // whose account fixtures held a system-scope set no role grants; the
 // Server's own suite drives the API with no Client. This drives the screens
-// against a Server that authorises them.
+// against a Server that authorizes them.
 //
 //   docker compose -f example-full-stack-docker-compose.yaml up -d --build --wait
 //   npx playwright test

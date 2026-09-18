@@ -33,7 +33,7 @@ const stateOf = (user: ManagedUser): "blocked" | "expired" | "pending" | "active
     return "active";
 };
 
-const STATE_COLOUR = { blocked: "red", expired: "gray", pending: "orange", active: "teal" } as const;
+const STATE_COLOR = { blocked: "red", expired: "gray", pending: "orange", active: "teal" } as const;
 
 export default function UsersPage() {
     const { t } = useTranslation();
@@ -274,7 +274,7 @@ export default function UsersPage() {
                             </Table.Td>
                             <Table.Td>
                                 <Tooltip label={user.blockedReason ?? ""} disabled={!user.blockedReason}>
-                                    <Badge variant="light" color={STATE_COLOUR[stateOf(user)]}>
+                                    <Badge variant="light" color={STATE_COLOR[stateOf(user)]}>
                                         {t(`userState.${stateOf(user)}`)}
                                     </Badge>
                                 </Tooltip>
@@ -367,7 +367,7 @@ export default function UsersPage() {
                             <Stack gap="sm">
                                 <Group gap="xs">
                                     <Text size="sm" ff="monospace">{selected.username}</Text>
-                                    <Badge variant="light" color={STATE_COLOUR[stateOf(selected)]}>
+                                    <Badge variant="light" color={STATE_COLOR[stateOf(selected)]}>
                                         {t(`userState.${stateOf(selected)}`)}
                                     </Badge>
                                     {selected.isTemporary && (

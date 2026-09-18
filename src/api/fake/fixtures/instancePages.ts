@@ -77,12 +77,12 @@ here and judged automatically against the tests their author prepared.
 
 ## How to get an account
 
-There is no sign-up form. Accounts are created by an organiser or come from the
+There is no sign-up form. Accounts are created by an organizer or come from the
 university's identity provider.
 
 | Who you are | What to do |
 |---|---|
-| A contestant | Collect your login from the organiser — usually on paper, in the room |
+| A contestant | Collect your login from the organizer — usually on paper, in the room |
 | A student | Sign in with your university account, if this installation accepts one |
 | Teaching staff | Write to the instance administrator: [CONTACT ADDRESS](mailto:kontakt@example.edu.pl) |
 
@@ -97,7 +97,7 @@ university's identity provider.
 
 [Sign in](/login), then look at [your activities](/activities). This
 installation's terms and privacy policy are in the footer; the rules of a
-particular contest are published by its organiser inside the activity itself.
+particular contest are published by its organizer inside the activity itself.
 `;
 
 const HOME = `---
@@ -170,7 +170,7 @@ or look at the ranking.
   correction to the statement or the tests publishes a new version and does not
   change a result from before it.
 - **The time and memory limits are printed with the statement.** A solution over
-  the limit is not rounded in your favour.
+  the limit is not rounded in your favor.
 - **Your account is yours alone.** Sharing it with somebody else breaks the
   terms.
 

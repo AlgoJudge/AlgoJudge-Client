@@ -73,7 +73,7 @@ import {
     createRoles,
     MANAGED_ACTIVITIES,
     MANAGED_USERS,
-    PERMISSION_CATALOGUE,
+    PERMISSION_CATALOG,
 } from "./fixtures/permissions";
 import { StatementRef, UploadedFile } from "../FileApi";
 import { ActivityDocumentKind, ActivityDocumentRef } from "../ParticipantApi";
@@ -83,7 +83,7 @@ import { FakeExclusions } from "./FakeExclusions";
 import { FakeLockdown } from "./FakeLockdown";
 import { FakePrintouts, StoredPrintout } from "./FakePrintouts";
 import { DEFAULT_IMPORTANCE_SCOPE, NORMAL_IMPORTANCE } from "../seriesImportance";
-import { normaliseRunnerTags, runnerReaches, tagsInForce } from "../runnerTags";
+import { normalizeRunnerTags, runnerReaches, tagsInForce } from "../runnerTags";
 import { effectivePermissions, isStaffGrant, systemicByDefault } from "../permissions";
 import { ActivityRecord, createActivityLibrary } from "./fixtures/activities";
 import { signedInUserId } from "./CoreApiFake";
@@ -458,9 +458,9 @@ export class ManagerApiFake implements ManagerApi {
         return copy(instance);
     }
 
-    async getPermissionCatalogue(signal: AbortSignal): Promise<PermissionDefinition[]> {
+    async getPermissionCatalog(signal: AbortSignal): Promise<PermissionDefinition[]> {
         await this.settle(signal);
-        return copy(PERMISSION_CATALOGUE);
+        return copy(PERMISSION_CATALOG);
     }
 
     /**
@@ -470,7 +470,7 @@ export class ManagerApiFake implements ManagerApi {
      * screen that hides what somebody may not do can only be trusted if the
      * fake can be somebody else. `amy` is the manager the fixtures are written
      * around and holds the wide-but-not-unlimited system set; an administrator
-     * holds the catalogue by definition; everyone else holds what they were
+     * holds the catalog by definition; everyone else holds what they were
      * granted and nothing more.
      */
     async getMyPermissions(activityId: string | undefined, signal: AbortSignal): Promise<string[]> {
@@ -541,7 +541,7 @@ export class ManagerApiFake implements ManagerApi {
      * **The fake has to rewrite the linked grants too.** `check:ui` runs against
      * this world, so a fake that only edited the role would draw a screen where
      * the edit reached nobody — and every browser check of the feature would
-     * pass against behaviour the Server does not have.
+     * pass against behavior the Server does not have.
      */
     async updateRole(id: string, input: RoleInput, signal: AbortSignal): Promise<Role> {
         await this.settle(signal);
@@ -560,7 +560,7 @@ export class ManagerApiFake implements ManagerApi {
                 // also records a decision somebody made by hand about one person,
                 // and a role edit cannot see that one.
                 isSystem: grant.isSystem
-                    || isStaffGrant([...updated.permissions, ...grant.permissions], PERMISSION_CATALOGUE),
+                    || isStaffGrant([...updated.permissions, ...grant.permissions], PERMISSION_CATALOG),
             }
             : grant);
 
@@ -750,7 +750,7 @@ export class ManagerApiFake implements ManagerApi {
         // settle it: a staff grant is systemic whatever the request said, and a
         // flag only the screen maintained would be whatever the next caller
         // felt like sending.
-        const isSystem = systemicByDefault(held, PERMISSION_CATALOGUE, input.isSystem);
+        const isSystem = systemicByDefault(held, PERMISSION_CATALOG, input.isSystem);
 
         // **The manual contribution, and only that one.** A managed one belongs
         // to its provider's mapping and is rewritten at every sign-in, so an
@@ -859,7 +859,7 @@ export class ManagerApiFake implements ManagerApi {
             matchingRunners: 0,
         };
         this.activities = [{ activity, series: [] }, ...this.activities];
-        this.shared.setEnrolment(activity.id, input.joinPolicy, input.joinPassword, input.unlisted);
+        this.shared.setEnrollment(activity.id, input.joinPolicy, input.joinPassword, input.unlisted);
         this.setRoster(activity.id, input.showGroupMembers);
         return this.announceActivity(activity);
     }
@@ -869,15 +869,15 @@ export class ManagerApiFake implements ManagerApi {
         const record = this.findActivity(id);
         this.assertActivitySlugFree(input.slug, record.activity.id);
         Object.assign(record.activity, input);
-        record.activity.runnerTags = normaliseRunnerTags(input.runnerTags);
+        record.activity.runnerTags = normalizeRunnerTags(input.runnerTags);
         // An empty string clears one back to the shipped role, which is what the
         // Server reads it as — and `Object.assign` would otherwise store "".
         record.activity.participantRoleId = input.participantRoleId || undefined;
         record.activity.managerRoleId = input.managerRoleId || undefined;
-        // The enrolment settings belong to the shared store, because the
+        // The enrollment settings belong to the shared store, because the
         // participant side decides what to show from them — and so does
         // everything else about the activity a participant can see.
-        this.shared.setEnrolment(record.activity.id, input.joinPolicy, input.joinPassword, input.unlisted);
+        this.shared.setEnrollment(record.activity.id, input.joinPolicy, input.joinPassword, input.unlisted);
         this.shared.setSettings(record.activity.id, {
             hideEndedSeriesProblems: input.hideEndedSeriesProblems,
             scoreVisibility: input.scoreVisibility,
@@ -1158,7 +1158,7 @@ export class ManagerApiFake implements ManagerApi {
         // Empty goes back to inheriting rather than being stored as an empty
         // override — the Server does the same, and two spellings of one state
         // would leave a manager unable to tell which they had chosen.
-        series.runnerTags = input.runnerTags?.length ? normaliseRunnerTags(input.runnerTags) : undefined;
+        series.runnerTags = input.runnerTags?.length ? normalizeRunnerTags(input.runnerTags) : undefined;
         ManagerApiFake.assertRestrictable(series);
         this.lockdown.remember(series);
         this.announceSeries(record, series);
@@ -1210,7 +1210,7 @@ export class ManagerApiFake implements ManagerApi {
         // A pause takes no submission, so the round shuts — always, as the
         // Server's `ManagerWriteService.PauseAsync` does it. Whether the
         // statements go with it is a separate answer, given at this moment and
-        // travelling as its own field.
+        // traveling as its own field.
         series.isOpen = false;
         series.hideProblemsWhilePaused = input.hideProblems === true;
         this.announceSeries(record, series);
@@ -1509,7 +1509,7 @@ export class ManagerApiFake implements ManagerApi {
                     // not, whoever asked for it.
                     isSystem: systemicByDefault(
                         [...(bulkRole?.permissions ?? []), ...(input.permissions ?? [])],
-                        PERMISSION_CATALOGUE, false),
+                        PERMISSION_CATALOG, false),
                     source: "manual",
                     managed: false,
                     overrideSystem: false,
@@ -1624,7 +1624,7 @@ export class ManagerApiFake implements ManagerApi {
             targetUserId,
             mergedAt: new Date(now).toISOString(),
             mergedByUserId: "user-john",
-            anonymiseAfter: new Date(now + 24 * 3600_000).toISOString(),
+            anonymizeAfter: new Date(now + 24 * 3600_000).toISOString(),
             canUndo: true,
         };
         this.merges.set(merge.id, merge);
@@ -1962,13 +1962,13 @@ export class ManagerApiFake implements ManagerApi {
         const submission = this.findSubmission(submissionId);
         const attempt = submission.attemptList.find(a => a.id === attemptId) ?? notFound("Attempt");
         if (attempt.state === "completed" || attempt.state === "failed") {
-            // A finished job is history. Cancelling one would rewrite a result
+            // A finished job is history. Canceling one would rewrite a result
             // that a participant has already been shown.
-            conflict("This attempt has already finished and cannot be cancelled", "attempt.finished");
+            conflict("This attempt has already finished and cannot be canceled", "attempt.finished");
         }
-        attempt.state = "cancelled";
+        attempt.state = "canceled";
         attempt.finishedAt = new Date().toISOString();
-        submission.state = "cancelled";
+        submission.state = "canceled";
         this.announceSubmission(submission);
         return copy(submission);
     }
@@ -2571,12 +2571,12 @@ export class ManagerApiFake implements ManagerApi {
      *
      * The counts come from the grants, because a grant in an activity **is** the
      * membership and a second number could disagree with it. The documents and
-     * the enrolment settings come from the shared store, because the participant
+     * the enrollment settings come from the shared store, because the participant
      * side serves them from there — one owner, or the manager screen and the
      * activity page would drift apart.
      */
     private withCounts(activity: ManagedActivity): ManagedActivity {
-        const enrolment = this.shared.enrolmentOf(activity.id);
+        const enrollment = this.shared.enrollmentOf(activity.id);
         return {
             ...activity,
             // Whoever runs the activity is not competing in it, so the number
@@ -2584,9 +2584,9 @@ export class ManagerApiFake implements ManagerApi {
             participantCount: this.access.grants
                 .filter(g => g.activityId === activity.id && !g.isSystem).length,
             documents: this.shared.documentsOf(activity.id),
-            joinPolicy: enrolment.policy,
-            unlisted: enrolment.unlisted,
-            joinPassword: enrolment.password,
+            joinPolicy: enrollment.policy,
+            unlisted: enrollment.unlisted,
+            joinPassword: enrollment.password,
             matchingRunners: this.matchingRunners(activity.runnerTags),
         };
     }

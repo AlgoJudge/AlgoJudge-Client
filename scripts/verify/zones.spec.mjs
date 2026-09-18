@@ -1,4 +1,4 @@
-// The traveller's runner.
+// The traveler's runner.
 //
 // **Its own spec file, and its own project.** `playwright.ui.config.mjs` gives
 // this one `timezoneId: "America/New_York"`; `ui.spec.mjs` runs everything else

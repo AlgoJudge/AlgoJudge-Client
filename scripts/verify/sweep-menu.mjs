@@ -38,28 +38,28 @@ check(d.foot === false, "nor the legal links");
 check(d.rail === false, "nor the collapse control");
 check(d.width > 200, "and the drawer is the full one (" + d.width + "px)");
 
-// The two controls the bar gives up below `sm`, and the colour they arrive in.
+// The two controls the bar gives up below `sm`, and the color they arrive in.
 const foot = await evaluate(`
     const nav = document.querySelector("[data-testid=app-navbar]");
     const visible = (el) => el && el.getBoundingClientRect().width > 0;
     const account = [...nav.querySelectorAll("[data-testid=user-menu]")].find(visible);
     const lang = [...nav.querySelectorAll("button")].find(b => visible(b) && b.innerText.indexOf("zyk") >= 0);
-    // A navigation entry, as the colour everything in here should be wearing.
+    // A navigation entry, as the color everything in here should be wearing.
     const entry = [...nav.querySelectorAll("a")].find(a => visible(a) && a.innerText.length > 3);
     return JSON.stringify({
         account: !!account,
         lang: !!lang,
         want: entry ? getComputedStyle(entry).color : null,
-        accountColour: account ? getComputedStyle(account).color : null,
+        accountColor: account ? getComputedStyle(account).color : null,
         lines: account ? [...account.querySelectorAll("p")].map(x => x.innerText.slice(0, 10) + " " + getComputedStyle(x).color) : [],
-        langColour: lang ? getComputedStyle(lang).color : null,
+        langColor: lang ? getComputedStyle(lang).color : null,
     });
 `);
 const f = JSON.parse(foot);
 check(f.account, "the account menu is in the drawer");
 check(f.lang, "and the language button");
-check(f.langColour === f.want, "the language button wears the navigation's colour (" + f.langColour + ")");
-check(f.accountColour === f.want, "and so does the account menu (" + f.accountColour + ")");
+check(f.langColor === f.want, "the language button wears the navigation's color (" + f.langColor + ")");
+check(f.accountColor === f.want, "and so does the account menu (" + f.accountColor + ")");
 
 await evaluate(`
     const nav = document.querySelector("[data-testid=app-navbar]");
@@ -80,10 +80,10 @@ const dropped = await evaluate(`
 const o = JSON.parse(dropped);
 check(o.account, "it opens on the account screen");
 check(o.logout, "and on signing out");
-// The login under the name: `dimmed` is grey, and grey on the navigation's
+// The login under the name: `dimmed` is gray, and gray on the navigation's
 // blue is about 2:1.
 check(f.lines.length === 2 && f.lines[1].indexOf("rgb(134") < 0,
-    "the login under the name is not left grey-on-blue (" + f.lines.join(" | ") + ")");
+    "the login under the name is not left gray-on-blue (" + f.lines.join(" | ") + ")");
 
 // The desktop, where all three belong.
 await send("Page.setDeviceMetricsOverride", { width: 1500, height: 1000, deviceScaleFactor: 1, mobile: false });

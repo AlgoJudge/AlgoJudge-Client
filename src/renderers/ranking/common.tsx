@@ -20,7 +20,7 @@ export const FreezeBanner = ({ frozen, revealAt, timeZone }: { frozen: boolean; 
         <Alert color="blue" icon={<IconSnowflake size={18} />} title={t("Ranking is frozen")}>
             {revealAt
                 ? <>{t("Results are hidden until")} <ActivityTime value={revealAt} timeZone={timeZone} /></>
-                : t("Results are hidden until the organisers unfreeze the ranking")}
+                : t("Results are hidden until the organizers unfreeze the ranking")}
         </Alert>
     );
 };

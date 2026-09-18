@@ -6,7 +6,7 @@
  * boxes somebody must tick before they may go on, registering and enrolling,
  * looked optional because of it.
  *
- * The same colour Mantine uses, so it is the mark people already recognise from
+ * The same color Mantine uses, so it is the mark people already recognize from
  * the fields above it rather than a second convention.
  */
 export default function RequiredAsterisk() {

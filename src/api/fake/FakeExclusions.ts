@@ -8,7 +8,7 @@ export interface Exclusion {
 }
 
 /**
- * Which submissions count towards no standing, shared by both halves of the fake.
+ * Which submissions count toward no standing, shared by both halves of the fake.
  *
  * Held apart from either API for the reason `FakeAccess` is: the manager screen
  * **writes** the ruling and the participant's board and submissions **read** it.

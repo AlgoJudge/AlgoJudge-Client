@@ -90,7 +90,7 @@ both worth knowing before changing any of it:
 - a browser started the ordinary way **dies with the process that started it**,
   even with the shell still alive — good, and the reason a leak has to be staged
   deliberately to be tested at all;
-- `child.kill()` **terminates** rather than signalling, so no handler in the
+- `child.kill()` **terminates** rather than signaling, so no handler in the
   child runs and a script cannot stage a Ctrl+C. A Ctrl+C typed at a real console
   does reach the process group, which is a different thing and the one that
   matters — it is just not something a check here can drive, so the runner's
@@ -114,7 +114,7 @@ complete only if adding a script means adding a row.
 
 | Script | What it holds to |
 |---|---|
-| `verify-activity` | an activity's own page, self-enrolment, and the documents behind both |
+| `verify-activity` | an activity's own page, self-enrollment, and the documents behind both |
 | `verify-activity-manager` | what a manager does to an activity: publishes its documents, sets how people join, makes accounts for a class that has none |
 | `verify-activity-type` | the activity type is chosen from what this Client can present, in the create form and the settings form |
 | `verify-series` | moving a round, stopping it, and being told about it |
@@ -146,7 +146,7 @@ complete only if adding a script means adding a row.
 
 | Script | What it holds to |
 |---|---|
-| `verify-filters` | choosing a filter narrows the list, clearing it gives the list back, two values compose, and the pager follows — on the participant's submissions, the manager's, and the activity chips. **It cannot see the wire**: the fake honours filters the Server was discarding, which is how three of them shipped dead. Its header says so. |
+| `verify-filters` | choosing a filter narrows the list, clearing it gives the list back, two values compose, and the pager follows — on the participant's submissions, the manager's, and the activity chips. **It cannot see the wire**: the fake honors filters the Server was discarding, which is how three of them shipped dead. Its header says so. |
 
 **Results and boards**
 
@@ -166,7 +166,7 @@ complete only if adding a script means adding a row.
 | `verify-navbar` | more entries than window: the middle scrolls, the mark and the foot links do not |
 | `verify-clicks` | the name opens the thing it names, on the four screens where it did not |
 | `verify-notifications` | what is announced, where it sits, where clicking it goes |
-| `verify-theme` | the colour scheme applied, remembered, and legible once it is dark |
+| `verify-theme` | the color scheme applied, remembered, and legible once it is dark |
 | `verify-seo` | the two things about the document only a running page can say; the static half is `npm run check:seo` |
 | `verify-prefs` | one setting, one store, across the application shell and a public page |
 | `verify-name` | the instance names itself: beside the mark in both shells, and in the tab |
@@ -274,7 +274,7 @@ Each of these cost an hour to find. They are the reason the scripts are worth
 keeping rather than rewriting.
 
 - **A manager row opens from the name, not from the cell.** The handler is on a
-  `<Text onClick>` inside the first `td`, so a click at the cell's centre lands
+  `<Text onClick>` inside the first `td`, so a click at the cell's center lands
   beside it as often as on it. Use `managerRow(name)` from the harness, which
   targets the inline pointer style the handler is on. **The failure does not read
   as a missed click**: the page never opens, so every assertion after it fails at
@@ -303,7 +303,7 @@ keeping rather than rewriting.
   one run.
 - **Monaco ignores a `value` set on its hidden textarea.** Click `.view-lines`
   and send `Input.insertText`. Read it back from `.view-lines`, with ` `
-  normalised to a space.
+  normalized to a space.
 - **`getComputedStyle(el).fontFamily` never says which face drew the glyphs.** It
   reports the stack that was *asked for*, so a page whose `@font-face` points at
   the wrong file reads as perfect: the family resolves, the file downloads,
@@ -361,12 +361,12 @@ keeping rather than rewriting.
   template literals, so a backtick anywhere in them — including in prose
   explaining the code — ends the literal, and the failure is a `SyntaxError`
   pointing at a line that looks fine. It has cost two runs.
-- **A colour read back from `color-mix()` is not `rgb(...)`.** Chrome computes it
+- **A color read back from `color-mix()` is not `rgb(...)`.** Chrome computes it
   to `color(srgb 0.87 0.85 0.79)`, and a parser written for `rgb()` answers
   `NaN` rather than failing. Assert on values the product emits as plain hex.
-- **A branded colour has to be waited for, not slept on.** The defaults are
+- **A branded color has to be waited for, not slept on.** The defaults are
   drawn while `/instance` is in flight, so a script that waits for text and then
-  reads a colour reads the *unbranded* one. Wait on
+  reads a color reads the *unbranded* one. Wait on
   `document.documentElement.dataset.instance === "loaded"`.
 - **`/login` is not the public shell if a session is still in the tab.**
   `?fakeUser=` writes it to `sessionStorage` and `/login` then redirects into the
@@ -422,7 +422,7 @@ carry stable ids — `modal`, `card`, `paper`, `app-main`, `app-navbar`,
 `accordion-item`, `switch`, `segmented`, `combobox-option`, `notification`,
 `badge`, `alert`, `submissions-panel`, `submission-row`, `footer`,
 `maintenance` — and so do the controls the scripts drive: `save`, `back`,
-`create`, `copy`, `publish`, `pause`/`resume`, `enrol`, `import`, and the rest.
+`create`, `copy`, `publish`, `pause`/`resume`, `enroll`, `import`, and the rest.
 The containers come from `src/theme.ts` in one place; a control's id sits where
 the control is written.
 

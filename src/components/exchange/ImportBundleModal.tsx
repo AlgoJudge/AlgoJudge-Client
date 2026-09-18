@@ -10,7 +10,7 @@ import { Loss } from "../../exchange/zawodyweb/convert";
 import { applyBundle, ImportOutcome } from "../../exchange/apply";
 import { describe } from "../../api/ApiError";
 import { usePermissions } from "../../provider/permissionsContext";
-import { ImportPlan, LibraryProblem, planImport, Resolution, summarise } from "../../exchange/plan";
+import { ImportPlan, LibraryProblem, planImport, Resolution, summarize } from "../../exchange/plan";
 import { useApiCall } from "../../provider/apiContext";
 import DataTable from "../../components/table/DataTable";
 
@@ -108,7 +108,7 @@ export default function ImportBundleModal({ opened, onClose, onImported }: Impor
         });
 
     const activity = contents?.bundle.activity;
-    const counts = plan ? summarise(plan) : undefined;
+    const counts = plan ? summarize(plan) : undefined;
     // **A bundle carrying an activity creates one**, and `applyBundle` does it
     // *after* the problems are written — so a reader without `activity:create`
     // used to get half an import and a refusal. Said before the button, once the
@@ -131,7 +131,7 @@ export default function ImportBundleModal({ opened, onClose, onImported }: Impor
             reset();
             onImported(outcome);
         } catch (e) {
-            // `describe` rather than `message`: a refusal from the serialiser
+            // `describe` rather than `message`: a refusal from the serializer
             // carries no `detail`, so the only words naming what it objected to
             // are under `errors`. An archive written before a module existed was
             // refused with "One or more validation errors occurred." and the

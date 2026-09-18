@@ -15,7 +15,7 @@ export interface Intake {
     interactor?: ExtraFile;
     modelSolution?: ExtraFile;
     /** Named so a manager can see what was ignored rather than wonder. */
-    unrecognised: string[];
+    unrecognized: string[];
 }
 
 const SOURCE = /\.(cpp|cc|c|py|java|rs|go|pas)$/i;
@@ -52,7 +52,7 @@ export const intakeFiles = async (files: File[]): Promise<Intake> => {
     }
 
     const tests = new Map<string, TestFile>();
-    const unrecognised: string[] = [];
+    const unrecognized: string[] = [];
     let checker: ExtraFile | undefined;
     let interactor: ExtraFile | undefined;
     let modelSolution: ExtraFile | undefined;
@@ -84,7 +84,7 @@ export const intakeFiles = async (files: File[]): Promise<Intake> => {
             modelSolution = { name: entry.name, content: entry.content };
             continue;
         }
-        unrecognised.push(entry.name);
+        unrecognized.push(entry.name);
     }
 
     return {
@@ -93,7 +93,7 @@ export const intakeFiles = async (files: File[]): Promise<Intake> => {
         checker,
         interactor,
         modelSolution,
-        unrecognised,
+        unrecognized,
     };
 };
 

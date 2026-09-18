@@ -35,7 +35,7 @@ speak();
  * **The address this page is, without the parts that are not the page.**
  *
  * Four query parameters reach public screens — `?lng=`, which i18next's detector
- * honours, `?admin=true` and `?error=` on the sign-in screen, and the enrolment
+ * honors, `?admin=true` and `?error=` on the sign-in screen, and the enrollment
  * fragment — and each makes an address a renderer would otherwise index as a
  * page of its own with the same content on it.
  *

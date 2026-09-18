@@ -1,4 +1,4 @@
-/* The public shell's bar. Its three colours come from the instance when it has
+/* The public shell's bar. Its three colors come from the instance when it has
    set them; `var(--aj-…, <what it always was>)` is the fallback, so an
    installation with no theme is unchanged.
 
@@ -44,10 +44,10 @@
 
 /* React Router's own class, so it is global.
 
-   **The instance's primary colour, not a blue written here.** An installation
+   **The instance's primary color, not a blue written here.** An installation
    that carries its own palette would otherwise have one entry in the product's
    blue and everything else in theirs — `--mantine-primary-color-filled` is the
-   colour Mantine already paints their buttons with. */
+   color Mantine already paints their buttons with. */
 .link:global(.active),
 .link:global(.active):hover {
     color: var(--mantine-primary-color-filled);

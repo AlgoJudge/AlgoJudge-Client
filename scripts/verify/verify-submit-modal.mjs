@@ -98,7 +98,7 @@ await click(`document.querySelector("[data-testid=modal] .monaco-editor .view-li
 await wait(500);
 await send("Input.insertText", { text: "int main(){ return 0; }" });
 await wait(800);
-// Read from the rendered lines, with Monaco's non-breaking spaces normalised.
+// Read from the rendered lines, with Monaco's non-breaking spaces normalized.
 const typed = await evaluate(`
     const lines = document.querySelector("[data-testid=modal] .view-lines");
     return (lines?.textContent ?? "").replace(/\\u00a0/g, " ").trim();

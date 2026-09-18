@@ -23,7 +23,7 @@ Allow: /assets/
 Allow: /locales/
 # The operator's own logo and documents are stored files, so they arrive through
 # the API rather than from this container — which the line below would otherwise
-# withhold. **Safe to open**: the endpoint authorises every id against the
+# withhold. **Safe to open**: the endpoint authorizes every id against the
 # references to it and answers 404 to a caller who may not read one, so what a
 # crawler can fetch here is exactly what an anonymous reader can.
 Allow: /api/v1/files/
@@ -39,7 +39,7 @@ Disallow: /print/
 
 # **The Server's, not the router's.** In a one-origin installation the API is
 # under this same host, and the sign-in screen renders a real link into it for
-# every provider — so a crawler that follows links walks into an authorisation
+# every provider — so a crawler that follows links walks into an authorization
 # redirect. Where the two are split across hosts that origin serves its own
 # robots.txt and this line reaches nothing.
 Disallow: /api/

@@ -25,11 +25,11 @@
        the bar draws it, and the nearest thing to its right clears it by six. */
     overflow: visible;
 
-    /* **Optically centred against the text beside it, not box-centred.** The
+    /* **Optically centered against the text beside it, not box-centered.** The
        boxes already line up to a hundredth of a pixel — the drawing inside does
        not: the gavel reaches higher above the letters than the descenders reach
        below them, so the ink sits high in its own viewBox. Measured in the bar
-       at 1.2em: the mark's ink centre was 1.25px above the instance name's,
+       at 1.2em: the mark's ink center was 1.25px above the instance name's,
        which is 6.5% of the drawing's height. A percentage rather than pixels,
        so it holds wherever the mark is drawn larger or smaller. */
     transform: translateY(6.5%);

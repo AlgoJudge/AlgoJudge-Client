@@ -76,7 +76,7 @@ await go(`${APP}/manager/runners?fakeUser=john`,
 await wait(2000);
 
 // **The name, not the cell.** A manager row opens from a `<Text onClick>` and
-// not from the row or the cell around it, so a click at the centre of the first
+// not from the row or the cell around it, so a click at the center of the first
 // `td` lands beside the handler as often as on it.
 await click(`[...document.querySelectorAll("tbody tr")]
     .find(r => r.innerText.includes("Lab runner"))

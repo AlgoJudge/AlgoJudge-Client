@@ -4,7 +4,7 @@
 // `evaluate`, where React has already mounted and the metadata has done its
 // work or failed to — there is no `page.content()` in the harness, and a crawler
 // that does not execute JavaScript reads the file rather than the page. So the
-// shell's own head is asserted here, from the source, and only the *behaviour*
+// shell's own head is asserted here, from the source, and only the *behavior*
 // in `scripts/verify/verify-seo.mjs`.
 //
 // Pure text: no build, no browser, no TypeScript. The two source files it reads
@@ -44,7 +44,7 @@ const lang = html.match(/<html\s+lang="([^"]+)"/)?.[1];
 
 const named = (source, name) => source.match(new RegExp(`export const ${name} = "([^"]+)"`))?.[1];
 const PROJECT_SITE = named(site, "PROJECT_SITE");
-const PROJECT_ORGANISATION = named(site, "PROJECT_ORGANISATION");
+const PROJECT_ORGANIZATION = named(site, "PROJECT_ORGANIZATION");
 
 const fallback = i18n.match(/fallbackLng:\s*['"]([^'"]+)['"]/)?.[1];
 const supported = (i18n.match(/supportedLngs:\s*\[([^\]]+)\]/)?.[1] ?? "")
@@ -52,7 +52,7 @@ const supported = (i18n.match(/supportedLngs:\s*\[([^\]]+)\]/)?.[1] ?? "")
 
 // A regex that stopped matching would otherwise make every assertion built on it
 // pass against `undefined`.
-check(PROJECT_SITE !== undefined && PROJECT_ORGANISATION !== undefined,
+check(PROJECT_SITE !== undefined && PROJECT_ORGANIZATION !== undefined,
     "both addresses were found in src/site.ts");
 check(fallback !== undefined && supported.length > 0,
     `and the languages in src/i18n.tsx (${supported.join(", ")}, falling back to ${fallback})`);
@@ -117,7 +117,7 @@ check(meta("robots") === "index, follow", "and asks to be indexed");
 // whatever the operating system prefers, so a dark-preference reader got a dark
 // canvas for 200 ms and a white application after it.
 check(meta("color-scheme") === undefined,
-    "and leaves the colour scheme to Mantine, which knows which one the reader chose");
+    "and leaves the color scheme to Mantine, which knows which one the reader chose");
 
 // ── The card ────────────────────────────────────────────────────────────────
 
@@ -163,7 +163,7 @@ const beside = root
     .trim();
 
 check(noscript.includes(`href="${PROJECT_SITE}"`), "the project's site is linked where a crawler can read it");
-check(noscript.includes(`href="${PROJECT_ORGANISATION}"`), "and so is the source");
+check(noscript.includes(`href="${PROJECT_ORGANIZATION}"`), "and so is the source");
 
 // **Measured, not preferred.** React clears this container at its first commit,
 // so anything here that is not in the `noscript` is something a reader looks at

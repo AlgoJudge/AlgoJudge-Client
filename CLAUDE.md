@@ -51,7 +51,7 @@ declaration explicitly.
 
 **`@mantine/code-highlight` ships no highlighter.** Without an adapter it falls
 back to `plainTextAdapter` and renders source as plain text, silently — no
-error, no warning, just no colour. `shikiAdapter.ts` wires Shiki, and
+error, no warning, just no color. `shikiAdapter.ts` wires Shiki, and
 `verify-first` asserts a token count so the fallback cannot come back unnoticed.
 **Name every grammar there.** Asking Shiki's bundled entry for languages on
 demand reaches all ~300 and puts them in the build: 18 MB of `dist` against 8.5.
@@ -59,7 +59,7 @@ demand reaches all ~300 and puts them in the build: 18 MB of `dist` against 8.5.
 **And declare them in `optimizeDeps.include`, for the reason the Monaco block
 above them already gives.** The adapter imports Shiki lazily and fetches a
 grammar the first time a source preview opens, so on a **cold** cache Vite
-re-optimised mid-run and the reload took the session with it. That failed six
+re-optimized mid-run and the reload took the session with it. That failed six
 `check:ui` tests in CI across two runs — a different set each time, all reading
 as lost state — while the same suite passed warm four times locally. **`main`'s
 own runs were the evidence**: six consecutive greens against two reds here. The
@@ -71,7 +71,7 @@ rather than the run.
 carry a function.** A React Router `NavLink` under a `Tooltip` must take a
 string, or its `({ isActive }) => …` is dropped and the element renders with no
 class at all. That happened to the whole main navigation and only an assertion
-about a neighbouring font weight noticed.
+about a neighboring font weight noticed.
 
 **Four `react-hooks` rules are off** — `set-state-in-effect`, `refs`, `purity`,
 `immutability`. Plugin 7 folds in the React Compiler rules and they report 22
@@ -207,7 +207,7 @@ VITE_APP_USE_FAKE_API=true npm run dev -- --port 5180 --strictPort
 
 **Lint is silent.** Not "nine known warnings", not two — nothing. It reported
 nine until 2026-08-05 and two until 2026-08-06. A warning in the output means
-something to fix or a decision to record, not something to recognise.
+something to fix or a decision to record, not something to recognize.
 
 The one deliberate silencing is the `useEffect` inside `useApiEffect`
 (`provider/apiContext.ts`), where the rule cannot see the dependency list because
@@ -239,6 +239,8 @@ gate.
 
 ## Rules
 
+- Write American English: code, comments, documentation and the `en` locale.
+  Polish appears only in the `pl` locale. `scripts/check-american-english.py` in the workspace finds a British spelling.
 - One Client supports users, managers, and administrators.
 - New activity and problem types use renderer registries.
 - Renderers are selected by the type discriminator, one string formatted
@@ -254,7 +256,7 @@ gate.
 `src/theme.ts` — one file, through Mantine's `attributes`, so a modal, card,
 paper, switch or accordion item is addressable without matching a generated
 class name. A control the browser checks drive gets an id where it is written:
-`save`, `back`, `create`, `copy`, `publish`, `pause`, `resume`, `enrol`.
+`save`, `back`, `create`, `copy`, `publish`, `pause`, `resume`, `enroll`.
 
 An id is for **finding**. Text is for **judging** — a check that a wrong password
 is reported as a wrong password is about the words, and stays a regex.
@@ -269,9 +271,9 @@ rather than merging key by key. `wrapperProps` reaches the wrapper alone.
 One generated class is left in the whole suite, `[class*=Pill-root]`, because a
 pill cannot be given an id from the theme at all. It says so where it is used.
 
-## Colours (2026-08-29)
+## Colors (2026-08-29)
 
-Both schemes are supported and both are shipped, so **a surface colour is never
+Both schemes are supported and both are shipped, so **a surface color is never
 a bare palette shade**: write `light-dark(a, b)`, or name a semantic variable
 (`--mantine-color-body`, `--mantine-color-text`, `--mantine-color-dimmed`,
 `--mantine-color-default-border`, `--mantine-color-default-hover`). A fixed
@@ -297,7 +299,7 @@ above is not visible in the source.
 
 ## Branding an installation (2026-08-30)
 
-An installation sets **its own colours and typeface**. `docs/specs/INSTANCE_BRANDING.md`
+An installation sets **its own colors and typeface**. `docs/specs/INSTANCE_BRANDING.md`
 in the workspace owns the rule; **seven** things reach this repository.
 
 **`MantineProvider` is no longer the outermost provider.** It sits below
@@ -322,10 +324,10 @@ needs a second: `--aj-page-bg`, applied in `index.css`.
 **A theme that reaches the shell and not the list rows is half a theme.** The
 activity list and the problem list draw their rows from our own CSS on fixed
 palette shades, so the first photographs of a branded installation had a blue
-shell around grey rows — the two screens a participant meets first. They take
-`--aj-surface` and its two blended steps now, and the blend goes **towards the
-theme's own `text`** rather than towards black: stepping a white panel towards
-black turns it plain grey.
+shell around gray rows — the two screens a participant meets first. They take
+`--aj-surface` and its two blended steps now, and the blend goes **toward the
+theme's own `text`** rather than toward black: stepping a white panel toward
+black turns it plain gray.
 
 **The blend is computed in TypeScript, and every emitted value is a plain hex.**
 `color-mix()` was tried; a background set from one computes to `color(srgb …)`
@@ -335,9 +337,9 @@ rather than `rgb(…)` in Chrome, and the contrast probe read `NaN` off it.
 `MaintenanceProvider` marks maintenance. The defaults are drawn while the answer
 is in flight, so *the screen loaded* and *the screen was told what installation
 this is* are two different moments — a check that waits for text reads the
-unbranded colours, and waiting longer is a slower version of the same race.
+unbranded colors, and waiting longer is a slower version of the same race.
 
-**The status colours stay ours** — `red`, `orange`, `teal`, `green`, `yellow`,
+**The status colors stay ours** — `red`, `orange`, `teal`, `green`, `yellow`,
 `grape`, and the thirty `color="blue"` places, which are information alerts
 and states. A green *wrong answer* is a defect rather than a preference, and no
 validation could catch it because every hex is formally valid.
@@ -434,10 +436,10 @@ never a scalar or an array, so the `isRecord` guard every reader writes matches
 what can arrive. `docs/specs/OPAQUE_DOCUMENTS.md` carries the rule and the two
 ceilings the Server holds them to; the Client enforces neither and authors none.
 
-### One language catalogue per problem type (2026-08-22)
+### One language catalog per problem type (2026-08-22)
 
 `components/editor/languages.ts` says what each toolchain id is **called** and
-which Monaco grammar colours it. It says nothing about what may be submitted:
+which Monaco grammar colors it. It says nothing about what may be submitted:
 the select is drawn from the assignment's `spec`, and the **Runner** refuses
 anything outside its `config`.
 
@@ -446,13 +448,13 @@ arrangement cost, and a Client release per language would be the same mistake on
 floor up — an id this file has never seen still submits, still judges, and shows
 as its own id until somebody adds a row.
 
-**One catalogue per type, because the labels differ.** `standard-io@1` builds
+**One catalog per type, because the labels differ.** `standard-io@1` builds
 eighteen toolchains here; `uva@1` forwards to onlinejudge.org and offers its six.
 Three ids are shared, deliberately, so one screen resolves a label whichever type
 produced a submission — but `cpp11-gcc` is GCC 14 with our flags in one and GCC
 5.3.0 with UVa's in the other, and one label for both would say they were built
 by the same compiler. The envelope on each opaque document names its type, which
-is how a screen holding only a submission knows which catalogue to ask.
+is how a screen holding only a submission knows which catalog to ask.
 
 **Pasted source is named here.** The Server had a table of seven language
 extensions and no longer knows the language, so only this side can name the file
@@ -492,7 +494,7 @@ been disclosed — never add a field to the feed without asking who may read it.
   Rounding gave away half a minute nobody spent, on every solved problem.
 - **Twenty minutes per *judged* rejection before the accepted run**, not per
   position in front of it. `failed` is an infrastructure failure the Server
-  stopped retrying and `cancelled` is a manager's doing; the Runner sends **no
+  stopped retrying and `canceled` is a manager's doing; the Runner sends **no
   score at all** for the first, because a zero would read as a wrong answer on
   every board that shows it, and charging twenty minutes for it did that anyway
   one floor up. Both are treated as a submission still in the queue: shown, and
@@ -659,7 +661,7 @@ This section claimed there was no WebSocket and that nothing dispatched over the
 network. **Both halves are wrong.** `WebSocketEvents` opens one socket per tab at
 `/ws`, the Server serves it (`Program.cs`), and it feeds the three dispatchers —
 `scripts/check-events.mjs` drives the real class and diffs the names against the
-catalogue the Server commits, which is what caught fourteen names that reached
+catalog the Server commits, which is what caught fourteen names that reached
 nobody.
 
 ### When the Server is away (2026-08-09)
@@ -668,7 +670,7 @@ Three pieces that are easy to reach for the wrong one:
 
 - **`api.availability`**, not an event on a dispatcher. The three dispatchers
   carry what the *Server* said, and their names are diffed against its
-  catalogue; a proxy refusing a connection is not something the Server
+  catalog; a proxy refusing a connection is not something the Server
   announced, so it does not travel as one.
 - **`MaintenanceProvider` sits above `AuthProvider`** and *replaces* the tree
   rather than covering it. An outage breaks the login screen too, so a gate
@@ -732,7 +734,7 @@ provider rather than drawing itself. Four things about it are easy to get wrong:
   exists.
 - **The address is built in one place**, `src/api/providerChallenge.ts`, by the
   buttons and by the redirect alike — so a check of one is a check of the other.
-- **The stash comes first.** A self-enrolment link carries the activity password
+- **The stash comes first.** A self-enrollment link carries the activity password
   in the fragment; the redirect leaves the same way the buttons do and has to
   keep it, or the password is lost on exactly the installations that redirect.
 
@@ -782,7 +784,7 @@ ones in `AlgoJudge-Docs`, for the reason Lato's are Keycloak's. `swap`, like
 Lato: there is no drawing here for a fallback to overflow, and holding a page of
 source invisible would be the worse trade.
 
-**The licence texts are in `public/`**, not beside the fonts. OFL §2 wants them
+**The license texts are in `public/`**, not beside the fonts. OFL §2 wants them
 in every copy of the font software, and the copy that reaches anybody is the
 built one; a file that only sits in `src/` is never emitted. Three files, because
 each family carries its own copyright line.
@@ -848,7 +850,7 @@ visitor who is not signed in. `instance.showHero` governs it and ships on.
   text.
 - **It sits outside `HomePage`'s `Container size={900}`**, because it is two
   columns and the operator's document is a column of prose.
-- **Nothing in it is a fixed colour.** It asks for the primary colour and
+- **Nothing in it is a fixed color.** It asks for the primary color and
   Mantine's dimmed text, exactly as every other screen does, so an installation
   with its own palette does not get one panel in the product's blue.
 - **The page's own `Sign in` button is hidden while it is drawn.** Two identical

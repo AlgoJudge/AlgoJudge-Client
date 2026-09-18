@@ -33,7 +33,7 @@ const themed = await evaluate(`
     const meta = document.querySelector("meta[name=theme-color]");
     return meta ? meta.getAttribute("content") : "none";
 `);
-check(themed !== "none", "and names a theme colour (" + themed + ")");
+check(themed !== "none", "and names a theme color (" + themed + ")");
 
 const answer = JSON.parse(await evaluate(`
     const response = await fetch("/manifest.webmanifest");
@@ -114,7 +114,7 @@ check(stored.urls.some(u => u.indexOf("/assets/") >= 0),
 check(stored.urls.some(u => u.endsWith("/offline.html")), "and the last-resort page is there");
 
 // The one rule the maintenance screen depends on. A cached answer here would
-// tell somebody the installation is up while it is down, and a synthesised one
+// tell somebody the installation is up while it is down, and a synthesized one
 // would stop `HttpClient.send` raising `UnreachableError` at all.
 const api = stored.urls.filter(u => u.indexOf("/api/") >= 0);
 check(api.length === 0, "and nothing under /api/ was stored (" + api.join(", ") + ")");

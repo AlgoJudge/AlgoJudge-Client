@@ -86,8 +86,8 @@ check(await evaluate(`
     const box = [...document.querySelectorAll("input[type=checkbox]")].at(-1);
     const label = box?.closest("[data-testid=checkbox]");
     return label ? label.innerText.includes("*") : false;
-`), "the enrolment box carries the asterisk");
-await shot("not-asterisk-enrol");
+`), "the enrollment box carries the asterisk");
+await shot("not-asterisk-enroll");
 
 // Signed out first: the registration screen sends anybody who has a session
 // straight to their activities.

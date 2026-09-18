@@ -9,11 +9,11 @@
  * in the middle of a word, which looks correct in an English test and wrong on
  * the first Polish surname.
  *
- * Under SIL Open Font License 1.1, all three families. The licence requires its
+ * Under SIL Open Font License 1.1, all three families. The license requires its
  * text to travel with every copy of the font software, and **the copy that
  * matters is the built one** — `public/OFL-Lato.txt`, `public/OFL-Inter.txt` and
  * `public/OFL-JetBrainsMono.txt` are there rather than beside the `.woff2` files
- * because Vite copies `public/` verbatim and never emitted a licence that only
+ * because Vite copies `public/` verbatim and never emitted a license that only
  * sat in `src/`. Three files and not one: each carries its own copyright line,
  * and Lato's a Reserved Font Name the other two do not.
  *

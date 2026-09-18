@@ -18,7 +18,7 @@
 // The three probes are the repository's own, borrowed from where they already
 // work: the width loop and `scrollWidth - clientWidth` from `verify-hero`, the
 // clipped-label arithmetic from `verify-sessions`, and `elementFromPoint` at a
-// control's own centre from `verify-mobile` — which asks *would a finger reach
+// control's own center from `verify-mobile` — which asks *would a finger reach
 // this*, where intersecting boxes only asks whether two rectangles touch.
 import { open, results } from "./harness.mjs";
 
@@ -169,7 +169,7 @@ const audit = () => evaluate(`
         const x = Math.round(box.left + box.width / 2);
         const y = Math.round(box.top + box.height / 2);
         if (x < 0 || x > W || y < 0 || y > H) continue;
-        // Inside a box that scrolls sideways, the point a control's own centre
+        // Inside a box that scrolls sideways, the point a control's own center
         // names may hold whatever is scrolled over it — an answer about the
         // scroll position, not about the layout.
         if (scroller(el)) continue;
@@ -204,7 +204,7 @@ for (const width of WIDTHS) {
 
         const found = JSON.parse(await audit());
         // The route on every line: `check` buffers its verdicts to the end,
-        // so a detail printed bare cannot be told apart from its neighbour's.
+        // so a detail printed bare cannot be told apart from its neighbor's.
         const here = `  ${width} ${path}`;
         const wrong = found.sideways > 1 || found.over.length > 0 || found.covered.length > 0;
 

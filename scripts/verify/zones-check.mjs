@@ -73,7 +73,7 @@ check(hourOf(lines[0]) !== undefined && hourOf(lines[0]) !== hourOf(lines[1]),
 // against the tooltip's own two lines rather than against a computed
 // difference, which would be five, six or seven hours depending on the week.
 //
-// Found by sabotage: rendering the line in the activity's zone while labelling
+// Found by sabotage: rendering the line in the activity's zone while labeling
 // it with the reader's offset produced `20:19 UTC−4` — Warsaw's clock wearing
 // New York's badge — and every assertion above it still passed.
 check(hourOf(inline) === hourOf(lines[1]),

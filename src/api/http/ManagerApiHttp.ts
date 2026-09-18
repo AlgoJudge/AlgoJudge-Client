@@ -81,7 +81,7 @@ export class ManagerApiHttp implements ManagerApi {
 
     constructor(private readonly http: HttpClient) { }
 
-    getPermissionCatalogue(signal: AbortSignal): Promise<PermissionDefinition[]> {
+    getPermissionCatalog(signal: AbortSignal): Promise<PermissionDefinition[]> {
         return this.http.request<PermissionDefinition[]>("/permissions", "GET", { signal });
     }
 

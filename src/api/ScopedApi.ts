@@ -2,7 +2,7 @@ import { Api } from "./Api";
 import { FileApi, StatementRef, UploadedFile } from "./FileApi";
 import {
     DeepLinkAnswer, DeepLinkChoosing, GradeSummary, LaunchContext, LtiApi, Placement, Platform,
-    PlatformInput, RegistrationInvitation, RosterEnrolment,
+    PlatformInput, RegistrationInvitation, RosterEnrollment,
     RosterView, ToolRegistration,
 } from "./LtiApi";
 import { InstanceDocumentKind, InstanceDocumentRef } from "./CoreApi";
@@ -112,7 +112,7 @@ import {
     AnnouncementPublishedEvent,
     PrintoutStateChangedEvent,
     AskQuestionInput,
-    EnrolInput,
+    EnrollInput,
     Page,
     ParticipantApi,
     ParticipantEvent,
@@ -226,8 +226,8 @@ export class ScopedLtiApi {
     getRoster(placementId: string): Promise<RosterView> {
         return this.ltiApi.getRoster(placementId, this.signal);
     }
-    enrolFromRoster(placementId: string): Promise<RosterEnrolment> {
-        return this.ltiApi.enrolFromRoster(placementId, this.signal);
+    enrollFromRoster(placementId: string): Promise<RosterEnrollment> {
+        return this.ltiApi.enrollFromRoster(placementId, this.signal);
     }
     listInvitations(): Promise<RegistrationInvitation[]> {
         return this.ltiApi.listInvitations(this.signal);
@@ -348,7 +348,7 @@ export class ScopedParticipantApi {
     getActivity(idOrSlug: string): Promise<Activity> {
         return this.participantApi.getActivity(idOrSlug, this.signal);
     }
-    enroll(idOrSlug: string, input: EnrolInput = {}): Promise<Activity> {
+    enroll(idOrSlug: string, input: EnrollInput = {}): Promise<Activity> {
         return this.participantApi.enroll(idOrSlug, input, this.signal);
     }
 
@@ -418,8 +418,8 @@ export class ScopedManagerApi {
         this.eventDispatcher = new ScopedManagerEventDispatcher(this.managerApi.eventDispatcher, this.signal);
     }
 
-    getPermissionCatalogue(): Promise<PermissionDefinition[]> {
-        return this.managerApi.getPermissionCatalogue(this.signal);
+    getPermissionCatalog(): Promise<PermissionDefinition[]> {
+        return this.managerApi.getPermissionCatalog(this.signal);
     }
     getMyPermissions(activityId?: string): Promise<string[]> {
         return this.managerApi.getMyPermissions(activityId, this.signal);

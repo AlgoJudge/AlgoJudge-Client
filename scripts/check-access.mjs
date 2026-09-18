@@ -67,7 +67,7 @@ check(usable({ value: "t", expiresAt: inSeconds(-1) }, NOW) === false,
     "and one already dead certainly is not");
 
 // The boundary itself, stated so a margin changed by accident is a changed
-// number here rather than a silent change in behaviour.
+// number here rather than a silent change in behavior.
 check(usable({ value: "t", expiresAt: inSeconds(61) }, NOW) === true,
     "the margin is one minute — 61 seconds is usable");
 check(usable({ value: "t", expiresAt: inSeconds(60) }, NOW) === false,
@@ -79,7 +79,7 @@ check(usable({ value: "t", expiresAt: inSeconds(60) }, NOW) === false,
 // parse costs a picker quietly showing the public archive while a private key
 // sits configured.
 //
-// **These two assert behaviour, and they do not stand behind the
+// **These two assert behavior, and they do not stand behind the
 // `Number.isNaN` guard in `access.ts`** — measured 2026-08-26 by removing it,
 // which these did not notice. `Date.parse` answers `NaN`, and every comparison
 // against `NaN` is false, so the margin test already refuses an unreadable date.

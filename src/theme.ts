@@ -10,7 +10,7 @@ import { Notifications } from "@mantine/notifications";
  * Stable handles for the browser checks, and nothing else.
  *
  * **No visual token is set here.** Every entry is a `data-testid`, so the theme
- * changes what the scripts can address and not what anybody sees. Colours and
+ * changes what the scripts can address and not what anybody sees. Colors and
  * radii stay Mantine's defaults, which is what the screens were reviewed
  * against.
  *
@@ -35,7 +35,7 @@ import { Notifications } from "@mantine/notifications";
  * A per-instance id. These are **containers to scope by**, so every modal
  * carries the same `modal` and every card the same `card` — which is exactly
  * what the class selectors gave, and enough, because one modal is open at a
- * time. A control that has to be told apart from its neighbours gets an
+ * time. A control that has to be told apart from its neighbors gets an
  * attribute where it is written, not here.
  *
  * `Card` is worth one note: it renders a `Paper`, and passes its own resolved

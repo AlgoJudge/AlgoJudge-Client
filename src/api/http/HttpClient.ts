@@ -78,7 +78,7 @@ export class HttpClient {
         const search = params.toString();
         const url = this.baseUrl + path + (search ? "?" + search : "");
 
-        // FormData passes through untouched: serialising it would destroy the
+        // FormData passes through untouched: serializing it would destroy the
         // upload, and the browser has to set the multipart boundary itself.
         const isForm = options.body instanceof FormData;
 
@@ -114,7 +114,7 @@ export class HttpClient {
             // those — but the same line swallowed a read the caller had aborted
             // and handed the screen a successful page with no `items`. Sixteen
             // screens put `result.items` straight into state, so the next render
-            // threw on `undefined` instead of anything reporting a cancelled
+            // threw on `undefined` instead of anything reporting a canceled
             // request. `useApiEffect` already discards an aborted run; it never
             // got the chance, because this said the request had succeeded.
             if (options.signal?.aborted) throw error;

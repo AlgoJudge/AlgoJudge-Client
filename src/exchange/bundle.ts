@@ -19,7 +19,7 @@ export interface BundleContents {
  *
  * **Everything passes through browser memory**, which is the honest cost of
  * assembling the archive where the problem types are understood. A refusal that
- * names the largest problems beats a tab that dies at ninety per cent, and a
+ * names the largest problems beats a tab that dies at ninety percent, and a
  * warning gives a manager the chance to export by round instead.
  *
  * A Server-side streaming export would lift this and change nothing else: the

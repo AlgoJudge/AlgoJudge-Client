@@ -132,7 +132,7 @@ export default function ActivitiesPage() {
                 <Card
                     key={item.id}
                     // Finished activities are dimmed; ongoing and upcoming keep
-                    // full colour, which is the whole point of the state filter.
+                    // full color, which is the whole point of the state filter.
                     className={classes.item + " " + (item.state !== "finished" ? classes.active : "")}
                     // Its own page where somebody wrote one, its problems
                     // otherwise: the rule lives in one place so the list and the

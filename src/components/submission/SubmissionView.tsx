@@ -89,9 +89,9 @@ export default function SubmissionView({
     // `ClaimedAt ?? CreatedAt` — so while a job is running it is the instant a
     // Runner took it, not the instant it joined the queue.
     const startedAt = submission.attempts[0]?.startedAt;
-    // **Grey while it only waits, blue once a runner has it.** The badge a few
-    // lines above already says grey for `queued` — `StateBadge` and both of the
-    // manager's colour maps agree — and a box in the active colour over "waiting
+    // **Gray while it only waits, blue once a runner has it.** The badge a few
+    // lines above already says gray for `queued` — `StateBadge` and both of the
+    // manager's color maps agree — and a box in the active color over "waiting
     // for a runner" contradicted its own sentence.
     const waiting = submission.state === "queued";
     const Result = resultRenderers.resolve(submission.problemType).value;

@@ -149,7 +149,7 @@ export const planImport = (bundle: Bundle, library: LibraryProblem[]): ImportPla
 };
 
 /** What the plan will do, in a sentence a screen can count from. */
-export const summarise = (plan: ImportPlan) => ({
+export const summarize = (plan: ImportPlan) => ({
     create: plan.problems.filter(p => p.action === "create").length,
     reuse: plan.problems.filter(p => p.action === "reuse").length,
     beside: plan.problems.filter(p => p.action === "beside").length,

@@ -187,7 +187,7 @@ const encoder = new TextEncoder();
 const sizeOf = (text: string | undefined): number => text === undefined ? 0 : encoder.encode(text).length;
 const humanSize = (bytes: number): string => bytes < 1024 ? `${bytes} B` : `${Math.ceil(bytes / 1024)} kB`;
 
-/** Enough of a file to recognise it. Reading a megabyte of tests is not the point. */
+/** Enough of a file to recognize it. Reading a megabyte of tests is not the point. */
 const PREVIEW_LIMIT = 20000;
 
 interface PreviewFile {
@@ -210,7 +210,7 @@ export default function PackageBuilder(
     const [checker, setChecker] = useState<ExtraFile | undefined>(undefined);
     const [interactor, setInteractor] = useState<ExtraFile | undefined>(undefined);
     const [modelSolution, setModelSolution] = useState<ExtraFile | undefined>(undefined);
-    const [unrecognised, setUnrecognised] = useState<string[]>([]);
+    const [unrecognized, setUnrecognized] = useState<string[]>([]);
     const [opened, setOpened] = useState(false);
     const [config, setConfig] = useState<PackageConfig>(emptyConfig());
     const [error, setError] = useState<string | undefined>(undefined);
@@ -314,7 +314,7 @@ export default function PackageBuilder(
         if (intake.checker) setChecker(intake.checker);
         if (intake.interactor) setInteractor(intake.interactor);
         if (intake.modelSolution) setModelSolution(intake.modelSolution);
-        setUnrecognised(intake.unrecognised);
+        setUnrecognized(intake.unrecognized);
         setTouched(true);
     });
 
@@ -327,7 +327,7 @@ export default function PackageBuilder(
         setChecker(contents.checker);
         setInteractor(contents.interactor);
         setModelSolution(contents.modelSolution);
-        setUnrecognised([]);
+        setUnrecognized([]);
     };
 
     const openExisting = (file: File | undefined) => guard(async () => {
@@ -374,7 +374,7 @@ export default function PackageBuilder(
      *
      * An emptied field removes the override rather than storing zero: "inherit"
      * and "no time at all" must not be the same value, and a group left with an
-     * empty `limits` object would serialise as one in `config.yml`.
+     * empty `limits` object would serialize as one in `config.yml`.
      */
     /**
      * Writes the suggestion for these groups into their own limits.
@@ -1119,9 +1119,9 @@ export default function PackageBuilder(
                 </Card>
             )}
 
-            {unrecognised.length > 0 && (
+            {unrecognized.length > 0 && (
                 <Alert color="yellow" icon={<IconAlertTriangle size={16} />} title={t("Ignored files")}>
-                    <Text size="sm">{unrecognised.join(", ")}</Text>
+                    <Text size="sm">{unrecognized.join(", ")}</Text>
                 </Alert>
             )}
 
@@ -1189,7 +1189,7 @@ export default function PackageBuilder(
                                     </Group>
                                 </Group>
                                 <ScrollArea.Autosize mah={400}>
-                                    {/* Test data is data: it gets no syntax colours,
+                                    {/* Test data is data: it gets no syntax colors,
                                         because there is no syntax. A checker is
                                         source, and reads as source. */}
                                     {file.language === undefined

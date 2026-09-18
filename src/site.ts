@@ -18,4 +18,4 @@ export const PROJECT_SITE = "https://algojudge.pl";
  * names both of these in the block a crawler without JavaScript reads, and it
  * cannot import — so `npm run check:seo` compares the two files instead.
  */
-export const PROJECT_ORGANISATION = "https://github.com/AlgoJudge";
+export const PROJECT_ORGANIZATION = "https://github.com/AlgoJudge";

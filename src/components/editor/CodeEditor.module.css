@@ -1,14 +1,14 @@
 /* The editor's working area, drawn.
  *
  * Monaco paints its own ground and nothing else: against a card of the same
- * colour it has no edge, and where a solution may be typed is a guess until
+ * color it has no edge, and where a solution may be typed is a guess until
  * somebody clicks. The frame is the answer, and it is on the wrapper rather
  * than on `.monaco-editor` — that class is Monaco's, it carries the theme, and
  * a rule reaching into it would be a rule to re-check at every upgrade.
  *
  * `--mantine-color-default-border` rather than a palette shade: it is the
  * semantic border of both schemes, and `branding.ts` writes an installation's
- * own `border` colour into it, so a themed deployment frames its editor in its
+ * own `border` color into it, so a themed deployment frames its editor in its
  * own line without anything here knowing.
  *
  * `overflow: hidden` because Monaco's ground is square: without it the corners

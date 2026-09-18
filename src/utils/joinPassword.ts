@@ -1,12 +1,12 @@
 /**
  * An activity's join password, held across a federated sign-in.
  *
- * A self-enrolment link carries the password in the fragment because a fragment
+ * A self-enrollment link carries the password in the fragment because a fragment
  * never reaches a server — see `ActivityPage`, which is where it is spent.
  * Signing in through a provider leaves the application and comes back through
  * the Server, to an address the Server was told: `returnUrl`. A fragment put
  * there is no longer a fragment, it is query-string bytes in an access log, in a
- * proxy, and in the provider's redirect. So it waits here instead of travelling.
+ * proxy, and in the provider's redirect. So it waits here instead of traveling.
  *
  * `sessionStorage`, so it is scoped to the tab making the journey and gone with
  * it. **Every call is guarded**: storage does not return nothing where it is

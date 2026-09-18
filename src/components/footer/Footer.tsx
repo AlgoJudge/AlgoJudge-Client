@@ -18,8 +18,8 @@ function Footer() {
     const { t, i18n } = useTranslation();
     const { setColorScheme } = useMantineColorScheme();
 
-    // **Which ground the mark is on, which the colour scheme cannot answer.**
-    // This bar takes the instance's navigation colour, so it can be a saturated
+    // **Which ground the mark is on, which the color scheme cannot answer.**
+    // This bar takes the instance's navigation color, so it can be a saturated
     // blue in the *light* scheme — and the mark drawn for paper is then dark ink
     // on dark blue. With no theme it is the scheme's own answer, unchanged.
     const scheme = useComputedColorScheme();

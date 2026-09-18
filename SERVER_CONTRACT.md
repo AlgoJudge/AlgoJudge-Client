@@ -63,7 +63,7 @@ Fixed, and run:
 | Endpoints the Client never calls | 22 — the Runner surface and the identity endpoints |
 
 **Ruling: Tooling.** Path coverage was already complete before any of this
-work; the check that would have said so was broken. Two fixes: honour
+work; the check that would have said so was broken. Two fixes: honor
 `servers[].url`, and compare the **response schema** against the type argument in
 `this.http.request<T>(…)` — because a path that exists is not a path that answers
 with the right thing, and entries 2 and 6 hid behind exactly that gap.
@@ -275,17 +275,17 @@ that is a team in the contest and a person on the course had to become two.
 
 ## 11. What could not catch drift, and now can
 
-Two catalogues existed and nothing compared them: the Server declared its event
+Two catalogs existed and nothing compared them: the Server declared its event
 names in `EventTypes`, the Client in three records, and they were agreed by hand.
 Fourteen names the Server declared were never sent, one name it did send
 (`ping`) was declared nowhere, and one name meant two payloads. None of it could
 fail a build.
 
 **Ruling: Tooling.** `AlgoJudge-Server/events.json` is committed beside
-`openapi.json` and for the same reason. `EventCatalogueTests` fails if it drifts
+`openapi.json` and for the same reason. `EventCatalogTests` fails if it drifts
 from `EventTypes`; `npm run check:events -- ../AlgoJudge-Server/events.json`
 diffs the Client's records against it. Both were confirmed to **fail** on a
-deliberately falsified catalogue, naming the missing and the extra.
+deliberately falsified catalog, naming the missing and the extra.
 
 `ping` is described as a transport frame rather than an event: nothing subscribes
 to it, and the Client drops any type it does not know.
@@ -306,8 +306,8 @@ Nothing below was chosen. Each is recorded with what it would cost either way.
 | 12.3 | ~~**`ProblemDetail.limits` is declared and unfillable.**~~ **Closed 2026-08-22.** The field is deleted on both sides. The Server could never populate it without reading the opaque config, and it never did: the badges rendered against the fake alone. Limits reach the problem page from the assignment's `config`, which now travels to a participant — see `components/problem/limits.ts` and `docs/specs/PARTICIPANT_SCREENS.md` | — |
 | 12.4 | **`MaxAttachments` is enforced nowhere.** Stored, shown in the panel, editable — and the submit endpoint takes exactly one file, so it governs nothing | Either the endpoint takes several, or the setting is about something else |
 | 12.5 | ~~**`GET /manager/activities` answers a participant 200 with an empty list**, where every other manager read answers 403~~ **Settled 2026-09-09, and it was a defect rather than an inconsistency.** The odd one out was right: a panel list asked with no activity is the question *"everything I may see"*, and its answer is a narrowing. The others required the permission at that empty scope, so a grant written **on an activity** — which is what the activity's own grant editor writes, and what `ActivityService` gives whoever creates one — answered nothing and the screens refused. `/submissions`, `/questions` and `/grants` narrow now (`IPermissionService.ListScopeAsync`), and the problem library answers to the key held anywhere. Holding it **nowhere** is still a 403: an empty page would tell somebody who may not look that there is nothing to see | — |
-| 12.5b | ~~**A participant sub-resource answers 403 where the activity's own page answers 404**~~ **Settled 2026-09-09.** `/results`, `/series` and `/questions` resolved the activity and then refused with 403, so the shape of the refusal said which slugs exist. They ask `RequireVisibleAsync` now and answer **404** for an activity the caller may not see, and **403 `enrolment.required`** for a listed one they have simply not joined — which is a useful answer rather than a leak | — |
-| 12.6 | **Creating a round leaves it shut** until the scheduler opens it, while editing one opens it at once. Deliberate — a round created with a past start should be announced late — but the asymmetry is real, and a fresh round is unusable for up to fifteen seconds | The reason for the current behaviour is sound; the cost is a manager waiting |
+| 12.5b | ~~**A participant sub-resource answers 403 where the activity's own page answers 404**~~ **Settled 2026-09-09.** `/results`, `/series` and `/questions` resolved the activity and then refused with 403, so the shape of the refusal said which slugs exist. They ask `RequireVisibleAsync` now and answer **404** for an activity the caller may not see, and **403 `enrollment.required`** for a listed one they have simply not joined — which is a useful answer rather than a leak | — |
+| 12.6 | **Creating a round leaves it shut** until the scheduler opens it, while editing one opens it at once. Deliberate — a round created with a past start should be announced late — but the asymmetry is real, and a fresh round is unusable for up to fifteen seconds | The reason for the current behavior is sound; the cost is a manager waiting |
 | 12.7 | **`SeriesProblem.Config` may tighten a limit — may it raise one?** In no document | Never written down |
 | 12.8 | **One origin or two?** This work runs two, with CORS. One origin behind a proxy needs a `location /api/` block, and settles the cookie's `SameSite` and whether `client_max_body_size` governs uploads at all | The deployment shape is the owner's |
 | 12.9 | ~~**The Server–Runner protocol exists twice** — `docs/protocols/SERVER_RUNNER_API.md` and `AlgoJudge-Design/proposals/Server-Runner-api.md` — with drift, and nothing says which is canonical~~ **Settled.** The contract is `AlgoJudge-Design/specifications/server-runner/SERVER_RUNNER_API.md`, **v1.1**, `Accepted` 2026-08-08 and amended since — its Status row is the list, and this entry deliberately holds no count. Both files named here are history and describe paths this Server never served; `.claude/rules/documentation.md` says which to cite | — |
@@ -322,8 +322,8 @@ Nothing below was chosen. Each is recorded with what it would cost either way.
 | Check | Where | Covers |
 |---|---|---|
 | `npm run check:api -- ../AlgoJudge-Server/openapi.json` | Client | every path **and response shape** the Client asks for |
-| `npm run check:events -- ../AlgoJudge-Server/events.json` | Client | the two event catalogues agree, and `ping` is dropped |
-| `dotnet test` | Server | **666** cases against real PostgreSQL 18, including the event catalogue. 57 on 2026-08-08; re-counted 2026-08-30 with `dotnet test --list-tests`, over 85 test files |
+| `npm run check:events -- ../AlgoJudge-Server/events.json` | Client | the two event catalogs agree, and `ping` is dropped |
+| `dotnet test` | Server | **666** cases against real PostgreSQL 18, including the event catalog. 57 on 2026-08-08; re-counted 2026-08-30 with `dotnet test --list-tests`, over 85 test files |
 | `npm run check:e2e` | Client | submit to verdict, through both halves and the socket |
 
 The last one is the only thing in either repository that can see the two

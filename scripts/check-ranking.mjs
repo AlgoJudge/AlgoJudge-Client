@@ -129,7 +129,7 @@ for (const [what, extra] of [
     ["one withheld by the freeze", { frozen: true }],
     ["a second accepted one", right],
     ["an evaluation that failed", { state: "failed" }],
-    ["one a manager cancelled", { state: "cancelled" }],
+    ["one a manager canceled", { state: "canceled" }],
 ]) {
     const cell = cellOf([sent("alice", "A", 20, right), sent("alice", "A", 33, extra)]);
     check(cell.acceptedAt === 20 && cell.rejected === 0 && cell.pending === undefined,
@@ -139,14 +139,14 @@ for (const [what, extra] of [
 // ── 3 — a submission nobody judged is not a rejection ───────────────────────
 //
 // `failed` is an infrastructure failure the Server stopped retrying and
-// `cancelled` is a manager's doing. The Runner sends **no score at all** for the
+// `canceled` is a manager's doing. The Runner sends **no score at all** for the
 // first, because a zero would read as a wrong answer on every board that shows
 // it — and charging twenty minutes for it did exactly that in a second place.
 
 check(penaltyOf([sent("alice", "A", 5, { state: "failed" }), sent("alice", "A", 20, right)]) === 20,
     "an evaluation that failed before the accepted one is not charged");
-check(penaltyOf([sent("alice", "A", 5, { state: "cancelled" }), sent("alice", "A", 20, right)]) === 20,
-    "and neither is one a manager cancelled");
+check(penaltyOf([sent("alice", "A", 5, { state: "canceled" }), sent("alice", "A", 20, right)]) === 20,
+    "and neither is one a manager canceled");
 check(penaltyOf([sent("alice", "A", 5, { state: "queued" }), sent("alice", "A", 20, right)]) === 20,
     "nor one still waiting for a verdict");
 
@@ -198,8 +198,8 @@ check(cellOf([sent("alice", "A", 5, { state: "running" })]).pending === "judging
     "and so does one being judged right now");
 check(cellOf([sent("alice", "A", 5, { state: "failed" })]).pending === "unjudged",
     "an evaluation that failed says no verdict came back");
-check(cellOf([sent("alice", "A", 5, { state: "cancelled" })]).pending === "unjudged",
-    "and so does one a manager cancelled");
+check(cellOf([sent("alice", "A", 5, { state: "canceled" })]).pending === "unjudged",
+    "and so does one a manager canceled");
 check(cellOf([sent("alice", "A", 5, wrong)]).pending === undefined,
     "a judged rejection is not pending at all");
 check(cellOf([

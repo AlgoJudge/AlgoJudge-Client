@@ -141,7 +141,7 @@ await evaluate(`
 `);
 await until(`document.body.innerText.includes("checker.cpp")`, "the checker");
 check(await evaluate(`return /\\bcpp\\b/.test(document.body.innerText);`),
-    "the checker is recognised as source, by extension");
+    "the checker is recognized as source, by extension");
 
 // The button carries the word; the per-test preview is an icon with a tooltip,
 // so matching on the text picks the program's.

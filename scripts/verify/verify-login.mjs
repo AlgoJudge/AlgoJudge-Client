@@ -1,5 +1,5 @@
-// The one behavioural path the ApiError rewrite could break: a refused sign-in
-// must still be recognised as refused, not reported as an unknown failure.
+// The one behavioral path the ApiError rewrite could break: a refused sign-in
+// must still be recognized as refused, not reported as an unknown failure.
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
