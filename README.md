@@ -8,10 +8,9 @@ and administrators, with permission-aware views.
 
 ## Documentation
 
-**[docs.algojudge.pl](https://docs.algojudge.pl/en/client/)** is written for
-somebody who does not have this source open — every screen, in both languages.
-This README is the other half: what the repository is, and how to build, run and
-change it.
+The full AlgoJudge documentation is available at [docs.algojudge.pl](https://docs.algojudge.pl/).
+
+This README contains repository-specific information about development, building, running, and contributing.
 
 | | |
 |---|---|
@@ -233,11 +232,9 @@ over WebSocket is also reproducible through REST.
 
 ## Contributing
 
-Open an issue saying what you expected, what happened, and how to reproduce it.
-Or open a pull request against `main`: one subject per pull request, with a note
-on what changes and why.
-
-By contributing you agree that your work is licensed under the terms below.
+Read the [contributing guide](https://github.com/AlgoJudge/.github/blob/main/CONTRIBUTING.md)
+before you open a pull request. Report security vulnerabilities privately, as
+described in [SECURITY.md](SECURITY.md).
 
 ## License
 
