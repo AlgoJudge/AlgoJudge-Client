@@ -13,7 +13,7 @@
    half. Without it every problem row was a `gray-2` slab under near-white text,
    at 1.4:1.
 
-   The dark shades go the other way round, and that is the point rather than an
+   The dark shades go the other way around, and that is the point rather than an
    oversight: a row has to separate from the `.round` card behind it, which is
    `dark-6`. Matching it there — the first thing tried — cleared the contrast
    floor and made the rows disappear as rows. */

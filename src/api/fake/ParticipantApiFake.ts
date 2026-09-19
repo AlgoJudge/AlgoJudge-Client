@@ -823,7 +823,7 @@ export class ParticipantApiFake implements ParticipantApi {
                 "This series is not accepting submissions", "series.closed");
         }
 
-        // **The language is not refused here any more, and that mirrors the
+        // **The language is not refused here anymore, and that mirrors the
         // Server.** It read a `language` field and compared it with a list on
         // the activity; the language is one member of an opaque document now,
         // and the refusal is the Runner's — against the assignment's `config`,
@@ -833,7 +833,7 @@ export class ParticipantApiFake implements ParticipantApi {
         // the old rule survived, and screens would be written against it.
 
         // The sender names pasted source now; the Server has no table to do it
-        // with. A fake that invented one would hide the field going missing.
+        // with. A fake that invented one would hide the field disappearing.
         const fileName = payload.file?.name ?? payload.fileName ?? "main.txt";
 
         // Same rule as every other upload: the Server recomputes and refuses a
@@ -924,7 +924,7 @@ export class ParticipantApiFake implements ParticipantApi {
             scoreVisibility: activity?.scoreVisibility ?? "managersOnly",
             // Decided here because the Server decides it here. It used to be the
             // screen's, which drew a board out of a feed it had been sent none
-            // of: five rows, no columns, everybody on nought.
+            // of: five rows, no columns, everybody at zero.
             unfrozen: this.access.holds("ranking:read:unfrozen", activityId),
             now: Date.now(),
             // Who competes as whom, read off the grants the manager screens

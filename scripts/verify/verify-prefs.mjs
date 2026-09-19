@@ -1,5 +1,5 @@
 // One setting, one store: what the application shell switches must still hold
-// on a public page, and the other way round.
+// on a public page, and the other way around.
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
@@ -39,8 +39,8 @@ check(await scheme() === "dark", "the application shell keeps the scheme chosen 
 check((await text()).includes("Activities"), "and the language too");
 
 // 3 — and back: the shell's own switch, seen by the visitor's shell after
-//     signing out. No page shows the public shell to somebody signed in any
-//     more, so this is the only way round the loop.
+//     signing out. No page shows the public shell to somebody signed in
+//     anymore, so this is the only way around the loop.
 await evaluate(`document.querySelector("[aria-label='Toggle color scheme']").click(); return true;`);
 await wait(1200);
 check(await scheme() === "light", "the shell switches it back");

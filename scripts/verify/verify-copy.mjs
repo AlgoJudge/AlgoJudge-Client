@@ -11,7 +11,7 @@
 // `AMMPZ-2019` holds exactly two — `H` and `I` — which makes the freed slugs
 // deterministic rather than "something ending in a digit".
 //
-// **From the copy onwards it is `visit`, never `go`.** The fake keeps a
+// **From the copy onward it is `visit`, never `go`.** The fake keeps a
 // manager's writes in memory, so a full page load would throw the new round away
 // and the checks after one would measure the seed again and pass for the wrong
 // reason.

@@ -258,8 +258,9 @@ export class CoreApiFake implements CoreApi {
             lastName: input.lastName?.trim() || undefined,
             email: input.email?.trim() || undefined,
             // Nothing confirms an address here, so a new one never is. With
-            // `requireConfirmedEmail` on, that is what stops the account signing
-            // in — which is the point of being able to turn the flag on at all.
+            // `requireConfirmedEmail` on, that is what stops the account from
+            // signing in — which is the point of being able to turn the flag
+            // on at all.
             emailConfirmed: false,
             isLocal: true,
             password: input.password,

@@ -94,7 +94,7 @@ check(await evaluate(`
     return [...main.querySelectorAll("button, a")].length === 0;
 `), "it offers nothing to press, because nothing would work");
 
-// …and the drawing beside the sentences is not a way round that. It is the
+// …and the drawing beside the sentences is not a way around that. It is the
 // product's own illustration with an empty `alt`, so a reader on a screen
 // reader is told nothing extra and a reader looking at it cannot click it.
 check(await evaluate(`

@@ -18,7 +18,7 @@ import classes from "./IcpcRanking.module.css";
  * solved, then by penalty time: the minute of the first accepted submission plus
  * twenty minutes for each **judged rejection** before it. Unsolved problems
  * contribute nothing, and neither does a submission the judge never answered.
- * Two rows level on both share a place.
+ * Two rows tied on both share a place.
  *
  * **The Server computes none of this.** It sends the results a reader may see
  * and this works out what they add up to — see `scoreboard.ts`. A Server

@@ -238,8 +238,8 @@ for (const [what, needle] of [["table", "<table>"], ["footnote", "footnote-item"
 }
 
 // 6. Mathematics reaches KaTeX rather than staying literal.
-const maths = md.render(validateContent(wrap("$n \\le 10^5$\n\n$$\\sum_{i=1}^{n} i$$")).body);
-if (maths.includes("katex")) ok("mathematics is rendered by KaTeX");
+const math = md.render(validateContent(wrap("$n \\le 10^5$\n\n$$\\sum_{i=1}^{n} i$$")).body);
+if (math.includes("katex")) ok("mathematics is rendered by KaTeX");
 else fail("mathematics was not rendered");
 
 if (!process.exitCode) console.log("\ncontent check passed");

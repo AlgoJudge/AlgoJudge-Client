@@ -193,7 +193,7 @@ two halves of the fake disagreeing. Run it when a screen changes;
 `scripts/verify/README.md` carries the traps the scripts encode, and those are
 the most valuable text in that directory.
 
-**A verification script cannot be run with `node` any more.** They have no tab of
+**A verification script cannot be run with `node` anymore.** They have no tab of
 their own: `scripts/verify/ui.spec.mjs` makes a test of each and hands it one.
 One script is `npm run check:ui -- <name>`.
 
@@ -499,7 +499,7 @@ been disclosed — never add a field to the feed without asking who may read it.
   every board that shows it, and charging twenty minutes for it did that anyway
   one floor up. Both are treated as a submission still in the queue: shown, and
   charged nothing. So is one that genuinely is.
-- **A tie is a tie**, on both boards. Two rows level on everything the board
+- **A tie is a tie**, on both boards. Two rows tied on everything the board
   sorts by share a place, and the place after a shared one is the position.
   Numbering by position invented an order out of whatever sequence the Server
   sent the contestants in.

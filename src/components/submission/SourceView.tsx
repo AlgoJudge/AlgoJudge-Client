@@ -63,7 +63,7 @@ export default function SourceView({ activity, submission, onResubmitted }: Sour
     // this reader may see, and an activity whose attachment table says nothing
     // about `source` withholds it from the submission's own author — so `files`
     // arrives empty and no request for one is ever issued. Without this a
-    // spinner turned for ever, which reads as "still loading" and never stops
+    // spinner turned forever, which reads as "still loading" and never stops
     // being wrong.
     if (submission.files.length === 0) {
         return (

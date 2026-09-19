@@ -11,7 +11,7 @@
 // store's own, or the collector shipped a different set of files than the
 // library holds, the plan would ask a question instead.
 //
-// **From the import onwards it is never `go`.** The fake keeps a manager's
+// **From the import onward it is never `go`.** The fake keeps a manager's
 // writes in memory, so a full page load throws the imported activity away.
 import { open, results } from "./harness.mjs";
 

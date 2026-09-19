@@ -115,7 +115,7 @@ await wait(1500);
 
 const scored = await evaluate(`return document.body.innerText.replace(/\\s+/g, " ");`);
 check(/5 \/ 5/.test(scored),
-    "a problem marked out of one by the archive is worth its whole assignment value");
+    "a problem scored out of one by the archive is worth its whole assignment value");
 check(/ROZWIĄZANE/i.test(scored),
     "and the whole of that scale reads as solved, not as a partial");
 await shot("uva-statement");

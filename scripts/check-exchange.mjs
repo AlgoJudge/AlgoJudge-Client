@@ -227,7 +227,7 @@ check(fresh.problems[0].action === "create" && !fresh.problems[0].asks,
     `a problem nothing holds is created (${fresh.problems[0].action})`);
 
 // **The order of the digests must not matter.** A library listing them the
-// other way round is the same problem, and a comparison over arrays would have
+// other way around is the same problem, and a comparison over arrays would have
 // called it a different one and asked a question nobody needed to answer.
 const reordered = planImport(bundle, [{ ...library[0], sha256: ["bbb", "aaa", "ddd"] }]);
 check(reordered.problems[0].action === "reuse", "the digests are compared as a set, not a sequence");

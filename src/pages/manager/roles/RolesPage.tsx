@@ -134,7 +134,7 @@ export default function RolesPage() {
                 <Stack gap={2}>
                     <Title>{t("Roles")}</Title>
                     {/* The opposite of what this said until roles arrived, and
-                        the sentence has to be got right: an edit here reaches
+                        the sentence has to be right: an edit here reaches
                         everybody holding the role, at once. */}
                     <Text size="sm" c="dimmed">
                         {t("A grant points at a role. Editing one changes what everybody holding it may do.")}

@@ -278,7 +278,7 @@ export interface Series {
      *
      * **Before** it opens, `problems` is absent — not an empty array: a series
      * that has not started does not disclose what it holds. **After** it ends
-     * they stay: a round that is over is readable for ever and simply accepts
+     * they stay: a round that is over is readable forever and simply accepts
      * nothing more. `isOpen` is false in both cases, which is why what may be
      * read and what may be sent are worked out by `api/seriesState.ts` rather
      * than from this field alone.
@@ -295,7 +295,7 @@ export interface Series {
     pausedAt?: string,
     /**
      * When this round's standings may be seen. Absent `from` means the round's
-     * own start; absent `to` means for ever.
+     * own start; absent `to` means forever.
      *
      * Per round rather than per activity: an organizer publishes the first
      * round's board while the second is still being fought.

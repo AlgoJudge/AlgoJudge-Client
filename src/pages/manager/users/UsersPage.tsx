@@ -177,7 +177,7 @@ export default function UsersPage() {
                 <Stack gap={2}>
                     <Title>{t("Users")}</Title>
                     <Text size="sm" c="dimmed">
-                        {t("Blocking stops somebody signing in. What they may do inside an activity is a grant.")}
+                        {t("Blocking stops somebody from signing in. What they may do inside an activity is a grant.")}
                     </Text>
                 </Stack>
                 <Group gap="xs">

@@ -39,7 +39,7 @@ export default function ManagerPrintoutsPage() {
 
     const [query, setQuery] = useSearchParams();
     const activityId = query.get("activity") ?? undefined;
-    // Its identity has to survive a render, or the effect refetches for ever.
+    // Its identity has to survive a render, or the effect refetches forever.
     const states = useMemo(() => listed(query.get("state")) as PrintoutState[], [query]);
     const page = Number(query.get("page") ?? "1");
 

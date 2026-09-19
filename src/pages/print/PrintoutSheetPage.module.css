@@ -51,8 +51,7 @@
 /* **JetBrains Mono, the face the editors draw code in**, named here rather than
    read from `--mantine-font-family-monospace`: that variable is the
    installation's to change, and paper is not themed. The rest of the stack is
-   what prints if the face never arrives — the sheet waits for it, but not for
-   ever. */
+   what prints if the face never arrives — the sheet waits for it, but not forever. */
 .listing {
     display: grid;
     grid-template-columns: auto 1fr;

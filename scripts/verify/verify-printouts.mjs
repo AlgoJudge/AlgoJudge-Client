@@ -123,7 +123,7 @@ await shot("printouts-participant");
 // Its bytes must arrive as they are: a browser rewrites every newline in a
 // multipart *text* field to CRLF, so source hashed as it sits on disk and sent
 // as text never matches — a 422 on a file nothing is wrong with. The name has a
-// space and brackets for the same reason a real one does.
+// space and parentheses for the same reason a real one does.
 await visit(`/activities/${ON}/printouts`,
     `document.querySelector("input[type=file]") !== null`);
 
@@ -384,7 +384,7 @@ check(await evaluate(`return document.querySelector("[data-testid=modal]") === n
     "and the window closes, which it does only when the Server accepted it");
 await shot("printouts-queue");
 
-// ── The dialog waits for the face, but not for ever ────────────────────────
+// ── The dialog waits for the face, but not forever ────────────────────────
 //
 // **In a tab that has never drawn it, and over a slow network.** The sheet
 // prints itself and JetBrains Mono is `swap`, so a dialog opened on the first

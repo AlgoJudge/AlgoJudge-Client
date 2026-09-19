@@ -36,7 +36,7 @@ const readPreview = () => evaluate(`
 /**
  * The preview, once it has stopped moving.
  *
- * Read straight after choosing a round it can be torn — the "from" span still
+ * Read right after choosing a round it can be torn — the "from" span still
  * the old round's while the "to" span is already the new one — and the check
  * below then measures a shift between two different rounds. Two equal reads mean
  * the component has settled. It failed about one full run in four before this.
@@ -103,7 +103,7 @@ check(await evaluate(`
     const modal = document.querySelector("[data-testid=modal]");
     const box = [...(modal?.querySelectorAll("input[type=checkbox]") ?? [])].at(-1);
     return box ? !box.checked : false;
-`), "and offers to hide the statements, unticked");
+`), "and offers to hide the statements, unchecked");
 await shot("ser-pause");
 await click(`[...document.querySelectorAll("[data-testid=modal] button")].find(b => b.textContent.trim() === "Wstrzymaj")`);
 await wait(3000);
@@ -139,7 +139,7 @@ check(await evaluate(`
     const modal = document.querySelector("[data-testid=modal]");
     const box = [...(modal?.querySelectorAll("input[type=checkbox]") ?? [])].at(-1);
     return box ? box.checked : false;
-`), "and offers to give the time back, ticked");
+`), "and offers to give the time back, checked");
 await click(`[...document.querySelectorAll("[data-testid=modal] button")].find(b => b.textContent.trim() === "Wznów")`);
 await wait(3000);
 check(await evaluate(`

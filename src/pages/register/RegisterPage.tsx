@@ -55,7 +55,7 @@ export default function RegisterPage() {
     // is ASP.NET Core Identity's own handler and it binds no such field. So an
     // installation that publishes no terms demanded agreement to a document it
     // does not have, showed no link because there was none to show, and refused
-    // the form until somebody ticked a bare asterisk.
+    // the form until somebody checked a bare asterisk.
     const mustAccept = readable.includes("terms");
     const readingRef = reading
         ? pickDocumentRef(instance.documents, reading, i18n.language)
@@ -243,7 +243,7 @@ export default function RegisterPage() {
                                                 // Opened over the form. Navigating
                                                 // away to read it and coming back
                                                 // to an empty form is how people
-                                                // learn to tick without reading.
+                                                // learn to agree without reading.
                                                 onClick={() => setReading(kind)}
                                             >
                                                 {t(`legal.${kind}`)}

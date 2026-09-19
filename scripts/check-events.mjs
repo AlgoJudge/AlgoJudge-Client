@@ -146,7 +146,7 @@ check(series.length === 2,
 
 // ── the gate: the manager's feed can be held, and nobody else's ─────────────
 //
-// The switch above the panel stops manager events reaching the screens. What
+// The switch above the panel stops manager events from reaching the screens. What
 // must be impossible is for it to reach any other audience: a participant
 // losing a verdict, a round change, or a session ending because somebody paused
 // a list would be a far worse defect than the one the switch exists to fix.

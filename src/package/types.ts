@@ -19,7 +19,7 @@ export const PACKAGE_VERSION = 1;
  * spellings is not a convention.
  *
  * The Runner still **reads** the two-field form, so a package built before that
- * date judges unchanged; nothing writes it any more.
+ * date judges unchanged; nothing writes it anymore.
  */
 export const PACKAGE_TYPE = `${PACKAGE_FORMAT}@${PACKAGE_VERSION}`;
 
@@ -164,7 +164,7 @@ export interface PackageConfig {
      * Absent means the `.out` files decide.
      *
      * It is handed the participant's answer as the program writes it, so it must
-     * read it once and forwards — a pipe cannot be seeked or read twice.
+     * read it once, front to back — a pipe cannot be seeked or read twice.
      *
      * With one the `.out` files need not be there at all: a checker replaces
      * the comparison, not only the answer.

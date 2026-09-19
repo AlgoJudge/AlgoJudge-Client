@@ -194,11 +194,11 @@ export interface SeedAttempt {
     verdict?: string;
     score?: number;
     /**
-     * What the score was marked out of. Absent means {@link RUNNER_SCALE}.
+     * What the score was out of. Absent means {@link RUNNER_SCALE}.
      *
      * A Runner reports both, and reading the first without the second means
      * assuming a scale — which is what the Server was corrected for on
-     * 2026-08-16, where a type marking out of one scored a fiftieth of what it
+     * 2026-08-16, where a type scoring out of one received a fiftieth of what it
      * had earned.
      */
     maxScore?: number;
@@ -388,8 +388,8 @@ const GUESS: SeedProblem = {
  * Judged somewhere else entirely: the statement is the archive's, and the
  * verdict comes from `onlinejudge.org`.
  *
- * Here to exercise the one thing nothing else does — **a result marked out of
- * one**. Every other attempt in this seed is marked out of a hundred, so the
+ * Here to exercise the one thing nothing else does — **a result scored out of
+ * one**. Every other attempt in this seed is scored out of a hundred, so the
  * arithmetic that divides by the reported maximum was, until this existed,
  * indistinguishable from the arithmetic that assumed one.
  */
@@ -636,7 +636,7 @@ export const WORLD: SeedActivity[] = [
         scoreVisibility: "participantOnly",
         attachmentVisibility: COURSE_ATTACHMENTS,
         // The emailed-link case: a group of students enroll themselves with the
-        // password their lecturer gave them.
+        // password their instructor gave them.
         joinPolicy: "password",
         joinPassword: COURSE_JOIN_PASSWORD,
         unlisted: true,
@@ -697,7 +697,7 @@ export const WORLD: SeedActivity[] = [
                 revealProblemCount: true,
                 assignments: [
                     { problem: LOOPS, slug: "rekurencja", name: "Rekurencja — rozgrzewka", maxPoints: 50 },
-                    // Worth five, marked out of one, in a round that is **open** —
+                    // Worth five, scored out of one, in a round that is **open** —
                     // so the submission screen exists and can be looked at.
                     { problem: UVA_3N1, slug: "uva100", maxPoints: 5 },
                     { problem: ARRAYS, slug: "sortowanie", name: "Sortowanie" },
@@ -1081,12 +1081,12 @@ export const RUNNER_SCALE = 100;
  * The scale a number is reported on.
  *
  * The assignment's point value where it states one, and **what the attempt was
- * marked out of** where it does not — which is the package's own scale, and what
+ * scored out of** where it does not — which is the package's own scale, and what
  * `SeriesProblem.maxPoints` has always promised.
  *
  * It was `?? RUNNER_SCALE` here as it was on the Server, and it was wrong in the
  * same way: a hundred is a percentage, not the Runner's own scale, so a package
- * marking out of 70 reported a full solve as 100 / 100. Corrected on both sides
+ * scoring out of 70 reported a full solve as 100 / 100. Corrected on both sides
  * on 2026-08-22 — this fixture stands in for the Server, and a fake that kept
  * the old rule would be the one place the defect survived, with screens written
  * against it.
@@ -1095,7 +1095,7 @@ export const maxPointsOf = (assignment: SeedAssignment, outOf?: number): number 
     assignment.maxPoints ?? outOf ?? RUNNER_SCALE;
 
 /**
- * What an attempt is worth, as a fraction of what it was marked out of.
+ * What an attempt is worth, as a fraction of what it was scored out of.
  *
  * The unit that crosses this boundary, so a caller cannot forget the scale —
  * the same correction the Server took on 2026-08-16, mirrored here because this

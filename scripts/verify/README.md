@@ -62,7 +62,7 @@ point worth looking at; when something fails, the picture usually says why faste
 than the assertion does — and a failure now also leaves a **trace**, which
 `npx playwright show-trace test-results/<name>/trace.zip` replays step by step.
 
-**Running one with `node` directly does not work any more.** A script has no tab
+**Running one with `node` directly does not work anymore.** A script has no tab
 of its own: `ui.spec.mjs` makes a test of each and hands it one. `npm run
 check:ui -- <name>` is the way to run a single script, and the harness says so
 when something tries the old way.
@@ -257,10 +257,10 @@ visible rather than forgotten:
   is covered: `verify-name` asserts it in both shells and in the tab, and
   `verify-nav` reads it too. The censoring is still uncovered — `ContentView.tsx`
   replaces a link to an unpermitted host with a `<span>`, and no script here
-  asserts it. But neither is blocked on a harness any more: `grep -L "harness.mjs"
+  asserts it. But neither is blocked on a harness anymore: `grep -L "harness.mjs"
   scripts/verify/verify-*.mjs` returns nothing, so all 53 import the shared one.
 
-**None of them carries an inline harness any more**, and that is measured rather
+**None of them carries an inline harness anymore**, and that is measured rather
 than remembered: `grep -L "harness.mjs" scripts/verify/verify-*.mjs` returned
 nothing on 2026-08-30. Fifteen did until 2026-08-18, each a copy of `cdp.mjs`'s
 internals at whatever revision it was pasted at; the move onto Playwright deleted

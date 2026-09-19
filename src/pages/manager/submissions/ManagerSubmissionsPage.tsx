@@ -45,7 +45,7 @@ export default function ManagerSubmissionsPage() {
     const activityId = query.get("activity") ?? undefined;
     // Read through `useMemo` so each list keeps its identity between renders.
     // A fresh array every render is a fresh dependency every render, and the
-    // effect below would refetch for ever; `query` changes only when the
+    // effect below would refetch forever; `query` changes only when the
     // address does, which is exactly when a filter has moved.
     const seriesIds = useMemo(() => listed(query.get("series")), [query]);
     const problemIds = useMemo(() => listed(query.get("problem")), [query]);

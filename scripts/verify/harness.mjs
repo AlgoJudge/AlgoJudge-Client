@@ -13,7 +13,7 @@
 //
 // Small on purpose, as before. Everything here is either something the browser
 // makes awkward — a click needs a point, not an element — or something that was
-// got wrong once and is worth not getting wrong again.
+// gotten wrong once and is worth not getting wrong again.
 import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -64,7 +64,7 @@ export async function open({ out = process.env.OUT ?? join(here, "out"), clock =
         throw new Error(
             "No page. These run under Playwright now: `npm run check:ui`, "
             + "which collects `ui.spec.mjs`. Running one with `node` directly "
-            + "cannot work any more.");
+            + "cannot work anymore.");
     }
 
     /**
@@ -379,7 +379,7 @@ export async function open({ out = process.env.OUT ?? join(here, "out"), clock =
 
     await page.setViewportSize({ width: 1500, height: 1200 });
 
-    // **Nothing is cleared here any more, and that is the improvement.**
+    // **Nothing is cleared here anymore, and that is the improvement.**
     //
     // The old harness cleared `localStorage` and cookies on open, because every
     // script shared one browser: one that switched to English and left it there

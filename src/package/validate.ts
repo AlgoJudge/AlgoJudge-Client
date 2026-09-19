@@ -177,7 +177,7 @@ export const validatePackage = (tests: TestFile[], config: PackageConfig, fileNa
 
     // **One or the other, never both.** They decide the same question, and a
     // package that declares both has not said which of them judges. The Runner
-    // refuses it; saying so here is what stops a manager publishing one.
+    // refuses it; saying so here is what stops a manager from publishing one.
     if (config.checker && config.interactor) {
         issues.push({
             level: "error",

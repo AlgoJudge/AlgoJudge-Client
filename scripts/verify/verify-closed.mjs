@@ -50,7 +50,7 @@ const pageSubmit = () => evaluate(`
 `);
 
 // ── A round that has ended ──────────────────────────────────────────────────
-// Readable for ever, accepting nothing: a competitor goes back to what they
+// Readable forever, accepting nothing: a competitor goes back to what they
 // were solving.
 await go(`${APP}/activities/AMMPZ-2019/problems?fakeUser=amy`, `document.body.innerText.includes("Runda 0")`);
 await wait(1200);
@@ -167,7 +167,7 @@ check(await evaluate(`
 // its own source, which is what shows the rule is the round's and not the
 // activity's.
 //
-// **`visit`, never `go`, from the pause onwards.** The fake's world is in
+// **`visit`, never `go`, from the pause on.** The fake's world is in
 // memory: a reload rebuilds it and the round is running again, so a `go` here
 // asserts the unpaused product. Which also means this stays signed in as the
 // manager — the fake's participant surface answers as a participant whoever is

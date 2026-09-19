@@ -12,10 +12,10 @@ const ContentView = lazy(() => import("../../content/ContentView"));
  * Two forms make somebody accept something before they may go on — registering,
  * and enrolling in an activity — and both used to link away to the document.
  * Somebody who did the reasonable thing and opened the privacy policy before
- * ticking the box came back to an empty form, which teaches people to tick
+ * checking the box came back to an empty form, which teaches people to agree
  * without reading. Nothing navigates here.
  *
- * The text is fetched when the modal opens, not with the page: most readers tick
+ * The text is fetched when the modal opens, not with the page: most readers agree
  * without opening it, and a policy is tens of kilobytes.
  */
 export interface DocumentModalProps {

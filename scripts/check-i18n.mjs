@@ -4,7 +4,7 @@
 // error: i18next falls back to the key itself, which *is* the English text — so
 // a Polish interface quietly renders an English sentence, lint is silent,
 // typecheck is silent, the build is silent, and it looks like a translation
-// nobody got round to rather than one nobody knows is missing. Four such strings
+// nobody got around to rather than one nobody knows is missing. Four such strings
 // had been sitting in the Polish file's absence before this script existed.
 //
 // It reads the literal form only: `t("…")` and `t('…')`. A key built at run time

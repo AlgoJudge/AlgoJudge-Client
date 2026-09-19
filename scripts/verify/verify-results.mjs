@@ -74,7 +74,7 @@ check(adds.rows > 0 && adds.bad.length === 0,
 // **The clock is advanced inside the loop, never once before it.**
 //
 // The fake schedules the opening with `setTimeout` when it is constructed, so a
-// single jump taken before the page has got that far fires nothing — and a
+// single jump taken before the page has gotten that far fires nothing — and a
 // virtual clock does not advance on its own afterwards, which turns a 45-second
 // wait into an unbounded one. It passed locally and **failed in CI**, where the
 // page mounts slower: `nothing to click: Runda 2`. Ten virtual seconds per turn,
@@ -101,7 +101,7 @@ await shot("res-held");
 // ── 4b. `ranking:read:unfrozen` is applied to the FEED, not by the screen ───
 // amy holds it. She gets the rounds the window and the freeze would withhold —
 // with their columns. The bug this locks down drew a board out of a feed that
-// carried none of it: five contestants, no columns, everybody on nought.
+// carried none of it: five contestants, no columns, everybody at zero.
 await go(`${APP}/activities/AMMPZ-2019/ranking?fakeUser=amy`, `document.body.innerText.includes("Ranking")`);
 for (let i = 0; i < 25; i++) {
     const tabs = await evaluate(`

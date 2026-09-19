@@ -106,7 +106,7 @@
  *
  * `latin-ext` is here although the wordmark is eight ASCII letters. It costs a
  * reader nothing — `unicode-range` means a subset is fetched only when a glyph
- * needs it — and it is what stops the diacritics falling back mid-word on the
+ * needs it — and it is what stops the diacritics from falling back mid-word on the
  * day somebody uses Inter for interface text.
  */
 

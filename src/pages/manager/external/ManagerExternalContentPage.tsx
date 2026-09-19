@@ -33,7 +33,7 @@ export default function ManagerExternalContentPage() {
 
     // **Through the wrapper, not a bare effect.** Written as `useEffect` plus
     // `useApiCall` this never resolved: the switch stayed neither on nor off,
-    // so the import button was refused for ever and the screen explained
+    // so the import button was refused forever and the screen explained
     // nothing. The wrapper also carries the abort and the refetch after a
     // connection comes back, which every screen wants and none should have to
     // remember.

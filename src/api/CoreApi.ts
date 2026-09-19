@@ -350,8 +350,8 @@ export interface RegisterInput extends ProfileInput {
      * own `MapIdentityApi` handler, which binds no such field — so the consent is
      * asked for in the browser and recorded nowhere. It said "refused without it,
      * and recorded with the account" until 2026-09-01, and `RegisterPage`
-     * demanded a tick on the strength of that sentence even where the
-     * installation published no terms to tick.
+     * demanded a checked box on the strength of that sentence even where the
+     * installation published no terms to accept.
      *
      * Kept on the wire because the fake enforces it, and because it is the field
      * a Server that recorded consent would read.
@@ -400,7 +400,7 @@ export type SystemMessageEvent = Event<"systemMessage", {
 /**
  * The Server refused a request because the session is gone. Dispatched by the
  * transport, so a session that expires mid-visit ends at the login screen rather
- * than in screens that spin for ever.
+ * than in screens that spin forever.
  */
 export type SessionExpiredEvent = Event<"sessionExpired", Record<string, never>>;
 
