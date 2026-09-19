@@ -13,12 +13,12 @@ import { PermissionDefinition } from "../../api/ManagerApi";
  *   Hiding it reads as a missing feature; showing it disabled says "you do not
  *   have this yourself", which is the actual reason.
  * - **`system:administrator` swallows the rest.** It bypasses every check, so
- *   ticking anything beside it is theater; the editor says so and stops
+ *   checking anything beside it is theater; the editor says so and stops
  *   pretending the other boxes mean something.
- * - **What a role contributes is shown ticked and locked.** A grant carries its
+ * - **What a role contributes is shown checked and locked.** A grant carries its
  *   role's permissions and its own; drawing only the second half would say
  *   somebody holds nothing when they hold everything a manager does, and
- *   drawing them alike would invite unticking one and wondering why it came
+ *   drawing them alike would invite unchecking one and wondering why it came
  *   back.
  */
 export interface PermissionSetEditorProps {
@@ -28,7 +28,7 @@ export interface PermissionSetEditorProps {
     /** What the signed-in user holds. Anything outside it cannot be granted on. */
     grantable: string[];
     /**
-     * What the linked role contributes. Drawn ticked and locked, and not part of
+     * What the linked role contributes. Drawn checked and locked, and not part of
      * `value` — editing here writes the grant's own entries only.
      */
     inherited?: string[];

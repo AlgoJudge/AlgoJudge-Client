@@ -9,7 +9,7 @@ import { instancePage } from "./instancePages";
 /**
  * What an operator writes, as the fixtures hold it.
  *
- * Not an API type any more: the API carries **references**, and the text lives
+ * Not an API type anymore: the API carries **references**, and the text lives
  * in a file like every other stored byte. This is the shape the fixtures are
  * written in and the shape `check:content` validates, which is why it is one
  * declaration rather than one per fixture file.

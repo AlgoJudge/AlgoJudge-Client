@@ -70,7 +70,7 @@ export interface Dataset {
 /**
  * What the reader made of one problem, from what they sent at it.
  *
- * Judged on the Runner's scale — full marks is full marks whatever the problem
+ * Judged on the Runner's scale — a full score is a full score whatever the problem
  * counts for — and only the numbers beside it are rescaled.
  */
 /**
@@ -93,7 +93,7 @@ const statusOf = (all: SeedAttempt[]): ProblemStatus => {
     return best > 0 ? "partial" : "attempted";
 };
 
-// Compared as fractions: two attempts at one problem may have been marked out
+// Compared as fractions: two attempts at one problem may have been scored out
 // of different maxima.
 const bestOf = (all: SeedAttempt[]): number | undefined => {
     const attempts = counting(all);
@@ -103,7 +103,7 @@ const bestOf = (all: SeedAttempt[]): number | undefined => {
 };
 
 /**
- * What the best attempt was marked out of.
+ * What the best attempt was scored out of.
  *
  * The scale a `bestScore` is reported on where the assignment states no point
  * value of its own — the best attempt's maximum, not any of them, because two

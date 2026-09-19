@@ -153,7 +153,7 @@ export default function SubmissionForm({ activity, problem, series, onSent }: Su
                 //
                 // Absent for a type that has no language: an answer file is not
                 // written in one, and sending a made-up value would put it on a
-                // submission for ever.
+                // submission forever.
                 props: wantsLanguage && language
                     ? { type: problem.type, language }
                     : { type: problem.type },

@@ -1,4 +1,4 @@
-// The link a lecturer mails to a class: opened by somebody who is not signed in,
+// The link an instructor mails to a class: opened by somebody who is not signed in,
 // it has to survive the sign-in screen with its password intact.
 import { open, results } from "./harness.mjs";
 

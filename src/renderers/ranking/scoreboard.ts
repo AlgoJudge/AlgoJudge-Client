@@ -74,12 +74,12 @@ const minuteOf = (result: ContestantResult, startDate: string | undefined): numb
     return Math.max(0, Math.floor((Date.parse(result.submittedAt) - Date.parse(startDate)) / 60000));
 };
 
-/** A judged result worth full marks. */
+/** A judged result worth a full score. */
 const accepted = (result: ContestantResult, maxPoints: number): boolean =>
     result.frozen !== true && result.state === "completed" && (result.points ?? 0) >= maxPoints;
 
 /**
- * Judged, and not worth full marks — the only thing ICPC charges for.
+ * Judged, and not worth a full score — the only thing ICPC charges for.
  *
  * Written as the mirror of `accepted` on purpose: between them they cover every
  * result somebody actually got an answer to, and what neither matches is a
@@ -120,7 +120,7 @@ const pendingOf = (results: ContestantResult[]): Pending | undefined => {
 /**
  * Places the rows, and **gives rows that tie the same place**.
  *
- * Two contestants level on everything the board sorts by are equal, not first
+ * Two contestants tied on everything the board sorts by are equal, not first
  * and second. Numbering by position invented an order the arithmetic does not
  * have — and the order it invented was whatever sequence the Server happened to
  * send the contestants in, which is stable, arbitrary, and reads as a ruling.
@@ -245,7 +245,7 @@ export const icpcBoard = (results: ActivityResults, ranked: boolean): IcpcRow[] 
         };
     });
 
-    // Most solved first, then least time. Level on both is level: there is no
+    // Most solved first, then least time. Tied on both is tied: there is no
     // further tiebreak here, so the board says so rather than picking one.
     rows.sort((a, b) => b.solved - a.solved || a.penalty - b.penalty);
     return place(rows, ranked,

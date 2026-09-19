@@ -42,7 +42,7 @@ export interface LibraryProblem {
      * **The listing must include these**, and finding that out cost a browser
      * check: the library screen hides them by default, so a plan built from that
      * listing proposed *creating* a problem whose slug the database already
-     * held — refused at the first write, half way through an import.
+     * held — refused at the first write, halfway through an import.
      */
     archived: boolean;
     /** Every SHA-256 of the newest version, in any order. */

@@ -110,7 +110,7 @@ export default function ManagerProblemPage() {
                 loadedSources[ref.language ?? DEFAULT_LANGUAGE] = await api.fileApi.getText(ref.fileId);
             }
             setSources(loadedSources);
-            // The other half of the loop above: what it skipped is not rubbish,
+            // The other half of the loop above: what it skipped is not garbage,
             // it is the statement, and publishing has to hand it back.
             setCarried(refs.filter(ref => !isStatementName(ref.name)));
             setLanguage(DEFAULT_LANGUAGE);
@@ -153,7 +153,7 @@ export default function ManagerProblemPage() {
      *
      * Polled rather than awaited, because a trial is a Runner's work and the
      * Server answers as soon as it is queued. The ceiling is what stops this
-     * being a way to occupy every Runner, and it lives on the Server — a screen
+     * from being a way to occupy every Runner, and it lives on the Server — a screen
      * that enforced it would be a screen somebody could skip.
      */
     const measure = useCallback(async (archive: Blob): Promise<PackageMeasurement[] | undefined> => {
@@ -305,7 +305,7 @@ export default function ManagerProblemPage() {
     if (!problem) return <LoadState error={loadError} loading={!loadError} />;
 
     // **And once it is drawn.** The guard above is reached only before the first
-    // load, so a refetch that failed — or a load that stopped half way — would
+    // load, so a refetch that failed — or a load that stopped halfway — would
     // otherwise leave a problem on screen with nothing in it and no explanation.
     const partial = loadError !== undefined ? <LoadState error={loadError} loading={false} /> : null;
 
@@ -817,7 +817,7 @@ export default function ManagerProblemPage() {
                                     {/* **Absent, not missing.** A type judged
                                         elsewhere has no package to be without,
                                         and every version of one wore a Missing
-                                        badge for ever. */}
+                                        badge forever. */}
                                     {editing.package && (
                                         <Table.Td>
                                             {version.hasPackage

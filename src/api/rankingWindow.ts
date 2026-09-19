@@ -5,7 +5,7 @@
  * announced" is what an organizer says — and **per round**, because a contest
  * publishes the first round's board while the second is still being fought.
  * Absent bounds are open ones: no `from` means the round's own start, and no
- * start either means from the beginning; no `to` means for ever.
+ * start either means from the beginning; no `to` means forever.
  *
  * Beside `seriesState.ts` and for the same reason — one rule, applied by the
  * screen to decide what to draw and by the fake to decide what to answer, as the

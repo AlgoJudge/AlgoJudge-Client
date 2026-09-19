@@ -41,7 +41,7 @@ export interface ParticipantSettings {
      *
      * It was `languages` — the list a submit form offered — until 2026-08-22.
      * That list is per assignment now, in three documents with three readers,
-     * so nothing about it crosses here any more.
+     * so nothing about it crosses here anymore.
      */
     props?: unknown;
 }

@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
  * What a screen shows while it has no data.
  *
  * Loading and failing are different states, and a screen that only distinguishes
- * "have data" from "do not have data yet" spins for ever the moment a request
+ * "have data" from "do not have data yet" spins forever the moment a request
  * fails. Every participant screen routes through this so the difference is drawn
  * once rather than eight times, differently.
  */

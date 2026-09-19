@@ -109,7 +109,7 @@ export interface SubmitRenderer {
      * keys.
      *
      * Not decoration. A `uva@1` submission leaves the instance for a third party
-     * and is stored there for ever; somebody should learn that before sending
+     * and is stored there forever; somebody should learn that before sending
      * their work, not afterwards.
      */
     notices?: string[];

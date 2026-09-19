@@ -1,6 +1,6 @@
 // Several people competing as one, on the manager's screen.
 //
-// **Two things had to be got right before this passed, and both are recorded
+// **Two things had to be right before this passed, and both are recorded
 // because the next person will hit them.**
 //
 // The panel refreshes through `useApiEffect`, and the fake sleeps **300 ms per

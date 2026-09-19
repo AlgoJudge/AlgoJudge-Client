@@ -48,7 +48,7 @@ const queuedRow = `([...document.querySelectorAll("[data-testid=submission-row]"
 /**
  * Every answer the fake gives is 300 ms of `setTimeout` behind, and an installed
  * clock advances for nobody — so each fetch is nudged by hand. Without this a
- * page loads and then waits for ever for rows that are one timer away.
+ * page loads and then waits forever for rows that are one timer away.
  */
 const settle = async () => {
     await clock.runFor(1000);
@@ -101,7 +101,7 @@ check(await evaluate(`return ${queuedRow} !== undefined;`),
 // what is wanted, not a later one.
 await click(queuedRow);
 // Nudged rather than waited on: with the clock stopped, a real-time `until`
-// polls a page whose timers are not running and finds nothing for ever.
+// polls a page whose timers are not running and finds nothing forever.
 for (let i = 0; i < 6; i++) {
     if (await evaluate(`return ${modal} !== null;`)) break;
     await nudge();

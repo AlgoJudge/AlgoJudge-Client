@@ -41,7 +41,7 @@ export default function PauseSeriesModal({
     const [extendEnd, setExtendEnd] = useState(true);
 
     // Reset between openings, so an answer given about one round is not still
-    // ticked when the next one is stopped.
+    // checked when the next one is stopped.
     useEffect(() => {
         if (intent) {
             setHideProblems(false);
@@ -72,7 +72,7 @@ export default function PauseSeriesModal({
                             checked={extendEnd}
                             onChange={e => setExtendEnd(e.currentTarget.checked)}
                             label={t("Give the time back: move the end by the length of the pause")}
-                            description={t("Unticked, every date is left exactly as it is.")}
+                            description={t("Unchecked, every date is left exactly as it is.")}
                         />
                         <Group justify="space-between">
                             <Button data-testid="back" variant="default" onClick={onClose}>{t("Back")}</Button>

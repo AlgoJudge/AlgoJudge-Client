@@ -143,7 +143,7 @@ check(sameDayInZone(EARLIER, NOW, "Europe/Warsaw") === false,
     "to a Warsaw one it is yesterday — the two disagree, which is the whole case");
 
 // And the call site has to ask in the zone it renders in. A string literal or a
-// stray `activity.timeZone` here typechecks for ever.
+// stray `activity.timeZone` here typechecks forever.
 const panel = readFileSync("src/components/activity/ActivitySubmissions.tsx", "utf8");
 check(/sameDayInZone\([\s\S]{0,150}?viewerZone\(\)\s*\)/.test(panel),
     "and ActivitySubmissions asks in the reader's zone, which is the one it draws in");
@@ -152,8 +152,8 @@ check(/sameDayInZone\([\s\S]{0,150}?viewerZone\(\)\s*\)/.test(panel),
 //
 // Seventeen `<ActivityTime>` used to pass a literal `timeZone="Europe/Warsaw"`
 // for instants belonging to no activity, which was wrong for every reader
-// outside Poland. Making the prop optional does not stop a new one appearing —
-// a string literal typechecks for ever — so this is what keeps it from rotting
+// outside Poland. Making the prop optional does not stop a new one from appearing —
+// a string literal typechecks forever — so this is what keeps it from rotting
 // back.
 
 const sources = [];

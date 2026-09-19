@@ -14,7 +14,7 @@
 > thing it is good for. What follows are the changes since, each verified today
 > and annotated where it belongs rather than merged into the text:
 >
-> - **The rulings against the Client shipped**, on the day. Entry 2's four
+> - **The rulings against the Client shipped** the same day. Entry 2's four
 >   manager reads are under `/manager/` in `ManagerApiHttp.ts`; entry 4's
 >   `src/api/fake/refuse.ts` exists and `Utils.throwError` is gone.
 > - **§12.3 was closed 2026-08-22** and says so in place.

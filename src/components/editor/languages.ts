@@ -46,7 +46,7 @@ interface Toolchain {
      * What pasted source is called when it is sent — the first one.
      *
      * The Server used to name it, from a table of seven languages compiled into
-     * a controller; it cannot any more, because it does not read the language.
+     * a controller; it cannot anymore, because it does not read the language.
      * The name has to be right: the Runner refuses a file whose extension its
      * toolchain does not accept.
      */

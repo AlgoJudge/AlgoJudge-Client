@@ -28,7 +28,7 @@ export const useApi = (): Api => {
  * returns whatever it failed with.
  *
  * The rejection has to come back out. A screen that only knows "the data is not
- * here yet" shows a spinner, and a failed request leaves it spinning for ever —
+ * here yet" shows a spinner, and a failed request leaves it spinning forever —
  * which is what a 404 looks like from the outside.
  */
 export const useApiEffect = (f: (api: ScopedApi) => Promise<void>, deps: DependencyList = []): unknown => {

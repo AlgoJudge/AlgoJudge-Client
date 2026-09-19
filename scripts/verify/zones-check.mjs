@@ -86,7 +86,7 @@ await shot("zones-tooltip");
 // hover-only — Mantine's defaults are `{ hover: true, focus: false, touch: false }`
 // — and the IANA identifiers live nowhere else.
 //
-// **The cursor has to come off first.** Asserting this straight after a hover
+// **The cursor has to come off first.** Asserting this right after a hover
 // proves nothing: the tooltip is already open, and removing the `events`
 // override leaves every line below green. Found by sabotage.
 await hover(`document.querySelector("h1, h2, [data-testid=app-main] p")`);

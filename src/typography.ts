@@ -24,7 +24,7 @@ import { createTheme } from "@mantine/core";
  *
  * The fallback stack behind it is Mantine's own, so a reader who is served the
  * page before the face arrives — or who blocks webfonts — gets what they would
- * have got with none of this.
+ * have gotten with none of this.
  */
 
 /**

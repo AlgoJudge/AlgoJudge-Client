@@ -103,7 +103,7 @@ three of the four had:
 
 **A dependency named in prose.** *ESLint 9* stood in the `Commands` table against
 10.10.0 installed, and `CLAUDE.md` carried the same sentence. Read every major
-the `Technology` and `Commands` tables name against `package.json` on the day.
+the `Technology` and `Commands` tables name against `package.json` on release day.
 
 **A list that mirrors CI.** The README gave eight of the ten `check:` scripts the
 `build` job runs — `check:languages` and `check:ranking` were missing — so the

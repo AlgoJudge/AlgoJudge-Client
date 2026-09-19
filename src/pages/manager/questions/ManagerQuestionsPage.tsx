@@ -20,7 +20,7 @@ const PAGE_SIZE = 20;
  * Answering and publishing are separate acts, and the screen keeps them
  * separate: most answers concern one team's submission and would tell everyone
  * else nothing, while the few that are worth publishing become the FAQ a contest
- * needs. Answering with "publish" ticked does both in one step.
+ * needs. Answering with "publish" checked does both in one step.
  */
 export default function ManagerQuestionsPage() {
     const { t } = useTranslation();

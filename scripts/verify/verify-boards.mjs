@@ -20,7 +20,7 @@ await wait(2500);
 // **The clock is advanced inside the loop, never once before it.**
 //
 // The fake schedules the opening with `setTimeout` when it is constructed, so a
-// single jump taken before the page has got that far fires nothing — and a
+// single jump taken before the page has gotten that far fires nothing — and a
 // virtual clock does not advance on its own afterwards, which turns a 45-second
 // wait into an unbounded one. It passed locally and **failed in CI**, where the
 // page mounts slower: `nothing to click: Runda 2`. Ten virtual seconds per turn,

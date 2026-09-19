@@ -153,7 +153,7 @@ export const importOne = async (
             // a fact about the problem that every assignment inherits rather
             // than restates.
             //
-            // **There is no language map any more.** `uva@1` defines its own
+            // **There is no language map anymore.** `uva@1` defines its own
             // six, in the Runner, because the list belongs to the archive and
             // every problem in it shares them. Writing them per problem is what
             // made an import that forgot produce a problem nobody could submit

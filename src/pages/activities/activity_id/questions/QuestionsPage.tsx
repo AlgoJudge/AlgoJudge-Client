@@ -129,7 +129,7 @@ export default function QuestionsPage() {
         // lists on 2026-09-14, and these four inherited neither because both
         // were recorded against the screens that found them.
         // Filtering and paging both happen on the Server. Doing it the other way
-        // round — slice, then filter — silently filters only the visible page.
+        // around — slice, then filter — silently filters only the visible page.
         const result = await api.participantApi.getQuestions(activity.id, {
             page, pageSize: PAGE_SIZE,
             search: search || undefined,

@@ -168,7 +168,7 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
      *
      * **Archived ones are absent** because the Server refuses them, and a target
      * offered and then refused is worse than one never offered. This activity is
-     * in the list: copying a round in place is how a second sitting is made, and
+     * in the list: copying a round in place is how a second session is made, and
      * the assignment slugs are freed for it.
      */
     const openCopy = async (target: ManagedSeries) => {
@@ -344,7 +344,7 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                                         <Grid.Col span={{ base: 12, sm: 6 }}>
                                             <ZonedDateTimeInput
                                                 label={t("Ranking visible until")}
-                                                description={t("Empty means for ever")}
+                                                description={t("Empty means forever")}
                                                 value={draftFor(s).rankingVisibleTo}
                                                 timeZone={activity.timeZone}
                                                 onChange={rankingVisibleTo => setDraft(s, { rankingVisibleTo })}
@@ -881,7 +881,7 @@ export default function SeriesPanel({ activity, series, problems, onChanged, onE
                 drops={t("It arrives closed and holds nobody's work: no submissions, no results, nothing announced. The problems are the library's own — a copy points at the same ones rather than duplicating them.")}
                 target={{
                     label: t("Which activity it goes into"),
-                    description: t("This one makes a second sitting of the same round. Where a problem slug is already taken there, the copy is given a free one."),
+                    description: t("This one makes a second session of the same round. Where a problem slug is already taken there, the copy is given a free one."),
                     options: targets,
                     initial: activity.id,
                 }}

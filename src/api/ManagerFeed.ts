@@ -55,7 +55,7 @@ export interface ManagerFeed {
  * `instanceChanged` is routed to the manager dispatcher but consumed by
  * `InstanceProvider`, which is the application shell — the footer, the nav, the
  * front page, for participants too. Holding it would stop an operator's new
- * logo reaching a paused manager's chrome and buy nothing, because no *panel
+ * logo from reaching a paused manager's chrome and buy nothing, because no *panel
  * screen* reads it.
  *
  * `Partial<Record<…>>` rather than a string array so a typo does not compile.
@@ -104,7 +104,7 @@ export class ManagerFeedGate implements ManagerFeed {
         return () => {
             // Idempotent: React's strict mode runs an effect's cleanup twice in
             // development, and a hold released twice would drop the count below
-            // zero and hold nothing for ever.
+            // zero and hold nothing forever.
             if (released) return;
             released = true;
             this.replace({ holds: Math.max(0, this.state.holds - 1) });

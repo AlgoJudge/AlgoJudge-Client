@@ -3,7 +3,7 @@
  *
  * Mantine draws it from `Input.Wrapper`, which `Checkbox` is not built on — so
  * `required` on a checkbox sets the HTML attribute and nothing appears. Both
- * boxes somebody must tick before they may go on, registering and enrolling,
+ * boxes somebody must check before they may go on, registering and enrolling,
  * looked optional because of it.
  *
  * The same color Mantine uses, so it is the mark people already recognize from

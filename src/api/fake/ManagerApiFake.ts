@@ -1911,7 +1911,7 @@ export class ManagerApiFake implements ManagerApi {
         const allowed = this.listScope("submission:read:all", filter.activityId);
         const needle = filter.search?.trim().toLowerCase();
         // Filtered before paged, which is the order the Server must use too: the
-        // other way round filters one page and calls it a result.
+        // other way around filters one page and calls it a result.
         const matched = this.submissions
             .filter(s => allowed === null || allowed.includes(s.activityId))
             .filter(s => !filter.activityId || s.activityId === filter.activityId)
@@ -2365,7 +2365,7 @@ export class ManagerApiFake implements ManagerApi {
         // assembles one — with the same builder the manager screen uses, so what
         // comes back opens.
         //
-        // **A version states no configuration any more** (2026-08-22). The
+        // **A version states no configuration anymore** (2026-08-22). The
         // chain decided 2026-08-04 was package, then version, then assignment;
         // the middle layer is gone, because a version wanting different limits
         // is a version with a different package — the limits are calibrated

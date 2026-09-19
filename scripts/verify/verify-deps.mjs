@@ -14,7 +14,7 @@ const before = await evaluate(`return document.querySelectorAll("[data-testid=ca
 check(before > 0, `the activity list loads (${before} shown)`);
 
 // Watch for a list that never settles: a dependency changing identity on every
-// render would refetch for ever, and the cards would keep being replaced.
+// render would refetch forever, and the cards would keep being replaced.
 await evaluate(`
     window.__churn = 0;
     const root = document.querySelector("main") ?? document.body;
@@ -22,7 +22,7 @@ await evaluate(`
     return true;
 `);
 
-// The filters are chips; ticking one is a click on its label.
+// The filters are chips; checking one is a click on its label.
 const chip = await evaluate(`
     const label = document.querySelector("[data-testid=chip-label]");
     return label ? label.textContent.trim() : null;
@@ -31,7 +31,7 @@ check(Boolean(chip), `a filter is offered (${chip ?? "none"})`);
 await click(`document.querySelector("[data-testid=chip-label]")`);
 await wait(2500);
 const after = await evaluate(`return document.querySelectorAll("[data-testid=card]").length;`);
-check(after !== before, `ticking "${chip}" refetches the list (${before} then ${after})`);
+check(after !== before, `checking "${chip}" refetches the list (${before} then ${after})`);
 
 await evaluate(`window.__churn = 0; return true;`);
 await wait(3000);

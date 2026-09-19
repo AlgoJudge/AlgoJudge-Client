@@ -18,7 +18,7 @@
 // nothing else on any screen would say so. It counts tags and not problem types,
 // which is why zero is a promise and a larger number is not.
 //
-// **From the manager write onwards it is `visit`, never `go`.** The fake keeps
+// **From the manager write onward it is `visit`, never `go`.** The fake keeps
 // a manager's writes in memory, so a full page load throws them away and the
 // checks after one would measure the seed again and pass for the wrong reason.
 import { open, results } from "./harness.mjs";

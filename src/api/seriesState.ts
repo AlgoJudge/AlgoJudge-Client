@@ -60,7 +60,7 @@ export type SeriesState =
     | "open"
     /** A manager stopped it. Readable unless they also hid it; accepting nothing. */
     | "paused"
-    /** Its end has passed. Readable for ever; accepting nothing. */
+    /** Its end has passed. Readable forever; accepting nothing. */
     | "ended";
 
 /**

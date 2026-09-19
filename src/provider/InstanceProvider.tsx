@@ -43,7 +43,7 @@ const DEFAULTS: InstanceInfo = {
     // this installation may not have registered, and a 404 in the middle of
     // signing in is worse than a button that appears a moment later.
     providers: [],
-    // The other way round: the account screen offers removal, and an
+    // The other way around: the account screen offers removal, and an
     // installation that has closed it says so when the answer arrives. Starting
     // from `false` would hide a right from everybody for the length of a fetch.
     accountDeletionEnabled: true,
@@ -84,7 +84,7 @@ export const InstanceProvider: FC<{ children: ReactNode }> = ({ children }) => {
             .catch(() => { /* The defaults are a usable answer. */ })
             // **Answered either way.** A Server that refused is an answer too:
             // the defaults are what this installation looks like, and a screen
-            // waiting for a success would wait for ever during an outage.
+            // waiting for a success would wait forever during an outage.
             .finally(() => { if (!controller.signal.aborted) setAnswered(true); });
 
         // An operator publishing a document or a mark changes what every screen

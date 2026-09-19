@@ -116,7 +116,7 @@ check(penaltyOf([
 ]) === 60,
     "and twenty minutes for each judged rejection before it: 20 + 2 x 20");
 check(cellOf([sent("alice", "A", 5, partial), sent("alice", "A", 20, right)]).rejected === 1,
-    "partial marks are a rejection — ICPC has no half a problem");
+    "a partial score is a rejection — ICPC has no half a problem");
 
 // ── 2 — nothing after the accepted submission counts ────────────────────────
 //
@@ -216,7 +216,7 @@ const tied = board([
     sent("carol", "A", 30, right),
 ], ["alice", "bob", "carol"]);
 check(tied.map(row => row.rank).join(",") === "1,1,3",
-    "two rows level on solves and penalty share a place, and the next is the position");
+    "two rows tied on solves and penalty share a place, and the next is the position");
 
 const separated = board([
     sent("alice", "A", 20, right),

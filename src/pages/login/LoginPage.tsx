@@ -227,7 +227,7 @@ export default function LoginPage() {
                         {t('Sign in')}
                     </Button>
                     <Text size="xs" c="dimmed" mt="md" ta="center">
-                        {t('Forgotten your password? An administrator will issue a new one.')}
+                        {t('Forgot your password? An administrator will issue a new one.')}
                     </Text>
                     </>)}
 

@@ -58,9 +58,9 @@ const signIn = async (page, { login, password }) => {
 /**
  * Picks an option in a Mantine `Select`.
  *
- * Not `selectOption`: Mantine draws a `<input readonly>` with a portalled
- * listbox and no `<select>` anywhere, so the only way in is the way a person
- * uses it.
+ * Not `selectOption`: Mantine draws a `<input readonly>` with a listbox
+ * rendered in a portal and no `<select>` anywhere, so the only way in is the
+ * way a person uses it.
  */
 const choose = async (scope, label, option) => {
     await scope.getByLabel(label, { exact: false }).first().click();

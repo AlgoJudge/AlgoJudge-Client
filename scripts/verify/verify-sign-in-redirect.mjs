@@ -10,7 +10,7 @@
 // The four suppressions are the point of the file. Each one is a way somebody
 // would otherwise be stuck on an installation that redirects: an administrator
 // with no form, and — worse — a refused federated sign-in bounced back to the
-// provider that just refused it, for ever.
+// provider that just refused it, forever.
 import { open, results } from "./harness.mjs";
 
 const APP = process.env.APP ?? "http://localhost:5180";
@@ -112,7 +112,7 @@ const signedIn = await at();
 check(signedIn.startsWith("/activities"),
     `somebody already signed in goes to their screen, not to a provider (${signedIn})`);
 
-// ── signing out is a way out, not a way round ───────────────────────────────
+// ── signing out is a way out, not a way around ──────────────────────────────
 //
 // **The fifth suppression, and the one that was missing.** Signing out sent
 // people to `/login`, which is the screen the first check above watches leave

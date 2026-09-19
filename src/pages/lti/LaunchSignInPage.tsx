@@ -32,7 +32,7 @@ export default function LaunchSignInPage() {
 
             <Alert variant="light" icon={<IconInfoCircle size={18} />}>
                 <Text size="sm">
-                    {t("Your course opened AlgoJudge, but AlgoJudge does not yet know which account is yours. Signing in once connects the two, and your course will open straight away from then on.")}
+                    {t("Your course opened AlgoJudge, but AlgoJudge does not yet know which account is yours. Signing in once connects the two, and your course will open right away from then on.")}
                 </Text>
             </Alert>
 

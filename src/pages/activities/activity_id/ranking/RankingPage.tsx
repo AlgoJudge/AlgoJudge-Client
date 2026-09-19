@@ -88,7 +88,7 @@ export default function RankingPage() {
     // `scoreVisibility`, and whoever holds `ranking:read:unfrozen` is sent the
     // rounds those would have withheld. Working it out here as well produced a
     // board drawn out of a feed that carried none of it — five contestants, no
-    // columns, everybody on nought — because the screen let a reader past a
+    // columns, everybody at zero — because the screen let a reader past a
     // window the feed had already closed.
     const withheld = chosenSeries
         ? !results.series.some(s => s.id === chosenSeries.id)
@@ -107,7 +107,7 @@ export default function RankingPage() {
 
     // A standing among people whose scores you may not see is not a standing, so
     // under `participantOnly` the rows get no places. The Server has already
-    // sent one contestant; this stops the Client numbering them anyway.
+    // sent one contestant; this stops the Client from numbering them anyway.
     const ranked = activity.scoreVisibility === "everyone";
 
     return (

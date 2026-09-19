@@ -26,7 +26,7 @@ await evaluate(`
 `);
 await wait(1500);
 check(await scheme() === "dark", "choosing Dark switches the scheme");
-// Mantine's own key. There is no second store of ours beside it any more.
+// Mantine's own key. There is no second store of ours beside it anymore.
 check(await evaluate(`return localStorage.getItem("mantine-color-scheme-value");`) === "dark",
     "and the choice is stored where Mantine keeps it");
 check(await evaluate(`return localStorage.getItem("theme");`) === null,
@@ -369,7 +369,7 @@ for (const scheme of ["light", "dark"]) {
     check(cards.length >= 4, `${scheme}: ${cards.length} branded cards to look at`);
     // Two steps, not one: a finished activity sits on the surface itself and a
     // running one on the deeper step blended from it. What is asserted is that
-    // no row is on a palette gray any more.
+    // no row is on a palette gray anymore.
     const steps = await evaluate(`
         ${RESOLVE}
         return ["--aj-row", "--aj-row-hover", "--aj-row-active"]

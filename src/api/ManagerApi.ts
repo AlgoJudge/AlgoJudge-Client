@@ -655,7 +655,7 @@ export interface ManagedSeries {
     rankingRevealAt?: string;
     /**
      * When participants may see this round's standings. Absent `from` means the
-     * round's own start; absent `to` means for ever.
+     * round's own start; absent `to` means forever.
      *
      * A window per round rather than per activity: an organizer publishes the
      * first round's board while the second is still being fought. Different
@@ -687,7 +687,8 @@ export interface ManagedSeries {
     addressRules: AddressRule[];
     /**
      * Off, this round neither hides nor locks — and keeps its rules, so turning
-     * it back on restores them. The switch for a wrong list on the day.
+     * it back on restores them. The switch for a list that turns out wrong
+     * during the round.
      */
     restrictionsEnabled: boolean;
     /**
@@ -724,7 +725,7 @@ export interface SeriesInput {
     rankingRevealAt?: string;
     /**
      * When participants may see this round's standings. Absent `from` means the
-     * round's own start; absent `to` means for ever.
+     * round's own start; absent `to` means forever.
      *
      * A window per round rather than per activity: an organizer publishes the
      * first round's board while the second is still being fought. Different
@@ -1129,7 +1130,7 @@ export interface ManagedSubmissionDetail extends ManagedSubmission {
      * them; a judge who wants one opens one.
      *
      * Absent once past the Server's retention window, which is the honest
-     * answer: it is not held any more.
+     * answer: it is not held anymore.
      */
     ipAddress?: string;
     /** The browser session, or absent if it had none yet. */

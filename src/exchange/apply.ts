@@ -199,7 +199,7 @@ export const applyBundle = async (
             const problemId = resolved.get(assignment.problemSlug);
             // An assignment naming a problem the bundle does not carry is
             // reported by the plan and skipped here rather than failing the
-            // whole import half way through it.
+            // whole import halfway through it.
             if (!problemId) continue;
 
             await api.managerApi.attachProblem(made.id, {

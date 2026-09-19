@@ -173,7 +173,7 @@ export const attemptFiles = (
     const out: SubmissionFile[] = [];
 
     if (attempt.state === "completed") {
-        // Which document depends on who judged it. A problem marked out of one by
+        // Which document depends on who judged it. A problem scored out of one by
         // an external archive has no groups to report, and handing the per-test
         // shape to its renderer would draw a table with nothing in it.
         const document = attempt.maxScore !== undefined && attempt.maxScore !== 100
