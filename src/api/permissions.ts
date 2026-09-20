@@ -40,17 +40,25 @@ export const systemicByDefault = (
 ): boolean => isStaffGrant(permissions, catalog) || asked === true;
 
 /**
- * What a grant carries: the role it points at and its own entries together.
+ * What a grant carries: every role it links, and its own entries, together.
  *
  * **One reader, mirroring the Server's `Permissions.Effective`.** Three screens
  * draw a permission set and the fake settles one on write; four unions written
  * four times would eventually disagree about somebody's access, and the one
  * that disagreed would be the one nobody looked at.
  *
- * A grant with no role holds its whole set itself, which is what every
- * hand-made one does and what every grant made before roles existed kept.
+ * A union, so there is no ordering to decide and no precedence to explain — and
+ * a grant linking no role holds its whole set itself, which is what every
+ * hand-made one does.
+ *
+ * **A dismissed role confers nothing**, which is why it arrives in its own list
+ * and is not filtered out here: a caller passing `dismissedRoles` in would be
+ * asking for what somebody decided against.
  */
 export const effectivePermissions = (grant: {
     readonly permissions: readonly string[];
-    readonly rolePermissions?: readonly string[];
-}): string[] => [...new Set([...(grant.rolePermissions ?? []), ...grant.permissions])];
+    readonly roles?: readonly { readonly permissions: readonly string[] }[];
+}): string[] => [...new Set([
+    ...(grant.roles ?? []).flatMap(role => [...role.permissions]),
+    ...grant.permissions,
+])];

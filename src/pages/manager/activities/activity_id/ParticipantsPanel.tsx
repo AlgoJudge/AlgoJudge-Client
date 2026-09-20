@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, Modal, Pagination, Paper, Select, Stack, Switch, Table, Text, TextInput, Title } from "@mantine/core";
+import { Alert, Badge, Button, Group, Modal, MultiSelect, Pagination, Paper, Select, Stack, Switch, Table, Text, TextInput, Title } from "@mantine/core";
 import { IconPlus, IconTrash, IconUsersPlus, IconX } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -29,13 +29,12 @@ const PAGE_SIZE = 20;
 
 interface Draft {
     userId: string;
-    /** The grant's own entries — additions on top of the role. */
+    /** The grant's own entries — additions on top of the roles. */
     permissions: string[];
-    /** The role it points at, which is what enrolling normally hands out. */
-    roleId?: string;
-    copiedFromRoleName?: string;
+    /** The roles it links, which is what enrolling normally hands out. */
+    roleIds: string[];
     /** What the manager asked for. Ignored where the permissions settle it. */
-    isSystem: boolean;
+    staffByHand: boolean;
     existing: boolean;
 }
 
@@ -97,18 +96,21 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
     };
 
     /**
-     * Points this membership at a role, or takes the link away.
+     * Which roles this membership links.
      *
-     * **Enrolling somebody hands them a role, not a copy of one.** A correction
-     * to it reaches them; what is edited below is what this one person gets on
-     * top of it.
+     * **Enrolling somebody hands them roles, not a copy of one.** A correction
+     * to a role reaches them; what is edited below is what this one person gets
+     * on top of them.
+     *
+     * Taking one away here is also what stops an LTI launch putting it back: the
+     * Server keeps the removal, so a correction outlives the next launch.
      */
-    const chooseRole = (id: string | null) => {
+    const chooseRoles = (ids: string[]) => {
         if (!draft) return;
-        setDraft({ ...draft, roleId: id ?? undefined, copiedFromRoleName: undefined });
+        setDraft({ ...draft, roleIds: ids });
     };
 
-    const roleOf = (id: string | undefined) => templates.find(t => t.id === id);
+    const roleOf = (id: string) => templates.find(t => t.id === id);
 
     /**
      * What the draft would carry once saved: its role and its own entries.
@@ -118,7 +120,8 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
      * those would have offered to put whoever runs the activity into its
      * ranking.
      */
-    const drafted = (d: Draft) => [...(roleOf(d.roleId)?.permissions ?? []), ...d.permissions];
+    const drafted = (d: Draft) =>
+        [...new Set([...d.roleIds.flatMap(id => roleOf(id)?.permissions ?? []), ...d.permissions])];
 
     const save = () => {
         if (!draft?.userId) {
@@ -130,8 +133,8 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                 userId: draft.userId,
                 activityId: activity.id,
                 permissions: draft.permissions,
-                isSystem: draft.isSystem,
-                roleId: draft.roleId,
+                staffByHand: draft.staffByHand,
+                roleIds: draft.roleIds,
             }));
             setDraft(undefined);
         });
@@ -143,8 +146,9 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
     // **What this activity enrolls into**, which is the setting that makes a role
     // of its own reach anybody. Falls back to the shipped one, exactly as the
     // Server does when the activity has chosen nothing.
-    const participantRole = templates.find(t => t.id === activity.participantRoleId)
-        ?? templates.find(t => t.isBuiltIn && t.name === "participant");
+    const participantRoles = activity.participantRoleIds.length > 0
+        ? templates.filter(t => activity.participantRoleIds.includes(t.id))
+        : templates.filter(t => t.builtInKey === "participant");
 
     return (
         <Stack gap="md">
@@ -237,8 +241,8 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                         onClick={() => setDraft({
                             userId: "",
                             permissions: [],
-                            roleId: participantRole?.id,
-                            isSystem: false,
+                            roleIds: participantRoles.map(role => role.id),
+                            staffByHand: false,
                             existing: false,
                         })}
                     >
@@ -277,11 +281,28 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                                 </Group>
                             </Table.Td>
                             <Table.Td>
-                                {/* The role it points at, or — for a set held by
-                                    hand — the label saying where that set began. */}
-                                {grant.roleName
-                                    ? <Badge variant="light" size="sm">{grant.roleName}</Badge>
-                                    : <Text size="sm" c="dimmed">{grant.copiedFromRoleName ?? "—"}</Text>}
+                                {/* Every role it links, and where each came
+                                    from: a launch's word looks different from a
+                                    manager's when deciding whether to remove
+                                    one. A set held entirely by hand shows none. */}
+                                {grant.roles.length > 0
+                                    ? (
+                                        <Group gap={4} wrap="wrap">
+                                            {grant.roles.map(role => (
+                                                <Badge
+                                                    key={role.roleId}
+                                                    variant={role.sourceProviderId ? "outline" : "light"}
+                                                    size="sm"
+                                                    title={role.sourceProviderName
+                                                        ? t("Asserted by {{provider}}", { provider: role.sourceProviderName })
+                                                        : undefined}
+                                                >
+                                                    {role.name}
+                                                </Badge>
+                                            ))}
+                                        </Group>
+                                    )
+                                    : <Text size="sm" c="dimmed">—</Text>}
                             </Table.Td>
                             <Table.Td>
                                 {/* **Compulsory once set, so this is where it
@@ -334,8 +355,8 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                                             setDraft({
                                                 userId: grant.userId,
                                                 permissions: [...grant.permissions],
-                                                roleId: grant.roleId,
-                                                isSystem: grant.isSystem,
+                                                roleIds: grant.roles.map(role => role.roleId),
+                                                staffByHand: grant.staffByHand,
                                                 existing: true,
                                             });
                                         }}
@@ -389,23 +410,36 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                             disabled={draft.existing}
                             required
                         />
-                        <Select
-                            label={t("Role")}
-                            description={t("A link, not a copy: editing the role changes what this person may do.")}
+                        <MultiSelect
+                            label={t("Roles")}
+                            description={t("Links, not copies: editing a role changes what this person may do.")}
                             placeholder={t("No role — a set held by hand")}
                             data={templates.map(role => ({ value: role.id, label: role.name }))}
-                            value={draft.roleId ?? null}
-                            onChange={chooseRole}
+                            value={draft.roleIds}
+                            onChange={chooseRoles}
                             clearable
                         />
+                        {/* **Taking one away is a decision that lasts.** An LTI
+                            launch adds the roles a platform asserts and never
+                            removes one, so a role removed here is remembered as
+                            removed — otherwise the correction would come back
+                            undone at that person's next launch. */}
+                        {draft.existing && draft.roleIds.length === 0 && (
+                            <Alert color="yellow" variant="light">
+                                {t("With no role left, this membership holds only what is set below.")}
+                            </Alert>
+                        )}
                         <PermissionSetEditor
                             catalog={catalog}
                             value={draft.permissions}
                             onChange={permissions => setDraft({ ...draft, permissions })}
                             grantable={grantable}
                             scope="activity"
-                            inherited={roleOf(draft.roleId)?.permissions}
-                            inheritedFrom={roleOf(draft.roleId)?.name}
+                            inherited={draft.roleIds.flatMap(id => roleOf(id)?.permissions ?? [])}
+                            inheritedFrom={draft.roleIds
+                                .map(id => roleOf(id)?.name)
+                                .filter((name): name is string => name !== undefined)
+                                .join(", ") || undefined}
                         />
                         {/* Forced on for staff: a jury member in the ranking
                             beside the students is a bug, not a preference. Free
@@ -417,8 +451,8 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                             description={isStaffGrant(drafted(draft), catalog)
                                 ? t("Whoever runs the activity does not compete in it, so this cannot be turned off.")
                                 : t("Submits like anybody, counts as nobody: absent from the participant count and from the ranking.")}
-                            checked={isStaffGrant(drafted(draft), catalog) || draft.isSystem}
-                            onChange={e => setDraft({ ...draft, isSystem: e.currentTarget.checked })}
+                            checked={isStaffGrant(drafted(draft), catalog) || draft.staffByHand}
+                            onChange={e => setDraft({ ...draft, staffByHand: e.currentTarget.checked })}
                             disabled={isStaffGrant(drafted(draft), catalog)}
                         />
                         <Alert color="blue">

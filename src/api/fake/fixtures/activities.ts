@@ -130,6 +130,11 @@ const activityOf = (activity: SeedActivity): ManagedActivity => ({
     participantCount: 0,
     runnerTags: activity.runnerTags ?? [],
     matchingRunners: 0,
+    // Empty is "whatever the installation ships", which is what every seeded
+    // activity means. A role of an activity's own is a choice somebody makes on
+    // the screen, not a starting state.
+    participantRoleIds: [],
+    managerRoleIds: [],
 });
 
 export const createActivityLibrary = (): ActivityRecord[] => WORLD

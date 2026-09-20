@@ -1,5 +1,7 @@
-import { Grant, ManagedActivitySummary, ManagedUserSummary, PermissionDefinition, Role } from "../../ManagerApi";
-import { isStaffGrant } from "../../permissions";
+import {
+    Grant, GrantRole, ManagedActivitySummary, ManagedUserSummary, PermissionDefinition, Role,
+} from "../../ManagerApi";
+import { effectivePermissions, isStaffGrant } from "../../permissions";
 import { CONTEST_ID, COURSE_ID, WORKSHOP_ID, WORLD } from "./world";
 
 /**
@@ -103,7 +105,8 @@ export const PERMISSION_CATALOG: PermissionDefinition[] = [
     definition("grant:update", "grant", "both"),
 
     definition("role:read", "role", "both"),
-    definition("role:manage", "role", "both"),
+    definition("role:manage", "role", "global"),
+    definition("role:manage:activity", "role", "both"),
 
     definition("runner:read", "runner", "global"),
     definition("runner:approve", "runner", "global"),
@@ -143,7 +146,7 @@ const MANAGER = [
     "user:read:all",
     "user:create:temporary",
     "grant:read:all", "grant:update",
-    "role:read", "role:manage",
+    "role:read", "role:manage:activity",
 ];
 
 /**
@@ -155,6 +158,7 @@ export const ROLE_IDS = {
     manager: "018f2c00-0000-7000-8000-0000000000a2",
     admin: "018f2c00-0000-7000-8000-0000000000a3",
     jury: "018f2c00-0000-7000-8000-0000000000a4",
+    contestJury: "018f2c00-0000-7000-8000-0000000000a5",
 } as const;
 
 export const createRoles = (): Role[] => [
@@ -164,7 +168,9 @@ export const createRoles = (): Role[] => [
         description: "Bierze udział: rozwiązuje zadania i widzi swoje wyniki.",
         permissions: [...PARTICIPANT],
         isBuiltIn: true,
+        builtInKey: "participant",
         grants: 0,
+        mappedBy: [],
     },
     {
         id: ROLE_IDS.manager,
@@ -172,7 +178,9 @@ export const createRoles = (): Role[] => [
         description: "Prowadzi aktywność: zadania, zgłoszenia, pytania, zapisy.",
         permissions: [...MANAGER],
         isBuiltIn: true,
+        builtInKey: "manager",
         grants: 0,
+        mappedBy: [],
     },
     {
         id: ROLE_IDS.admin,
@@ -182,7 +190,9 @@ export const createRoles = (): Role[] => [
         description: "Administruje instalacją. Omija wszystkie sprawdzenia.",
         permissions: ["system:administrator"],
         isBuiltIn: true,
+        builtInKey: "admin",
         grants: 0,
+        mappedBy: [],
     },
     {
         id: ROLE_IDS.jury,
@@ -196,6 +206,25 @@ export const createRoles = (): Role[] => [
         ],
         isBuiltIn: false,
         grants: 0,
+        mappedBy: [],
+    },
+    {
+        // **One activity's own**, which is the case every scope rule turns on: a
+        // mapping may not name it, a provider's default set may not be it, and
+        // only that activity's grants may link it. Without one in the world the
+        // screens that refuse it could refuse nothing and still look right.
+        id: ROLE_IDS.contestJury,
+        activityId: CONTEST_ID,
+        name: "jury-amp",
+        description: "Sędziuje w tych zawodach i nigdzie indziej.",
+        permissions: [
+            "activity:read",
+            "submission:read:all", "result:read:all",
+            "question:read:all", "question:answer",
+        ],
+        isBuiltIn: false,
+        grants: 0,
+        mappedBy: [],
     },
 ];
 
@@ -207,17 +236,21 @@ export const createRoles = (): Role[] => [
  */
 const named = (
     grant: Omit<Grant,
-        "userName" | "userLogin" | "isSystem" | "source" | "managed" | "overrideSystem"
-        | "rolePermissions">
-        & Partial<Pick<Grant, "source" | "managed" | "overrideSystem">>,
+        "userName" | "userLogin" | "isSystem" | "staffByHand" | "source" | "managed"
+        | "overrideSystem" | "roles" | "dismissedRoles">
+        & Partial<Pick<Grant, "source" | "managed" | "overrideSystem" | "staffByHand"
+            | "dismissedRoles">>
+        & { roleIds?: readonly string[] },
 ): Grant => {
     const user = MANAGED_USERS.find(u => u.id === grant.userId);
-    // What the role contributes, read from the role rather than spelled out
+    const { roleIds, ...rest } = grant;
+    // What each role contributes, read from the role rather than spelled out
     // again here — a fixture that wrote both would be a fixture that could
     // disagree with itself about somebody's access.
-    const role = grant.roleId
-        ? createRoles().find(r => r.id === grant.roleId)?.permissions ?? []
-        : [];
+    const roles: GrantRole[] = (roleIds ?? []).flatMap(id => {
+        const role = createRoles().find(r => r.id === id);
+        return role ? [{ roleId: role.id, name: role.name, permissions: role.permissions }] : [];
+    });
     return {
         // Defaults ahead of the spread, so a fixture that states one wins.
         // Every seeded grant is a manual contribution: nothing in the fake has
@@ -226,14 +259,17 @@ const named = (
         source: "manual",
         managed: false,
         overrideSystem: false,
-        ...grant,
+        staffByHand: false,
+        dismissedRoles: [],
+        ...rest,
+        roles,
         userName: user?.name ?? grant.userId,
         userLogin: user?.username ?? grant.userId,
-        rolePermissions: role,
         // Derived, never written down twice: whoever runs the activity is
-        // systemic by virtue of what they may do in it — through the role it
-        // points at as much as through its own entries.
-        isSystem: isStaffGrant([...role, ...grant.permissions], PERMISSION_CATALOG),
+        // systemic by virtue of what they may do in it — through the roles it
+        // links as much as through its own entries.
+        isSystem: isStaffGrant(
+            effectivePermissions({ permissions: grant.permissions, roles }), PERMISSION_CATALOG),
     };
 };
 
@@ -252,7 +288,7 @@ export const createGrants = (): Grant[] => [
         id: "018f2c00-0000-7000-8000-0000000000b1",
         userId: "user-admin",
         permissions: [],
-        roleId: ROLE_IDS.admin,
+        roleIds: [ROLE_IDS.admin],
         state: "active",
         createdAt: new Date(Date.now() - 86400000 * 400).toISOString(),
     }),
@@ -262,19 +298,19 @@ export const createGrants = (): Grant[] => [
         activityId: COURSE_ID,
         activityName: nameOf(COURSE_ID),
         permissions: [],
-        roleId: ROLE_IDS.manager,
+        roleIds: [ROLE_IDS.manager],
         state: "active",
         createdAt: new Date(Date.now() - 86400000 * 30).toISOString(),
     }),
     named({
-        // A manager with one right taken away — the case that would need a second
-        // role in a model that unioned them, and is one edited set here.
+        // A manager with one right taken away. A role cannot express it — a
+        // grant unions its roles and subtracts nothing — so the set is written
+        // on the grant itself, which is what that case costs.
         id: "018f2c00-0000-7000-8000-0000000000b3",
         userId: "user-wisniewski",
         activityId: CONTEST_ID,
         activityName: nameOf(CONTEST_ID),
         permissions: MANAGER.filter(p => p !== "activity:update"),
-        copiedFromRoleName: "manager",
         state: "active",
         createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
     }),
@@ -297,7 +333,7 @@ export const createGrants = (): Grant[] => [
         activityId: CONTEST_ID,
         activityName: nameOf(CONTEST_ID),
         permissions: [],
-        roleId: ROLE_IDS.participant,
+        roleIds: [ROLE_IDS.participant],
         state: "active",
         createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
     }),
@@ -311,7 +347,7 @@ export const createGrants = (): Grant[] => [
         activityId: COURSE_ID,
         activityName: nameOf(COURSE_ID),
         permissions: [],
-        roleId: ROLE_IDS.manager,
+        roleIds: [ROLE_IDS.manager],
         state: "active",
         createdAt: new Date(Date.now() - 86400000 * 20).toISOString(),
     }),
@@ -321,7 +357,7 @@ export const createGrants = (): Grant[] => [
         activityId: WORKSHOP_ID,
         activityName: nameOf(WORKSHOP_ID),
         permissions: [],
-        roleId: ROLE_IDS.participant,
+        roleIds: [ROLE_IDS.participant],
         state: "invited",
         createdAt: new Date(Date.now() - 3600000).toISOString(),
     }),
@@ -337,7 +373,7 @@ export const createGrants = (): Grant[] => [
  */
 export const MY_SYSTEM_PERMISSIONS = [
     ...PARTICIPANT,
-    "role:read", "role:manage",
+    "role:read", "role:manage:activity",
     "grant:read:all", "grant:update",
     "user:read:all", "user:create", "user:update", "user:block", "user:create:temporary",
     "activity:create", "activity:update", "activity:archive", "activity:enroll",

@@ -63,12 +63,13 @@ export const MANAGER_AREAS: ManagerArea[] = [
     {
         to: "/manager/roles",
         label: "Roles",
-        description: "The sets a grant points at. Editing one reaches everybody holding it.",
+        description: "The sets a grant links. Editing one reaches everybody holding it.",
         icon: IconUserCheck,
-        // Both keys, because a manager grant written before roles existed holds
-        // the second and not the first — and applying a role is the reason to
-        // read one.
-        permissions: ["role:read", "grant:update"],
+        // Any of the three, because reading a role and writing one are different
+        // rights and applying a role is the reason to read one. A manager whose
+        // only role key is the activity-scoped one would otherwise lose the card
+        // that is the whole point of holding it.
+        permissions: ["role:read", "role:manage:activity", "grant:update"],
     },
     {
         to: "/manager/problems",

@@ -54,7 +54,9 @@ export default function TemporaryAccountsModal({
     const intoActivity = activityId ?? (chosenActivity || undefined);
 
     const create = () => void run(async () => {
-        const chosen = templates.find(x => x.name === template);
+        // By id: a role picked by name follows a rename to whatever role is
+        // called that afterwards, which is not the one somebody chose.
+        const chosen = templates.find(x => x.id === template);
         const created = await call(api => api.managerApi.createTemporaryUsers({
             prefix: prefix.trim(),
             count,
@@ -117,14 +119,15 @@ export default function TemporaryAccountsModal({
                         />
                     )}
                     {/* **Empty is the ordinary answer**, and it is the one that
-                        links: the accounts get the activity's participant role
-                        and every later correction to it. Naming a role here
-                        copies that set in instead, which is what somebody wants
-                        who is making twenty accounts that are not participants. */}
+                        links: the accounts get the roles the activity enrolls
+                        participants into, and every later correction to them.
+                        Naming a role here copies that set in instead, which is
+                        what somebody wants who is making twenty accounts that
+                        are not participants. */}
                     <Select
                         label={t("Instead of the activity's role, exactly this set")}
-                        description={t("Leave empty to hand out the role this activity enrolls into.")}
-                        data={templates.map(x => ({ value: x.name, label: x.name }))}
+                        description={t("Leave empty to hand out the roles this activity enrolls into.")}
+                        data={templates.map(x => ({ value: x.id, label: x.name }))}
                         value={template || null}
                         onChange={v => setTemplate(v ?? "")}
                         disabled={intoActivity === undefined}

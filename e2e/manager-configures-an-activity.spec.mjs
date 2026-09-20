@@ -140,7 +140,7 @@ test("a manager of one activity can configure it, its questions, its printouts a
         // Scoped to the activity and pointed at the role — the exact shape
         // `ActivityService` writes for whoever creates an activity.
         const granted = await admin.post(api("/grants"), {
-            data: { userId: person.id, activityId: activity.id, permissions: [], roleId: managerRole.id },
+            data: { userId: person.id, activityId: activity.id, permissions: [], roleIds: [managerRole.id] },
         });
         expect(granted.status(), await granted.text()).toBe(200);
 
@@ -390,10 +390,11 @@ test("a manager of one activity can configure it, its questions, its printouts a
             await page.goto(`${APP}/manager/roles`);
             await expect(main).not.toContainText(REFUSED);
 
-            // **Scoped to the one activity this person runs.** `role:manage` is
-            // held there and nowhere else, so the page opens on it — asked at
-            // system scope every control on it refuses and the activity's own
-            // roles are not even listed.
+            // **Scoped to the one activity this person runs.**
+            // `role:manage:activity` is held there and nowhere else, so the page
+            // opens on it — asked at system scope every control refuses, because
+            // writing the installation's roles is `role:manage` and that one is
+            // global and an administrator's.
             // Chosen by hand, as a person does: this manager may run several
             // activities, and the roles being written belong to one of them.
             await choose(main, "Czyje role", new RegExp(mine, "i"));

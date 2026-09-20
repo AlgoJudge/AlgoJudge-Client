@@ -123,8 +123,19 @@ export default function RolesPage() {
 
     if (!templates) return <LoadState error={loadError} loading={!loadError} />;
 
-    /** What the caller holds **at the scope on screen** — the only honest test. */
-    const mayWrite = grantable.includes("role:manage");
+    /**
+     * What the caller holds **at the scope on screen** — the only honest test.
+     *
+     * **Two keys, and which one counts depends on the scope.** Writing the
+     * installation's roles is `role:manage`, which is global and an
+     * administrator's; writing an activity's own is `role:manage:activity`,
+     * which a manager of that activity holds. Reading only the first offered
+     * every control to an administrator and none to the person the activity
+     * scope exists for.
+     */
+    const mayWrite = activityScope === undefined
+        ? grantable.includes("role:manage")
+        : grantable.includes("role:manage:activity");
     /** A role is edited where it lives, so a global one is read-only here. */
     const writable = (role: Role) => mayWrite && (role.activityId ?? undefined) === activityScope;
 
@@ -207,6 +218,17 @@ export default function RolesPage() {
                                 {template.activityName && (
                                     <Badge variant="light" size="sm" color="grape">
                                         {template.activityName}
+                                    </Badge>
+                                )}
+                                {/* **An edit here reaches these people at their
+                                    next sign-in, not at once.** A different
+                                    sentence from the reach badge beside it, and
+                                    one nobody can work out from the role. */}
+                                {template.mappedBy.length > 0 && (
+                                    <Badge variant="outline" size="sm" color="grape">
+                                        {t("mapped by {{providers}}", {
+                                            providers: template.mappedBy.join(", "),
+                                        })}
                                     </Badge>
                                 )}
                             </Group>

@@ -235,11 +235,11 @@ export const NOT_CARRIED = {
         "joinPassword",
         // **A role id is this installation's.** The roles themselves are not in
         // the bundle — an exchange carries an activity's shape, not who may do
-        // what in it — so carrying an id would point the import at a row that
+        // what in it — so carrying one would point the import at a row that
         // either does not exist or belongs to somebody else's course. The
         // importer enrolls into its own shipped roles until somebody says
         // otherwise.
-        "participantRoleId", "managerRoleId",
+        "participantRoleIds", "managerRoleIds",
     ],
     series: [
         "id", "activityId", "problems", "matchingRunners",
@@ -283,7 +283,7 @@ export const FIELDS = {
         maxAttachments: true, maxSubmissionsPerProblem: true, archivedAt: true,
         publishedAt: true, seriesCount: true, problemCount: true, participantCount: true,
         runnerTags: true, matchingRunners: true,
-        participantRoleId: true, managerRoleId: true,
+        participantRoleIds: true, managerRoleIds: true,
     }),
     series: keysOf<ManagedSeries>({
         id: true, activityId: true, slug: true, name: true, order: true, startDate: true,

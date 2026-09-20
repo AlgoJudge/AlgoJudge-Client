@@ -1,5 +1,5 @@
 import {
-    ActionIcon, Alert, Badge, Button, Card, Code, Group, Modal, Stack, Switch, Table, Text,
+    ActionIcon, Alert, Badge, Button, Card, Code, Group, Modal, Select, Stack, Switch, Table, Text,
     TextInput, Title, Tooltip,
 } from "@mantine/core";
 import { IconAlertTriangle, IconCopy, IconPlus, IconShieldLock, IconTrash } from "@tabler/icons-react";
@@ -9,6 +9,7 @@ import {
     Placement, Platform, PlatformInput, RegistrationInvitation, RosterEnrollment, RosterView,
     ToolRegistration,
 } from "../../../api/LtiApi";
+import { MappingRule, Role } from "../../../api/ManagerApi";
 import LoadState from "../../../components/LoadState";
 import { CopyButton } from "../../../components/buttons";
 import { useApiCall, useApiEffect } from "../../../provider/apiContext";
@@ -55,12 +56,27 @@ export default function LtiPlatformsPage() {
     const [saveError, setSaveError] = useState<string | undefined>(undefined);
     const [busy, setBusy] = useState(false);
     const [reload, setReload] = useState(0);
+    const [roles, setRoles] = useState<Role[]>([]);
 
     const error = useApiEffect(async (api) => {
         setPlatforms(await api.ltiApi.listPlatforms());
         setPlacements(await api.ltiApi.listPlacements());
         setInvitations(await api.ltiApi.listInvitations());
+        // The installation's roles, for the rules editor. Only a role this
+        // installation shares may be named: an activity's belongs to one course
+        // and a platform's rules are the installation's.
+        setRoles((await api.managerApi.getRoles(undefined)).filter(
+            role => role.activityId === undefined));
     }, [reload]);
+
+    /** One row of the rules editor, keyed rather than indexed. */
+    const setRule = (key: string, changed: Partial<Omit<PlatformRule, "rowKey">>) => {
+        if (!draft) return;
+        setDraft({
+            ...draft,
+            rules: draft.rules.map(one => one.rowKey === key ? { ...one, ...changed } : one),
+        });
+    };
 
     /** The same shape the providers screen uses: one place that catches and shows. */
     const run = async (operation: () => Promise<unknown>) => {
@@ -725,6 +741,80 @@ export default function LtiPlatformsPage() {
                             )}
                         </Card>
 
+                        {/* **What a launch's roles are worth here.** A platform
+                            says who is in the course; what they may do in it is
+                            this installation's to decide, and this is where it
+                            decides. Two of the three targets are an activity's
+                            own enrollment sets, which only a platform's rules
+                            may name — they are resolved inside the activity a
+                            launch names, and a sign-in happens in none. */}
+                        <Stack gap={4}>
+                            <Text fw={500} size="sm">{t("What a launch's roles grant")}</Text>
+                            <Text size="xs" c="dimmed">
+                                {t("A launch adds the roles its rules name and never takes one away. A role somebody removed by hand stays removed.")}
+                            </Text>
+                            {draft.rules.map(rule => (
+                                <Group key={rule.rowKey} gap="xs" wrap="nowrap" align="flex-start">
+                                    <TextInput
+                                        placeholder={t("Learner")}
+                                        value={rule.claimValue}
+                                        onChange={e => setRule(rule.rowKey, {
+                                            claimValue: e.currentTarget.value,
+                                        })}
+                                        style={{ flex: 1 }}
+                                    />
+                                    <Select
+                                        data={[
+                                            { value: "activityParticipants", label: t("As the activity enrolls participants") },
+                                            { value: "activityManagers", label: t("As the activity enrolls managers") },
+                                            { value: "role", label: t("This role") },
+                                        ]}
+                                        value={rule.kind}
+                                        onChange={value => setRule(rule.rowKey, {
+                                            kind: (value ?? "activityParticipants") as PlatformRule["kind"],
+                                        })}
+                                        style={{ flex: 1 }}
+                                        allowDeselect={false}
+                                    />
+                                    {rule.kind === "role" && (
+                                        <Select
+                                            placeholder={t("Roles")}
+                                            data={roles.map(role => ({ value: role.id, label: role.name }))}
+                                            value={rule.roleId || null}
+                                            onChange={value => setRule(rule.rowKey, { roleId: value ?? "" })}
+                                            style={{ flex: 1 }}
+                                        />
+                                    )}
+                                    <ActionIcon
+                                        variant="subtle"
+                                        color="red"
+                                        onClick={() => setDraft({
+                                            ...draft,
+                                            rules: draft.rules.filter(one => one.rowKey !== rule.rowKey),
+                                        })}
+                                    >
+                                        <IconTrash size={16} />
+                                    </ActionIcon>
+                                </Group>
+                            ))}
+                            <Button
+                                variant="light"
+                                size="xs"
+                                leftSection={<IconPlus size={14} />}
+                                onClick={() => setDraft({
+                                    ...draft,
+                                    rules: [...draft.rules, {
+                                        rowKey: ruleRowKey(),
+                                        claimValue: "",
+                                        kind: "activityParticipants",
+                                        roleId: "",
+                                    }],
+                                })}
+                            >
+                                {t("Add a rule")}
+                            </Button>
+                        </Stack>
+
                         <Switch
                             label={t("Accept launches")}
                             checked={draft.enabled}
@@ -772,10 +862,63 @@ export default function LtiPlatformsPage() {
     );
 }
 
-interface Draft extends PlatformInput {
+interface Draft extends Omit<PlatformInput, "mappingRules"> {
     id?: string;
     identityNamespace: string;
+    /**
+     * One row per LTI role, each naming what it is worth here.
+     *
+     * Kept as rows with their own key rather than by index, for the reason the
+     * providers screen keeps its rules that way: deleting a row above the one
+     * being typed into moves the caret into a different row, with nothing on
+     * screen to say so.
+     */
+    rules: PlatformRule[];
 }
+
+/**
+ * What one LTI role buys. **Either a role of the installation's, or the set the
+ * activity enrolls into** — the second is what makes a platform's rules
+ * different from a sign-in provider's, because they are applied inside an
+ * activity that may have chosen roles of its own.
+ */
+interface PlatformRule {
+    rowKey: string;
+    claimValue: string;
+    kind: "role" | "activityParticipants" | "activityManagers";
+    roleId: string;
+}
+
+let platformRuleRow = 0;
+const ruleRowKey = () => `rule-${++platformRuleRow}`;
+
+const ruleFrom = (rule: MappingRule): PlatformRule[] =>
+    rule.targets.map(target => ({
+        rowKey: ruleRowKey(),
+        claimValue: rule.claimValue,
+        kind: target.kind,
+        roleId: target.roleId ?? "",
+    }));
+
+/**
+ * Back to the wire shape, one rule per claim value with its targets gathered.
+ *
+ * Gathered rather than sent a row at a time, because the Server keys a rule on
+ * the value and two rows naming one value are two targets of one rule.
+ */
+const rulesToInput = (rules: readonly PlatformRule[]): MappingRule[] => {
+    const byValue = new Map<string, MappingRule>();
+    for (const rule of rules) {
+        const value = rule.claimValue.trim();
+        if (value.length === 0) continue;
+        const existing = byValue.get(value) ?? { claimValue: value, targets: [] };
+        existing.targets.push(rule.kind === "role"
+            ? { kind: "role", roleId: rule.roleId }
+            : { kind: rule.kind });
+        byValue.set(value, existing);
+    }
+    return [...byValue.values()];
+};
 
 const empty = (): Draft => ({
     displayName: "",
@@ -788,6 +931,7 @@ const empty = (): Draft => ({
     isIdentityAuthority: false,
     identityNamespace: "",
     enabled: true,
+    rules: [],
 });
 
 const draftFrom = (platform: Platform): Draft => ({
@@ -803,6 +947,7 @@ const draftFrom = (platform: Platform): Draft => ({
     identityNamespace: platform.identityNamespace ?? "",
     usernameClaim: platform.usernameClaim,
     enabled: platform.enabled,
+    rules: platform.mappingRules.flatMap(ruleFrom),
 });
 
 const toInput = (draft: Draft): PlatformInput => ({
@@ -819,6 +964,7 @@ const toInput = (draft: Draft): PlatformInput => ({
     identityNamespace: draft.identityNamespace.trim() || undefined,
     usernameClaim: draft.usernameClaim,
     enabled: draft.enabled,
+    mappingRules: rulesToInput(draft.rules),
 });
 
 /**

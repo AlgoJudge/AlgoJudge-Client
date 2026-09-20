@@ -1,5 +1,6 @@
 import {
-    Alert, Badge, Button, Group, Modal, Pagination, Select, Stack, Switch, Table, Text, Title,
+    Alert, Badge, Button, Group, Modal, MultiSelect, Pagination, Select, Stack, Switch, Table,
+    Text, Title,
 } from "@mantine/core";
 import { IconAlertTriangle, IconPlus, IconTrash, IconWorld } from "@tabler/icons-react";
 import { useState } from "react";
@@ -24,11 +25,12 @@ const PAGE_SIZE = 20;
 interface Draft {
     userId: string;
     activityId?: string;
-    /** The grant's own entries — additions on top of the role, or the whole set. */
+    /** The grant's own entries — additions on top of the roles, or the whole set. */
     permissions: string[];
-    /** The role it points at, or none for a set held by hand. */
-    roleId?: string;
-    copiedFromRoleName?: string;
+    /** The roles it links, or none for a set held by hand. */
+    roleIds: string[];
+    /** Marks this membership staff whatever the permissions imply. */
+    staffByHand: boolean;
     /** An existing grant is being edited; the pair cannot be changed. */
     existing: boolean;
     /**
@@ -120,12 +122,16 @@ export default function GrantsPage() {
      * grant adds on top. Clearing the link leaves those additions alone — they
      * are somebody's decision about this person, and the role was not.
      */
-    const chooseRole = (id: string | null) => {
+    const chooseRoles = (ids: string[]) => {
         if (!draft) return;
-        setDraft({ ...draft, roleId: id ?? undefined, copiedFromRoleName: undefined });
+        setDraft({ ...draft, roleIds: ids });
     };
 
-    const roleOf = (id: string | undefined) => templates.find(t => t.id === id);
+    const roleOf = (id: string) => templates.find(t => t.id === id);
+
+    /** What the roles a draft links carry together. */
+    const inheritedBy = (ids: readonly string[]) =>
+        [...new Set(ids.flatMap(id => roleOf(id)?.permissions ?? []))];
 
     /**
      * Whether this person already holds something across the installation.
@@ -152,7 +158,8 @@ export default function GrantsPage() {
                 userId: draft.userId,
                 activityId: draft.activityId,
                 permissions: draft.permissions,
-                roleId: draft.roleId,
+                roleIds: draft.roleIds,
+                staffByHand: draft.staffByHand,
                 overrideSystem: draft.overrideSystem,
             }));
             setDraft(undefined);
@@ -197,6 +204,8 @@ export default function GrantsPage() {
                     leftSection={<IconPlus size={16} />}
                     onClick={() => open({
                         userId: "",
+                        roleIds: [],
+                        staffByHand: false,
                         // **Opened where this person can actually write.** With no
                         // scope the editor asks what the caller holds at system
                         // scope, which for anybody whose rights live in an
@@ -270,8 +279,8 @@ export default function GrantsPage() {
                                             userId: grant.userId,
                                             activityId: grant.activityId,
                                             permissions: [...grant.permissions],
-                                            roleId: grant.roleId,
-                                            copiedFromRoleName: grant.copiedFromRoleName,
+                                            roleIds: grant.roles.map(role => role.roleId),
+                                            staffByHand: grant.staffByHand,
                                             existing: true,
                                             overrideSystem: grant.overrideSystem,
                                             holdsSystem: holdsSystemPermissions(grant.userId),
@@ -304,12 +313,36 @@ export default function GrantsPage() {
                             </Table.Td>
                             <Table.Td>
                                 <Stack gap={2}>
-                                    {/* The role it points at, or — for a set
-                                        held by hand — the label saying where
-                                        that set began. */}
-                                    {grant.roleName
-                                        ? <Badge variant="light" size="sm">{grant.roleName}</Badge>
-                                        : <Text size="sm" c="dimmed">{grant.copiedFromRoleName ?? "—"}</Text>}
+                                    {/* Every role it links. Outlined where a
+                                        provider or a platform asserted it, so a
+                                        row says which of the two decided — the
+                                        question anybody removing one asks. */}
+                                    {grant.roles.length > 0
+                                        ? (
+                                            <Group gap={4} wrap="wrap">
+                                                {grant.roles.map(role => (
+                                                    <Badge
+                                                        key={role.roleId}
+                                                        variant={role.sourceProviderId ? "outline" : "light"}
+                                                        size="sm"
+                                                    >
+                                                        {role.name}
+                                                    </Badge>
+                                                ))}
+                                            </Group>
+                                        )
+                                        : <Text size="sm" c="dimmed">—</Text>}
+                                    {/* Taken away by hand, and therefore not put
+                                        back by the next launch. Shown because a
+                                        role that is absent for a reason reads
+                                        differently from one nobody ever gave. */}
+                                    {grant.dismissedRoles.length > 0 && (
+                                        <Text size="xs" c="dimmed">
+                                            {t("Removed: {{roles}}", {
+                                                roles: grant.dismissedRoles.map(role => role.name).join(", "),
+                                            })}
+                                        </Text>
+                                    )}
                                     {/* At system scope a person's permissions are
                                         the union of several rows — one assigned by
                                         hand, one per linked provider — so a list
@@ -355,8 +388,8 @@ export default function GrantsPage() {
                                             userId: grant.userId,
                                             activityId: grant.activityId,
                                             permissions: [...grant.permissions],
-                                            roleId: grant.roleId,
-                                            copiedFromRoleName: grant.copiedFromRoleName,
+                                            roleIds: grant.roles.map(role => role.roleId),
+                                            staffByHand: grant.staffByHand,
                                             existing: true,
                                             overrideSystem: grant.overrideSystem,
                                             holdsSystem: holdsSystemPermissions(grant.userId),
@@ -446,13 +479,13 @@ export default function GrantsPage() {
                             </Stack>
                         )}
 
-                        <Select
-                            label={t("Role")}
-                            description={t("A link, not a copy: editing the role changes what this person may do.")}
+                        <MultiSelect
+                            label={t("Roles")}
+                            description={t("Links, not copies: editing a role changes what this person may do.")}
                             placeholder={t("No role — a set held by hand")}
                             data={templates.map(role => ({ value: role.id, label: role.name }))}
-                            value={draft.roleId ?? null}
-                            onChange={chooseRole}
+                            value={draft.roleIds}
+                            onChange={chooseRoles}
                             clearable
                         />
 
@@ -462,8 +495,11 @@ export default function GrantsPage() {
                             onChange={permissions => setDraft({ ...draft, permissions })}
                             grantable={grantable}
                             scope={editorScope}
-                            inherited={roleOf(draft.roleId)?.permissions}
-                            inheritedFrom={roleOf(draft.roleId)?.name}
+                            inherited={inheritedBy(draft.roleIds)}
+                            inheritedFrom={draft.roleIds
+                                .map(id => roleOf(id)?.name)
+                                .filter((name): name is string => name !== undefined)
+                                .join(", ") || undefined}
                         />
 
                         {error && <Alert color="red">{error}</Alert>}

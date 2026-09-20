@@ -72,7 +72,7 @@ test("a manager granted inside an activity can use the panel", async ({ page, pl
             userId: person.id,
             activityId: activity.id,
             permissions: [],
-            roleId: manager.id,
+            roleIds: [manager.id],
         },
     });
     expect(granted.status(), await granted.text()).toBe(200);

@@ -1,4 +1,5 @@
 import { DeletionRequest, IdentityProvider } from "../../ManagerApi";
+import { ROLE_IDS } from "./permissions";
 
 /**
  * The identity providers an installation has registered, and the deletion
@@ -42,13 +43,25 @@ const REGISTERED: IdentityProvider[] = [
         // ordinary, and an installation should not have to know which it has.
         claimPath: "realm_access.roles",
         unmappedBehavior: "deny",
+        defaultRoleIds: [],
         deletionChannelEnabled: false,
         hasClientSecret: true,
         hasDeletionSecret: false,
         callbackPath: "/api/v1/identity/providers/university/callback",
         mappingRules: [
-            { claimValue: "students", roleName: "participant" },
-            { claimValue: "lecturers", roleName: "manager" },
+            {
+                claimValue: "students",
+                targets: [{ kind: "role", roleId: ROLE_IDS.participant, roleName: "participant" }],
+            },
+            // Two targets on one value, which is the case a single link could
+            // not express: a lecturer here runs activities and sits on the jury.
+            {
+                claimValue: "lecturers",
+                targets: [
+                    { kind: "role", roleId: ROLE_IDS.manager, roleName: "manager" },
+                    { kind: "role", roleId: ROLE_IDS.jury, roleName: "jury" },
+                ],
+            },
         ],
         // Deleting one with people behind it is refused, so the screen needs a
         // provider that has some.
@@ -67,12 +80,14 @@ const REGISTERED: IdentityProvider[] = [
         // The other half of the switch: this one admits anybody the directory
         // vouches for, as a participant.
         unmappedBehavior: "defaultRole",
-        defaultRoleName: "participant",
+        defaultRoleIds: [ROLE_IDS.participant],
         deletionChannelEnabled: true,
         hasClientSecret: true,
         hasDeletionSecret: true,
         callbackPath: "/api/v1/identity/providers/algojudge/callback",
-        mappingRules: [{ claimValue: "staff", roleName: "jury" }],
+        mappingRules: [
+            { claimValue: "staff", targets: [{ kind: "role", roleId: ROLE_IDS.jury, roleName: "jury" }] },
+        ],
         linkedAccounts: 0,
         createdAt: "2026-08-05T11:30:00Z",
     },
