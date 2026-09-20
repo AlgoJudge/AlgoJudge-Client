@@ -171,10 +171,15 @@ because the arrow function's own definition matches too. Know which thing is
 being counted: `managerAreas.ts` has fourteen entries, one of them `soon: true`,
 and neither number is the one the README states.
 
-**`check:instructions` covers `CLAUDE.md` and not this file or the README.** It
-asserts the counts `CLAUDE.md` states about the repository, which is why those
-stay true between releases without anybody looking. Every count in the README and
-in this runbook is still checked by a person, on release day, or not at all.
+**`check:instructions` covers some of this and not the rest, so know which.** It
+asserts the script table and the counts `CLAUDE.md` states, and one thing about
+the README: that it names the same `build`-job steps as `ci.yml`. It reads
+nothing else in the README and nothing at all in this file.
+
+So the `check:` list is machine-checked in both prose files and the manager-screen
+count is checked in neither. **Every count in this runbook, and every count in
+the README that is not the step list, is checked by a person on release day or
+not at all.**
 
 ### Why `check:ui` is the gate
 
