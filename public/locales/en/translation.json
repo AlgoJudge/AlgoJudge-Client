@@ -1408,5 +1408,10 @@
     "What a launch's roles grant": "What a launch's roles grant",
     "Whoever runs it gets the roles": "Whoever runs it gets the roles",
     "With no role left, this membership holds only what is set below.": "With no role left, this membership holds only what is set below.",
-    "mapped by {{providers}}": "mapped by {{providers}}"
+    "mapped by {{providers}}": "mapped by {{providers}}",
+    "A grant links roles. Editing one changes what everybody holding it may do.": "A grant links roles. Editing one changes what everybody holding it may do.",
+    "From a role": "From a role",
+    "Instead of the activity's roles, exactly this set": "Instead of the activity's roles, exactly this set",
+    "No roles — a set held by hand": "No roles — a set held by hand",
+    "This comes from a role. Change that role to change it.": "This comes from a role. Change that role to change it."
 }

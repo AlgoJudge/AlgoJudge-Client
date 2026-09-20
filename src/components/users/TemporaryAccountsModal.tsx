@@ -125,7 +125,7 @@ export default function TemporaryAccountsModal({
                         what somebody wants who is making twenty accounts that
                         are not participants. */}
                     <Select
-                        label={t("Instead of the activity's role, exactly this set")}
+                        label={t("Instead of the activity's roles, exactly this set")}
                         description={t("Leave empty to hand out the roles this activity enrolls into.")}
                         data={templates.map(x => ({ value: x.id, label: x.name }))}
                         value={template || null}

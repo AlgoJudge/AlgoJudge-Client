@@ -41,11 +41,12 @@ export default function RolesPage() {
     /**
      * Which roles this screen is about: the installation's, or one activity's.
      *
-     * **`role:manage` is scoped, and this page had no scope.** It listed the
-     * installation's roles, asked what the caller holds at system scope, and
-     * wrote with no activity id — so for a manager whose rights live in an
-     * activity every control on it refused, and the activity's own roles, which
-     * the key exists to let them run, were not on the screen at all.
+     * **The two are two different powers, and the page asks for the right one
+     * at each scope.** Writing the installation's roles is `role:manage`, which
+     * is global and an administrator's; writing one activity's own is
+     * `role:manage:activity`, held in the grant on that activity. Asking only
+     * the first, as this page once did, refused every control to the manager the
+     * activity scope exists for.
      */
     const [activities, setActivities] = useState<ManagedActivitySummary[]>([]);
     const [activityScope, setActivityScope] = useState<string | undefined>(undefined);
@@ -148,7 +149,7 @@ export default function RolesPage() {
                         the sentence has to be right: an edit here reaches
                         everybody holding the role, at once. */}
                     <Text size="sm" c="dimmed">
-                        {t("A grant points at a role. Editing one changes what everybody holding it may do.")}
+                        {t("A grant links roles. Editing one changes what everybody holding it may do.")}
                     </Text>
                 </Stack>
                 <Group gap="sm" wrap="wrap">

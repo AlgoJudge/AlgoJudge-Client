@@ -1408,5 +1408,10 @@
     "What a launch's roles grant": "Co nadają role z uruchomienia",
     "Whoever runs it gets the roles": "Prowadzący dostają role",
     "With no role left, this membership holds only what is set below.": "Bez żadnej roli ten udział ma tylko to, co ustawiono poniżej.",
-    "mapped by {{providers}}": "mapują: {{providers}}"
+    "mapped by {{providers}}": "mapują: {{providers}}",
+    "A grant links roles. Editing one changes what everybody holding it may do.": "Nadanie wiąże role. Zmiana roli zmienia uprawnienia wszystkim, którzy ją mają.",
+    "From a role": "Z roli",
+    "Instead of the activity's roles, exactly this set": "Zamiast ról aktywności — dokładnie ten zestaw",
+    "No roles — a set held by hand": "Bez ról — zestaw trzymany ręcznie",
+    "This comes from a role. Change that role to change it.": "To pochodzi z roli. Żeby to zmienić, zmień tę rolę."
 }

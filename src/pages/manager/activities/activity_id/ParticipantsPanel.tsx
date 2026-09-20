@@ -255,7 +255,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                 <Table.Thead>
                     <Table.Tr>
                         <Table.Th>{t("User")}</Table.Th>
-                        <Table.Th>{t("Started from")}</Table.Th>
+                        <Table.Th>{t("Roles")}</Table.Th>
                         <Table.Th>{t("Group")}</Table.Th>
                         <Table.Th>{t("Permissions")}</Table.Th>
                         <Table.Th>{t("State")}</Table.Th>
@@ -413,7 +413,7 @@ export default function ParticipantsPanel({ activity, onError }: ParticipantsPan
                         <MultiSelect
                             label={t("Roles")}
                             description={t("Links, not copies: editing a role changes what this person may do.")}
-                            placeholder={t("No role — a set held by hand")}
+                            placeholder={t("No roles — a set held by hand")}
                             data={templates.map(role => ({ value: role.id, label: role.name }))}
                             value={draft.roleIds}
                             onChange={chooseRoles}

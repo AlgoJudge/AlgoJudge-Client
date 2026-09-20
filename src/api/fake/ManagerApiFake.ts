@@ -2958,6 +2958,19 @@ export class ManagerApiFake implements ManagerApi {
         // **By id.** Kept by name, a rule followed a rename to whatever role
         // happened to be called that afterwards — and could pick up an
         // activity's role of the same name and hand it out installation-wide.
+        for (const rule of input.mappingRules ?? []) {
+            // **A rule that grants nothing is refused**, as the Server refuses
+            // it. The picker starts empty, so a row somebody added and did not
+            // fill reaches here with no targets at all — and read through
+            // `targets` rather than a single name, every guard below skips it
+            // and the provider saves with a rule rendering as `staff → `.
+            if (rule.targets.length === 0) {
+                invalid(
+                    `The rule for "${rule.claimValue}" grants nothing`,
+                    "provider.rule.target.required");
+            }
+        }
+
         const named = [
             ...(input.mappingRules ?? []).flatMap(rule => rule.targets.map(target => {
                 // A sign-in happens in no activity, so the two kinds that
