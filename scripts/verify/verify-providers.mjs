@@ -44,7 +44,7 @@ await shot("providers-editor");
 //     how a course's set could be handed out installation-wide.
 //
 //     The rule's own picker, keyed on the placeholder the rules editor sets, so
-//     the behaviour select above it cannot make this pass for the wrong reason.
+//     the behavior select above it cannot make this pass for the wrong reason.
 const opened = await evaluate(`
     const inputs = [...document.querySelectorAll(".mantine-Modal-body input")];
     const picker = inputs.find(i => /^(Role|Roles)$/i.test(i.placeholder ?? ""));
