@@ -41,11 +41,12 @@ export default function RolesPage() {
     /**
      * Which roles this screen is about: the installation's, or one activity's.
      *
-     * **`role:manage` is scoped, and this page had no scope.** It listed the
-     * installation's roles, asked what the caller holds at system scope, and
-     * wrote with no activity id — so for a manager whose rights live in an
-     * activity every control on it refused, and the activity's own roles, which
-     * the key exists to let them run, were not on the screen at all.
+     * **The two are two different powers, and the page asks for the right one
+     * at each scope.** Writing the installation's roles is `role:manage`, which
+     * is global and an administrator's; writing one activity's own is
+     * `role:manage:activity`, held in the grant on that activity. Asking only
+     * the first, as this page once did, refused every control to the manager the
+     * activity scope exists for.
      */
     const [activities, setActivities] = useState<ManagedActivitySummary[]>([]);
     const [activityScope, setActivityScope] = useState<string | undefined>(undefined);
@@ -123,8 +124,19 @@ export default function RolesPage() {
 
     if (!templates) return <LoadState error={loadError} loading={!loadError} />;
 
-    /** What the caller holds **at the scope on screen** — the only honest test. */
-    const mayWrite = grantable.includes("role:manage");
+    /**
+     * What the caller holds **at the scope on screen** — the only honest test.
+     *
+     * **Two keys, and which one counts depends on the scope.** Writing the
+     * installation's roles is `role:manage`, which is global and an
+     * administrator's; writing an activity's own is `role:manage:activity`,
+     * which a manager of that activity holds. Reading only the first offered
+     * every control to an administrator and none to the person the activity
+     * scope exists for.
+     */
+    const mayWrite = activityScope === undefined
+        ? grantable.includes("role:manage")
+        : grantable.includes("role:manage:activity");
     /** A role is edited where it lives, so a global one is read-only here. */
     const writable = (role: Role) => mayWrite && (role.activityId ?? undefined) === activityScope;
 
@@ -137,7 +149,7 @@ export default function RolesPage() {
                         the sentence has to be right: an edit here reaches
                         everybody holding the role, at once. */}
                     <Text size="sm" c="dimmed">
-                        {t("A grant points at a role. Editing one changes what everybody holding it may do.")}
+                        {t("A grant links roles. Editing one changes what everybody holding it may do.")}
                     </Text>
                 </Stack>
                 <Group gap="sm" wrap="wrap">
@@ -207,6 +219,17 @@ export default function RolesPage() {
                                 {template.activityName && (
                                     <Badge variant="light" size="sm" color="grape">
                                         {template.activityName}
+                                    </Badge>
+                                )}
+                                {/* **An edit here reaches these people at their
+                                    next sign-in, not at once.** A different
+                                    sentence from the reach badge beside it, and
+                                    one nobody can work out from the role. */}
+                                {template.mappedBy.length > 0 && (
+                                    <Badge variant="outline" size="sm" color="grape">
+                                        {t("mapped by {{providers}}", {
+                                            providers: template.mappedBy.join(", "),
+                                        })}
                                     </Badge>
                                 )}
                             </Group>

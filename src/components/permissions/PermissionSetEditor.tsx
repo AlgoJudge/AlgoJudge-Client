@@ -101,7 +101,7 @@ export default function PermissionSetEditor({
                                             <Text size="xs" c="dimmed" ff="monospace">{definition.key}</Text>
                                             {held && (
                                                 <Badge variant="light" size="xs" color="gray">
-                                                    {inheritedFrom ?? t("From the role")}
+                                                    {inheritedFrom ?? t("From a role")}
                                                 </Badge>
                                             )}
                                         </Group>
@@ -112,7 +112,7 @@ export default function PermissionSetEditor({
                             // the only place the reason can live.
                             if (held) {
                                 return (
-                                    <Tooltip key={definition.key} label={t("This comes from the role. Change the role to change it.")}>
+                                    <Tooltip key={definition.key} label={t("This comes from a role. Change that role to change it.")}>
                                         <div>{checkbox}</div>
                                     </Tooltip>
                                 );

@@ -52,9 +52,10 @@ for (const withheld of ["/manager/users", "/manager/runners",
 }
 
 // **Roles moved from that list**, and the move is the feature. A manager may
-// write the roles of the activity they run — `role:manage` is scoped, so this
-// account reaches its own course's roles and none of the installation's. The
-// area appearing here is what makes that reachable at all.
+// write the roles of the activity they run — that is `role:manage:activity`,
+// which is scoped, so this account reaches its own course's roles and none of
+// the installation's. Writing those is `role:manage`, which is global and an
+// administrator's. The area appearing here is what makes the first reachable.
 check(offered.includes("/manager/roles"), "and does offer /manager/roles, which is scoped");
 
 // ── each one, opened ────────────────────────────────────────────────────────

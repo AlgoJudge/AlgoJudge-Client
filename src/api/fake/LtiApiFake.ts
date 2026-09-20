@@ -72,6 +72,16 @@ export class LtiApiFake implements LtiApi {
         isIdentityAuthority: true,
         identityNamespace: "uwm-sso",
         usernameClaim: "username",
+        // What a platform starts with, and what the Server seeds: a learner is
+        // enrolled as the activity enrolls participants, and the three roles
+        // that run a course as it enrolls managers. Left to the slots rather
+        // than named, so an activity that chose its own roles is obeyed.
+        mappingRules: [
+            { claimValue: "Learner", targets: [{ kind: "activityParticipants" }] },
+            { claimValue: "Instructor", targets: [{ kind: "activityManagers" }] },
+            { claimValue: "ContentDeveloper", targets: [{ kind: "activityManagers" }] },
+            { claimValue: "Mentor", targets: [{ kind: "activityManagers" }] },
+        ],
         enabled: true,
         providerId: "provider-lti-1",
         createdAt: "2026-08-14T09:00:00.000Z",
@@ -171,6 +181,14 @@ export class LtiApiFake implements LtiApi {
 
         const platform: Platform = {
             ...normalize(input),
+            // Absent means "leave them alone", and a new platform has none to
+            // leave alone — so it starts with what the Server seeds.
+            mappingRules: input.mappingRules ?? [
+                { claimValue: "Learner", targets: [{ kind: "activityParticipants" }] },
+                { claimValue: "Instructor", targets: [{ kind: "activityManagers" }] },
+                { claimValue: "ContentDeveloper", targets: [{ kind: "activityManagers" }] },
+                { claimValue: "Mentor", targets: [{ kind: "activityManagers" }] },
+            ],
             id: `platform-${this.nextId}`,
             providerId: `provider-lti-${this.nextId}`,
             createdAt: new Date().toISOString(),
@@ -194,7 +212,14 @@ export class LtiApiFake implements LtiApi {
         }
         requireNamespace(input);
 
-        Object.assign(existing, normalize(input), { id: existing.id, providerId: existing.providerId, createdAt: existing.createdAt });
+        Object.assign(existing, normalize(input), {
+            id: existing.id,
+            providerId: existing.providerId,
+            createdAt: existing.createdAt,
+            // Absent leaves the allowlist alone, so a screen editing an address
+            // does not wipe the rules the platform started with.
+            mappingRules: input.mappingRules ?? existing.mappingRules,
+        });
         return { ...existing };
     }
 

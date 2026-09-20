@@ -1,3 +1,5 @@
+import { MappingRule } from "./ManagerApi";
+
 /**
  * The LMS integration, from the Client's side.
  *
@@ -114,6 +116,17 @@ export interface Platform {
     /** The provider row it speaks through, so a grant's source can be found. */
     providerId: string;
 
+    /**
+     * What a launch's roles are worth in the activity it names.
+     *
+     * **A platform's rules, and the only ones that may aim at an activity's
+     * enrollment sets**: they are applied inside an activity, and a sign-in is
+     * not. Which LTI role meant which role here was compiled into the Server
+     * until 2026-09-19, so an installation whose non-editing teachers should not
+     * run a course had nowhere to say so.
+     */
+    mappingRules: MappingRule[];
+
     createdAt: string;
 }
 
@@ -129,6 +142,12 @@ export interface PlatformInput {
     identityNamespace?: string;
     usernameClaim?: string;
     enabled: boolean;
+    /**
+     * The whole allowlist, replaced wholesale. **Absent leaves it alone**, which
+     * is what a screen editing the URLs sends — so editing an address does not
+     * wipe the rules a platform started with.
+     */
+    mappingRules?: MappingRule[];
 }
 
 /**

@@ -57,8 +57,10 @@ export const toInput = (activity: ManagedActivity): ActivityInput => ({
     maxSubmissionsPerProblem: activity.maxSubmissionsPerProblem,
     runnerTags: [...activity.runnerTags],
     // Sent back as they came, so a save from the settings tab does not clear
-    // what the enrollment pickers show — an empty string is how one is cleared.
-    participantRoleId: activity.participantRoleId ?? "",
-    managerRoleId: activity.managerRoleId ?? "",
+    // what the enrollment pickers show. An empty list is how they are cleared,
+    // and it is a real instruction rather than "unchanged" — which is why the
+    // form sends these only where somebody moved them.
+    participantRoleIds: [...activity.participantRoleIds],
+    managerRoleIds: [...activity.managerRoleIds],
 });
 

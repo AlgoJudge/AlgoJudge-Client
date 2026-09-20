@@ -13,6 +13,7 @@ import {
     BulkUserInput,
     CreatedCredential,
     Grant,
+    GrantRole,
     GrantFilter,
     GrantInput,
     ManagedActivity,
@@ -517,19 +518,39 @@ export class ManagerApiFake implements ManagerApi {
         await this.settle(signal);
         return copy(this.roles
             .filter(r => r.activityId === undefined || r.activityId === activityId)
-            .map(r => ({ ...r, grants: this.reachOf(r.id) })));
+            .map(r => ({ ...r, grants: this.reachOf(r.id), mappedBy: this.mappedBy(r.id) })));
     }
 
-    /** How many grants point at a role — how many people an edit reaches. */
+    /**
+     * How many grants link a role — how many people an edit reaches.
+     *
+     * A dismissed link is not one of them: it is a record of something that is
+     * not held, and counting it would overstate the reach of every edit.
+     */
     private reachOf(id: string): number {
-        return this.access.grants.filter(g => g.roleId === id).length;
+        return this.access.grants.filter(
+            g => g.roles.some(role => role.roleId === id)).length;
+    }
+
+    /**
+     * The providers whose rules name a role.
+     *
+     * An edit reaches those people at their next sign-in rather than at once,
+     * which is a different sentence for the screen to say — and it is the
+     * question "who else decides this" that a role list otherwise cannot answer.
+     */
+    private mappedBy(id: string): string[] {
+        return this.providers
+            .filter(provider => provider.mappingRules.some(
+                rule => rule.targets.some(target => target.roleId === id)))
+            .map(provider => provider.slug);
     }
 
     async createRole(input: RoleInput, signal: AbortSignal): Promise<Role> {
         await this.settle(signal);
         this.assertNameFree(input.name, undefined, input.activityId);
         this.assertWritable(input);
-        const role: Role = { id: newId(), isBuiltIn: false, grants: 0, ...input };
+        const role: Role = { id: newId(), isBuiltIn: false, grants: 0, mappedBy: [], ...input };
         this.roles = [...this.roles, role];
         this.eventDispatcher.dispatchEvent({ type: "roleChanged", data: { role: copy(role) } });
         return copy(role);
@@ -552,19 +573,25 @@ export class ManagerApiFake implements ManagerApi {
         const updated: Role = { ...existing, ...input, activityId: existing.activityId };
         this.roles = this.roles.map(t => t.id === id ? updated : t);
 
-        this.access.grants = this.access.grants.map(grant => grant.roleId === id
-            ? {
+        this.access.grants = this.access.grants.map(grant => {
+            if (!grant.roles.some(role => role.roleId === id)) return grant;
+            const roles = grant.roles.map(role => role.roleId === id
+                ? { ...role, name: updated.name, permissions: [...updated.permissions] }
+                : role);
+            return {
                 ...grant,
-                rolePermissions: [...updated.permissions],
+                roles,
                 // Raised, never lowered, exactly as the Server does it: the flag
                 // also records a decision somebody made by hand about one person,
                 // and a role edit cannot see that one.
                 isSystem: grant.isSystem
-                    || isStaffGrant([...updated.permissions, ...grant.permissions], PERMISSION_CATALOG),
-            }
-            : grant);
+                    || isStaffGrant(
+                        effectivePermissions({ permissions: grant.permissions, roles }),
+                        PERMISSION_CATALOG),
+            };
+        });
 
-        const answered = { ...updated, grants: this.reachOf(id) };
+        const answered = { ...updated, grants: this.reachOf(id), mappedBy: this.mappedBy(id) };
         this.eventDispatcher.dispatchEvent({ type: "roleChanged", data: { role: copy(answered) } });
         return copy(answered);
     }
@@ -723,24 +750,72 @@ export class ManagerApiFake implements ManagerApi {
     async setGrant(input: GrantInput, signal: AbortSignal): Promise<Grant> {
         await this.settle(signal);
 
+        // **At activity scope there is one grant, whoever wrote it**; at system
+        // scope this writes the manual contribution and only that one. A managed
+        // contribution belongs to its provider's mapping and is rewritten at
+        // every sign-in, so an edit here would last until that person next
+        // signed in.
+        const existing = this.access.grants.find(g =>
+            g.userId === input.userId
+            && g.activityId === input.activityId
+            && (input.activityId !== undefined || g.source === "manual"));
+
+        // **Absent leaves the roles alone; a list replaces them.** An enrollment,
+        // a group move and a staff flag are all edits with no opinion about
+        // roles, and a write that says nothing must not strip them.
+        const asked = input.roleIds;
+        const kept = existing?.roles ?? [];
+        const roles: GrantRole[] = asked === undefined
+            ? [...kept]
+            : asked.map(id => {
+                const role = this.roles.find(r => r.id === id) ?? notFound("Role");
+                if (role.activityId !== undefined && role.activityId !== input.activityId) {
+                    invalid(`"${role.name}" belongs to another activity`, "grant.role.scope");
+                }
+                const before = [...kept, ...(existing?.dismissedRoles ?? [])]
+                    .find(one => one.roleId === id);
+                return {
+                    roleId: role.id,
+                    name: role.name,
+                    permissions: [...role.permissions],
+                    activityId: role.activityId,
+                    // Taking a role back is taking it as one's own: the next
+                    // launch must not treat it as something it may revise.
+                    sourceProviderId: undefined,
+                    sourceProviderName: before?.sourceProviderName,
+                };
+            });
+
+        // **What a role removed by hand becomes.** A launch adds the roles a
+        // platform asserts and never removes one, so without this the correction
+        // would come back undone at that person's next launch.
+        const dismissed: GrantRole[] = asked === undefined
+            ? [...(existing?.dismissedRoles ?? [])]
+            : [
+                ...(existing?.dismissedRoles ?? []).filter(
+                    one => !asked.includes(one.roleId)),
+                ...kept
+                    .filter(one => !asked.includes(one.roleId))
+                    .map(one => ({ ...one, dismissedAt: new Date().toISOString() })),
+            ];
+
+        const held = effectivePermissions({ permissions: input.permissions, roles });
+
         // Nobody may grant a permission they do not themselves hold. Without
         // this, anyone allowed to edit permissions — which an activity manager
         // must be — can make themselves an administrator in two steps.
-        // **Read the union, not what was typed in.** Pointing at a role is
-        // granting what the role holds, so an excess rule that looked only at
-        // the request would let anybody with `grant:update` hand out the shipped
-        // manager role by naming it.
-        const role = input.roleId
-            ? this.roles.find(r => r.id === input.roleId) ?? notFound("Role")
-            : undefined;
-        if (role && role.activityId !== undefined && role.activityId !== input.activityId) {
-            invalid(`"${role.name}" belongs to another activity`, "grant.role.scope");
-        }
-        const held = [...(role?.permissions ?? []), ...input.permissions];
-
+        //
+        // **Read the union, not what was typed in**: linking a role is granting
+        // what the role holds. And **what is added, not what is there** — applied
+        // to the whole set it refused a manager every edit to a grant that
+        // already carried a key they lack, including taking that key away.
+        const already = effectivePermissions({
+            permissions: existing?.permissions ?? [],
+            roles: kept,
+        });
         const mine = await this.getMyPermissions(input.activityId, signal);
         if (!mine.includes("system:administrator")) {
-            const excess = held.filter(p => !mine.includes(p));
+            const excess = held.filter(p => !mine.includes(p) && !already.includes(p));
             if (excess.length > 0) {
                 forbidden(`Cannot grant permissions you do not hold: ${excess.join(", ")}`, "grant.excess");
             }
@@ -750,16 +825,8 @@ export class ManagerApiFake implements ManagerApi {
         // settle it: a staff grant is systemic whatever the request said, and a
         // flag only the screen maintained would be whatever the next caller
         // felt like sending.
-        const isSystem = systemicByDefault(held, PERMISSION_CATALOG, input.isSystem);
-
-        // **The manual contribution, and only that one.** A managed one belongs
-        // to its provider's mapping and is rewritten at every sign-in, so an
-        // edit here would last until that person next signed in — which is why
-        // the Server refuses it and why this looks the same way it does.
-        const existing = this.access.grants.find(g =>
-            g.userId === input.userId
-            && g.activityId === input.activityId
-            && g.source === "manual");
+        const staffByHand = input.staffByHand ?? existing?.staffByHand ?? false;
+        const isSystem = systemicByDefault(held, PERMISSION_CATALOG, staffByHand);
 
         // Only ever set on an activity grant: at system scope there is nothing
         // to override.
@@ -770,13 +837,11 @@ export class ManagerApiFake implements ManagerApi {
                 ...existing,
                 ...input,
                 isSystem,
+                staffByHand,
                 overrideSystem,
                 permissions: [...input.permissions],
-                rolePermissions: [...(role?.permissions ?? [])],
-                roleName: role?.name,
-                // The label says where a *copied* set started, so a link erases
-                // it: two fields both naming a role would eventually disagree.
-                copiedFromRoleName: role ? undefined : input.copiedFromRoleName,
+                roles,
+                dismissedRoles: dismissed,
             }
             : {
                 id: newId(),
@@ -790,10 +855,10 @@ export class ManagerApiFake implements ManagerApi {
                 managed: false,
                 overrideSystem,
                 isSystem,
+                staffByHand,
                 permissions: [...input.permissions],
-                rolePermissions: [...(role?.permissions ?? [])],
-                roleName: role?.name,
-                copiedFromRoleName: role ? undefined : input.copiedFromRoleName,
+                roles,
+                dismissedRoles: dismissed,
             };
         this.access.grants = existing
             ? this.access.grants.map(g => g.id === grant.id ? grant : g)
@@ -851,6 +916,8 @@ export class ManagerApiFake implements ManagerApi {
         const activity: ManagedActivity = {
             id: newId(),
             ...input,
+            participantRoleIds: [...input.participantRoleIds ?? []],
+            managerRoleIds: [...input.managerRoleIds ?? []],
             documents: [],
             seriesCount: 0,
             problemCount: 0,
@@ -870,10 +937,16 @@ export class ManagerApiFake implements ManagerApi {
         this.assertActivitySlugFree(input.slug, record.activity.id);
         Object.assign(record.activity, input);
         record.activity.runnerTags = normalizeRunnerTags(input.runnerTags);
-        // An empty string clears one back to the shipped role, which is what the
-        // Server reads it as — and `Object.assign` would otherwise store "".
-        record.activity.participantRoleId = input.participantRoleId || undefined;
-        record.activity.managerRoleId = input.managerRoleId || undefined;
+        // **Absent leaves them alone; an empty list clears them** back to the
+        // installation's shipped role. Two different instructions, and the
+        // settings tab sends these only where somebody moved them — `Object.assign`
+        // above would otherwise have written `undefined` over both on every save.
+        record.activity.participantRoleIds = input.participantRoleIds
+            ? [...input.participantRoleIds]
+            : record.activity.participantRoleIds;
+        record.activity.managerRoleIds = input.managerRoleIds
+            ? [...input.managerRoleIds]
+            : record.activity.managerRoleIds;
         // The enrollment settings belong to the shared store, because the
         // participant side decides what to show from them — and so does
         // everything else about the activity a participant can see.
@@ -1461,11 +1534,16 @@ export class ManagerApiFake implements ManagerApi {
             invalid("The prefix may hold letters, digits and dashes only");
         }
 
-        // The activity's participant role, unless the caller named a set of
-        // their own — which the Server reads the same way.
-        const bulkRole = input.activityId !== undefined && input.permissions === undefined
-            ? this.roles.find(r => r.activityId === undefined && r.name === "participant")
-            : undefined;
+        // **What the activity enrolls into**, unless the caller named a set of
+        // their own — which the Server reads the same way. It used to be the
+        // shipped `participant` role found by name, which ignored an activity
+        // that had chosen its own and broke outright on a renamed built-in.
+        const chosen = this.activities.find(one => one.activity.id === input.activityId)?.activity;
+        const bulkRoles: Role[] = input.activityId === undefined || input.permissions !== undefined
+            ? []
+            : (chosen?.participantRoleIds ?? []).length > 0
+                ? this.roles.filter(r => chosen?.participantRoleIds.includes(r.id))
+                : this.roles.filter(r => r.builtInKey === "participant");
 
         const created: CreatedCredential[] = [];
         // Numbering continues past whatever the prefix already produced, so
@@ -1501,15 +1579,20 @@ export class ManagerApiFake implements ManagerApi {
                     // everybody else. A named set is a hand-made one and stays a
                     // copy.
                     permissions: [...(input.permissions ?? [])],
-                    roleId: bulkRole?.id,
-                    roleName: bulkRole?.name,
-                    rolePermissions: [...(bulkRole?.permissions ?? [])],
+                    roles: bulkRoles.map(role => ({
+                        roleId: role.id,
+                        name: role.name,
+                        permissions: [...role.permissions],
+                        activityId: role.activityId,
+                    })),
+                    dismissedRoles: [],
                     // Settled the same way as any other grant: accounts made for
                     // a class are participants, and one made with a staff set is
                     // not, whoever asked for it.
                     isSystem: systemicByDefault(
-                        [...(bulkRole?.permissions ?? []), ...(input.permissions ?? [])],
+                        [...bulkRoles.flatMap(role => role.permissions), ...(input.permissions ?? [])],
                         PERMISSION_CATALOG, false),
+                    staffByHand: false,
                     source: "manual",
                     managed: false,
                     overrideSystem: false,
@@ -2850,9 +2933,11 @@ export class ManagerApiFake implements ManagerApi {
             deletionUrl: input.deletionUrl?.trim() || undefined,
             claimPath: input.claimPath?.trim() || "groups",
             unmappedBehavior: input.unmappedBehavior ?? "deny",
-            defaultRoleName: input.unmappedBehavior === "defaultRole"
-                ? input.defaultRoleName
-                : undefined,
+            // Stored only under `defaultRole`: a list kept under `deny` is a
+            // setting that looks live and is not.
+            defaultRoleIds: input.unmappedBehavior === "defaultRole"
+                ? [...(input.defaultRoleIds ?? [])]
+                : [],
             deletionChannelEnabled: input.deletionChannelEnabled,
             mappingRules: [...(input.mappingRules ?? [])],
         };
@@ -2870,11 +2955,34 @@ export class ManagerApiFake implements ManagerApi {
         input: IdentityProviderInput, signal: AbortSignal,
     ): Promise<void> {
         const seen = new Set<string>();
+        // **By id.** Kept by name, a rule followed a rename to whatever role
+        // happened to be called that afterwards — and could pick up an
+        // activity's role of the same name and hand it out installation-wide.
+        for (const rule of input.mappingRules ?? []) {
+            // **A rule that grants nothing is refused**, as the Server refuses
+            // it. The picker starts empty, so a row somebody added and did not
+            // fill reaches here with no targets at all — and read through
+            // `targets` rather than a single name, every guard below skips it
+            // and the provider saves with a rule rendering as `staff → `.
+            if (rule.targets.length === 0) {
+                invalid(
+                    `The rule for "${rule.claimValue}" grants nothing`,
+                    "provider.rule.target.required");
+            }
+        }
+
         const named = [
-            ...(input.mappingRules ?? []).map(r => r.roleName),
-            ...(input.unmappedBehavior === "defaultRole" && input.defaultRoleName
-                ? [input.defaultRoleName]
-                : []),
+            ...(input.mappingRules ?? []).flatMap(rule => rule.targets.map(target => {
+                // A sign-in happens in no activity, so the two kinds that
+                // resolve against one belong to an LTI platform and not here.
+                if (target.kind !== "role" || target.roleId === undefined) {
+                    invalid(
+                        "A sign-in provider's rules may only name a role",
+                        "provider.rule.target.invalid");
+                }
+                return target.roleId as string;
+            })),
+            ...(input.unmappedBehavior === "defaultRole" ? input.defaultRoleIds ?? [] : []),
         ];
 
         for (const rule of input.mappingRules ?? []) {
@@ -2887,20 +2995,25 @@ export class ManagerApiFake implements ManagerApi {
         }
 
         const mine = await this.getMyPermissions(undefined, signal);
-        for (const name of named) {
-            // Global roles only: a mapping is the installation's, and an
-            // activity's role is not the installation's to hand out.
-            const template = this.roles.find(t => t.activityId === undefined && t.name === name);
-            if (!template) {
-                invalid(`No role named "${name}"`, "provider.rule.role.unknown");
+        for (const id of named) {
+            const role = this.roles.find(r => r.id === id);
+            if (!role) {
+                invalid(`No role with the id "${id}"`, "provider.rule.role.unknown");
             }
-            if (template.permissions.includes("system:administrator")) {
+            // Installation roles only: a mapping is the installation's, and an
+            // activity's role is somebody else's course's.
+            if (role.activityId !== undefined) {
+                invalid(
+                    `"${role.name}" belongs to an activity, and a mapping is the installation's`,
+                    "provider.rule.role.scope");
+            }
+            if (role.permissions.includes("system:administrator")) {
                 forbidden(
-                    `"${name}" grants system:administrator, which no claim may ever grant`,
+                    `"${role.name}" grants system:administrator, which no claim may ever grant`,
                     "provider.rule.administrator");
             }
             if (!mine.includes("system:administrator")) {
-                const excess = template.permissions.filter(p => !mine.includes(p));
+                const excess = role.permissions.filter(p => !mine.includes(p));
                 if (excess.length > 0) {
                     forbidden(
                         `Cannot map onto permissions you do not hold: ${excess.join(", ")}`,

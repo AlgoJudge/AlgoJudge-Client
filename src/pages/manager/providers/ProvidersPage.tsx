@@ -1,6 +1,6 @@
 import {
-    ActionIcon, Alert, Badge, Button, Card, Group, Modal, Select, Stack, Switch, Table, Text,
-    TextInput, Title, Tooltip,
+    ActionIcon, Alert, Badge, Button, Card, Group, Modal, MultiSelect, Select, Stack, Switch,
+    Table, Text, TextInput, Title, Tooltip,
 } from "@mantine/core";
 import {
     IconAlertTriangle, IconCopy, IconInfoCircle, IconPlus, IconShieldLock, IconTrash,
@@ -58,19 +58,41 @@ const rowKey = () => `rule-${++rules}`;
  * `Select`. Delete a rule above the one being typed into and the cursor is in a
  * different rule, with nothing on screen to say so.
  */
-interface EditedRule extends MappingRule {
+interface EditedRule {
     rowKey: string;
+    claimValue: string;
+    /**
+     * The roles this value hands out, by id.
+     *
+     * **Ids, not names.** A rule kept by name followed a rename to whatever role
+     * happened to be called that afterwards, and an activity's role of the same
+     * name could be picked up and handed out installation-wide.
+     *
+     * A list, because a claim value may be worth more than one role here and a
+     * grant links as many as it is given.
+     */
+    roleIds: string[];
 }
 
 /**
- * What goes on the wire: the rule, without the name this screen gave it.
+ * What goes on the wire.
  *
- * Named field by field rather than by spreading the rest, so a member added to
- * `MappingRule` fails to compile here instead of quietly not being sent.
+ * **Every target is a role**: the two activity kinds resolve against the
+ * activity a launch names, and a sign-in happens in no activity. They are an LTI
+ * platform's to use, and this screen never writes one.
  */
 const sent = (rule: EditedRule): MappingRule => ({
     claimValue: rule.claimValue,
-    roleName: rule.roleName,
+    targets: rule.roleIds.map(roleId => ({ kind: "role" as const, roleId })),
+});
+
+/** The reverse, for a rule arriving from the Server. */
+const edited = (rule: MappingRule): EditedRule => ({
+    rowKey: rowKey(),
+    claimValue: rule.claimValue,
+    roleIds: rule.targets
+        .filter(target => target.kind === "role" && target.roleId !== undefined)
+        .map(target => target.roleId as string),
 });
 
 interface Draft extends Omit<IdentityProviderInput, "mappingRules"> {
@@ -92,9 +114,9 @@ const draftFrom = (provider: IdentityProvider): Draft => ({
     deletionUrl: provider.deletionUrl ?? "",
     claimPath: provider.claimPath,
     unmappedBehavior: provider.unmappedBehavior,
-    defaultRoleName: provider.defaultRoleName,
+    defaultRoleIds: [...provider.defaultRoleIds],
     deletionChannelEnabled: provider.deletionChannelEnabled,
-    mappingRules: provider.mappingRules.map(rule => ({ ...rule, rowKey: rowKey() })),
+    mappingRules: provider.mappingRules.map(edited),
     hasClientSecret: provider.hasClientSecret,
     hasDeletionSecret: provider.hasDeletionSecret,
 });
@@ -110,6 +132,7 @@ const blank = (): Draft => ({
     deletionUrl: "",
     claimPath: "groups",
     unmappedBehavior: "deny",
+    defaultRoleIds: [],
     deletionChannelEnabled: false,
     mappingRules: [],
     hasClientSecret: false,
@@ -167,7 +190,7 @@ export default function ProvidersPage() {
             deletionUrl: draft.deletionUrl?.trim() || undefined,
             claimPath: draft.claimPath?.trim() || undefined,
             unmappedBehavior: draft.unmappedBehavior,
-            defaultRoleName: draft.defaultRoleName,
+            defaultRoleIds: draft.defaultRoleIds,
             deletionChannelEnabled: draft.deletionChannelEnabled,
             mappingRules: draft.mappingRules?.map(sent),
         };
@@ -179,7 +202,7 @@ export default function ProvidersPage() {
         if (saved) setDraft(undefined);
     };
 
-    const setRule = (key: string, rule: Partial<MappingRule>) => {
+    const setRule = (key: string, rule: Partial<Omit<EditedRule, "rowKey">>) => {
         if (!draft) return;
         setDraft({
             ...draft,
@@ -255,7 +278,11 @@ export default function ProvidersPage() {
                                             )
                                             : provider.mappingRules.map(rule => (
                                                 <Badge key={rule.claimValue} variant="light">
-                                                    {rule.claimValue} → {rule.roleName}
+                                                    {rule.claimValue}
+                                                    {" → "}
+                                                    {rule.targets
+                                                        .map(target => target.roleName ?? target.roleId)
+                                                        .join(", ")}
                                                 </Badge>
                                             ))}
                                     </Group>
@@ -376,18 +403,18 @@ export default function ProvidersPage() {
                         </Group>
 
                         {draft.unmappedBehavior === "defaultRole" && (
-                            <Select
-                                label={t("Default set")}
-                                data={templates.map(template => ({ value: template.name, label: template.name }))}
-                                value={draft.defaultRoleName ?? null}
-                                onChange={value => setDraft({ ...draft, defaultRoleName: value ?? undefined })}
+                            <MultiSelect
+                                label={t("Default roles")}
+                                data={templates.map(role => ({ value: role.id, label: role.name }))}
+                                value={draft.defaultRoleIds ?? []}
+                                onChange={value => setDraft({ ...draft, defaultRoleIds: value })}
                             />
                         )}
 
                         <Stack gap={4}>
                             <Text fw={500} size="sm">{t("Mapping")}</Text>
                             <Text size="xs" c="dimmed">
-                                {t("A value at the claim path above, and the role it grants. This contribution is rewritten at every sign-in, so editing the role reaches these people the next time they sign in rather than at once.")}
+                                {t("A value at the claim path above, and the roles it grants. This contribution is rewritten at every sign-in, so editing a role reaches these people the next time they sign in rather than at once.")}
                             </Text>
                             {(draft.mappingRules ?? []).map(rule => (
                                 <Group key={rule.rowKey} gap="xs" wrap="nowrap">
@@ -397,14 +424,11 @@ export default function ProvidersPage() {
                                         onChange={e => setRule(rule.rowKey, { claimValue: e.currentTarget.value })}
                                         style={{ flex: 1 }}
                                     />
-                                    <Select
-                                        placeholder={t("Permission set")}
-                                        data={templates.map(template => ({
-                                            value: template.name,
-                                            label: template.name,
-                                        }))}
-                                        value={rule.roleName || null}
-                                        onChange={value => setRule(rule.rowKey, { roleName: value ?? "" })}
+                                    <MultiSelect
+                                        placeholder={t("Roles")}
+                                        data={templates.map(role => ({ value: role.id, label: role.name }))}
+                                        value={rule.roleIds}
+                                        onChange={value => setRule(rule.rowKey, { roleIds: value })}
                                         style={{ flex: 1 }}
                                     />
                                     <ActionIcon
@@ -428,7 +452,7 @@ export default function ProvidersPage() {
                                     ...draft,
                                     mappingRules: [
                                         ...(draft.mappingRules ?? []),
-                                        { claimValue: "", roleName: "", rowKey: rowKey() },
+                                        { claimValue: "", roleIds: [], rowKey: rowKey() },
                                     ],
                                 })}
                             >

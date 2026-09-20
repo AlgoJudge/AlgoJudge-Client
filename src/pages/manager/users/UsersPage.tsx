@@ -443,8 +443,11 @@ export default function UsersPage() {
                                                     <Group key={grant.id} justify="space-between">
                                                         <Text size="sm">
                                                             {grant.activityName ?? t("System")}
-                                                            {(grant.roleName ?? grant.copiedFromRoleName) && (
-                                                                <Text component="span" size="xs" c="dimmed"> · {grant.roleName ?? grant.copiedFromRoleName}</Text>
+                                                            {grant.roles.length > 0 && (
+                                                                <Text component="span" size="xs" c="dimmed">
+                                                                    {" · "}
+                                                                    {grant.roles.map(role => role.name).join(", ")}
+                                                                </Text>
                                                             )}
                                                         </Text>
                                                         <Badge variant="light" size="sm">{effectivePermissions(grant).length}</Badge>

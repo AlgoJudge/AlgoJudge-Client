@@ -71,13 +71,30 @@ export interface Role {
     /** One of the three shipped. Deleting one is refused. */
     isBuiltIn: boolean;
     /**
+     * Which shipped role this is — `participant`, `manager` or `admin` — or
+     * absent for one an installation invented. Every enrollment path resolves a
+     * shipped role by this, so a screen can say which role a rename applied to.
+     */
+    builtInKey?: string;
+    /**
      * Absent for a role the installation shares; otherwise the activity that
-     * owns it, where only that activity's grants may point at it.
+     * owns it, where only that activity's grants may link to it.
      */
     activityId?: string;
     activityName?: string;
-    /** How many grants point at it — how many people an edit reaches. */
+    /**
+     * How many grants link it — how many people an edit reaches.
+     *
+     * The whole risk of editing a role is not knowing how far the edit goes, and
+     * a number is the cheapest answer. It counts what a provider wrote too.
+     */
     grants: number;
+    /**
+     * The providers whose rules name this role, by slug. An edit reaches those
+     * people at their next sign-in rather than at once, which is a different
+     * sentence for a screen to say.
+     */
+    mappedBy: string[];
 }
 
 export interface RoleInput {
@@ -161,11 +178,21 @@ export interface Grant {
      * because a screen edits the first and may not edit the second.
      */
     permissions: string[];
-    /** The role this grant points at, if it points at one. */
-    roleId?: string;
-    roleName?: string;
-    /** What that role contributes. Empty where there is no role. */
-    rolePermissions: string[];
+    /**
+     * The roles this grant links, each with what it carries, so a row reads
+     * without a second lookup. Empty where the grant holds its own set alone.
+     *
+     * A list rather than one role since 2026-09-19: both paths that decide what
+     * somebody holds speak in sets — a claim may match several rules, and a
+     * launch may carry several roles — and a single link could express neither.
+     */
+    roles: GrantRole[];
+    /**
+     * Roles somebody took away. They confer nothing; they arrive so a screen can
+     * say why a launch does not put them back, and so that granting one again is
+     * a visible act rather than a guess.
+     */
+    dismissedRoles: GrantRole[];
     /**
      * A membership that is not a participation: whoever runs the activity, a
      * reference solution, a monitor. Submits like anybody, counts as nobody —
@@ -179,10 +206,12 @@ export interface Grant {
      */
     isSystem: boolean;
     /**
-     * Where a copied set started. Informational, not a reference, and absent on
-     * anything that points at a role.
+     * Whether {@link Grant.isSystem} is somebody's decision rather than
+     * something the permissions imply. The only half of it a screen may set:
+     * clearing it does not make a competitor of somebody whose permissions say
+     * otherwise.
      */
-    copiedFromRoleName?: string;
+    staffByHand: boolean;
     state: GrantState;
     createdAt: string;
 
@@ -201,9 +230,13 @@ export interface Grant {
 
     /**
      * Rewritten from its provider's mapping at every sign-in, and therefore
-     * **not editable here**. True exactly when `source` is `provider`; sent as
-     * its own field so a control is disabled on a fact rather than on a string
-     * comparison.
+     * **not editable here**. Sent as its own field so a control is disabled on a
+     * fact rather than on a string comparison.
+     *
+     * True for a system-scope grant a provider wrote, and for nothing else. An
+     * activity grant is a person's membership whoever created it, so a launch no
+     * longer makes one uneditable; what a platform asserted is marked on the
+     * roles instead.
      */
     managed: boolean;
 
@@ -222,23 +255,49 @@ export interface Grant {
     overrideSystem: boolean;
 }
 
+/**
+ * One role a grant links, with what it carries and who put it there.
+ */
+export interface GrantRole {
+    roleId: string;
+    name: string;
+    /** What this role contributes to the union. */
+    permissions: string[];
+    /** The activity that owns the role, or absent for one the installation shares. */
+    activityId?: string;
+    /**
+     * Who put it here: absent for a person, otherwise the provider or the LTI
+     * platform that asserted it. A manager deciding whether to remove a role
+     * needs to know which of the two it is.
+     */
+    sourceProviderId?: string;
+    sourceProviderName?: string;
+    /** Set only on a dismissed role, which is why it is listed separately. */
+    dismissedAt?: string;
+}
+
 export interface GrantInput {
     userId: string;
     activityId?: string;
     permissions: string[];
     /**
-     * Ignored where the permissions already settle it: a staff grant is systemic
-     * whatever this says. The Server decides, as it must — a flag only the
-     * Client maintained is a flag the next caller sets to whatever it likes.
+     * Mark this membership as staff whatever its permissions imply. The Server
+     * derives the rest, as it must — a flag only the Client maintained is a flag
+     * the next caller sets to whatever it likes.
      */
-    isSystem?: boolean;
+    staffByHand?: boolean;
     /**
-     * The role to point at, or absent to leave the grant holding its own set
-     * alone. A global role, or one belonging to this grant's activity.
+     * The roles this grant is to link, as a whole set.
+     *
+     * **Absent leaves them as they are; an empty list takes them all away.** The
+     * two are different instructions: an enrollment, a group move and a staff
+     * flag are all edits that have no opinion about roles, and a write that says
+     * nothing about them must not strip them.
+     *
+     * Taking a role away is also what stops a launch putting it back, so sending
+     * this list is a decision and not a redraw.
      */
-    roleId?: string;
-    /** Ignored when {@link GrantInput.roleId} is set: the link says it. */
-    copiedFromRoleName?: string;
+    roleIds?: string[];
     state?: GrantState;
     /**
      * Make this activity grant authoritative inside its activity. Ignored at
@@ -278,7 +337,11 @@ export interface IdentityProvider {
     /** Where in the token the mapped value lives: `groups`, `realm_access.roles`. */
     claimPath: string;
     unmappedBehavior: "deny" | "defaultRole";
-    defaultRoleName?: string;
+    /**
+     * The roles granted when nothing matched, under `defaultRole`. Empty under
+     * `deny`, where there is nothing to grant.
+     */
+    defaultRoleIds: string[];
     deletionChannelEnabled: boolean;
     hasClientSecret: boolean;
     hasDeletionSecret: boolean;
@@ -296,19 +359,35 @@ export interface IdentityProvider {
 }
 
 /**
- * One line of the allowlist: this claim value grants this role.
+ * One line of the allowlist: this claim value hands out these targets.
  *
- * **The contribution this writes is the one grant that is still a copy.** A
- * claim may match several rules at once and the contribution is the union of
- * every role they name, which a single link cannot express. It loses nothing:
- * the union is rewritten from the rules at every sign-in, so editing a role a
+ * A set rather than one role, because a grant links several and a rule that
+ * could name only one would be where the model stopped being able to say what
+ * an installation means. A claim matching several rules grants the union.
+ *
+ * The union is rewritten from the rules at every sign-in, so editing a role a
  * rule names reaches those people then rather than immediately.
- *
- * Only a global role may be named — mapping is system scope.
  */
 export interface MappingRule {
     claimValue: string;
-    roleName: string;
+    targets: MappingTarget[];
+}
+
+/**
+ * One thing a rule hands out.
+ *
+ * A sign-in provider may name only an installation role: mapping is system
+ * scope, and an activity's role is somebody else's course's. The other two kinds
+ * resolve against the activity a launch names, so **only an LTI platform's rules
+ * may use them** — which is how an activity that chose its own enrollment roles
+ * is obeyed without anybody rewriting the platform's rules.
+ */
+export interface MappingTarget {
+    kind: "role" | "activityParticipants" | "activityManagers";
+    /** The role's id, under `role`. Absent for a slot. */
+    roleId?: string;
+    /** The role's name, on the way out only, so a screen reads a rule without a lookup. */
+    roleName?: string;
 }
 
 export interface IdentityProviderInput {
@@ -328,7 +407,8 @@ export interface IdentityProviderInput {
     deletionUrl?: string;
     claimPath?: string;
     unmappedBehavior?: "deny" | "defaultRole";
-    defaultRoleName?: string;
+    /** Required under `defaultRole`; ignored under `deny`. */
+    defaultRoleIds?: string[];
     deletionChannelEnabled: boolean;
     deletionSecret?: string;
     /** Replaced wholesale. An empty list clears the allowlist, which is a real instruction. */
@@ -557,13 +637,16 @@ export interface ManagedActivity {
     matchingRunners: number;
 
     /**
-     * The roles this activity enrolls into, or absent for the installation's
+     * The roles this activity enrolls into, or empty for the installation's
      * shipped ones. What self-enrollment, a bulk of temporary accounts and an LTI
      * launch hand out here — and the setting that makes a role belonging to this
      * activity reach anybody at all.
+     *
+     * Lists since 2026-09-19: a grant links several roles, so an activity may
+     * enroll into several.
      */
-    participantRoleId?: string;
-    managerRoleId?: string;
+    participantRoleIds: string[];
+    managerRoleIds: string[];
 }
 
 export interface ActivityInput {
@@ -601,11 +684,12 @@ export interface ActivityInput {
     runnerTags?: string[];
 
     /**
-     * The roles this activity enrolls into. Absent leaves them alone; an empty
-     * string clears one back to the installation's shipped role.
+     * The roles this activity enrolls into. **Absent leaves them alone; an empty
+     * list clears them** back to the installation's shipped role — two different
+     * instructions, so a form must send these only when somebody changed them.
      */
-    participantRoleId?: string;
-    managerRoleId?: string;
+    participantRoleIds?: string[];
+    managerRoleIds?: string[];
 }
 
 export interface ManagedActivityFilter {
@@ -1732,7 +1816,7 @@ export type ManagerEventType = "roleChanged" | "grantChanged" | "problemChanged"
 export type ManagerEvent<T extends ManagerEventType, V> = Event<T, V>;
 
 export type RoleChangedEvent = ManagerEvent<"roleChanged", {
-    template?: Role;
+    role?: Role;
     deletedId?: string;
 }>;
 

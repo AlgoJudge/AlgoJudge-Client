@@ -1,5 +1,5 @@
 import {
-    ActionIcon, Alert, Card, Grid, Group, NumberInput, SegmentedControl,
+    ActionIcon, Alert, Card, Grid, Group, MultiSelect, NumberInput, SegmentedControl,
     Select, Stack, Switch, TagsInput, Text, TextInput, Title, Tooltip,
 } from "@mantine/core";
 import { useClipboard } from "@mantine/hooks";
@@ -343,26 +343,30 @@ export default function ActivityForm(
                             activity had before it could choose. Choosing one of
                             this activity's own roles here is the whole way such
                             a role reaches anybody: self-enrollment, a bulk of
-                            temporary accounts and an LTI launch all read it. */}
-                        <Select
-                            label={t("Participants get the role")}
+                            temporary accounts and an LTI launch all read it.
+
+                            Several, because a grant links several: an activity
+                            whose participants are also on the jury says so here
+                            rather than editing everybody's grant afterwards. */}
+                        <MultiSelect
+                            label={t("Participants get the roles")}
                             description={t("Empty means the installation's shipped role.")}
                             placeholder={t("participant")}
                             data={roles.map(role => ({ value: role.id, label: role.name }))}
-                            value={value.participantRoleId ?? null}
-                            onChange={v => set({ participantRoleId: v ?? "" })}
+                            value={[...value.participantRoleIds ?? []]}
+                            onChange={v => set({ participantRoleIds: v })}
                             disabled={disabled || roles.length === 0}
                             clearable
                         />
                     </Grid.Col>
                     <Grid.Col span={{ base: 12, sm: 6 }}>
-                        <Select
-                            label={t("Whoever runs it gets the role")}
+                        <MultiSelect
+                            label={t("Whoever runs it gets the roles")}
                             description={t("Empty means the installation's shipped role.")}
                             placeholder={t("manager")}
                             data={roles.map(role => ({ value: role.id, label: role.name }))}
-                            value={value.managerRoleId ?? null}
-                            onChange={v => set({ managerRoleId: v ?? "" })}
+                            value={[...value.managerRoleIds ?? []]}
+                            onChange={v => set({ managerRoleIds: v })}
                             disabled={disabled || roles.length === 0}
                             clearable
                         />
