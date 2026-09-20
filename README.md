@@ -26,7 +26,7 @@ the fake or the real HTTP client. See *Running without a Server*.
 | Area | Where |
 |---|---|
 | Activities, problems, submissions, source view, ranking, questions | `src/pages/` |
-| Manager panel — sixteen screens, from activities to the LTI platforms | `src/pages/manager/` |
+| Manager panel — seventeen screens, from activities to the LTI platforms | `src/pages/manager/` |
 | Sign in and register | wired to the Server |
 | Live status over WebSocket | `src/api/ws/WebSocketEvents.ts`, mounted as `<EventsProvider>` in `src/App.tsx` |
 | Renderer registry keyed by the `name@version` discriminator | `src/renderers/TypeRegistry.ts`, registered in `src/renderers/index.ts` |
@@ -153,11 +153,11 @@ Released images are pushed to GitHub's container registry when a `v*` tag is
 pushed:
 
 ```bash
-docker pull ghcr.io/algojudge/algojudge-client:0.1.1
+docker pull ghcr.io/algojudge/algojudge-client:0.2.0
 ```
 
-`0.1.1`, `0.1`, `0` and `latest` all point at the same image. **A prerelease
-(`v0.1.1-rc.1`) publishes only its own tag** — nothing moving follows it, so
+`0.2.0`, `0.2`, `0` and `latest` all point at the same image. **A prerelease
+(`v0.2.0-rc.1`) publishes only its own tag** — nothing moving follows it, so
 `latest` is never a release candidate.
 
 ## Docker
@@ -167,7 +167,7 @@ in the final image.
 
 ```bash
 docker run -p 8080:80 -e API_BASE_URL=https://api.example.org \
-  ghcr.io/algojudge/algojudge-client:0.1.1
+  ghcr.io/algojudge/algojudge-client:0.2.0
 ```
 
 **One image serves every installation.** The address is read from the

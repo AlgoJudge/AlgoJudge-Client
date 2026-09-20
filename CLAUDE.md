@@ -159,10 +159,17 @@ typecheck and the build all stay silent. It reads the literal `t("…")` form on
 write one. Keys no screen asks for are reported and never failed on: deleting a
 screen should not be harder than adding one.
 
-`check:api` is not a gate yet: it prints the endpoints the HTTP layer calls, and
-only checks them when handed an OpenAPI document —
-`npm run check:api -- openapi.json`. It becomes a gate the day the Server
-publishes one.
+`check:api` is not a gate: it prints the endpoints the HTTP layer calls, and
+compares them only when handed an OpenAPI document —
+`npm run check:api -- ../AlgoJudge-Server/openapi.json`. **The Server commits
+one**, generated from its running container, and `check:events` reads
+`events.json` beside it the same way.
+
+So the comparison is available and CI does not make it. What stands between here
+and a gate is that no CI job has the Server's document to hand, which is a
+decision nobody has made rather than a thing being waited for. Both are run
+against the Server's released tag when this repository is released, and
+`docs/RELEASE.md` says how.
 
 **Browsers are closed by pid, never by image name.** `taskkill /IM chrome.exe`,
 `Stop-Process -Name chrome` and `pkill chrome` close whatever somebody is reading
